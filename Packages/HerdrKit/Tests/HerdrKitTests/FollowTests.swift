@@ -95,6 +95,21 @@ import Testing
     #expect(after < 10000)
 }
 
+/// A pi session can pass 100 MB: its backlog loads at `head`'s speed (0.9 s at a load of 15), not at macOS `tail`'s
+/// 17 MB a second (5.3 s). The bound leaves room for a busier Mac.
+@Test func `a big backlog loads fast`() async throws {
+    let file = FileManager.default.temporaryDirectory.appending(path: "oriel-backlog-\(UUID().uuidString).jsonl")
+    defer { try? FileManager.default.removeItem(at: file) }
+    try Data(String(repeating: String(repeating: "x", count: 7999) + "\n", count: 10000).utf8).write(to: file)
+    let start = ContinuousClock.now
+    for await line in try await localExec.follow(file.path, from: FileMark()) {
+        if case .loaded = line {
+            break
+        }
+    }
+    #expect(ContinuousClock.now - start < .milliseconds(2500))
+}
+
 @Test func `watch prints a file each time it changes`() async throws {
     let file = FileManager.default.temporaryDirectory.appending(path: "oriel-watch-\(UUID().uuidString).json")
     defer { try? FileManager.default.removeItem(at: file) }
