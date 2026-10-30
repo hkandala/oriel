@@ -314,8 +314,8 @@ has the exact commands:
    pane beside the agent's own.
 2. `herdr pane rename <pane> "oriel:browser#<iid> <url>"` makes it a browser
    pane, with a fresh iid.
-3. A `pane.report_metadata` on that pane with the token `oriel-label`
-   (`ttl_ms` 1000), through `herdr remote-api-bridge`. herdr sends no event
+3. `herdr pane report-metadata <pane> --source oriel-panes --token oriel-label=1
+   --ttl-ms 1000` on that pane. herdr sends no event
    for a rename, so this token's `pane.updated` event makes the app read the
    snapshot at once. Without it the card shows at the next event or the 30 s
    health check.
