@@ -131,8 +131,11 @@ and no backslash.
   ([Running commands](/docs/talking-to-herdr#running-commands)).
   - `Exec.follow` follows a file as `tail -F` does. It waits for the file,
     tells its inode, where it reads from and where the file's whole lines
-    end, then runs `tail -c +N -F` into awk. A new file is read whole, from
-    its start: one Claude Code turn can pass 256 KiB.
+    end. It sends those whole lines with `head`, after a seek (`dd … count=0`),
+    then runs `tail -c +N -F` from their end, both into awk. macOS's `tail`
+    copies only about 17 MB a second, so it never reads the backlog. A new
+    file is read whole, from its start: one Claude Code turn can pass
+    256 KiB.
   - **The line filter.** awk drops the lines that the agent's parser skips
     (an awk pattern next to each parser) and prints `oriel-skip <bytes>` in
     their place, so the mark still counts the file's bytes. On a remote
@@ -140,7 +143,8 @@ and no backslash.
     records that write another `type` first (`api-request-*`, …) and
     attachments other than queued prompts. Codex: every top-level type but
     `event_msg` and `turn_context`. Pi's file passes whole (its tree needs
-    every entry). A 796 KB Claude Code session sends 208 KB.
+    every entry), with no awk: macOS's awk passes about 30 MB a second. A
+    796 KB Claude Code session sends 208 KB.
   - awk reads a FIFO that only `tail` writes to, so the wrapper's kill of
     `tail` ends awk too. mawk (Debian's and Ubuntu's awk) runs with
     `-W interactive`, or it holds lines until 8 KiB come. The filter runs on
@@ -148,8 +152,9 @@ and no backslash.
   - **Shown once loaded.** The chat reads the file up to the end of its
     whole lines at the open into a backlog, off screen, then shows it at
     once. Lines after that show as they come. A read that is cut short keeps
-    what it read. The read yields every 200 lines: a 99 MB pi session parses
-    in about a second. There is no loader: a local read takes milliseconds.
+    what it read. The read yields every 200 lines: a 106 MB pi session loads
+    in under a second. There is no loader: a local read of a usual session
+    takes milliseconds.
   - The chat keeps a mark (inode and offset) per file in memory, so a card
     shown again goes on from there. Another inode, or a shorter file, starts
     the file again.
@@ -367,6 +372,13 @@ and the time.
   at the bottom, and fade in under the header. In a floating window they
   start 28 pt under the title row, not 16 pt, because the card has no header
   there.
+- **Scrolling.** The messages are a lazy stack: only the rows near the view
+  are built. At the bottom, the chat stays at the bottom as messages come and
+  as the card resizes. Scrolled up, the message at the top stays at the top
+  instead.
+- **Scroll to Bottom.** While the bottom of the messages is more than 40 pt
+  out of view, a round glass button with a down arrow (30 pt) sits 10 pt
+  above the reply box, in the middle. A click jumps to the newest message.
 - **Over the messages.** The question card and the reply box sit over the
   bottom of the messages, which scroll under the glass. The last message
   scrolls clear of the box as it grows. This is the one place where
@@ -457,12 +469,13 @@ snapshot does not start every run at once.
 
 - Messages, replies, the quiet lines and notes read as text with their
   words. A run and each call are buttons whose value is "open" or "closed".
-  The Show pull-down's value is the level. Send and Stop are named.
+  The Show pull-down's value is the level. Send, Stop and Scroll to Bottom
+  are named.
 - Identifiers, after `chat.‹pane id›`: `.composer`, `.send`, `.stop`,
   `.model`, `.level`, `.user`, `.sending`, `.not-sent`, `.reply`,
   `.summary`, `.worked`, `.empty`, `.stack`, `.tool`, `.tool.input`,
-  `.tool.output`, `.note`, `.question`, `.option.‹option›`, `.drawer`, `.open-terminal`, `.problem`
-  and `.show-terminal`. The header has `pane.‹id›.title`,
+  `.tool.output`, `.note`, `.bottom`, `.question`, `.option.‹option›`,
+  `.drawer`, `.open-terminal`, `.problem` and `.show-terminal`. The header has `pane.‹id›.title`,
   `pane.‹id›.state`, `pane.‹id›.program`, `pane.‹id›.view.chat`
   (`.tui`) and `pane.‹id›.enable-chat` (Relaunch with Chat).
 
