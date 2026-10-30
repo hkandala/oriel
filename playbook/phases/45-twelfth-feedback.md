@@ -50,3 +50,20 @@ are the orchestrator's.
     a browser page, and the plugin cards where the build has them.
 
 ## Findings
+
+### Track A
+
+- **Fix:** a turn is counts on top (`Ran 3 commands, read 4 files`), its last reply and notes, then `Worked 7h 17m`
+  under them; while it runs, the chat's loader says `Working 29s`. The top line has no state and no time, so there is
+  one Working. Replies and Activity draw the line at the same place and height; only Activity has the chevron.
+- **Fix:** the summary is one line: the three largest counts, `+N more`, then the failures; it cuts in the middle when
+  the card is narrow, so the failures stay. Everything's runs use the same words.
+- **Decisions:** `Worked` shows only under a turn with tool calls (the old line's rule), and not at Everything (no turn
+  line there). `+N more` counts kinds, not calls. A user's bubble has 8 pt more above and under it (26 pt against the
+  10 pt between a turn's rows). The empty chat's glyph is the header's `ProgramGlyph` at 64 pt and half opacity.
+- **Cause:** the empty chat's id first sat under the scroll view's own `chat.‹pane›` id, which replaced it (the
+  container-id lesson); it now sits after it.
+- **Decisions:** user bubbles keep their typed line breaks (each `\n` becomes a Markdown hard break). Links in a bubble
+  are its text color with no underline: rare in typed text, and an underline would change the replies too.
+- **For the user:** the empty chat while a long chat loads shows the icon until the history arrives (Track B's load).
+  Check a multi-line and a Markdown message in a bubble, in light mode too.
