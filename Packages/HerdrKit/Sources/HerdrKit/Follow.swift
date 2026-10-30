@@ -105,8 +105,8 @@ public extension Exec {
           s=$((s - $(head -c "$s" "$f" | tail -n 1 | wc -c)))
         echo "oriel-follow $n $o $s"
         r() { [ "$s" -gt "$o" ] || return 0
-          { dd bs=1 skip="$o" count=0 2>/dev/null; exec head -c $((s - o)); } <"$f" & h=$!
-          trap 'kill $h; exit 143' TERM; wait $h; }
+          trap 'kill $! 2>/dev/null; exit 143' TERM
+          { dd bs=1 skip="$o" count=0 2>/dev/null; exec head -c $((s - o)); } <"$f" & wait $!; }
         [ "$4" = 0 ] && { r; exec tail -c +$((s + 1)) -F "$f" 2>/dev/null; }
         p=$(mktemp -u "${TMPDIR:-/tmp}/oriel-follow.XXXXXX") && mkfifo -m 600 "$p" && exec 5<>"$p" 6<"$p" &&
           rm -f "$p" || exit 1

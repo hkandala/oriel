@@ -132,8 +132,8 @@ and no backslash.
   - `Exec.follow` follows a file as `tail -F` does. It waits for the file,
     tells its inode, where it reads from and where the file's whole lines
     end. It sends those whole lines with `head`, after a seek
-    (`dd … count=0`), then runs `tail -c +N -F` from their end, into awk
-    when the agent has lines to skip. macOS's `tail` copies only about
+    (`dd … count=0`), then runs `tail -c +N -F` from their end. Both go
+    through awk when the agent has lines to skip. macOS's `tail` copies only about
     17 MB a second, so it never reads the backlog. A new file is read whole,
     from its start: one Claude Code turn can pass 256 KiB.
   - **The line filter.** awk drops the lines that the agent's parser skips
@@ -382,7 +382,8 @@ and the time.
   lays its messages out at its new width once the width stops changing for
   150 ms, as a terminal does: a split's motion or a drag wraps the text once,
   not at every frame. Meanwhile the card clips the messages, or its fill
-  shows beside them.
+  shows beside them. The reply box and the Scroll to Bottom button follow the
+  card at once.
 - **Scroll to Bottom.** While the bottom of the messages is more than 40 pt
   out of view, a round glass button with a down arrow (30 pt) sits 10 pt
   above the reply box, in the middle. A click jumps to the newest message.

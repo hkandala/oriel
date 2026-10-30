@@ -65,6 +65,25 @@ struct ChatMessages: View, Equatable {
             }
             .focusEffectDisabled()
             .accessibilityIdentifier("chat.\(chat.paneID)")
+            // The card's new width once it stops changing for 150 ms (a split's motion, a divider or window drag), as
+            // a terminal's (SettlingHost): the rows wrap again once, not at every frame. Meanwhile the card clips
+            // them, or its fill shows beside them; the reply box, the button and the glyph follow the card at once.
+            // At once while the reading column keeps its width.
+            .frame(width: width)
+            .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { new in
+                settling?.cancel()
+                guard let old = width, min(old, new) < ChatView.column + 64 else {
+                    width = new
+                    return
+                }
+                settling = Task {
+                    try? await Task.sleep(for: .milliseconds(150))
+                    if !Task.isCancelled {
+                        width = new
+                    }
+                }
+            }
             // After the messages' id, which would replace its own.
             .overlay(alignment: .bottom) {
                 if !atBottom {
@@ -102,25 +121,6 @@ struct ChatMessages: View, Equatable {
         }
         // The messages fade in under the header instead of being cut by it.
         .fadeEdges(.vertical, start: 12, end: 0)
-        // The card's new width once it stops changing for 150 ms (a split's motion, a divider or window drag), as a
-        // terminal's (SettlingHost): the rows wrap again once, not at every frame. Meanwhile the card clips them, or
-        // its fill shows beside them. At once while the reading column keeps its width.
-        .frame(width: width)
-        .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
-        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { new in
-            settling?.cancel()
-            guard let old = width, min(old, new) < ChatView.column + 64 else {
-                width = new
-                return
-            }
-            settling = Task {
-                try? await Task.sleep(for: .milliseconds(150))
-                if !Task.isCancelled {
-                    width = new
-                }
-            }
-        }
-        .onDisappear { settling?.cancel() }
     }
 
     /// The row at the top while scrolled up; `held` changes only when that starts or ends, so the body is not built

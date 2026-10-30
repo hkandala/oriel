@@ -95,8 +95,6 @@ struct UserBubble: View {
             .background(Color.accentColor, in: .rect(cornerRadius: 18))
             .padding(.leading, 48)
             .frame(maxWidth: .infinity, alignment: .trailing)
-            .accessibilityElement(children: .ignore)
-            .accessibilityAddTraits(.isStaticText)
             .accessibilityValue(text)
             .accessibilityIdentifier("chat.\(paneID).\(sending ? "sending" : "user")")
     }
