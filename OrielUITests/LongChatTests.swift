@@ -5,7 +5,8 @@ import XCTest
 extension OrielUITests {
     func testALongChatKeepsItsPlaceAndScrollsToTheBottom() async throws {
         let (tab, pane) = try await startChat()
-        try await say("many", in: pane)
+        // Not `say`: its bubble is 150 turns up by the time it would look.
+        app.typeText("many\r")
         let last = row(pane, "reply", "Last.")
         XCTAssertTrue(until(10) { last.exists && last.isHittable })
         let bottom = element("chat.\(pane).bottom")
