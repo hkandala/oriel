@@ -12,6 +12,9 @@ struct ChatMessages: View, Equatable {
     @State private var top: String?
     /// The newest message is in view.
     @State private var atBottom = true
+    /// The card's width the messages lay out at, and the wait for its next one.
+    @State private var width: CGFloat?
+    @State private var settling: Task<Void, Never>?
     @Environment(\.look) private var look
     private static let end = "end"
 
@@ -100,6 +103,25 @@ struct ChatMessages: View, Equatable {
         }
         // The messages fade in under the header instead of being cut by it.
         .fadeEdges(.vertical, start: 12, end: 0)
+        // The card's new width once it stops changing for 150 ms (a split's motion, a divider or window drag), as a
+        // terminal's (SettlingHost): the rows wrap again once, not at every frame. Meanwhile the card clips them, or
+        // its fill shows beside them. At once while the reading column keeps its width.
+        .frame(width: width)
+        .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { new in
+            settling?.cancel()
+            guard let old = width, min(old, new) < ChatView.column + 64 else {
+                width = new
+                return
+            }
+            settling = Task {
+                try? await Task.sleep(for: .milliseconds(150))
+                if !Task.isCancelled {
+                    width = new
+                }
+            }
+        }
+        .onDisappear { settling?.cancel() }
     }
 
     /// Down to the newest message, over the messages' bottom: above the reply box.

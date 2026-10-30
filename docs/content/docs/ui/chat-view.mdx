@@ -376,6 +376,11 @@ and the time.
   are built. At the bottom, the chat stays at the bottom as messages come and
   as the card resizes. Scrolled up, the message at the top stays at the top
   instead.
+- **Resizing.** A narrow card (under 824 pt, where the column narrows too)
+  lays its messages out at its new width once the width stops changing for
+  150 ms, as a terminal does: a split's motion or a drag wraps the text once,
+  not at every frame. Meanwhile the card clips the messages, or its fill
+  shows beside them.
 - **Scroll to Bottom.** While the bottom of the messages is more than 40 pt
   out of view, a round glass button with a down arrow (30 pt) sits 10 pt
   above the reply box, in the middle. A click jumps to the newest message.
