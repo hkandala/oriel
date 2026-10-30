@@ -58,17 +58,17 @@ private extension ChatRow {
 
     var steps: [ChatEntry]? {
         switch self {
-        case let .summary(_, _, _, _, steps), let .stack(_, steps): steps
+        case let .summary(_, _, steps), let .stack(_, steps): steps
         default: nil
         }
     }
 }
 
-@Test func `replies show each turn's quiet line and last reply; activity opens the line to every step`() throws {
+@Test func `replies show each turn's quiet line, last reply and time; activity opens the line to every step`() throws {
     let history = try history()
     let replies = history.rows(.replies, working: false)
     #expect(replies.count { $0.kind == "user" } == 6 && !replies.contains { $0.kind == "stack" })
-    // The edit turn: its user message, its quiet line, its last reply.
+    // The edit turn: its user message, its quiet line, its last reply, how long it worked.
     let turn = try #require(replies
         .firstIndex {
             if case let .user(_, text) = $0 {
@@ -77,10 +77,14 @@ private extension ChatRow {
                 false
             }
         })
-    guard case let .summary(_, counts, nil, seconds?, []) = replies[turn + 1], case .reply = replies[turn + 2] else {
-        Issue.record("no summary and reply after \(replies[turn])"); return
+    guard case let .summary(_, counts, []) = replies[turn + 1], case .reply = replies[turn + 2],
+          case let .worked(_, seconds?) = replies[turn + 3]
+    else {
+        Issue.record("no summary, reply and time after \(replies[turn])"); return
     }
-    #expect(counts == "Wrote 1 file, ran 1 command, edited 1 file, read 1 file" && seconds > 30)
+    #expect(counts == "Wrote 1 file, ran 1 command, edited 1 file, +1 more" && seconds > 30)
+    // A turn with no tool calls has neither line.
+    #expect(replies.prefix(3).map(\.kind) == ["user", "reply", "user"])
 
     // The same rows, each line holding every step of its turn: the MCP turn's calls and thinking.
     let activity = history.rows(.activity, working: false)
@@ -92,9 +96,9 @@ private extension ChatRow {
 
 @Test func `everything has no quiet line, and the thinking between calls is in their run`() throws {
     let everything = try history().rows(.everything, working: false)
-    #expect(!everything.contains { $0.kind == "summary" })
+    #expect(!everything.contains { ["summary", "worked"].contains($0.kind) })
     #expect(everything.compactMap(\.steps).map { ChatTool.summary($0.compactMap(\.tool)) } == [
-        "Asked 1 question", "Wrote 1 file, ran 1 command, edited 1 file, read 1 file", "Ran 1 command",
+        "Asked 1 question", "Wrote 1 file, ran 1 command, edited 1 file, +1 more", "Ran 1 command",
         "Ran 3 commands, ran toolsearch 1 time, ran search_files 1 time, 2 failed",
     ])
     #expect(everything.compactMap(\.steps)
@@ -111,11 +115,16 @@ private extension ChatRow {
         tool.calls = calls
         return tool
     }
+    // The largest counts first, ties in the order they first ran.
     #expect(ChatTool.summary([tool("read"), tool("bash", failed: true), tool("read"), tool("ls"), tool("ls")])
-        == "Read 2 files, ran 1 command, listed 2 directories, 1 failed")
+        == "Read 2 files, listed 2 directories, ran 1 command, 1 failed")
+    // One line: three counts, the rest as "+N more", and the failures.
+    let many = ["agent_send", "bash", "bash", "read", "agent_stop", "agent_list", "edit"].map { tool($0) }
+        + [tool("bash", failed: true)]
+    #expect(ChatTool.summary(many) == "Ran 3 commands, talked to 1 agent, read 1 file, +3 more, 1 failed")
     // codemode is a command, and its script's calls count as their own.
     #expect(ChatTool.summary([tool("codemode", calls: ["read", "web_fetch", "bash"]), tool("agent_list")])
-        == "Ran 2 commands, read 1 file, fetched 1 web page, checked agents")
+        == "Ran 2 commands, read 1 file, fetched 1 web page, +1 more")
     #expect(ChatTool.summary([tool("explore"), tool("explore")]) == "Ran explore 2 times")
 }
 
@@ -124,8 +133,10 @@ private extension ChatRow {
     ClaudeTranscript.read(#"{"type":"user","uuid":"u","message":{"content":"go"}}"#, into: &history)
     let tool = #"{"type":"tool_use","id":"t","name":"Bash","input":{"command":"npm test\nmore"}}"#
     ClaudeTranscript.read(#"{"type":"assistant","uuid":"a","message":{"content":[\#(tool)]}}"#, into: &history)
+    // No "Worked" while it runs: the chat's loader counts from the turn's start.
     #expect(history.rows(.replies, working: true).map(\.id) == ["u", "u.summary"])
-    guard case let .summary(_, counts, _, nil, steps) = history.rows(.activity, working: true).last else {
+    #expect(history.rows(.replies, working: false).map(\.id) == ["u", "u.summary", "u.worked"])
+    guard case let .summary(_, counts, steps) = history.rows(.activity, working: true).last else {
         Issue.record("no steps in the quiet line"); return
     }
     #expect(steps.first?.tool?.target == "npm test" && steps.first?.tool?.result == nil)
@@ -133,6 +144,11 @@ private extension ChatRow {
     // A torn line is no entry.
     #expect(!ClaudeTranscript.read(#"{"type":"assist"#, into: &history))
     #expect(ChatHistory.duration(108) == "1m 48s")
+    ClaudeTranscript.read(
+        #"{"type":"user","uuid":"v","timestamp":"2026-10-29T10:00:00.000Z","message":{"content":"on"}}"#,
+        into: &history,
+    )
+    #expect(history.lastTurnStart == ChatHistory.date("2026-10-29T10:00:00.000Z"))
 }
 
 @Test func `models read as the agent's picker names them`() {

@@ -12,7 +12,7 @@ extension OrielUITests {
         XCTAssertTrue(row(pane, "reply", "Echo: **hello**").exists(within: 5))
         keepLevel(in: pane)
         level("Replies", in: pane)
-        XCTAssertTrue(element("chat.\(pane).summary").stringValue.hasSuffix(" · Ran 1 command"))
+        XCTAssertEqual(element("chat.\(pane).summary").stringValue, "Ran 1 command")
 
         // Stop sends Esc while it works.
         try await say("slow", in: pane)

@@ -86,11 +86,7 @@ struct ChatView: View {
                     outgoing(message)
                 }
                 if working {
-                    HStack(spacing: 6) {
-                        WorkingDots()
-                        Text("Working").foregroundStyle(.secondary)
-                    }
-                    .font(.system(size: 12))
+                    WorkingRow(since: chat.history.lastTurnStart)
                 }
                 if let problem = chat.problem {
                     problemCard(problem)

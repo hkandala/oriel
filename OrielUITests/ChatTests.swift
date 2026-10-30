@@ -23,13 +23,16 @@ extension OrielUITests {
         let stacks = app.descendants(matching: .any).matching(identifier: "chat.\(pane).stack")
         let stack = stacks.element(boundBy: 0)
         XCTAssertTrue(stack.has(\.stringValue, "closed", within: 2))
-        XCTAssertTrue(stack.label.hasPrefix("Worked ") && stack.label.hasSuffix(" · Ran 1 command"), stack.label)
+        XCTAssertEqual(stack.label, "Ran 1 command")
         stack.click()
         XCTAssertTrue(stack.has(\.stringValue, "open", within: 2))
         XCTAssertTrue(element("chat.\(pane).tool").exists(within: 2))
         level("Replies", in: pane)
         XCTAssertTrue(stack.vanishes(within: 2))
-        XCTAssertTrue(element("chat.\(pane).summary").stringValue.hasSuffix(" · Ran 1 command"))
+        // The counts on top, the time under the reply.
+        XCTAssertEqual(element("chat.\(pane).summary").stringValue, "Ran 1 command")
+        XCTAssertTrue(element("chat.\(pane).worked").stringValue.hasPrefix("Worked "))
+        keepScreenshot("chat")
         // Clicked open, it stays open.
         level("Activity", in: pane)
         XCTAssertTrue(stack.has(\.stringValue, "open", within: 2))
@@ -46,7 +49,6 @@ extension OrielUITests {
         level("Replies", in: pane)
         level("Everything", in: pane)
         XCTAssertTrue(stacks.element(boundBy: 0).has(\.stringValue, "closed", within: 2))
-        keepScreenshot("chat")
 
         // Esc anywhere in the chat stops it while it works, as Stop does.
         try await say("slow", in: pane)

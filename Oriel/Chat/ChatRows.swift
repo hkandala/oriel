@@ -19,15 +19,13 @@ struct ChatRowView: View, Equatable {
     var body: some View {
         switch row {
         case let .user(_, text): UserBubble(text: text, paneID: paneID)
-        case let .summary(_, counts, since, seconds, steps) where steps.isEmpty:
-            let summary = Summary(counts: counts, since: since, seconds: seconds)
-            summary
-                .accessibilityElement(children: .ignore)
-                .accessibilityAddTraits(.isStaticText)
-                .accessibilityValue(summary.text(at: .now))
-                .accessibilityIdentifier("chat.\(paneID).summary")
-        case let .summary(_, counts, since, seconds, steps):
-            stack(steps) { Summary(counts: counts, since: since, seconds: seconds) }
+        // Replies: the line as Activity draws it, with no chevron and no click.
+        case let .summary(_, counts, steps) where steps.isEmpty:
+            quiet(counts, "summary").lineLimit(1).frame(height: 24)
+        case let .summary(_, counts, steps):
+            stack(steps) { Text(counts).foregroundStyle(.secondary) }
+        case let .worked(_, seconds):
+            quiet(seconds.map { "Worked " + ChatHistory.duration($0) } ?? "Worked", "worked")
         case let .reply(_, text):
             Markdown(text: text).accessibilityIdentifier("chat.\(paneID).reply")
         case .thinking:
@@ -49,37 +47,33 @@ struct ChatRowView: View, Equatable {
         }
     }
 
+    private func quiet(_ text: String, _ id: String) -> some View {
+        Text(text).font(.system(size: 12)).foregroundStyle(.secondary)
+            .accessibilityElement(children: .ignore)
+            .accessibilityAddTraits(.isStaticText)
+            .accessibilityValue(text)
+            .accessibilityIdentifier("chat.\(paneID).\(id)")
+    }
+
     private func stack(_ steps: [ChatEntry], @ViewBuilder header: () -> some View) -> some View {
         ToolStack(steps: steps, open: open, paneID: paneID, toggle: toggle, opened: opened, toggleTool: toggleTool,
                   header: header)
     }
 }
 
-/// A turn's quiet line: "Worked 1m 48s · Read 2 files", or "Working ‹time›" going on. The loader is the chat's own,
-/// at its bottom.
-private struct Summary: View {
-    let counts: String
+/// The chat's loader, under the running turn: "••• Working 29s".
+struct WorkingRow: View {
     let since: Date?
-    let seconds: Double?
 
     var body: some View {
         HStack(spacing: 6) {
-            if since != nil {
-                TimelineView(.periodic(from: .now, by: 1)) { context in
-                    Text(text(at: context.date))
-                }
-            } else {
-                Image(systemName: "checkmark").font(.system(size: 10, weight: .semibold)).accessibilityHidden(true)
-                Text(text(at: .now))
+            WorkingDots()
+            TimelineView(.periodic(from: .now, by: 1)) { context in
+                Text(since.map { "Working " + ChatHistory.duration(context.date.timeIntervalSince($0)) } ?? "Working")
+                    .foregroundStyle(.secondary)
             }
         }
-        .font(.system(size: 12)).foregroundStyle(.secondary)
-    }
-
-    func text(at now: Date) -> String {
-        let time = since.map { "Working " + ChatHistory.duration(now.timeIntervalSince($0)) }
-            ?? seconds.map { "Worked " + ChatHistory.duration($0) } ?? "Worked"
-        return counts.isEmpty ? time : time + " · " + counts
+        .font(.system(size: 12))
     }
 }
 

@@ -243,8 +243,9 @@ extension ChatTodo {
 }
 
 public extension ChatTool {
-    /// A run's front as pi-content-layout words it (its tools.ts): "Read 3 files, ran 2 commands, 1 failed", in the
-    /// order the tools first ran; codemode's calls count as their own.
+    /// A run's front as pi-content-layout words it (its tools.ts), on one line: the three largest counts (ties in the
+    /// order the tools first ran), the rest as "+N more", and the failures: "Ran 89 commands, talked to 69 agents,
+    /// stopped 26 agents, +3 more, 4 failed". codemode's calls count as their own.
     static func summary(_ tools: [ChatTool]) -> String {
         var order: [(verb: String, noun: String)] = [], numbers: [String: Int] = [:]
         for name in tools.flatMap({ [$0.name] + $0.calls }) {
@@ -254,10 +255,15 @@ public extension ChatTool {
             }
             numbers[wording.verb, default: 0] += 1
         }
+        let largest = order.enumerated().sorted { first, second in
+            let (one, two) = (numbers[first.element.verb, default: 0], numbers[second.element.verb, default: 0])
+            return one != two ? one > two : first.offset < second.offset
+        }.map(\.element)
         let failed = tools.count(where: \.failed)
-        let text = (order.map { verb, noun in
+        let text = (largest.prefix(3).map { verb, noun in
             noun.isEmpty ? verb : "\(verb) \(ChatHistory.count(numbers[verb, default: 0], noun))"
-        } + (failed > 0 ? ["\(failed) failed"] : [])).joined(separator: ", ")
+        } + (largest.count > 3 ? ["+\(largest.count - 3) more"] : []) + (failed > 0 ? ["\(failed) failed"] : []))
+            .joined(separator: ", ")
         return text.prefix(1).uppercased() + text.dropFirst()
     }
 
