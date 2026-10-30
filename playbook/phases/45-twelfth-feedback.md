@@ -109,3 +109,16 @@ are the orchestrator's.
   (⌘D) and close the split: the same message stays at the top, and the split moves as smoothly as beside a terminal.
   Scroll to Bottom shows while scrolled up. Trackpad scrolling through a long chat can still drop a frame as a long
   reply comes into view.
+
+### Final review fixes
+
+- **Fix:** only the messages wait for the settled width; the reply box, Scroll to Bottom and the empty glyph follow
+  the card at once, so a split no longer clips the Send button.
+- **Runs:** a HerdrKit test follows an 80 MB file to `loaded` under 2.5 s: 0.9 s at a load of 15, 5.3 s (red) on the
+  old `tail -c +N` script. The bound is wall-clock, so a much busier Mac can still trip it.
+- **Fix:** the follow script sets its TERM trap before it starts `head`, so no TERM can come before the trap.
+- **Fix:** the chat no longer cancels the width wait on disappear: the state goes with the view.
+- **Fix:** a user's bubble no longer repeats `Markdown`'s accessibility element and trait, only its raw-text value.
+- **Decisions:** a bubble's fenced code keeps the two spaces per line that its hard breaks add, and Copy keeps them
+  too: rare in typed text.
+- **Fix:** the chat-view page says both the `head` backlog and `tail` go through awk.
