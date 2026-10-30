@@ -18,7 +18,8 @@ struct ChatRowView: View, Equatable {
 
     var body: some View {
         switch row {
-        case let .user(_, text): UserBubble(text: text, paneID: paneID)
+        // More room between a turn and the user's messages than between a turn's rows.
+        case let .user(_, text): UserBubble(text: text, paneID: paneID).padding(.vertical, 8)
         // Replies: the line as Activity draws it, with no chevron and no click.
         case let .summary(_, counts, steps) where steps.isEmpty:
             quiet(counts, "summary").lineLimit(1).frame(height: 24)
@@ -85,11 +86,10 @@ struct UserBubble: View {
     var sending = false
 
     var body: some View {
-        Text(text)
-            .font(.system(size: 14))
-            .lineSpacing(3)
-            .textSelection(.enabled)
+        Markdown(text: text)
             .foregroundStyle(Look.onAccent)
+            // Its links in its own text color, not the accent it sits on.
+            .tint(Look.onAccent)
             .padding(.horizontal, 14).padding(.vertical, 8)
             .background(Color.accentColor, in: .rect(cornerRadius: 18))
             .padding(.leading, 48)

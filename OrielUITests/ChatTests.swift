@@ -81,6 +81,9 @@ extension OrielUITests {
         XCTAssertTrue(row(pane, "reply", "Counted.").exists(within: 5))
         keepLevel(in: pane)
         level("Everything", in: pane)
+        // More room under the user's message than between a turn's rows.
+        let user = row(pane, "user", "long"), stack = element("chat.\(pane).stack")
+        XCTAssertGreaterThanOrEqual(stack.frame.minY - user.frame.maxY, 16, "\(user.frame) \(stack.frame)")
         let tool = element("chat.\(pane).tool")
         tool.click()
         let output = element("chat.\(pane).tool.output")

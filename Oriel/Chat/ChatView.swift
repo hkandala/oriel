@@ -193,6 +193,7 @@ struct ChatView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .trailing)
+        .padding(.vertical, 8)
     }
 
     private func problemCard(_ problem: String) -> some View {
