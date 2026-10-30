@@ -92,7 +92,9 @@ public extension Exec {
     /// of each skipped one, so the mark still counts the file's bytes. It reads a pipe that only `tail` writes to (a
     /// FIFO opened, then removed at once): the wrapper's kill ends `tail`, and awk ends on its EOF, also when the
     /// script is killed before `tail` starts. mawk (Debian's and Ubuntu's awk) holds lines until 8 KiB come unless it
-    /// reads interactively.
+    /// reads interactively. The whole lines go out through `head` from a seek (`dd … count=0`), and only the rest
+    /// through `tail`: macOS's `tail` copies 17 MB a second, and a pi session can pass 100 MB. With nothing to skip,
+    /// no awk: macOS's passes 30 MB a second.
     static var followScript: String {
         #"""
         f=$1; case $f in /*) ;; *) f=$HOME/$f ;; esac
@@ -102,11 +104,13 @@ public extension Exec {
         [ "$s" -eq 0 ] || [ -z "$(tail -c +"$s" "$f" | head -c 1)" ] ||
           s=$((s - $(head -c "$s" "$f" | tail -n 1 | wc -c)))
         echo "oriel-follow $n $o $s"
+        r() { { [ "$o" -eq 0 ] || dd bs=1 skip="$o" count=0 2>/dev/null; head -c $((s - o)); } <"$f"; }
+        [ "$4" = 0 ] && { r; exec tail -c +$((s + 1)) -F "$f" 2>/dev/null; }
         p=$(mktemp -u "${TMPDIR:-/tmp}/oriel-follow.XXXXXX") && mkfifo -m 600 "$p" && exec 5<>"$p" 6<"$p" &&
           rm -f "$p" || exit 1
         a=awk; command -v mawk >/dev/null && a="mawk -W interactive"
         LC_ALL=C $a "$4"' { print "oriel-skip " length($0) + 1; fflush(); next } { print; fflush() }' <&6 5>&- 6<&- &
-        exec tail -c +$((o + 1)) -F "$f" 2>/dev/null >&5 5>&- 6<&-
+        exec 6<&-; r >&5; exec tail -c +$((s + 1)) -F "$f" 2>/dev/null >&5 5>&-
         """#
     }
 
