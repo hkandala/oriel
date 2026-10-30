@@ -166,7 +166,8 @@ and no backslash.
   from the marks.
 - A message shows when it is on disk, 0.1–2 s after the TUI draws it. There
   is no text word by word. While the agent works, the last row is the
-  working dots and "Working", the chat's one loader.
+  working dots and "Working" with the turn's time ("Working 29s"), the
+  chat's one loader.
 - **Parsers.** One small, lenient parser per agent, in HerdrKit
   (`ClaudeTranscript`, `CodexRollout`, `PiTranscript`, `OpenCodeSession`),
   fills one `ChatHistory`: user text, replies, thinking, tool calls paired
@@ -309,27 +310,32 @@ One setting for the app (`chatLevel`, Replies by default): **Replies**,
 Chat | TUI. It shows only while the chat does. A saved `steps` or `all`
 reads as Replies.
 
-- **Replies:** the user's messages, each turn's quiet line, its last reply,
-  and notes. The line counts every tool call of the turn and does not open:
-  "Worked 1m 48s · Read 9 files, ran 4 commands, 1 failed", and "Working
-  48s · …" while the turn runs.
-- **Activity:** the same rows. The turn's line opens to every step of the
-  turn: its tool calls and its thinking.
-- **Everything:** no turn line. Every reply, todo list and note, each run of
+- **Replies:** the user's messages, and for each turn its quiet line on
+  top, its last reply, its notes and, once the turn ends, "Worked 1m 48s"
+  under them in 12 pt secondary text. The quiet line counts every tool call
+  of the turn and does not open: "Read 9 files, ran 4 commands, 1 failed".
+  It has no state and no time: while the turn runs, the loader under it
+  says "Working" and the time. A turn with no tool calls has neither line.
+- **Activity:** the same rows, at the same place and height. Only here the
+  turn's line has a chevron and opens to every step of the turn: its tool
+  calls and its thinking.
+- **Everything:** no turn line and no "Worked". Every reply, todo list and note, each run of
   tool calls between two replies as one quiet line, open, and thinking alone
   as a "Thought" row.
 - A line or run clicked open or closed stays so at every level.
 - No line or run has working dots: the loader is the chat's last row. While
-  a turn streams, a closed line changes only its counts and its time.
+  a turn streams, a closed line changes only its counts.
 
 **Tool calls.** A run is one quiet line with no card: its summary, a chevron
 and the time.
 - The summary uses pi-content-layout's words
   ([`tools.ts`](https://github.com/hkandala/pi-hkandala/blob/master/extensions/pi-content-layout/tools.ts)):
   a verb and a noun per tool for every agent's tool names, calls counted
-  (not distinct files), in the order the tools first ran: "Read 3 files, ran
-  2 commands, 1 failed". A tool it does not know reads "ran ‹tool› N
-  times". The tool calls of a codemode script count as their own.
+  (not distinct files), on one line: the three largest counts first (a tie
+  in the order the tools first ran), the others as "+N more", then the
+  failures: "Ran 89 commands, talked to 69 agents, stopped 26 agents, +4
+  more, 4 failed". A tool it does not know reads "ran ‹tool› N times". The
+  tool calls of a codemode script count as their own.
 - As in its groups, thinking between tool calls is a step of the run (a
   "Thought" row inside it).
 - Open, a run has one row per step: a symbol for its kind, the tool, its
@@ -349,7 +355,13 @@ and the time.
 ## What it looks like
 
 - As in Messages: the user's messages are bubbles in the accent color on the
-  right (14 pt, radius 18). Replies are plain, selectable text on the left.
+  right (14 pt, radius 18). They are Markdown, drawn as the replies are, in
+  the bubble's text color (links too). Replies are plain, selectable text on
+  the left.
+- Rows sit 10 pt apart, and a user's bubble has 8 pt more above and under
+  it, so each turn reads as one block.
+- **An empty chat** shows the agent's program glyph (the one in the tab), 64
+  pt and gray, in the middle of the messages, until the first message.
 - The messages, the question card and the reply box sit in a 760 pt column,
   centered on any card, 32 pt in from its sides. The messages scroll, newest
   at the bottom, and fade in under the header. In a floating window they
@@ -448,8 +460,8 @@ snapshot does not start every run at once.
   The Show pull-down's value is the level. Send and Stop are named.
 - Identifiers, after `chat.‹pane id›`: `.composer`, `.send`, `.stop`,
   `.model`, `.level`, `.user`, `.sending`, `.not-sent`, `.reply`,
-  `.summary`, `.stack`, `.tool`, `.tool.input`, `.tool.output`, `.note`,
-  `.question`, `.option.‹option›`, `.drawer`, `.open-terminal`, `.problem`
+  `.summary`, `.worked`, `.empty`, `.stack`, `.tool`, `.tool.input`,
+  `.tool.output`, `.note`, `.question`, `.option.‹option›`, `.drawer`, `.open-terminal`, `.problem`
   and `.show-terminal`. The header has `pane.‹id›.title`,
   `pane.‹id›.state`, `pane.‹id›.program`, `pane.‹id›.view.chat`
   (`.tui`) and `pane.‹id›.enable-chat` (Relaunch with Chat).
