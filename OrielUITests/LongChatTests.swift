@@ -52,10 +52,10 @@ extension OrielUITests {
         relaunch()
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         element("workspace.w2").click()
+        XCTAssertTrue(element("tab.\(tab)").exists(within: 3))
         element("tab.\(tab)").click()
-        let switchToChat = element("pane.\(pane).view.chat")
-        XCTAssertTrue(switchToChat.exists(within: 15))
-        switchToChat.click()
+        XCTAssertTrue(element("pane.\(pane).view.tui").has(\.isSelected, true, within: 10))
+        element("pane.\(pane).view.chat").click()
         XCTAssertTrue(until(10) { last.exists && last.isHittable })
     }
 

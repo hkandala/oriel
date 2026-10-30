@@ -131,12 +131,11 @@ and no backslash.
   ([Running commands](/docs/talking-to-herdr#running-commands)).
   - `Exec.follow` follows a file as `tail -F` does. It waits for the file,
     tells its inode, where it reads from and where the file's whole lines
-    end. It sends those whole lines with `head`, after a seek (`dd … count=0`),
-    then runs `tail -c +N -F` from their end, into awk when the agent has
-    lines to skip. macOS's `tail`
-    copies only about 17 MB a second, so it never reads the backlog. A new
-    file is read whole, from its start: one Claude Code turn can pass
-    256 KiB.
+    end. It sends those whole lines with `head`, after a seek
+    (`dd … count=0`), then runs `tail -c +N -F` from their end, into awk
+    when the agent has lines to skip. macOS's `tail` copies only about
+    17 MB a second, so it never reads the backlog. A new file is read whole,
+    from its start: one Claude Code turn can pass 256 KiB.
   - **The line filter.** awk drops the lines that the agent's parser skips
     (an awk pattern next to each parser) and prints `oriel-skip <bytes>` in
     their place, so the mark still counts the file's bytes. On a remote
@@ -148,9 +147,9 @@ and no backslash.
     796 KB Claude Code session sends 208 KB.
   - awk reads a FIFO that only `head`, then `tail` write to. The wrapper's
     kill ends `tail`, or ends `head` through a trap, so a dropped follow
-    sends no more of its backlog, and awk ends too. mawk (Debian's and Ubuntu's awk) runs with
-    `-W interactive`, or it holds lines until 8 KiB come. The filter runs on
-    This Mac too.
+    sends no more of its backlog, and awk ends too. mawk (Debian's and
+    Ubuntu's awk) runs with `-W interactive`, or it holds lines until 8 KiB
+    come. The filter runs on This Mac too.
   - **Shown once loaded.** The chat reads the file up to the end of its
     whole lines at the open into a backlog, off screen, then shows it at
     once. Lines after that show as they come. A read that is cut short keeps
@@ -377,7 +376,8 @@ and the time.
 - **Scrolling.** The messages are a lazy stack: only the rows near the view
   are built. At the bottom, the chat stays at the bottom as messages come and
   as the card resizes. Scrolled up, the message at the top stays at the top
-  instead.
+  instead, from when the scroll first passes a message's top. Until then
+  (scrolled up inside the newest message), the bottom keeps its place.
 - **Resizing.** A narrow card (under 824 pt, where the column narrows too)
   lays its messages out at its new width once the width stops changing for
   150 ms, as a terminal does: a split's motion or a drag wraps the text once,

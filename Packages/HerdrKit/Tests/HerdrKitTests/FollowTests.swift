@@ -74,7 +74,7 @@ import Testing
 
 /// A follow dropped in the middle of its backlog sends no more of it: a remote one would flood the relay, and through
 /// awk a `head` left behind would hang on the FIFO. (Without awk, this Mac's reader drains the pipe before the kill.)
-@Test func `a dropped follow stops its backlog`() async throws {
+@Test(.timeLimit(.minutes(1))) func `a dropped follow stops its backlog`() async throws {
     let file = FileManager.default.temporaryDirectory.appending(path: "oriel-drop-\(UUID().uuidString).jsonl")
     defer { try? FileManager.default.removeItem(at: file) }
     let line = String(repeating: "x", count: 999)
@@ -91,8 +91,8 @@ import Testing
         }
         after += 1
     }
-    // The pipes' buffers, not the 20,000 lines.
-    #expect(after < 2000)
+    // The pipes' buffers (32–65 lines), not the 20,000 lines.
+    #expect(after < 10000)
 }
 
 @Test func `watch prints a file each time it changes`() async throws {

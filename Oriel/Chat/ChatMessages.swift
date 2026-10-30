@@ -12,6 +12,9 @@ struct ChatMessages: View, Equatable {
     @State private var top: String?
     /// The newest message is in view.
     @State private var atBottom = true
+    /// A row holds the place: the scroll view named one since the chat left the bottom. Until then the bottom does,
+    /// also scrolled up inside a newest reply taller than the view.
+    @State private var held = false
     /// The card's width the messages lay out at, and the wait for its next one.
     @State private var width: CGFloat?
     @State private var settling: Task<Void, Never>?
@@ -48,16 +51,16 @@ struct ChatMessages: View, Equatable {
                 .frame(maxWidth: .infinity)
             }
             // The scroll view names the row at the top as it scrolls: not at the bottom, which follows new rows. Set
-            // here, not in an onChange, so the body (and the rows) are not built again per row scrolled past.
-            .scrollPosition(id: Binding(get: { top }, set: { top = atBottom ? nil : $0 }), anchor: .top)
+            // here, not in an onChange, so the body is not built again per row scrolled past.
+            .scrollPosition(id: Binding(get: { top }, set: { hold(atBottom ? nil : $0) }), anchor: .top)
             .defaultScrollAnchor(.bottom)
-            .defaultScrollAnchor(atBottom ? .bottom : nil, for: .sizeChanges)
+            .defaultScrollAnchor(held ? nil : .bottom, for: .sizeChanges)
             .onScrollGeometryChange(for: Bool.self) { geometry in
                 geometry.contentSize.height + geometry.contentInsets.bottom - geometry.visibleRect.maxY < 40
             } action: {
                 atBottom = $1
                 if $1 {
-                    top = nil
+                    hold(nil)
                 }
             }
             .focusEffectDisabled()
@@ -118,6 +121,15 @@ struct ChatMessages: View, Equatable {
             }
         }
         .onDisappear { settling?.cancel() }
+    }
+
+    /// The row at the top while scrolled up; `held` changes only when that starts or ends, so the body is not built
+    /// again per row.
+    private func hold(_ row: String?) {
+        top = row
+        if held != (row != nil) {
+            held = row != nil
+        }
     }
 
     /// Down to the newest message, over the messages' bottom: above the reply box.
