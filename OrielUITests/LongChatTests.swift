@@ -16,13 +16,18 @@ extension OrielUITests {
         // Up into the older messages, by natural scrolling either way.
         let chat = element("chat.\(pane)")
         let point = "\(chat.frame.midX) \(chat.frame.midY)"
-        for step in [10, -10] {
+        var upward = 0
+        for step in [10, -10] where upward == 0 {
             _ = try await Self.post("\(one)/swipe", Data("\(point) \(step) 20 100 1".utf8))
             if bottom.exists(within: 2) {
-                break
+                upward = step
             }
         }
         XCTAssertTrue(bottom.exists)
+        // Far enough up that the newest reply is out of view, so a jump back to it would show.
+        for _ in 0 ..< 5 where last.exists && last.isHittable {
+            _ = try await Self.post("\(one)/swipe", Data("\(point) \(upward) 20 100 1".utf8))
+        }
         XCTAssertFalse(last.exists && last.isHittable)
         // The messages along the top of the view, once the scroll's momentum ends.
         var top: Set<String> = []
