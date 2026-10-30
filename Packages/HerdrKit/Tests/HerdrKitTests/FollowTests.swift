@@ -112,18 +112,23 @@ private func lineByLine(_ path: String, from mark: FileMark,
 }
 
 /// A pi session can pass 100 MB: its backlog loads at `head`'s speed (0.9 s at a load of 15), not at macOS `tail`'s
-/// 17 MB a second (5.3 s). The bound leaves room for a busier Mac.
+/// 17 MB a second (5.3 s). Measured against `tail` on the same file just before, so a busy Mac slows both.
 @Test func `a big backlog loads fast`() async throws {
     let file = FileManager.default.temporaryDirectory.appending(path: "oriel-backlog-\(UUID().uuidString).jsonl")
     defer { try? FileManager.default.removeItem(at: file) }
     try Data(String(repeating: String(repeating: "x", count: 7999) + "\n", count: 10000).utf8).write(to: file)
-    let start = ContinuousClock.now
+    var start = ContinuousClock.now
+    _ = try await localExec.checkedOutput(["sh", "-c", #"tail -c +1 "$1" >/dev/null"#, "sh", file.path],
+                                          timeout: .seconds(120))
+    let tail = ContinuousClock.now - start
+    start = .now
     for await line in try await lineByLine(file.path, from: FileMark()) {
         if case .loaded = line {
             break
         }
     }
-    #expect(ContinuousClock.now - start < .milliseconds(2500))
+    let follow = ContinuousClock.now - start
+    #expect(follow < tail / 2, "follow \(follow), tail \(tail)")
 }
 
 /// A burst written at once (150 turns of a long session) comes in one or two batches to a reader that is busy, as the
