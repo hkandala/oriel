@@ -97,6 +97,9 @@ Problems that came back across phases, and the rule that stops each. How we work
 - **A new or lazy scroll view's first layout lies.** The first scroll position gets dropped,
   `containerRelativeFrame` resolves to the window, `.task` in a lazy stack is cancelled, and overlays get
   clipped. Use `defaultScrollAnchor(_:for: .initialOffset)`, a GeometryReader, or `onAppear` plus a Task.
+- **A lazy stack anchored at the bottom guesses its height** from the rows it built, often 2–3× off. Keep the place
+  with `scrollPosition(id:)`, and anchor `.sizeChanges` to the bottom only while at the bottom: else a resize jumps
+  to the end, or past it to a blank view. Test a one-step resize too (Reduce Motion).
 - **SwiftUI lifecycle traps:** it keeps the first closure (read current state inside actions); a first
   responder set during an update is undone (take focus on the next run-loop turn); a `@State` initializer
   runs again on every parent rebuild (no side effects in it); the menu bar refreshes only when the focused

@@ -67,3 +67,32 @@ are the orchestrator's.
   are its text color with no underline: rare in typed text, and an underline would change the replies too.
 - **For the user:** the empty chat while a long chat loads shows the icon until the history arrives (Track B's load).
   Check a multi-line and a Markdown message in a bubble, in light mode too.
+
+### Track B
+
+- **Measured** on the orchestrator's own pi session (106 MB, 3,603 entries, 1,889 tool calls, 869 rows at Replies) in
+  a probe app hosting the chat's rows off screen, and in HerdrKit's follower: load 6.9 s to the history; the one
+  update that shows it 50–140 ms; 46 keys typed 600–670 ms of main-thread time (13–20 ms a key); a split's 16 frames
+  21–108 ms each at the 95th percentile; scrolling 240 × 30 pt 1.3–2.3 s busy, 10–20 frames over 16 ms.
+- **Cause, item 9.** macOS's `tail -c +N` copies about 17 MB a second and its awk passes 30 MB: the follower took 6.9 s
+  to send a 106 MB backlog, the chat empty meanwhile; a switch cut the read short and showed what it had. And a
+  one-step width change (Reduce Motion, a first layout) with the bottom anchor left the offset past the content: a
+  blank chat until a switch made the view again. **Fix:** the whole lines go out through `head` after a `dd` seek,
+  only the rest through `tail -F`, with no awk when nothing is skipped: 0.75 s. The anchoring below fixes the blank.
+- **Cause, item 10.** `defaultScrollAnchor(.bottom, for: .sizeChanges)` held the bottom whatever was in view, so a
+  resize while scrolled up jumped to the end; and the card's width changed at every frame of a split, so every visible
+  row wrapped again. **Fix:** `scrollPosition(id:)` keeps the row at the top while scrolled up (the bottom anchor
+  only at the bottom); a card under 824 pt takes its new width once it holds for 150 ms, as `SettlingHost` does
+  (wider cards keep their 760 pt column and follow at once). A split's frames: 2–11 ms at the 95th percentile.
+- **Cause, item 8.** The rows were built from the whole history in `ChatView`'s body, which ran again for every key in
+  the reply box and every resize frame (5–8 ms in Release at 3,600 entries, plus the list's diff). **Fix:** the rows,
+  the message list and the reply box are their own views: 46 keys 87 ms (2 ms a key).
+- **Decisions.** Scrolling itself is unchanged: its cost is building rows as they come into view (text layout, and an
+  AppKit text field per paragraph for selection, about 30 % of it), not Markdown parsing, which did not show in the
+  samples, so no parse cache. `List` showed no bottom anchor and slower resizes. Scroll to Bottom shows when the bottom
+  is more than 40 pt out of view, jumps without animation, and sits 10 pt above the reply box.
+- **Runs.** No local UI runs (the benchmark held the GUI): the long-chat test (load, scroll up, split, the button) runs
+  in the chosen-tests CI run. It is not proven red on the old code; the probe saw the old jump and blank.
+- **For the user.** Open the chat of a long pi or Claude Code session: it shows at once. Scroll up, split beside it
+  (⌘D) and close the split: the same message stays at the top, and the split moves as smoothly as beside a terminal.
+  Scroll to Bottom shows while scrolled up. Trackpad scrolling through a long chat may still drop frames.
