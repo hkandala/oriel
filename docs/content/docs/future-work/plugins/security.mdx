@@ -1,87 +1,105 @@
 ---
 title: "Plugin security"
-description: "Machine binding, what run means, consent, the page's limits and caps"
+description: "Proposed: permissions in the manifest, one trust prompt, a locked page and a bridge bound to its card"
 ---
 
-Not built for installed plugins. The default plugins' pages load only the
-app's own files under a Content Security Policy and navigate only within the
-app's scheme ([How the web cards work](/docs/ui/plugins#how-the-web-cards-work)).
-This page is the design ([Pane kinds and plugins](/docs/future-work/plugins)).
+Proposed ([Pane kinds and plugins](/docs/future-work/plugins)). Oriel is a
+single-user app on one Mac. A plugin in your folder is code that you or an
+agent of yours put there. Anything that can write that folder can already
+run code as you. So the rules below do not sandbox a plugin from you. They
+keep a page from doing more than its manifest says, and they keep text from
+files and machines from taking over a page.
 
-- **One web page per card, bound to its pane's machine.** `run` and `dial` go
-  only to that machine; the bridge functions take no machine or pane id,
-  because the card is bound when it is built. Cards share no memory or
-  storage. The app gives plugins no network from the device.
-- **The page loads only its own files.** A content rule blocks every load that
-  is not the plugin's `oriel-plugin://<id>/` scheme. The bridge and a
-  confirmed link (below) are the only ways out of the page.
-- **No script from content.** Every page gets a Content Security Policy whose
-  `script-src` allows only the plugin's own files: no inline script, no
-  `eval`. WebAssembly is allowed (`'wasm-unsafe-eval'`), so a plugin can
-  bundle a fast diff engine or syntax highlighter. WebAssembly runs only
-  through the plugin's own scripts, and JavaScript `eval` stays blocked. Inline styles
-  are allowed (`style-src 'self' 'unsafe-inline'`), so authors can use style
-  attributes. So HTML that a plugin builds from repository text by mistake
-  cannot run script. Plugins must still insert repository text as text, not
-  HTML. The core Markdown plugin renders with raw HTML turned off. The scheme
-  handler sends:
+## The rules
+
+- **Permissions in the manifest.** A page can only draw, keep its state and
+  open other cards, unless the manifest lists more: `files:read`,
+  `files:write`, `git`, `run`, `clipboard`
+  ([Permissions](/docs/future-work/plugins/manifest#permissions)). The bridge
+  answers any other call with `denied`.
+- **A bridge bound to its card.** Each card's web view has its own message
+  handler. It is bound to the card's machine, session, plugin and
+  permissions when the card is made. No message names a machine, a pane or
+  another card, so a page reaches only its own card's machine. Cards share
+  no memory or storage: WebKit gives each one its own process.
+- **The page loads only its own files.** The scheme handler serves
+  `oriel-plugin://<id>/` from that plugin's build folder alone: one folder,
+  no climbing out of it, no hidden files. It sends this Content Security
+  Policy with every answer:
+
   ```text
-  Content-Security-Policy: default-src 'none'; script-src 'self' 'wasm-unsafe-eval';
-    style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:;
-    connect-src 'self'; frame-src 'none'; form-action 'none'; base-uri 'none'
+  default-src 'none'; script-src oriel-plugin://<id> 'wasm-unsafe-eval';
+  style-src oriel-plugin://<id> 'unsafe-inline'; img-src oriel-plugin://<id> data: blob:;
+  media-src blob:; font-src oriel-plugin://<id> data:; connect-src oriel-plugin://<id>;
+  frame-src 'none'; form-action 'none'; base-uri 'none'
   ```
-- **What `run` means:** a plugin with `run` can do anything you can do on
-  that machine, including network tools and processes that keep running after
-  the card closes. `dial` adds nothing beyond that. The app does not pretend
-  otherwise; the consent sheet says so.
-- **Plugin JavaScript runs only while a card is alive.** Off screen, its
-  calls pause.
-- **Open and copy need a user action, and WebKit enforces it.**
-  - Opening: a `target="_blank"` click or a `window.open` from a click or key
-    press reaches the app's `WKUIDelegate` (or `decidePolicyFor` with no
-    target frame). The app creates no window: it shows a confirm sheet with
-    the full URL, then opens `http`/`https` in the browser.
-    `javaScriptCanOpenWindowsAutomatically` stays off, so `window.open`
-    without a user action never reaches the app.
-  - Copy: `navigator.clipboard.writeText` (the page is a secure context).
-    WebKit allows it only during a click or key press.
-  - **The app never pushes into a plugin page** with `evaluateJavaScript` or
-    `callAsyncJavaScript`: WebKit runs those with a forced user action, even
-    in a separate content world, which would let the page copy and open
-    freely. App-to-page messages travel only as replies to the page's own
-    bridge calls (`WKScriptMessageHandlerWithReply`); for example, `oriel.on`
-    waits on a pending call for the next snapshot read.
-- **No permissions to pick.** Every plugin can `run` and `dial`; install
-  consent is the gate. Finer rules ("only `git`") would not hold
-  (`git -c alias.x='!sh'` runs anything), so none are offered.
-- **Consent at install**, per device, keyed by plugin id and source.
-  - The sheet is headed by the plugin id and source URL. A plugin chooses its
-    own title, so the title alone could imitate another.
-  - Then it shows the commit and, in plain words: "‹Title› can run any
-    command as you on the machine of every ‹Title› pane you open, including
-    ones another device or person created. It can use the network from there,
-    leave programs running, type into panes and prompt agents. On This Mac
-    that includes your files, SSH keys and the app's connections to your
-    other machines."
-  - Text from a machine is shown with control and direction-override
-    characters removed.
-- **This Mac gets one more confirm**, on a plugin's first `run` or `dial`
-  there, remembered per plugin id and source, and revocable.
-- Core plugins ask nothing. The Settings window lists every plugin with its source,
-  commit and answers, with Disable and Remove.
-- The argument and machine content are untrusted: they reach a machine only
-  as argv inside the envelope. `run` has no shell option.
-- **A machine can write labels**, so it can open any *installed* plugin on
-  itself. That gives it only what the plugin does on that same machine.
-- **Caps:** `run` output 4 MiB per stream, state 256 KiB, argument 1024
-  characters.
-- **A hung page** freezes only its own card: WebKit runs each page in its own
-  process. The card shows "‹title› is not responding" and **Refresh**.
 
-## Choices
+  No inline script and no `eval`, so HTML built from a file's text by
+  mistake cannot run a script. WebAssembly is allowed, for a fast parser or
+  diff engine. `fetch` reaches only the plugin's own files: no network.
+- **The navigation lock.** The card allows only its own page. A link, a
+  `<meta>` refresh or a form in shown content cannot take the page, and the
+  bridge with it, to another site. `window.open` and `target=_blank` open
+  nothing. A plugin opens links with `oriel.open`, which makes a browser card
+  under the browser's load rule
+  ([When a page loads by itself](/docs/ui/browser#when-a-page-loads-by-itself)).
+- **Text is text.** A plugin must insert file and command text with
+  `textContent` or its library's text API, not as HTML. The default plugins
+  do (Markdown renders with its HTML turned off in Read).
+- **`run` has no shell.** It takes argv, which goes to the machine inside the
+  envelope (D3). The argument from the label is never part of a command
+  line.
+- **Limits:** a file read 16 MB, a `run` stream 4 MiB, a state value 256 KiB,
+  a label argument 1024 characters.
+- **A hung page** stops only its own card. The card shows "‹name› is not
+  responding" with **Reload**.
 
-- **Say plainly what a plugin can do.** The user sees exactly what they
-  grant, and the app adds no reach beyond `run` and `dial` on the pane's
-  machine. Rejected: a permissions field (there is one capability); finer
-  permissions that do not hold; a user-action tracker in Swift; claiming a
-  sandbox that `run` cannot give.
+## The trust prompt
+
+A plugin inside the app needs no prompt. A user plugin asks once, in its
+first card, before its code runs:
+- when it is new: an id that the app has not trusted;
+- when its permissions grow: the manifest lists one that the trusted set did
+  not have.
+
+A change to its code does not ask again. Hot reload depends on that, and a
+program that can edit the code can already run as you.
+
+The prompt sits in the card's middle, under the plugin's icon:
+
+> **Trust “CSV Table”?**
+> `csv-table` 0.1.0 in `~/.config/oriel/plugins/csv-table`
+> A CSV or TSV file as a table you can sort.
+> It can read files and folders on the machine of each card you open.
+>
+> **Don't Allow** · **Allow**
+
+- The id and the folder head the prompt, because a plugin picks its own name.
+- The words list each permission in the manifest's order. With `run` the
+  sentence ends: "It can run any command as you there, including ones that
+  use the network or keep running."
+- **Allow** keeps the id and its permission set in app storage, and the page
+  loads. **Don't Allow** leaves the card with the prompt, and the plugin's
+  other cards show it too.
+- Text from the manifest shows with control and direction-override
+  characters removed.
+- ⌘K has "Forget Plugin Trust ▸" with a sub-page of the trusted plugins.
+
+## What a machine can do
+
+A machine writes labels. So any process on a machine (a script, an agent)
+can open a card of any trusted plugin on that machine. That gives it only
+what the plugin does there, on its own files. It cannot open a card on
+another machine.
+
+## Options
+
+| Option | Pros | Cons |
+|---|---|---|
+| Permissions in the manifest and a trust prompt for new plugins and new permissions | the user sees what a plugin does before it runs; a read-only plugin stays read only | one click per new plugin |
+| Permissions only, no prompt | no click | a plugin dropped into the folder by anything runs at once |
+| Nothing for local plugins | the least code | a viewer with a bad dependency can write files and run commands |
+| A prompt on every change of the code | catches any change | breaks hot reload; a program that can edit the code can already run as you |
+
+Recommended: permissions and the trust prompt. The prompt sits in the card,
+so a folder that the user never opens asks nothing.

@@ -5,7 +5,7 @@ description: "A browser pane: a web view with Web Inspector in a placeholder her
 
 herdr cannot draw a web page. So a herdr pane holds the place in the layout,
 and the app draws a web view in its rectangle. The browser is the first pane
-kind built on the [plugin foundation](/docs/future-work/plugins#what-is-built),
+kind built on the [plugin foundation](/docs/future-work/plugins#what-stays-as-built),
 and it is built into the app. What is not built yet is in
 [Future work](/docs/future-work#smaller-items). Research:
 [`browser.md`](https://github.com/hkandala/oriel/blob/main/resources/research/plugins/browser.md).
@@ -180,7 +180,7 @@ docked at the bottom of the card. Its own control moves it to a window.
 
 The page and its back and forward list are saved on the pane's machine, in
 the instance state file
-([The instance state file](/docs/future-work/plugins/state#the-instance-state-file)):
+([State](/docs/future-work/plugins/api#state)):
 `$HOME/.local/state/oriel/<session>/browser/<iid>.json`.
 - It holds `{"url": …, "history": …}`. `url` is as the machine sees it.
   `history` is WebKit's `interactionState` (the back and forward list) in
@@ -356,7 +356,7 @@ Open.
 | The SOCKS port is open to other accounts on the Mac | another account can reach the machine's network | accepted for a single-user Mac; a random port, open only while a card needs it |
 | A server with `AllowTcpForwarding no` | remote pages cannot load | the card says "cannot reach"; Tailscale or LAN addresses still load; a bigger server helper later |
 | `_WKInspector` is private | the Web Inspector button can break on a macOS update | Safari's Develop menu still reaches every card |
-| Web view memory | memory grows with many browser cards | no cap yet; the shared cap of live web views ([Plugin UI](/docs/future-work/plugins/plugin-ui#risks)) when it hurts |
+| Web view memory | memory grows with many browser cards | no cap yet; the proposed budget of 20 kept web cards ([Memory budget](/docs/future-work/plugins#memory-budget)) |
 
 ## Choices
 

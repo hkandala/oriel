@@ -1,156 +1,255 @@
 ---
 title: "Pane kinds and plugins"
-description: "Terminal, agent, browser and the default plugins are built in; installed plugins are the design"
+description: "Proposed: every plugin is a folder of TypeScript that Oriel builds, loads in a web view and connects to the card's machine"
 ---
 
-Terminal, Agent and Browser are built in
-([New pane](/docs/ui/new-pane), [Browser](/docs/ui/browser)), and so are five
-default plugins: File, Preview, Markdown, Diff and Files
-([Default plugins](/docs/ui/plugins)). Plugins that the user installs are not
-built. The pages in this section are their design, on the foundation that
-the browser and the default plugins built ([What is built](#what-is-built)).
+<Callout title="Proposed design" type="warn">
+This section is a proposal, not yet approved. The five default plugins work
+today as [Default plugins](/docs/ui/plugins) describes, with a fixed bridge.
+Nothing on these pages is built until the user approves it. Then each part
+moves to the pages of the built app.
+</Callout>
 
 A pane kind is what a pane shows: a terminal, an agent, a browser or a
-plugin. Terminal, Agent and Browser are
-built into the app. Every other pane kind is a plugin: a small web page
-([Plugin UI](/docs/future-work/plugins/plugin-ui)) from one plugin registry.
+plugin. Terminal and Agent are herdr's own panes. Every other kind is a
+plugin: a herdr pane that runs a placeholder, with a label that names the
+plugin ([Labels and instance ids](/docs/future-work/plugins/labels)). The app
+draws the plugin's card over that pane.
 
-| Pane kind | Kind | UI | JavaScript | How herdr marks the pane |
-|---|---|---|---|---|
-| Terminal | built in | native terminal (libghostty) | none | none (the default) |
-| Agent | built in | native terminal + chat view ([Chat view](/docs/ui/chat-view)) | none | none (herdr sets `pane.agent`) |
-| Browser | built in | native web view ([Browser](/docs/ui/browser)) | none (only the page's own) | label `oriel:browser#<iid> <url>` |
-| File, Preview, Markdown, Diff, Files | built in ([Default plugins](/docs/ui/plugins)) | a web page from the app's bundle in a native web view | yes, with a fixed bridge, not the public API | label `oriel:<kind>#<iid> <arg>` |
-| core plugins | core | a web page in a native web view | yes, the public API | label `oriel:…` ([Labels and instance ids](/docs/future-work/plugins/labels)) |
-| your plugins | installed | a web page in a native web view | yes, the public API | label `oriel:…` |
+In this design every plugin is written the same way:
+- A plugin is a folder with a `manifest.json` and a TypeScript entry file
+  (`main.ts`), plus any other files it imports
+  ([Manifest](/docs/future-work/plugins/manifest)).
+- Oriel bundles the folder with esbuild, a bundler that ships inside the app.
+  It builds a plugin when it loads it and again when a file in the folder
+  changes ([Build a plugin](/docs/future-work/plugins/building)).
+- Each card is a web view of its own. Its page calls the app through one
+  typed object, `oriel`
+  ([Plugin API](/docs/future-work/plugins/api)).
+- The five default plugins (File, Preview, Markdown, Diff and Files) become
+  plugins in this format that ship inside the app. They use the same API as
+  any other plugin.
+- The browser stays a native web view, and it is a kind in the same model
+  ([Browser and native kinds](/docs/future-work/plugins/browser-and-native)).
 
-- Core plugins ship with the app. They use exactly the public API and are
-  reference code for plugin authors.
-- A browser or plugin pane is a real herdr pane with a label. In herdr it runs a
-  quiet placeholder command, so herdr TUI users see what the pane is. The
-  placeholder is cosmetic: the label is the truth
+| Pane kind | Content | Its code | How herdr marks the pane |
+|---|---|---|---|
+| Terminal | native terminal (libghostty) | the app | none (the default) |
+| Agent | native terminal and chat view | the app | none (herdr sets `pane.agent`) |
+| Browser | native web view of any site | the app | label `oriel:browser#<iid> <url>` |
+| File, Preview, Markdown, Diff, Files | a plugin page in a web view | plugin folders inside the app | label `oriel:<id>#<iid> <arg>` |
+| your plugins | a plugin page in a web view | plugin folders on This Mac | label `oriel:<id>#<iid> <arg>` |
+
+## How the pieces connect
+
+```text
+~/.config/oriel/plugins/csv-table/     manifest.json, main.ts, table.css
+        │  esbuild (in the app), on load and on every change
+        ▼
+~/Library/Caches/oriel/plugins/csv-table/<build>/    main.js, main.css
+        │  served as oriel-plugin://csv-table/
+        ▼
+WKWebView, one per card ── the app's runtime puts `oriel` in the page
+        │  oriel.files.read(path) as a bridge message
+        ▼
+the bridge (Swift) ── checks the manifest's permissions
+        │  Exec of the card's machine
+        ▼
+This Mac, or a remote machine over the relay
+```
+
+1. The registry reads every `manifest.json`: the plugins inside the app
+   first, then the ones in the user's folder.
+2. A card of a user plugin needs a build. esbuild turns `main.ts` and what it
+   imports into `main.js` in the app's cache, in tens of milliseconds.
+3. The scheme handler serves that folder as `oriel-plugin://<id>/` under a
+   strict Content Security Policy
+   ([Plugin security](/docs/future-work/plugins/security)).
+4. Before the page runs, the app adds its runtime. The runtime makes the
+   `oriel` object, and the app's loader calls the plugin's default export
+   with it.
+5. Each call of the page is a bridge message. Swift checks it against the
+   manifest's permissions and runs it with the card's machine's `Exec`.
+
+## Where things live
+
+| What | Where |
+|---|---|
+| The default plugins' source | `web/plugins/<id>/` in the repository, built by `make web` into the app's `Resources/plugins/` |
+| Your plugins | `~/.config/oriel/plugins/<id>/` on This Mac |
+| The API's types | `~/.config/oriel/plugins/oriel.d.ts` and a `tsconfig.json` beside it, which the app writes when they are missing or older than the app |
+| Built user plugins | `~/Library/Caches/oriel/plugins/<id>/`, made again when needed |
+| Build errors and console output | `~/Library/Logs/Oriel/plugins/<id>.log`, at most 1 MB, the older half cut when full |
+| Trust answers | app storage (`UserDefaults`), per plugin id |
+| A card's state | in memory while the app runs, and in the instance state file on the card's machine ([Plugin API](/docs/future-work/plugins/api#state)) |
+
+The folder is `~/.config/oriel/plugins/` and not `~/Library/Application
+Support/`, because people and agents type the path: it has no space, and
+agents know `~/.config`.
+
+## Remote machines
+
+A plugin lives and builds on the Mac. Its page runs in a web view on the
+Mac. Only its data comes from the card's machine:
+- `oriel.files`, `oriel.git` and `oriel.run` go through the card's `Exec`. On
+  a remote machine that is the relay's one SSH session
+  ([Running commands](/docs/talking-to-herdr#running-commands)). The page
+  cannot pick another machine.
+- Paths in the API are the machine's paths. A watch on a remote machine is
+  the 2 s check that the default plugins use today
+  ([Remote machines](/docs/ui/plugins#remote-machines)).
+- Nothing is installed on the machine. One plugin on the Mac works for cards
+  on every machine.
+- A plugin folder on a remote machine is not loaded. Plugins from a project's
+  folder are an [open question](#open-questions).
+
+## Memory budget
+
+Every card that is not on screen costs memory. Today the app keeps the
+shown tabs' terminals plus the 16 most recently shown other terminals (D46),
+and it keeps every browser and plugin card it ever built. In this design web
+cards get a budget too:
+- The cards of the shown tab of each window always live.
+- The 20 most recently shown other terminals keep their stream and surface
+  (16 today).
+- The 20 most recently shown other web cards (browser and plugin cards
+  together) keep their web view.
+- Cards in floating windows and cards with unsaved edits are never dropped.
+  They do not count toward the 20.
+- Both counts are settings in app storage, as `spareTerminals` is today:
+  `spareTerminals` and `spareWebCards`. A test sets them with launch
+  arguments (`-spareWebCards 2`).
+- Least recently shown goes first, over all windows, as for terminals.
+
+A dropped web card lets go of its web view, so its WebContent process ends.
+It keeps:
+- a still picture of its last frame, taken when it stops showing, while the
+  view is still in its window (out of a window `takeSnapshot` can come back
+  blank). The still is purgeable while no window shows it, as a terminal's
+  is. A card with no still shows its kind's symbol.
+- its native state: the label, the header controls' values, the plugin's
+  state and the browser's address and back and forward list.
+
+When it shows again, the app builds a new web view under the still. The
+plugin's `main` gets the kept state. The still goes when `main` returns, or
+after 2 s. A browser card loads its page with its back and forward list. It
+loses only what lived in the page: the scroll, form input not sent, a
+running script.
+
+### The worst case
+
+Costs measured on an M1 Pro (D46; the plugin benchmark of the web build):
+an idle app is about 190 MB. A kept terminal is about 30 MB: its surface
+about 6 MB, its last picture 17 MB for a full-window card on Retina, and its
+herdr run about 7 MB. A plugin card is about 41 MB (40 cards made 1.8 GB). A
+browser card with a heavy site costs more: 120 to 200 MB.
+
+| Kept terminals + web cards | App | Kept terminals | Kept web cards | Shown tab (4 terminals, 4 web cards) | Total |
+|---|---|---|---|---|---|
+| 16 + 16 | 190 MB | 480 MB | 656 MB | 284 MB | about 1.6 GB |
+| 20 + 20 (proposed) | 190 MB | 600 MB | 820 MB | 284 MB | about 1.9 GB |
+| 25 + 25 | 190 MB | 750 MB | 1,025 MB | 284 MB | about 2.3 GB |
+| today: 16 terminals, every web card kept | 190 MB | 480 MB | 41 MB × every card shown since launch | 284 MB | no limit |
+
+- Dropped cards add nothing in the worst case: their stills are purgeable.
+- A second window adds its own shown tab. The kept counts are shared by all
+  windows.
+- 20 is a judgment call, as 16 was: D46 rejected 4 (coming back was slow too
+  often) and 32 (memory). 20 keeps about the tabs a user goes back to in one
+  task.
+
+### The overview
+
+Since phase 41 an overview tile draws live when its card's view exists. With
+this budget that can be 40 live tiles, plus the shown tabs. The build plan
+measures the overview with every kept card open, before and after the change.
+If it is slow, tiles outside the shown tab and the floating windows show
+their stills instead.
+
+## A missing plugin
+
+A label can name a plugin that is not on this Mac: one that was removed, or
+one from another Mac. Its card shows the plugin id and the argument, with
+**Show Placeholder** (the pane's terminal) and **Close Pane**. The app never
+changes the label, so the card comes back when the plugin does.
+
+## What stays as built
+
+- The label grammar, the placeholder pane and its one-call create
   ([Labels and instance ids](/docs/future-work/plugins/labels)).
-- herdr's own TUI plugins are not part of this system. A pane that a herdr
-  plugin opened shows as a terminal, because it is one.
+- Linked opens: a card opens another card in a new tab right after its own
+  ([Ways in](/docs/ui/plugins#ways-in)).
+- The scheme, the Content Security Policy and the navigation lock
+  ([How the web cards work](/docs/ui/plugins#how-the-web-cards-work)), now
+  per plugin.
+- Files, saves by hash, watches and git in HerdrKit's `Files` and `Git`.
+  They move behind the API instead of the fixed bridge.
+- ⌘ keys go to the menu first over a web card (D93).
 
-## Choosing a kind
+## Out of scope
 
-Every new pane shows the [New pane](/docs/ui/new-pane) chooser with the
-built-in kinds: Terminal, Agent, Browser, Files and Changes. Its commands
-(Open Terminal Here, Start Agent Here, Open Browser Here, Open Files Here,
-Open Changes Here) change a pane's kind later.
+- A plugin store or registry: plugins are folders that the user or an agent
+  makes.
+- Installs from a remote source (a git URL, a download): copy the folder.
+- More than one user: Oriel is a single-user app on one Mac.
+- Plugins outside panes (a sidebar section, a status item, a pill).
+- Plugins on iPhone and iPad ([iPhone and iPad](/docs/future-work/iphone-and-ipad#plugins)).
 
-- Plugin kinds join the chooser when plugins are built: one more option that
-  lists the plugin pane kinds from the manifests, core plugins first, then
-  linked and installed ones. A plugin whose pane needs an argument asks for it
-  before the pane is made
-  ([Manifest](/docs/future-work/plugins/packages#manifest)).
+## Open questions
 
-## Run and dial
+- Browser cards count in the same 20 as plugin cards. A heavy site costs
+  120 to 200 MB. Should the app also drop half of the kept web cards on a
+  memory-pressure warning? Recommendation: yes, one handler.
+- Network from a plugin page (an allow list of origins in the manifest, as
+  Figma does). Recommendation: not now. A plugin with `run` can use `curl`
+  on the machine.
+- Plugins from a project folder (`<repo>/.oriel/plugins/`), also on a remote
+  machine. Recommendation: later.
+- Plugin settings drawn by the app from the manifest (as Raycast does).
+  Recommendation: later. A plugin keeps what it needs in its state.
 
-Browser panes and plugins reach their pane's machine through two calls on its
-`Exec`. The app has the first one today
-([Running commands](/docs/talking-to-herdr#running-commands)); the second
-is new:
+## Options
 
-```swift
-/// Run argv on the machine; stdin, stdout and the exit status come back.
-func run(_ argv: [String]) async throws -> Channel
-/// Open a TCP stream to host:port, as seen from the machine (not built).
-func dial(host: String, port: Int) async throws -> Channel
-```
+Each major choice, with the options compared. The recommended one is the
+design on these pages.
 
-- **`run`** is a `Process` on This Mac. On a remote machine it goes through
-  the relay: one SSH session carries every run. Closing a run's stdin ends
-  it.
-- **`dial`** on This Mac is a plain TCP connection. On a remote machine it is
-  `ssh -S <ctl> -W <host>:<port> <target>` on the host's ControlMaster, with
-  the same `-F /dev/null -o ControlMaster=no -o BatchMode=yes` options as a
-  run, so a missing master never prompts: one process, one stream on its
-  stdio. It opens a forwarding channel, not an SSH session, so the server's
-  `MaxSessions` (its limit on sessions per connection) does not count it. It
-  needs `AllowTcpForwarding yes` on the server (the default). `-W` and
-  `-O forward` work on a master started with `ClearAllForwardings=yes`
-  ([The SSH connection](/docs/machines#the-ssh-connection);
-  [evidence](https://github.com/hkandala/oriel/blob/main/resources/research/plugins/plugins.md#how-plugins-reach-a-remote-machine)).
-- `dial` needs a `Channel` that carries bytes; today a `Channel` gives lines.
-- A browser card uses a SOCKS proxy per machine, not a stream:
-  [Remote localhost](/docs/ui/browser#remote-localhost).
-- Nothing of ours is installed on the machine: `sshd`, POSIX tools and herdr
-  do the work. A bigger helper would sit behind the same `run` and `dial` calls
-  ([Future work](/docs/future-work#smaller-items)).
+### The plugin format
 
-## Where it lives
+| Option | Pros | Cons |
+|---|---|---|
+| One `.ts` file (as pi's small extensions) | the least to write | no place for a header, file patterns or permissions before code runs; no CSS or assets |
+| A folder with `manifest.json` and an entry file (Obsidian, Figma) | the app knows the header, patterns and permissions at once; any number of `.ts`, CSS and asset files | two files for the smallest plugin |
+| An npm package (`package.json` with an `oriel` field, as VS Code, Raycast) | familiar to web authors; dependencies in one file | a `package.json` even with no dependencies; npm habits (scripts, a build step) that the app does not run |
 
-- `PluginRegistry`: core, linked and installed plugins, their manifests and
-  consent (not built).
-- One web page per plugin card, and the bridge (`window.oriel`) to `run`,
-  `dial` and the API; every call checks the card's machine in Swift. The
-  default plugins' `WebCard` and `oriel-plugin://` scheme are built, with a
-  fixed bridge in place of `window.oriel`.
-- `HerdrKit` has the label parser and the default plugins' `Files` and `Git`.
-  It gets the state-file write command for plugins and the transcript
-  parsers. `SSHExec` gets `dial`.
-- The `PaneViewRegistry` owns browser and plugin cards as it owns terminal
-  views, so scrolling never destroys them (built).
-- App storage (`UserDefaults`): consent and This Mac answers per plugin id
-  and source, plugin preferences (passwords in the Keychain), and approved
-  browser origins per machine (built). Plugin code and its source
-  record live in `~/Library/Application Support/Oriel/plugins/`. Browser
-  cards keep one WebKit data store per machine.
+Recommended: the folder. The manifest must be read before any code, and a
+folder holds the code, CSS and assets with no packaging step.
 
-## What is built
+### The memory policy
 
-The default plugins are five more pane kinds on this design, built into the
-app ([Default plugins](/docs/ui/plugins)). They have `oriel:<kind>` labels
-for any kind with one placeholder, the chooser's Files and Changes, linked
-opens into a new tab, a web page per card served from `oriel-plugin://` under
-a Content Security Policy with a navigation lock, and a fixed bridge of asks
-and reports ([How the web cards work](/docs/ui/plugins#how-the-web-cards-work)).
-They keep no state file. Their pages are the app's own, not plugins on the
-public API.
+| Option | Pros | Cons |
+|---|---|---|
+| One shared count for terminals and web cards (for example 40) | one number | a user with many web cards drops every terminal, and the other way; the two costs differ (30 MB and 41 MB) |
+| Two counts, 20 terminals and 20 web cards | each kind keeps its recent cards; the worst case is easy to state | two settings |
+| A byte budget | follows real memory | hard to test and to explain; rejected in D46 |
 
-The browser is built into the app too: nothing to install, enable or
-disable, and its page gets no bridge (no `window.oriel`, so no `run`). It has
-the parts every later kind needs:
-- the label grammar and its parser (HerdrKit's `PaneLabel`), the instance id,
-  and restore by label
-  ([Labels and instance ids](/docs/future-work/plugins/labels));
-- the placeholder pane made with `layout.apply` and `pane.move`;
-- the chooser's Browser option and Open Browser Here;
-- the instance state file: read when a card is built, written 500 ms after a
-  change, removed on close, and the 30-day cleanup on connect
-  ([State and restore](/docs/future-work/plugins/state));
-- the load rule and the approvals per machine.
+| Option for a dropped web card | Pros | Cons |
+|---|---|---|
+| Its still picture | the card looks the same at once, as a terminal does; purgeable, so it costs nothing in the worst case | `takeSnapshot` must run while the view is in its window, or it can come back blank |
+| Its kind's icon | no snapshot code | a blank card flashes before the page comes back |
 
-Not built yet: **Refresh**, the cap of live web views, and the manifest value
-for a built-in kind. The browser and the default plugins call their labels
-(and the browser its state file) from Swift.
-Plugins get them as calls: their pane context (machine, session, iid,
-argument, cwd), `setArg`, `state.get` and `state.set`, and `run`, as
-`window.oriel` ([Plugin API](/docs/future-work/plugins/api)). A built-in kind
-will be declared with the fields a manifest uses
-([Manifest](/docs/future-work/plugins/packages#manifest)):
+Recommended: two counts of 20 and a still, with the kind's icon when there is
+no still. Both counts are settings.
 
-```json
-{ "id": "browser", "title": "Browser", "icon": "globe",
-  "arg": { "title": "Address", "placeholder": "localhost:3000", "required": false } }
-```
+### Plugins in the model
 
-Later: `dial`, the snapshot event, preferences, packages, consent and plugin
-cards.
+| Option | Pros | Cons |
+|---|---|---|
+| One registry of manifests for every kind the app draws, the browser too | the chooser, ⌘K, Open With and agent listings read one list | the browser's manifest is written in Swift |
+| Built-in kinds as a Swift enum, plugins beside them | no change to built code | every list has two sources; the default plugins stay special |
 
-## Choices
-
-- **One chooser, one registry.** The three built-in kinds are special
-  everywhere else (streams, chat, labels); one model covers the rest.
-  Rejected: native manifests for the built-in kinds (a `native` field,
-  reserved ids), and herdr TUI plugins in the chooser.
-- **Plugins live in the app**, installed from a git URL or a linked folder,
-  already built; the app never runs npm
-  ([Packages](/docs/future-work/plugins/packages)). One install per Mac covers
-  every machine, and no machine needs setup. Rejected: herdr plugins on each
-  machine; an in-app store.
+Recommended: one registry. The user asked for one model, and the default
+plugins then test the public API.
 
 Research:
-[`plugins.md`](https://github.com/hkandala/oriel/blob/main/resources/research/plugins/plugins.md).
+[`plugins.md`](https://github.com/hkandala/oriel/blob/main/resources/research/plugins/plugins.md),
+[`plugin-systems.md`](https://github.com/hkandala/oriel/blob/main/resources/research/plugins/plugin-systems.md).

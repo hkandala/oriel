@@ -1,0 +1,65 @@
+---
+title: "Browser and native kinds"
+description: "Proposed: the browser stays a native web view, and it is a kind in the same model with a manifest of its own"
+---
+
+Proposed ([Pane kinds and plugins](/docs/future-work/plugins)). Every plugin
+is a page that Oriel builds and serves. The browser cannot be one, because
+its content is any site:
+- **Framing.** A plugin page can show a site only in an `<iframe>`. Most
+  sites refuse to be framed (`X-Frame-Options`, a `frame-ancestors`
+  policy), and logins in a frame lose their cookies.
+- **Its own store and proxy.** Each machine has its own WebKit data store,
+  and a remote machine's pages go through its SOCKS proxy (D73). Those are
+  properties of a web view, not of a page.
+- **The Web Inspector** docks under the page in the card. It inspects the
+  site itself, not a frame.
+- **A site gets no bridge.** It has no `oriel` object and no message
+  handler ([Security](/docs/ui/browser#security)).
+
+So the browser stays the native card that [Browser](/docs/ui/browser)
+describes. In the model it is a kind with native content: the registry holds
+a manifest for it, written in Swift.
+
+```json
+{
+  "id": "browser",
+  "name": "Browser",
+  "version": "1.0.0",
+  "api": 1,
+  "icon": "globe",
+  "opens": { "urls": ["http://*", "https://*", "file://*"], "priority": "default" },
+  "chooser": "Browser"
+}
+```
+
+- **The fields that apply** are the same as a plugin's: `id` (its label is
+  `oriel:browser#<iid> <url>`), `name`, `icon`, `opens` and `chooser`. So the
+  chooser, ⌘K's Open Browser Here, linked opens of web addresses and agent
+  listings
+  ([Agent control](/docs/future-work/agent-control)) read every kind from
+  one registry.
+- **No `main`** means native content. The app draws the browser's own card,
+  its toolbar in row 2 and its address field. It has no `header`,
+  `permissions` or `commands` in the manifest: they are the browser's own.
+- **A URL plugin** with a more specific pattern (`https://github.com/*/*/pull/*`)
+  opens those addresses from a link instead of the browser. Typed addresses
+  always load in the browser.
+- **The memory budget** counts browser cards with plugin cards: the 20 most
+  recently shown web cards
+  ([Memory budget](/docs/future-work/plugins#memory-budget)). A dropped
+  browser card keeps its address and its back and forward list, and loads
+  them when it shows again.
+
+Terminal and Agent are not in this model. They are herdr's own panes, with
+no label, and the chooser lists them first as today.
+
+## Options
+
+| Option | Pros | Cons |
+|---|---|---|
+| The native browser with a manifest in the registry | one list for every kind; the browser keeps what only a web view gives | a manifest written in Swift |
+| The browser as a plugin page with an `<iframe>` | one kind of card | most sites refuse frames; no store per machine, proxy or docked inspector |
+| The browser outside the registry | no change | special in every list: the chooser, ⌘K, links, agent listings |
+
+Recommended: the native browser with a manifest.

@@ -1,0 +1,360 @@
+---
+title: "Build a plugin"
+description: "Proposed: a CSV table plugin from an empty folder, the build and hot reload, debugging, agents, and the default plugins in the new format"
+---
+
+Proposed ([Pane kinds and plugins](/docs/future-work/plugins)). This page
+makes a plugin that shows a CSV file as a table you can sort. Then it shows
+how Oriel builds and reloads it, how to debug it, how an agent makes one,
+and what the default plugins look like in this format.
+
+## The folder
+
+```text
+~/.config/oriel/plugins/
+├── oriel.d.ts          the API's types (the app writes it)
+├── tsconfig.json       includes oriel.d.ts for every plugin (the app writes it)
+└── csv-table/
+    ├── manifest.json
+    ├── main.ts
+    ├── parse.ts
+    └── table.css
+```
+
+`manifest.json` is the one in [Manifest](/docs/future-work/plugins/manifest#an-example):
+the id `csv-table`, `opens` for `*.csv`, `*.tsv` and the CSV type, a row
+count, a First Row Is Header toggle and a Reload button in the header, and
+`files:read`.
+
+## The code
+
+`parse.ts`, plain TypeScript:
+
+```ts
+/** Rows of fields. Quotes may wrap a field; "" inside quotes is one quote. */
+export function parse(text: string, separator: string): string[][] {
+  const rows: string[][] = [[]]
+  let field = "", quoted = false
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i]
+    if (quoted) {
+      if (c === '"' && text[i + 1] === '"') { field += '"'; i++ }
+      else if (c === '"') quoted = false
+      else field += c
+    } else if (c === '"') quoted = true
+    else if (c === separator) { rows.at(-1)!.push(field); field = "" }
+    else if (c === "\n") { rows.at(-1)!.push(field.replace(/\r$/, "")); rows.push([]); field = "" }
+    else field += c
+  }
+  rows.at(-1)!.push(field)
+  return rows.filter((row) => row.some((cell) => cell !== ""))
+}
+```
+
+`main.ts`, the entry:
+
+```ts
+import type { Oriel } from "oriel"
+import { parse } from "./parse"
+import "./table.css"
+
+type State = { column?: number; descending?: boolean; scroll?: number }
+
+export default async function main(oriel: Oriel) {
+  const path = oriel.card.arg
+  let state = oriel.state.get<State>() ?? {}
+  let rows: string[][] = []
+  const table = document.body.appendChild(document.createElement("table"))
+
+  function save(change: State) {
+    state = { ...state, ...change }
+    oriel.state.set(state)
+  }
+
+  function draw() {
+    const header = oriel.controls.get("first-row") === true
+    const [head, ...body] = header ? rows : [rows[0]?.map((_, i) => `${i + 1}`) ?? [], ...rows]
+    const { column, descending } = state
+    if (column !== undefined) {
+      body.sort((a, b) => (a[column] ?? "").localeCompare(b[column] ?? "", undefined, { numeric: true }))
+      if (descending) body.reverse()
+    }
+    table.replaceChildren()
+    const tr = table.createTHead().insertRow()
+    head.forEach((title, i) => {
+      const th = tr.appendChild(document.createElement("th"))
+      th.textContent = title + (i === column ? (descending ? " ↓" : " ↑") : "")
+      th.onclick = () => {
+        save({ column: i, descending: i === column && !descending })
+        draw()
+      }
+    })
+    const tbody = table.createTBody()
+    for (const row of body) {
+      const line = tbody.insertRow()
+      for (const cell of row) line.insertCell().textContent = cell
+    }
+    oriel.controls.set("rows", { value: `${body.length} rows` })
+  }
+
+  async function load() {
+    try {
+      const { text } = await oriel.files.read(path)
+      rows = parse(text, path.endsWith(".tsv") ? "\t" : ",")
+      draw()
+    } catch (error) {
+      table.replaceChildren()
+      oriel.controls.set("rows", { value: (error as Error).message })
+    }
+  }
+
+  oriel.on("control", ({ id }) => {
+    if (id === "reload") load()
+    if (id === "first-row") draw()
+  })
+  oriel.files.watch(path, load)
+  addEventListener("scroll", () => save({ scroll: scrollY }), { passive: true })
+
+  await load()
+  scrollTo(0, state.scroll ?? 0)
+}
+```
+
+`table.css` uses the app's colors and text size:
+
+```css
+table { border-collapse: collapse; font: var(--app-text-size) ui-monospace, monospace; color: var(--text) }
+th { position: sticky; top: 0; text-align: left; cursor: default; backdrop-filter: blur(20px);
+     background: color-mix(in srgb, var(--text) 6%, transparent) }
+th, td { padding: 3px 10px; border-bottom: 0.5px solid var(--divider); white-space: nowrap }
+```
+
+What the code shows:
+- Text from the file goes in with `textContent`, never as HTML.
+- The sort and the scroll are in `oriel.state`, so a drop, a hot reload or a
+  relaunch comes back sorted and at the same row. The toggle's value is the
+  app's, read with `oriel.controls.get`.
+- The watch reloads the table when the file changes, on This Mac by FSEvents
+  and on a remote machine by the 2 s check.
+
+## Open it
+
+1. Save the folder in `~/.config/oriel/plugins/csv-table/`. The app sees the
+   new folder and reads the manifest.
+2. Double-click a `.csv` file in a Files card. CSV Table is now its default
+   plugin, so the card opens in a new tab. On any other file card of a CSV,
+   Open With ▾ lists CSV Table.
+3. The new card asks to trust the plugin, once
+   ([The trust prompt](/docs/future-work/plugins/security#the-trust-prompt)).
+   Click **Allow**.
+4. The app builds the plugin and loads it. The table shows.
+
+The same plugin opens CSV files on a remote machine. The file comes over the
+relay, and the table draws on the Mac.
+
+## Build and hot reload
+
+The app ships esbuild 0.28 as a helper,
+`Oriel.app/Contents/Helpers/esbuild`, signed with the app. It is 10.6 MB
+(4.3 MB zipped), so the app grows from 51.9 MB to about 62.5 MB.
+
+The app runs it with `Process`, in the plugin's folder:
+
+```sh
+esbuild main.ts --bundle --format=esm --splitting --target=safari18 \
+  --sourcemap=inline --loader:.png=file --loader:.svg=file --loader:.woff2=file \
+  --outdir=~/Library/Caches/oriel/plugins/csv-table/<n> --log-level=error --color=false
+```
+
+- **When.** When a card of the plugin is built and no current build exists,
+  and when a file in the folder changes while a card of it is open. FSEvents
+  watches the folder, with 100 ms of quiet before a build. `.git` is
+  ignored.
+- **How long.** Measured on an M1 Pro: 10 to 20 ms for CSV Table, 340 ms for
+  the Diff plugin with `@pierre/diffs` and its languages.
+- **npm packages.** An import of a package resolves from the plugin's own
+  `node_modules`. The app never runs npm: run `npm install` in the folder
+  yourself.
+- **Types.** esbuild removes types and does not check them. Your editor
+  checks them, or `tsc --noEmit` in `~/.config/oriel/plugins/`.
+- Each build goes to a new folder. The old one goes after the cards reload.
+
+What a change does:
+
+| The change | What the open cards do |
+|---|---|
+| a `.ts`, `.css` or asset file, and the build passes | each card of the plugin loads its page again. `main` gets the same state and header values, so the card comes back where it was |
+| the same, but a card has unsaved edits | that card does not reload. Its toast says "‹name› changed." with **Reload** and **Later** |
+| the build fails | the cards keep their running page. A one-line error shows at the top of each card until a build passes |
+| `manifest.json` | as a code change, and the header row draws from the new manifest. New permissions ask again first |
+
+## Errors in the card
+
+- **A build error** that stops the first load shows in the card's middle:
+  "‹name› did not build", then esbuild's message in 12 pt monospace,
+  selectable (`main.ts:12:8: ERROR: Expected ";" but found "}"`), then
+  **Try Again**.
+- **An error thrown from `main`**, or a page that does not load: "‹name›
+  stopped", the error's message and its first stack line, and **Reload**.
+- **A bad manifest:** "‹folder›/manifest.json: ‹field› ‹what is wrong›".
+- **An API too new:** "‹name› needs a newer Oriel".
+- Every one of these also goes to `~/Library/Logs/Oriel/plugins/<id>.log`,
+  with the time.
+
+## Debug it
+
+- **Web Inspector.** ⌥⌘I over a plugin card, or Show Web Inspector in the
+  card's menu, docks WebKit's inspector at the bottom of the card, as for a
+  browser card ([Web Inspector](/docs/ui/browser#web-inspector)). The inline
+  source map shows your `.ts` files, with breakpoints. Safari's Develop menu
+  reaches every card too.
+- **The log.** `tail -f ~/Library/Logs/Oriel/plugins/csv-table.log` shows
+  every `console` line, uncaught error, build error and denied call.
+- **Reload.** The card's menu has Reload Plugin: it builds again and loads
+  the page again, with the state kept.
+
+## An agent makes a plugin
+
+An agent on This Mac makes a plugin with plain files:
+1. It writes the folder in `~/.config/oriel/plugins/<id>/`, following this
+   page and the types in `oriel.d.ts`.
+2. It opens a card: a pane labeled `oriel:<id>#<iid> <arg>` beside its own,
+   as the `oriel-panes` skill does for a browser pane. The commands are in
+   [Agent control](/docs/future-work/agent-control).
+3. The user clicks **Allow** in the card once.
+4. The agent reads the log for build errors and its own `console` lines,
+   edits the files, and the card reloads by itself.
+
+An agent on a remote machine cannot reach the Mac's folder, so it cannot
+make a plugin there.
+
+## The default plugins in the new format
+
+The five default plugins move to `web/plugins/<id>/` in the repository, each
+with a `manifest.json` and a `main.ts`. `make web` builds them together, as
+today (one esbuild run with shared chunks), into the app's
+`Resources/plugins/`. They are served from `oriel-plugin://app/<id>`, so they
+keep sharing chunks. The fixed bridge (`web/src/lib/bridge.ts`) goes, and so
+do the Swift header rows. Each plugin uses only the public API.
+
+| Plugin | `opens` | Header | Other fields | What moves from Swift to TypeScript |
+|---|---|---|---|---|
+| File | `files` (File's patterns) | `text` path (folder, file, `{} symbol`) | `handles: ["save", "find"]`, `files:read`, `files:write` | the toast on a change on disk and on a save conflict (`Document.swift`), now a shared `web/lib/document.ts` |
+| Preview | `files` (Preview's patterns) | `text` path, `text` page ("3 of 12"), Zoom to Fit, Actual Size, Zoom Out, Zoom In (hidden unless an image or a PDF) | `files:read` | the choice of the info view |
+| Markdown | `files` (`*.md`, `*.markdown`, `*.mdx`) | `segmented` Read and Edit, `toggle` outline | `commands`: Edit Mode ⌘E; `handles: ["save", "find"]`, `files:read`, `files:write` | as File |
+| Diff | `git` | below | `chooser: "Changes"`, `git`, `files:read` | the source menu's commits, the step and layout messages |
+| Files | `folders` | `field` Filter, `button` Collapse All | `chooser: "Files"`, `files:read`, `git` | nothing new |
+
+The Diff plugin's manifest:
+
+```json
+{
+  "id": "diff",
+  "name": "Diff",
+  "version": "1.0.0",
+  "api": 1,
+  "main": "main.ts",
+  "icon": "plusminus",
+  "opens": { "git": true },
+  "chooser": "Changes",
+  "header": [
+    { "id": "source", "type": "menu", "title": "Uncommitted" },
+    { "type": "spacer" },
+    { "id": "layout", "type": "segmented", "value": "unified",
+      "options": [{ "value": "unified", "title": "Unified" }, { "value": "split", "title": "Side by Side" }] },
+    { "id": "list", "type": "toggle", "symbol": "sidebar.left", "title": "File List", "value": true },
+    { "id": "previous", "type": "button", "symbol": "chevron.up", "title": "Previous Change" },
+    { "id": "next", "type": "button", "symbol": "chevron.down", "title": "Next Change" }
+  ],
+  "permissions": ["git", "files:read"]
+}
+```
+
+The shape of its `main.ts`. The drawing code (`@pierre/diffs`, the file list,
+Viewed) stays as it is in `web/src/diff.ts`:
+
+```ts
+import type { Oriel } from "oriel"
+
+export default async function main(oriel: Oriel) {
+  const space = oriel.card.arg.lastIndexOf(" ")
+  const root = oriel.card.arg.slice(0, space), source = oriel.card.arg.slice(space + 1)
+  const viewed = oriel.state.get<{ viewed: Record<string, string> }>()?.viewed ?? {}
+
+  // The source menu: Uncommitted, then the last 50 commits.
+  const commits = await oriel.git.log(root, { limit: 50 }).catch(() => [])
+  oriel.controls.set("source", {
+    value: source,
+    title: source === "uncommitted" ? "Uncommitted" : source.slice(0, 7),
+    items: [{ value: "uncommitted", title: "Uncommitted" }, "-",
+            ...commits.map((c) => ({ value: c.hash, title: `${c.hash.slice(0, 7)}  ${c.subject}` }))],
+  })
+
+  const viewer = makeViewer(oriel.controls.get("layout") === "split", oriel.controls.get("list") === true)
+  const show = async () => viewer.show(await oriel.git.diff(root, source), viewed)
+
+  oriel.on("control", ({ id, value }) => {
+    if (id === "source") oriel.card.setArg(`${root} ${value}`)
+    if (id === "layout") viewer.layout(value === "split")
+    if (id === "list") viewer.list(value === true)
+    if (id === "previous" || id === "next") viewer.step(id === "next" ? 1 : -1)
+  })
+  viewer.onOpen((path, line) => oriel.open({ arg: `${root}/${path}`, at: line ? String(line) : undefined }))
+  viewer.onViewed((path, text) => oriel.state.set({ viewed: { ...viewed, [path]: text } }))
+  if (source === "uncommitted") oriel.files.watch(root, show)
+
+  await show().catch((error) => viewer.empty(error.message))
+}
+```
+
+What changes for the user:
+- Side by Side, the file list and Viewed now survive a relaunch, because
+  they are in the state file. Today they last only while the app runs.
+- The file list's button shows in the accent while the list shows, as every
+  `toggle` does. Today it stays in the buttons' color.
+- Everything else looks and works as today
+  ([Default plugins](/docs/ui/plugins)).
+
+## Options
+
+### The build
+
+| Option | Pros | Cons |
+|---|---|---|
+| esbuild inside the app, building on load and on change | the author saves `.ts` and sees it; no tools to install; 10 to 340 ms per build | 10.6 MB more app |
+| Built JavaScript only: the author bundles | no bundler in the app | a build step for every change; agents and users need node and a bundler |
+| Both: build when there is TypeScript, load `main.js` as it is | covers authors with their own tools | two paths to test; a stale `main.js` beside new `.ts` files confuses |
+
+Recommended: esbuild inside the app. A plain `main.js` entry also works,
+because esbuild bundles JavaScript too.
+
+### Where user plugins live
+
+| Option | Pros | Cons |
+|---|---|---|
+| `~/.config/oriel/plugins/` | no space in the path; agents and dotfiles know `~/.config` | not where Mac apps keep data |
+| `~/Library/Application Support/Oriel/plugins/` | the Mac's place for app data | a space in the path, hard to type in a shell; hidden from users |
+| A project's folder (`<repo>/.oriel/plugins/`) | plugins that travel with a repository, also on remote machines | code from any cloned repository; a trust prompt per project; a build from a remote folder |
+
+Recommended: `~/.config/oriel/plugins/`. Project folders stay an open
+question.
+
+### What starts a hot reload
+
+| Option | Pros | Cons |
+|---|---|---|
+| A watch on the folder (FSEvents) | an agent or editor saves and the card reloads, with nothing to call | a save of many files in a row needs a short quiet time (100 ms) |
+| A reload command only (pi's `/reload`, Zed's reinstall) | the author decides when | an agent must find and call the command; easy to forget |
+| A dev mode that the user turns on per plugin (Obsidian's hot-reload plugin) | no watch for plugins that never change | one more switch |
+
+Recommended: the watch, plus Reload Plugin in the card's menu.
+
+### How a reload keeps the card
+
+| Option | Pros | Cons |
+|---|---|---|
+| Load the page again, give `main` the state kept in the app | the page starts clean; the card comes back where it was | the plugin must keep what matters in `oriel.state` |
+| Hot module replacement | keeps every value in the page | each plugin needs code for it |
+| Load a new page beside the old one, swap when it is ready (bb) | no blank moment | twice the memory during a reload; a failed build already keeps the old page |
+
+Recommended: load the page again with the kept state.

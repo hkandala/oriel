@@ -53,7 +53,7 @@ over SSH.
   reads the snapshot again on return.
 - Cards still in memory keep their state; only cards the system discarded
   are built again
-  ([When a card reads its state](/docs/future-work/plugins/state#when-a-card-reads-its-state)).
+  ([State](/docs/future-work/plugins/api#state)).
 
 ## Connections
 
@@ -82,8 +82,8 @@ over SSH.
   ([The SSH connection](/docs/machines#the-ssh-connection)), so a busy tab
   never reaches the server's `MaxSessions` (its limit on sessions per
   connection). A call that times out closes its run.
-- `dial` is a Citadel `direct-tcpip` channel
-  ([Run and dial](/docs/future-work/plugins#run-and-dial)).
+- The browser's remote pages use Citadel `direct-tcpip` channels in place
+  of ssh's `-D` ([Remote localhost](/docs/ui/browser#remote-localhost)).
 
 ## Checks before building
 
@@ -121,9 +121,9 @@ A small test build checks Citadel with the relay before any iOS work:
 ## Plugins
 
 - Plugins are web pages, and WebKit is on iOS, so the same plugin runs on the
-  iPhone and iPad ([Plugin UI](/docs/future-work/plugins/plugin-ui)). It
-  draws on the device; its `run` and `dial` go to the pane's machine, as on
-  the Mac.
+  iPhone and iPad ([Pane kinds and plugins](/docs/future-work/plugins)). It
+  draws on the device. Its files, git and `run` calls go to the pane's
+  machine, as on the Mac.
 - The first version ships only the built-in pane kinds and the core plugins
   (Terminal, Agent, Browser, Git history, Diff, Markdown), inside the app.
   Downloaded code is an App Store review risk, so your own plugins on iOS
@@ -132,13 +132,14 @@ A small test build checks Citadel with the relay before any iOS work:
   §3.3.1(B)) allow plugins as web pages under conditions; the evidence is in
   [`plugins.md`](https://github.com/hkandala/oriel/blob/main/resources/research/plugins/plugins.md#plugins-on-ios).
 - The later path: a setting "Load plugins from my Mac", off by default. The
-  phone reads `~/Library/Application Support/Oriel/plugins/` from the Mac
+  phone reads the Mac's built plugins (`~/Library/Caches/oriel/plugins/`)
   over the SSH connection it already has, with one `tar` run and a safe tar
-  reader (no `..`, no links, a size cap), and asks for consent again. There is
+  reader (no `..`, no links, a size cap), and asks to trust each again. iOS
+  cannot run esbuild. There is
   never an in-app plugin catalog on iOS.
 - A label for any other plugin shows the missing-plugin card with **Show
   placeholder** (switch the card to the pane's terminal)
-  ([State and restore](/docs/future-work/plugins/state)).
+  ([A missing plugin](/docs/future-work/plugins#a-missing-plugin)).
 - At most 2 live web views on iPhone, and 6 on iPad.
 - A browser card reaches a remote `localhost` through an in-app listener
   ([Remote localhost](/docs/ui/browser#remote-localhost)).

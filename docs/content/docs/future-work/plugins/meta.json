@@ -1,4 +1,4 @@
 {
   "title": "Pane kinds and plugins",
-  "pages": ["index", "agent", "plugin-ui", "packages", "labels", "state", "api", "security"]
+  "pages": ["index", "manifest", "api", "building", "security", "browser-and-native", "labels"]
 }

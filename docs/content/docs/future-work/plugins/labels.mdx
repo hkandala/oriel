@@ -4,8 +4,10 @@ description: "How a plugin pane is stored in herdr: label, placeholder and insta
 ---
 
 The browser pane and the default plugins use this design as built ([Browser](/docs/ui/browser#the-label),
-[Default plugins](/docs/ui/plugins#the-label)). For installed plugins it is the design
-([Pane kinds and plugins](/docs/future-work/plugins)).
+[Default plugins](/docs/ui/plugins#the-label)). The proposed plugin design
+keeps it: the plugin id is the manifest's `id`
+([Manifest](/docs/future-work/plugins/manifest)), and a plugin has one pane
+kind, so its labels have no pane name.
 
 ## Label format
 
@@ -27,20 +29,20 @@ oriel:kanban/board#7tt1qe
 oriel:browser#m4p8sa http://localhost:3000/dashboard
 ```
 
-- A plugin with one pane kind omits `/<pane-name>`. A label without a pane
-  name opens the first pane kind in the plugin's manifest.
+- The parser accepts `/<pane-name>`, and no plugin uses it: a plugin has one
+  pane kind. A label with a pane name opens the plugin's one kind.
 - The `oriel:` prefix keeps a user's own label (`todo: fix login`) from turning
   into a plugin.
 - The argument goes last, so the useful part is what a TUI user reads. herdr
   trims labels, and `setArg` trims too.
 - Labels travel in every snapshot to every device, so the argument stays
   small (under ~200 characters advised). Bigger state goes to a file
-  ([State and restore](/docs/future-work/plugins/state)).
+  ([State](/docs/future-work/plugins/api#state)).
 
 ## Instance id
 
 The instance id (`iid`) names the pane's state file
-([State and restore](/docs/future-work/plugins/state)). `terminal_id` changes on a herdr
+([State](/docs/future-work/plugins/api#state)). `terminal_id` changes on a herdr
 cold restart, and the label survives it, so the iid lives in the label.
 - The device that creates the pane generates 6 characters of `[a-z0-9]`,
   checked against the snapshot. It never changes.
