@@ -122,3 +122,7 @@ are the orchestrator's.
 - **Decisions:** a bubble's fenced code keeps the two spaces per line that its hard breaks add, and Copy keeps them
   too: rare in typed text.
 - **Fix:** the chat-view page says both the `head` backlog and `tail` go through awk.
+- **Runs:** the five chat tests are green on CI. One earlier run failed the long-chat test at its first wait: the stand-in
+  had written its 150 turns by then, but the app drew them live at about 6 turns a second, and `agent.prompt` timed out
+  ("Not sent"). The same tests on main and on this code in parallel were both green. Watch for it: lines that come
+  live (not the backlog) can still go into the history one by one.
