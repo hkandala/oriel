@@ -87,12 +87,25 @@ are the orchestrator's.
 - **Cause, item 8.** The rows were built from the whole history in `ChatView`'s body, which ran again for every key in
   the reply box and every resize frame (5–8 ms in Release at 3,600 entries, plus the list's diff). **Fix:** the rows,
   the message list and the reply box are their own views: 46 keys 87 ms (2 ms a key).
-- **Decisions.** Scrolling itself is unchanged: its cost is building rows as they come into view (text layout, and an
-  AppKit text field per paragraph for selection, about 30 % of it), not Markdown parsing, which did not show in the
-  samples, so no parse cache. `List` showed no bottom anchor and slower resizes. Scroll to Bottom shows when the bottom
-  is more than 40 pt out of view, jumps without animation, and sits 10 pt above the reply box.
-- **Runs.** No local UI runs (the benchmark held the GUI): the long-chat test (load, scroll up, split, the button) runs
-  in the chosen-tests CI run. It is not proven red on the old code; the probe saw the old jump and blank.
+- **Cause, scrolling (item 8).** The main thread's scroll time is building rows as they come into view: SwiftUI's text
+  layout, the lazy stack measuring them, and one AppKit text field per paragraph for text selection (about 40 %: busy
+  1.7 s against 1.0 s with selection off, on a quiet machine). Markdown parsing did not show in the samples. At
+  p95 a scroll frame takes 5–15 ms (240 × 30 pt, 869 rows); 2–4 % of frames take more than 16 ms, up to 60–130 ms, when
+  a long reply comes into view whole. **Tried, dropped (no gain beyond the noise of a loaded machine):** a lazy row per
+  reply block, a reply's paragraphs and headings in one `Text`, `List` (no bottom anchor, slower resizes), selection
+  only on hover (it rebuilds a message per hover). Kept: the link detector runs only on text with `http` or `www.`.
+- **Decisions.** Scroll to Bottom shows when the bottom is more than 40 pt out of view above the reply box, jumps
+  without animation, and sits 10 pt above the reply box. The place is a row's: scrolled up inside the
+  newest reply, the bottom holds until a row crosses the top; in the middle of a reply taller than the view, a resize
+  can bring that reply's top to the top. `ScrollPosition` with a view id did not keep the row across a resize in the
+  probe; `scrollPosition(id:)` did.
+- **Cause, review.** The backlog's `head` outlived the follow's kill: over the relay the rest of a dropped 100 MB backlog
+  still crossed the SSH session, and through awk an orphaned `head` hung on the FIFO. It now runs in the background,
+  killed from a TERM trap (a unit test, red before).
+- **Runs.** The long-chat test (scroll up, split, the same messages at the top, Scroll to Bottom, widen at the bottom,
+  relaunch and show the backlog) is green on CI; without the feature it has no button, and the probe saw the old
+  code jump to the end on a split. The other 13 chat tests, the remote ones too, are green.
 - **For the user.** Open the chat of a long pi or Claude Code session: it shows at once. Scroll up, split beside it
   (⌘D) and close the split: the same message stays at the top, and the split moves as smoothly as beside a terminal.
-  Scroll to Bottom shows while scrolled up. Trackpad scrolling through a long chat may still drop frames.
+  Scroll to Bottom shows while scrolled up. Trackpad scrolling through a long chat can still drop a frame as a long
+  reply comes into view.
