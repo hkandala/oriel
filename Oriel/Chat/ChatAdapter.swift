@@ -84,18 +84,20 @@ extension Chat {
             follow(source)
         }
         // Lines buffered before a cancel still come: not into the next follow's chat.
-        for await entry in lines where !Task.isCancelled {
-            guard case let .line(text, mark) = entry else { continue }
-            marks[sideFile] = mark
-            guard let object = try? JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any],
-                  let next = await line(object), !Task.isCancelled else { continue }
-            problem = nil
-            guard next != source else { continue }
-            source = next
-            history = ChatHistory()
-            // A resumed session's file again: from its start, not from where the chat left it.
-            marks[next] = nil
-            follow(next)
+        for await batch in lines {
+            for entry in batch where !Task.isCancelled {
+                guard case let .line(text, mark) = entry else { continue }
+                marks[sideFile] = mark
+                guard let object = try? JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any],
+                      let next = await line(object), !Task.isCancelled else { continue }
+                problem = nil
+                guard next != source else { continue }
+                source = next
+                history = ChatHistory()
+                // A resumed session's file again: from its start, not from where the chat left it.
+                marks[next] = nil
+                follow(next)
+            }
         }
         transcript?.cancel()
         await transcript?.value
@@ -116,32 +118,40 @@ extension Chat {
         guard let lines = try? await exec.follow(source, from: marks[source] ?? FileMark(), skip: skip) else { return }
         var torn = 0, count = 0
         (loading, backlog) = (true, history)
-        for await line in lines where !Task.isCancelled && self.source == source {
-            switch line {
-            case let .opened(_, again) where again && !backlog.entries.isEmpty:
-                backlog = ChatHistory()
-                restarted()
-            case let .line(text, mark):
-                marks[source] = mark
-                torn = change { read(text, &$0) } ? 0 : torn + 1
-                if torn == 5 {
-                    problem = Self.unknownFormat
-                } else if torn == 0, problem == Self.unknownFormat {
-                    problem = nil
+        // A batch's lines in one main-actor turn: the card draws once for them, not once per line.
+        for await batch in lines {
+            for line in batch where !Task.isCancelled && self.source == source {
+                switch line {
+                case let .opened(_, again) where again && !backlog.entries.isEmpty:
+                    backlog = ChatHistory()
+                    restarted()
+                case let .line(text, mark):
+                    marks[source] = mark
+                    torn = change { read(text, &$0) } ? 0 : torn + 1
+                    check(torn: torn)
+                    count += 1
+                    // A long session takes a second to read: the app goes on meanwhile (the backlog draws only once
+                    // read).
+                    if loading, count.isMultiple(of: 200) {
+                        await Task.yield()
+                    }
+                case .loaded: showBacklog()
+                case .opened: break
                 }
-                count += 1
-                // A long session takes a second to read: the app goes on meanwhile.
-                if count.isMultiple(of: 200) {
-                    await Task.yield()
-                }
-            case .loaded: showBacklog()
-            case .opened: break
             }
         }
         // Cut short (the card went, the connection dropped): the marks went on, so the history keeps what they read;
         // unless it is another session's now.
         if loading {
             showBacklog(self.source == source)
+        }
+    }
+
+    private func check(torn: Int) {
+        if torn == 5 {
+            problem = Self.unknownFormat
+        } else if torn == 0, problem == Self.unknownFormat {
+            problem = nil
         }
     }
 

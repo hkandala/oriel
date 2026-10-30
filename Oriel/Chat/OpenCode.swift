@@ -95,40 +95,42 @@ struct OpenCode: ChatAdapter {
         defer { late.cancel() }
         // From the start each time: the last line holds the server and session.
         guard let lines = try? await exec.follow(folder + "/state.jsonl", from: FileMark()) else { return }
-        for await line in lines where !Task.isCancelled {
-            guard case let .line(text, _) = line,
-                  let state = try? JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any],
-                  let pid = state["pid"] as? Int, pids.contains(pid),
-                  let url = state["url"] as? String, url.wholeMatch(of: /http:\/\/127\.0\.0\.1:[0-9]{1,5}/) != nil
-            else { continue }
-            let session = (state["session"] as? String).flatMap { Self.isID($0) ? $0 : nil }
-            if chat.problem == Self.unreported {
-                chat.problem = nil
-            }
-            waits.dialog = state["dialog"] as? Bool == true
-            let source = url + " " + (session ?? "")
-            if current != source {
-                current = source
-                server?.cancel()
-                waits.requests = []
-                waits.busy = nil
-                // Another session starts empty; the same one shown again keeps its rows until the reload.
-                if chat.source != source {
-                    chat.history = ChatHistory()
-                    chat.source = source
-                    chat.problem = chat.problem?.hasPrefix(Self.serverProblem) == true ? nil : chat.problem
+        for await batch in lines {
+            for line in batch where !Task.isCancelled {
+                guard case let .line(text, _) = line,
+                      let state = try? JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any],
+                      let pid = state["pid"] as? Int, pids.contains(pid),
+                      let url = state["url"] as? String, url.wholeMatch(of: /http:\/\/127\.0\.0\.1:[0-9]{1,5}/) != nil
+                else { continue }
+                let session = (state["session"] as? String).flatMap { Self.isID($0) ? $0 : nil }
+                if chat.problem == Self.unreported {
+                    chat.problem = nil
                 }
-                server = session.map { session in
-                    Task {
-                        // Again after a dropped event stream, until the server or session changes.
-                        while !Task.isCancelled {
-                            await self.server(chat, url, session, waits, exec)
-                            try? await Task.sleep(for: .seconds(2))
+                waits.dialog = state["dialog"] as? Bool == true
+                let source = url + " " + (session ?? "")
+                if current != source {
+                    current = source
+                    server?.cancel()
+                    waits.requests = []
+                    waits.busy = nil
+                    // Another session starts empty; the same one shown again keeps its rows until the reload.
+                    if chat.source != source {
+                        chat.history = ChatHistory()
+                        chat.source = source
+                        chat.problem = chat.problem?.hasPrefix(Self.serverProblem) == true ? nil : chat.problem
+                    }
+                    server = session.map { session in
+                        Task {
+                            // Again after a dropped event stream, until the server or session changes.
+                            while !Task.isCancelled {
+                                await self.server(chat, url, session, waits, exec)
+                                try? await Task.sleep(for: .seconds(2))
+                            }
                         }
                     }
                 }
+                waits.publish(chat)
             }
-            waits.publish(chat)
         }
     }
 

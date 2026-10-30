@@ -2,6 +2,22 @@ import Foundation
 @testable import HerdrKit
 import Testing
 
+/// A follow's lines one by one, as its batches bring them.
+private func lineByLine(_ path: String, from mark: FileMark,
+                        skip: String = "0") async throws -> AsyncStream<FollowedLine>
+{
+    let batches = try await localExec.follow(path, from: mark, skip: skip)
+    let (stream, continuation) = AsyncStream<FollowedLine>.makeStream()
+    let task = Task {
+        for await batch in batches {
+            batch.forEach { continuation.yield($0) }
+        }
+        continuation.finish()
+    }
+    continuation.onTermination = { _ in task.cancel() }
+    return stream
+}
+
 /// The chat's file follower on This Mac (the relay runs the same script): a file made late, a split write, a resume
 /// from a mark, a rotated file, and a big file read whole.
 @Test func `follow reads whole lines and goes on from its mark`() async throws {
@@ -16,7 +32,7 @@ import Testing
         try handle.close()
     }
 
-    var lines = try await localExec.follow(file.path, from: FileMark()).makeAsyncIterator()
+    var lines = try await lineByLine(file.path, from: FileMark()).makeAsyncIterator()
     try Data("a\n{\"b\":".utf8).write(to: file)
     guard case let .opened(first, restarted)? = await lines.next() else { Issue.record("not opened"); return }
     #expect(restarted && first.offset == 0)
@@ -31,14 +47,14 @@ import Testing
 
     // A new run from the mark reads only what came since.
     try append("c\n")
-    var again = try await localExec.follow(file.path, from: mark).makeAsyncIterator()
+    var again = try await lineByLine(file.path, from: mark).makeAsyncIterator()
     guard case .opened(_, false)? = await again.next(), case .line("c", _)? = await again.next() else {
         Issue.record("no resume"); return
     }
     // Rotated: another file under the name starts again.
     try FileManager.default.removeItem(at: file)
     try Data("d\n".utf8).write(to: file)
-    var rotated = try await localExec.follow(file.path, from: mark).makeAsyncIterator()
+    var rotated = try await lineByLine(file.path, from: mark).makeAsyncIterator()
     guard case .opened(_, true)? = await rotated.next(), case .line("d", _)? = await rotated.next() else {
         Issue.record("no restart"); return
     }
@@ -46,7 +62,7 @@ import Testing
     // A new file is read whole, from its first line, also past 256 KiB; then `loaded`.
     let big = folder.appending(path: "big.jsonl")
     try Data(("first\n" + String(repeating: "é", count: 150_000) + "\nlast\n").utf8).write(to: big)
-    var whole = try await localExec.follow(big.path, from: FileMark()).makeAsyncIterator()
+    var whole = try await lineByLine(big.path, from: FileMark()).makeAsyncIterator()
     guard case .opened(_, true)? = await whole.next(), case .line("first", _)? = await whole.next(),
           case .line(_, _)? = await whole.next(), case let .line("last", end)? = await whole.next(),
           case .loaded? = await whole.next() else { Issue.record("not whole"); return }
@@ -59,7 +75,7 @@ import Testing
     let file = FileManager.default.temporaryDirectory.appending(path: "oriel-skip-\(UUID().uuidString).jsonl")
     defer { try? FileManager.default.removeItem(at: file) }
     try Data(#"{"type":"blob","é":1}\#n{"keep":1}\#n{"type":"blob"}\#n{"ke"#.utf8).write(to: file)
-    var lines = try await localExec.follow(file.path, from: FileMark(), skip: #"/^[{]"type":"blob"/"#)
+    var lines = try await lineByLine(file.path, from: FileMark(), skip: #"/^[{]"type":"blob"/"#)
         .makeAsyncIterator()
     guard case .opened? = await lines.next(), case let .line(#"{"keep":1}"#, mark)? = await lines.next(),
           case .loaded? = await lines.next() else { Issue.record("not skipped"); return }
@@ -102,12 +118,44 @@ import Testing
     defer { try? FileManager.default.removeItem(at: file) }
     try Data(String(repeating: String(repeating: "x", count: 7999) + "\n", count: 10000).utf8).write(to: file)
     let start = ContinuousClock.now
-    for await line in try await localExec.follow(file.path, from: FileMark()) {
+    for await line in try await lineByLine(file.path, from: FileMark()) {
         if case .loaded = line {
             break
         }
     }
     #expect(ContinuousClock.now - start < .milliseconds(2500))
+}
+
+/// A burst written at once (150 turns of a long session) comes in one or two batches to a reader that is busy, as the
+/// app is while it draws: not one batch per line, each of which would draw the chat again.
+@Test func `a burst comes in few batches`() async throws {
+    let file = FileManager.default.temporaryDirectory.appending(path: "oriel-burst-\(UUID().uuidString).jsonl")
+    defer { try? FileManager.default.removeItem(at: file) }
+    try Data("a\n".utf8).write(to: file)
+    var batches = try await localExec.follow(file.path, from: FileMark()).makeAsyncIterator()
+    var lines = 0
+    while lines < 1 {
+        lines += try await batches.next()?.count(where: {
+            if case .line = $0 {
+                true
+            } else {
+                false
+            }
+        }) ?? 0
+    }
+    let handle = try FileHandle(forWritingTo: file)
+    try handle.seekToEnd()
+    try handle.write(contentsOf: Data(String(repeating: #"{"type":"user","message":{"content":"Question"}}"# + "\n",
+                                             count: 600).utf8))
+    try handle.close()
+    var count = 0
+    while lines < 601, let batch = try await batches.next() {
+        lines += batch.count
+        count += 1
+        // Busy: the rest of the burst comes meanwhile.
+        try await Task.sleep(for: .milliseconds(300))
+    }
+    #expect(lines == 601 && count <= 2)
 }
 
 @Test func `watch prints a file each time it changes`() async throws {
@@ -141,7 +189,7 @@ func `follow drops only what the parser skips`(name: String, unread: String, ext
     try Data(lines.map { $0 + "\n" }.joined().utf8).write(to: file)
     var whole = ChatHistory(), followed = ChatHistory(), count = 0
     lines.forEach { _ = read($0, &whole) }
-    for await line in try await localExec.follow(file.path, from: FileMark(), skip: unread) {
+    for await line in try await lineByLine(file.path, from: FileMark(), skip: unread) {
         if case .loaded = line {
             break
         }

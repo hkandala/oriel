@@ -1,4 +1,5 @@
 import Foundation
+import Synchronization
 
 /// Where a followed file was read up to, so a new run goes on from there
 /// (ui/chat-view#where-messages-come-from).
@@ -24,11 +25,20 @@ public extension Exec {
     /// Follows a file on the machine (a relative path is under the home folder) as `tail -F` does, from `mark` on,
     /// also before the file exists, until the stream is dropped. A file rotated meanwhile starts again at the next
     /// follow, which compares its inode with the mark's. `skip`: an awk pattern of the lines no parser reads
-    /// (`0`: none), dropped on the machine so they never cross a remote machine's relay.
-    func follow(_ path: String, from mark: FileMark, skip: String = "0") async throws -> AsyncStream<FollowedLine> {
+    /// (`0`: none), dropped on the machine so they never cross a remote machine's relay. Each element is what came
+    /// since the reader last asked: a burst (a long turn written at once, a reconnect) lands in one update of a busy
+    /// reader, not in one per line.
+    func follow(_ path: String, from mark: FileMark,
+                skip: String = "0") async throws -> some AsyncSequence<[FollowedLine], Never> & Sendable
+    {
         let lines = try await lines(Self.followScript, [path, String(mark.offset), mark.inode, skip])
-        let (stream, continuation) = AsyncStream<FollowedLine>.makeStream()
+        let pending = Mutex<[FollowedLine]>([])
+        let (ready, signal) = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
         let reader = Task {
+            func yield(_ line: FollowedLine) {
+                pending.withLock { $0.append(line) }
+                signal.yield()
+            }
             var mark = mark, end = Int.max
             for await line in lines {
                 if line.hasPrefix("oriel-follow ") {
@@ -39,25 +49,25 @@ public extension Exec {
                     mark.inode = String(parts[1])
                     mark.offset = offset
                     end = opened
-                    continuation.yield(.opened(mark, restarted: restarted))
+                    yield(.opened(mark, restarted: restarted))
                 } else if line.hasPrefix("oriel-skip "), let bytes = Int(line.dropFirst(11)) {
                     mark.offset += bytes
                 } else {
                     // Whole lines from a line start only, so the byte count holds (a cut inside a character would
                     // not).
                     mark.offset += line.utf8.count + 1
-                    continuation.yield(.line(line, mark))
+                    yield(.line(line, mark))
                 }
                 if mark.offset >= end {
                     end = .max
-                    continuation.yield(.loaded)
+                    yield(.loaded)
                 }
             }
-            continuation.finish()
+            signal.finish()
         }
         // Ends `lines`, and so the script.
-        continuation.onTermination = { _ in reader.cancel() }
-        return stream
+        signal.onTermination = { _ in reader.cancel() }
+        return ready.map { pending.withLock { lines in defer { lines = [] }; return lines } }.filter { !$0.isEmpty }
     }
 
     /// Prints a file's whole text each time it changes, as one line (a JSON record the program rewrites), checked

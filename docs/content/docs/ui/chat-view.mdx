@@ -135,7 +135,9 @@ and no backslash.
     (`dd … count=0`), then runs `tail -c +N -F` from their end. Both go
     through awk when the agent has lines to skip. macOS's `tail` copies only about
     17 MB a second, so it never reads the backlog. A new file is read whole,
-    from its start: one Claude Code turn can pass 256 KiB.
+    from its start: one Claude Code turn can pass 256 KiB. The chat takes
+    all the lines that came since it last looked at once, so a burst (a long
+    turn written at once) draws the chat once, not once per line.
   - **The line filter.** awk drops the lines that the agent's parser skips
     (an awk pattern next to each parser) and prints `oriel-skip <bytes>` in
     their place, so the mark still counts the file's bytes. On a remote
