@@ -1,0 +1,104 @@
+---
+title: "Remote machines"
+description: "Proposed: how an agent on a remote machine reaches the Oriel on a Mac, how the command gets there, and what differs"
+---
+
+Proposed ([Agent control](/docs/future-work/agent-control)). An agent on a
+remote machine runs the same command, with the same answers, as an agent on
+This Mac. Everything the agent touches is on its own machine: the script, the
+mailbox and herdr. Oriel already holds the link to that machine: one SSH
+session through the relay, which carries the event stream and every run
+([The SSH connection](/docs/machines#the-ssh-connection)).
+
+## The flow
+
+```text
+remote machine (devbox)                                   the Mac
+──────────────────────────────────────────────            ─────────────────────────────
+agent in pane w1:p2
+  │ 1. ~/.cache/oriel/bin/oriel open diff /srv/app uncommitted
+  │ 2. writes ~/.cache/oriel/rpc/<id>.req
+  │ 3. herdr pane report-metadata w1:p2 oriel-req=<id>
+  ▼
+herdr server ── pane.updated (tokens) ── events stream ── relay ──► Oriel (HostStore of devbox/default)
+                                                                     │ 4. run: mv <id>.req <id>.run; base64
+~/.cache/oriel/rpc/<id>.run  ◄──────────────────────────── relay ────┘
+                                                                     │ 5. herdr calls (layout.apply, tab.move…)
+herdr server  ◄──────────────────────── remote-api-bridge ── relay ──┤    the card shows in the window
+                                                                     │ 6. run: write <id>.out, <id>.exit
+~/.cache/oriel/rpc/<id>.exit ◄──────────────────────────── relay ────┘
+  │ 7. the script prints <id>.out, exits with the code
+  ▼
+agent reads the JSON
+```
+
+On This Mac the same steps run with `Process` in place of the relay.
+
+## How the command gets there
+
+When Oriel opens a session on a machine, one run (over the relay on a remote
+machine) prepares the folders, cleans the mailbox and reads the script's
+version:
+
+```sh
+d=~/.cache/oriel; mkdir -p "$d/bin" "$d/rpc" && chmod 700 "$d/rpc" &&
+find "$d/rpc" -type f -mmin +60 -exec rm -f {} + ; sed -n 2p "$d/bin/oriel" 2>/dev/null
+```
+
+- If the answer is not `# oriel-cli ‹protocol›` with a protocol at least
+  Oriel's own, a second run writes the script (about 3 KB, base64 in the
+  envelope, to a temporary name, then `mv`, mode 0755).
+- Nothing else is installed. The script needs `sh` and POSIX tools. The relay
+  already needs Perl, the script does not.
+- `~` is the machine's home: the login user's, the same user herdr runs as.
+
+## Timing
+
+Estimates, to measure in the first track. r is the round trip to the
+machine.
+
+| Where | Steps that cost | About |
+|---|---|---|
+| This Mac | ring (a herdr call), event, take (a `Process`), work, answer, the 50 ms poll | 0.1 s |
+| Remote, r = 40 ms | event (r/2), take (r), work (herdr calls over the bridge), answer (r), poll | 0.2 s plus the work |
+| Remote, r = 150 ms | the same | 0.5 s plus the work |
+
+The take wait is 3 s and the answer wait 10 s, enough for a slow link. A
+caller that wants a fast "no" reads `oriel status` first, which never leaves
+the machine.
+
+## What differs on a remote machine
+
+- **Paths** are the machine's. `oriel open ./notes.md` opens the remote
+  file, through the card's `Exec`, as every plugin card on that machine does.
+- **`localhost`** in a browser card is the machine's, through the SOCKS proxy
+  ([Remote localhost](/docs/ui/browser#remote-localhost)). A `file://` address
+  opens only on This Mac, as today.
+- **`remote`** in `oriel status` is true, so the agent knows its own `pbcopy`
+  does not reach the Mac. `oriel copy` does.
+- **The link drops** (sleep, a network change): the event stream ends, and
+  requests until it opens again are not taken (exit 3). Oriel opens it again
+  as it does today. A request in the gap is not replayed: its token expired.
+- **Another session on the machine** (`oriel float pi-herd/w1:p1`) works when
+  the asking session is open in Oriel. Oriel opens the other session's
+  stream for the float, as `oriel://float` does with `&machine=`.
+- **Two Macs on one machine**: each has its own master and stream. Both hear
+  the ring, and the `mv` on the machine picks one
+  ([Two Oriels](/docs/future-work/agent-control/protocol#two-oriels)).
+- **A machine no Oriel connects to** has an old script or none. An old
+  script still works: the protocol is the same, and Oriel parses the
+  commands.
+
+## Why not a forwarded socket
+
+A socket of Oriel's own on the Mac, reached from the machine by
+`ssh -R /path/oriel.sock:…`, would give a plain request and reply. It was
+rejected:
+- Oriel's master runs with `ClearAllForwardings=yes` and no agent forwarding,
+  so that a machine cannot reach the Mac through the app's long-lived link.
+  A reverse forward opens exactly that door, to every process of the user on
+  the machine.
+- Two Macs on one machine need two socket paths, and the command must pick
+  one. herdr's tokens reach every Oriel that follows the session, and the
+  `mv` picks one.
+- The relay and the event stream already carry everything the bus needs.

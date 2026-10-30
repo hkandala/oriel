@@ -3,6 +3,7 @@
   "pages": [
     "index",
     "plugins",
+    "agent-control",
     "changes-panel",
     "pills",
     "iphone-and-ipad",

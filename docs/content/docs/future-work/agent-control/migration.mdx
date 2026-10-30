@@ -1,0 +1,136 @@
+---
+title: "Migration"
+description: "Proposed: how pi-herd's float, pi's copy and the oriel-panes skill move to the oriel command, and what Oriel then removes"
+---
+
+Proposed ([Agent control](/docs/future-work/agent-control)). Three callers
+use token tricks today. Each moves to the command, in this order:
+
+1. **Oriel ships the bus** (build track 1) and keeps reading `oriel-float`
+   and `oriel-copy`.
+2. **pi-hkandala moves** (track 5): pi-herd's float, `herdr/oriel-copy.ts`
+   and the oriel-panes skill.
+3. **Oriel removes the old tricks** one release later (track 6). A remote
+   machine with an older pi-hkandala checkout keeps working until then.
+
+## pi-herd's float
+
+Today, `orielFloat` (`extensions/pi-herd/herdr.ts:35-52`) writes
+`oriel-float` and a nonce on its pane for 1 s, and nothing comes back. A
+float that no Oriel took does nothing at all, and the click is lost.
+
+After, it runs the command and falls back to its popup when no Oriel takes
+the request:
+
+```ts
+// extensions/pi-herd/herdr.ts
+const ORIEL = join(homedir(), ".cache", "oriel", "bin", "oriel");
+
+/**
+ * Asks the Oriel that shows `pane` to float the target pane (agent-control's `oriel float`).
+ * Resolves with the command's exit code: 0 floated, 3 no Oriel took it, 5 no command here.
+ */
+export const orielFloat = (socket: string, pane: string, target: { socket: string; pane: string }) =>
+  new Promise<number>((ok) =>
+    execFile(
+      ORIEL,
+      ["--pane", pane, "float", `${sessionOf(target.socket)}/${target.pane}`],
+      { env: { ...process.env, HERDR_SESSION: sessionOf(socket) }, timeout: 15_000 },
+      (e) => ok(e ? (typeof e.code === "number" ? e.code : 5) : 0),
+    ),
+  );
+```
+
+```ts
+// extensions/pi-herd/index.ts, in attach (today :983-986)
+if ((await orielShows(socket, pane)) && (await orielFloat(socket, pane, a.herdr)) === 0) return;
+// Not shown, or no Oriel took it: herdr focuses the pane, or the popup opens, as before.
+```
+
+- `orielShows` stays. It reads `oriel-shown` on pi's own herdr socket, a few
+  milliseconds, so a click in herdr's TUI opens the popup at once.
+- `randomUUID` and the `oriel-float*` tokens leave pi-herd.
+- The README's "Popups" paragraph (`README.md:102`) then says: pi-herd runs
+  `oriel float`, and opens the popup when it exits with any code but 0.
+
+## pi's copy
+
+Today, `herdr/oriel-copy.ts` writes `/tmp/oriel-copy-‹uuid›` and the token
+`oriel-copy` when `oriel-shown` is `remote`
+([Copy requests](/docs/talking-to-herdr#copy-requests)). After, it pipes the
+text into `oriel copy`, under the same check:
+
+```ts
+// herdr/oriel-copy.ts
+/** Copies through Oriel when it shows this pane from another Mac; false: use pbcopy. */
+export async function orielCopy(socket: string, pane: string, text: string): Promise<boolean> {
+  const got = await rpc(socket, "pane.get", { pane_id: pane }).catch(() => undefined);
+  if (got?.pane?.tokens?.["oriel-shown"] !== "remote") return false;
+  return new Promise((ok) => {
+    const child = execFile(ORIEL, ["--pane", pane, "copy"], { timeout: 15_000 }, (e) => ok(!e));
+    child.stdin?.end(text);
+  });
+}
+```
+
+- The 30 s cleanup of files Oriel missed goes: the command removes its own
+  files, and Oriel cleans the mailbox on connect.
+- The fake-socket test (`herdr/oriel-copy.test.mts`) changes to a fake
+  script on `ORIEL`'s path that records its standard input.
+
+## The oriel-panes skill
+
+The skill shrinks from labels, iids and nudges to the command. Its new
+sections:
+
+```md
+# Oriel panes
+
+Oriel is a macOS app for herdr. Run its command, `~/.cache/oriel/bin/oriel`, from your
+herdr pane. It exists on each machine where Oriel opened a session.
+
+## Does Oriel show me?
+`oriel status` prints "Shown in Oriel", "Open in Oriel, not shown" or "Not in Oriel"
+(exit 3). When it says "Not in Oriel", or the file is missing, Oriel does not show
+this session. Use herdr's own commands and tell the user where to look.
+
+## Open a card
+oriel plugins                                  # what you can open
+oriel open browser http://localhost:3000       # beside you
+oriel open diff /repo uncommitted --tab
+oriel open ./report.md                         # the default plugin for the file
+oriel open browser http://localhost:3000/x --replace w1:p7
+
+## Float, point, tell
+oriel float w1:p3 · oriel reveal w1:p3 · oriel notify "Done" "All tests pass"
+
+## Agents
+oriel agent claude    # with the chat view
+
+## Terminals
+herdr --session "$HERDR_SESSION" pane split "$HERDR_PANE_ID" --direction right --no-focus
+herdr --session "$HERDR_SESSION" pane run "$pane" "npm run dev"
+
+Add --json to any oriel command for JSON. Never call herdr's focus commands.
+```
+
+- The label table, the iid loop, `pane rename` and the `oriel-label` nudge
+  leave the skill. The label grammar stays the truth in Oriel, so a pane
+  made by hand still works.
+- `placeholder.sh` leaves the skill: Oriel starts its own placeholder.
+- The rules that stay: no secrets in an argument (every device sees the
+  label), `file://` only on This Mac, `localhost` is the pane's machine.
+
+## In Oriel
+
+| Now | After |
+|---|---|
+| `FloatRequest` (`Models.swift:113-127`), `Update.float`, `Update.copy`, the `floated` and `copied` sets and their decode (`HerdrClient.swift:252-257`), the two cases in `HostStore.swift:175-180` | `Update.request` and one decode of `oriel-req` ([In Oriel](/docs/future-work/agent-control/protocol#in-oriel)) |
+| [Float requests](/docs/talking-to-herdr#float-requests) and [Copy requests](/docs/talking-to-herdr#copy-requests) in Talking to herdr | one "Agent requests" section, with the presence tokens |
+| D50: "`oriel://float` and a metadata token let any tool float a pane" | D50 points to the new decision for agent control; `oriel://float` stays |
+| [Floating pane](/docs/ui/window#floating-pane): "From a pane, on any machine" names the float request | names `oriel float` |
+| [Agents open browser panes](/docs/ui/browser#agents-open-browser-panes): the label and the nudge | `oriel open browser` first; the label stays as the way it works |
+
+- The `oriel-shown` token stays as it is, with its values. pi's copy and
+  pi-herd read it.
+- `oriel://float` stays for Mac tools (Raycast, Alfred, scripts on This Mac).

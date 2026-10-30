@@ -17,6 +17,7 @@ never calls herdr's focus methods. A design gets decision numbers on the
 
 <Cards>
   <Card title="Pane kinds and plugins" href="/docs/future-work/plugins" description="Proposed: plugins as folders of TypeScript that Oriel builds, with a manifest, a typed API and a memory budget" />
+  <Card title="Agent control" href="/docs/future-work/agent-control" description="Proposed: agents float panes, open plugin cards, list plugins and learn whether Oriel shows them, through an oriel command" />
   <Card title="Changes panel" href="/docs/future-work/changes-panel" description="What the agents changed: git diffs in a drawer, a git chip, the last turn" />
   <Card title="Floating pills" href="/docs/future-work/pills" description="Agent status on the Mac screen edge while you work in another app" />
   <Card title="iPhone and iPad" href="/docs/future-work/iphone-and-ipad" description="One pane per page on iPhone, the Mac layout on iPad" />
@@ -36,6 +37,16 @@ never calls herdr's focus methods. A design gets decision numbers on the
   are not in the app's list, each with a checkbox. While the app's list is
   empty, they start checked. The app never writes herdr's list
   ([The machine list](/docs/machines#the-machine-list)).
+- **Image paste.** ⌘V (or Paste on iOS) with an image and no text on the
+  clipboard, in a terminal or agent card or the chat reply box: the app
+  encodes it as PNG, copies it to the pane's machine as a dropped file is
+  copied (`Exec.upload`, at most 16 MB, over the relay on a remote machine;
+  [Drag and drop](/docs/ui/drag-and-drop#files-and-images)), and pastes the
+  copy's path (or adds it to the chat draft). Agents such as Claude Code read
+  the image from the path. A larger image shows "Image too large to paste".
+  herdr's own remote client, uHerdr, collie, termote and roamgate do the
+  same. Rejected: image bytes through the terminal (herdr's stream and agents
+  do not take them); a server helper.
 - **Reorder the machines** in the machine menu.
 - **Bundling herdr** with the app, so a Mac without herdr can still show its
   own sessions.
@@ -93,9 +104,10 @@ never calls herdr's focus methods. A design gets decision numbers on the
   change its address, nothing more. An agent that needs to drive a page runs
   its own browser on its machine (Playwright, chrome-devtools-mcp).
   WKWebView has no automation protocol. A later design lets an agent ask the
-  app, through a pane metadata token, to read, run script in or capture one
-  browser card it is allowed to, with the result written back to a file on
-  the machine. It needs its own consent design.
+  app, through the `oriel` command
+  ([Agent control](/docs/future-work/agent-control)), to read, run script in
+  or capture one browser card it is allowed to. It needs its own consent
+  design.
 - **Terminal keys to check against libghostty** (herdr-gpui's defaults,
   [research](https://github.com/hkandala/oriel/blob/main/resources/research/clients/herdr-gpui.md)):
   ⇧↩ sent as Esc and CR, because herdr sends a bare CR for Shift-Enter to a
