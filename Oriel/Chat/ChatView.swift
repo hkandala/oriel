@@ -7,21 +7,13 @@ struct ChatView: View {
     let page: Page
     let terminal: PaneTerminal?
     /// The conversation's reading column, as in Messages: a wide card centers it.
-    private static let column: CGFloat = 760
-    /// The reply box's text from its sides.
-    private static let inset: CGFloat = 14
-    /// Stacks clicked open or closed: they stay so at every level (else open at Everything only).
-    @State private var opened: [String: Bool] = [:]
-    /// Tool calls opened to their input and output.
-    @State private var openTools: Set<String> = []
+    static let column: CGFloat = 760
     @State private var height: CGFloat = 0
     @FocusState private var composing: Bool
-    @Environment(\.look) private var look
-    private var settings = AppSettings()
 
     var body: some View {
         VStack(spacing: 0) {
-            messages
+            ChatMessages(chat: chat, page: page, composing: $composing).equatable()
             if chat.drawer, let terminal {
                 WaitingDrawer(chat: chat, page: page, terminal: terminal).frame(height: max(160, height * 0.45))
                     .padding(.horizontal, 32).padding(.bottom, 14).padding(.top, 4)
@@ -70,77 +62,23 @@ struct ChatView: View {
             }
         }
     }
+}
 
-    private var messages: some View {
-        let working = chat.phase == .working, level = settings.chatLevel
-        let rows = chat.history.rows(level, working: working)
-        let floats = page.store.pane(chat.paneID).map(page.floats) == true
-        return ScrollView {
-            LazyVStack(alignment: .leading, spacing: 10) {
-                ForEach(rows) { row in
-                    let open = opened[row.id] ?? (level == .everything)
-                    ChatRowView(row: row, paneID: chat.paneID, open: open, toggle: { opened[row.id] = !open },
-                                opened: openTools, toggleTool: { openTools.formSymmetricDifference([$0]) })
-                }
-                ForEach(chat.outgoing) { message in
-                    outgoing(message)
-                }
-                if working {
-                    // A message on its way starts a turn the history does not have yet.
-                    WorkingRow(since: chat.outgoing.isEmpty ? chat.history.lastTurnStart : nil)
-                }
-                if let problem = chat.problem {
-                    problemCard(problem)
-                }
-            }
-            // A floating window's card starts right under its title row, with no header of its own above.
-            .padding(.horizontal, 32).padding(.top, floats ? 28 : 16).padding(.bottom, 16)
-            .frame(maxWidth: Self.column)
-            .frame(maxWidth: .infinity)
-        }
-        .defaultScrollAnchor(.bottom)
-        .defaultScrollAnchor(.bottom, for: .sizeChanges)
-        .focusEffectDisabled()
-        .accessibilityIdentifier("chat.\(chat.paneID)")
-        // A new chat: the agent's program icon, gray, in the middle. After the messages' id, which would replace its
-        // own.
-        .background {
-            if rows.isEmpty, chat.outgoing.isEmpty, chat.problem == nil, let pane = page.store.pane(chat.paneID) {
-                ProgramGlyph(icon: pane.iconID, letter: pane.letter, size: 64).opacity(0.5)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityAddTraits(.isImage)
-                    .accessibilityLabel(chat.adapter.name)
-                    .accessibilityIdentifier("chat.\(chat.paneID).empty")
-            }
-        }
-        // The reply box is glass over the messages' bottom, which scroll under it and clear of it.
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            if !chat.drawer {
-                VStack(spacing: 8) {
-                    if let question = chat.question, chat.phase == .waiting {
-                        QuestionCard(question: question, paneID: chat.paneID) { chat.answer($0) }
-                            .disabled(question.answered)
-                            .id(question.raw)
-                    }
-                    composer
-                }
-                // The box's text on the messages' edges: the box reaches past them by its own padding.
-                .padding(.horizontal, 32 - Self.inset).padding(.bottom, 14).padding(.top, 4)
-                .frame(maxWidth: Self.column).frame(maxWidth: .infinity)
-            }
-        }
-        // The messages fade in under the header instead of being cut by it.
-        .fadeEdges(.vertical, start: 12, end: 0)
-    }
+/// The reply box (ui/chat-view#what-it-looks-like): its own view, so a key typed in it changes nothing else.
+struct Composer: View {
+    @Bindable var chat: Chat
+    var composing: FocusState<Bool>.Binding
+    /// Its text from its sides.
+    static let inset: CGFloat = 14
 
-    private var composer: some View {
+    var body: some View {
         let working = chat.phase == .working
         return VStack(alignment: .leading, spacing: 2) {
             TextField("Ask Anything", text: $chat.draft, axis: .vertical)
                 .textFieldStyle(.plain)
                 .font(.system(size: 14))
                 .lineLimit(1 ... 10)
-                .focused($composing)
+                .focused(composing)
                 .onSubmit { chat.send(chat.draft) }
                 // ⇧Return adds a line, as ⌥Return does.
                 .onKeyPress(.return, phases: [.down, .repeat]) { press in
@@ -173,7 +111,7 @@ struct ChatView: View {
         .padding(.leading, Self.inset).padding(.trailing, 7).padding(.top, 9).padding(.bottom, 7)
         .glassEffect(.regular, in: .rect(cornerRadius: 18))
         .contentShape(.rect)
-        .onTapGesture { composing = true }
+        .onTapGesture { composing.wrappedValue = true }
     }
 
     private func roundButton(_ symbol: String, help: String, id: String, enabled: Bool = true,
@@ -190,36 +128,6 @@ struct ChatView: View {
         .help(help)
         .accessibilityLabel(help)
         .accessibilityIdentifier(id)
-    }
-
-    /// Sending, dimmed; or "Not sent" with Show TUI.
-    private func outgoing(_ message: Chat.Outgoing) -> some View {
-        VStack(alignment: .trailing, spacing: 4) {
-            UserBubble(text: message.text, paneID: chat.paneID, sending: true).opacity(message.notSent ? 0.5 : 0.7)
-            if message.notSent {
-                HStack(spacing: 8) {
-                    Text("Not sent").font(.system(size: 11)).foregroundStyle(look.error)
-                        .accessibilityIdentifier("chat.\(chat.paneID).not-sent")
-                    Button("Show TUI") { chat.showsChat = false }.buttonStyle(.glass).controlSize(.small)
-                }
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .trailing)
-        .padding(.vertical, 8)
-    }
-
-    private func problemCard(_ problem: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Label("The chat cannot read this session", systemImage: "xmark.circle.fill")
-                .font(.system(size: 13, weight: .semibold)).foregroundStyle(look.error)
-            Text(problem).font(.system(size: 12)).foregroundStyle(.secondary)
-                .accessibilityIdentifier("chat.\(chat.paneID).problem")
-            Button("Show TUI") { chat.showsChat = false }.buttonStyle(.glass).controlSize(.small)
-                .accessibilityIdentifier("chat.\(chat.paneID).show-terminal")
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(look.error.opacity(0.1), in: .rect(cornerRadius: 10))
     }
 }
 
