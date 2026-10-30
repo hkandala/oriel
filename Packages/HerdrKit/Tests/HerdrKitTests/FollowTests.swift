@@ -72,6 +72,29 @@ import Testing
     #expect(last.offset == 61)
 }
 
+/// A follow dropped in the middle of its backlog sends no more of it: a remote one would flood the relay, and through
+/// awk a `head` left behind would hang on the FIFO. (Without awk, this Mac's reader drains the pipe before the kill.)
+@Test func `a dropped follow stops its backlog`() async throws {
+    let file = FileManager.default.temporaryDirectory.appending(path: "oriel-drop-\(UUID().uuidString).jsonl")
+    defer { try? FileManager.default.removeItem(at: file) }
+    let line = String(repeating: "x", count: 999)
+    try Data(String(repeating: line + "\n", count: 20000).utf8).write(to: file)
+    let channel = try await localExec.run(["sh", "-c", TerminalStream.observeWrapper, "sh", "sh", "-c",
+                                           ProcessExec.followScript, "sh", file.path, "0", "", "/^skip/"])
+    var after = 0, closed = false
+    for await text in channel.lines where text == line {
+        if !closed {
+            channel.closeInput()
+            closed = true
+            // A slow reader, as a relay over SSH: the kill lands while the pipes are full.
+            try await Task.sleep(for: .milliseconds(500))
+        }
+        after += 1
+    }
+    // The pipes' buffers, not the 20,000 lines.
+    #expect(after < 2000)
+}
+
 @Test func `watch prints a file each time it changes`() async throws {
     let file = FileManager.default.temporaryDirectory.appending(path: "oriel-watch-\(UUID().uuidString).json")
     defer { try? FileManager.default.removeItem(at: file) }

@@ -132,7 +132,8 @@ and no backslash.
   - `Exec.follow` follows a file as `tail -F` does. It waits for the file,
     tells its inode, where it reads from and where the file's whole lines
     end. It sends those whole lines with `head`, after a seek (`dd … count=0`),
-    then runs `tail -c +N -F` from their end, both into awk. macOS's `tail`
+    then runs `tail -c +N -F` from their end, into awk when the agent has
+    lines to skip. macOS's `tail`
     copies only about 17 MB a second, so it never reads the backlog. A new
     file is read whole, from its start: one Claude Code turn can pass
     256 KiB.
@@ -145,8 +146,9 @@ and no backslash.
     `event_msg` and `turn_context`. Pi's file passes whole (its tree needs
     every entry), with no awk: macOS's awk passes about 30 MB a second. A
     796 KB Claude Code session sends 208 KB.
-  - awk reads a FIFO that only `tail` writes to, so the wrapper's kill of
-    `tail` ends awk too. mawk (Debian's and Ubuntu's awk) runs with
+  - awk reads a FIFO that only `head`, then `tail` write to. The wrapper's
+    kill ends `tail`, or ends `head` through a trap, so a dropped follow
+    sends no more of its backlog, and awk ends too. mawk (Debian's and Ubuntu's awk) runs with
     `-W interactive`, or it holds lines until 8 KiB come. The filter runs on
     This Mac too.
   - **Shown once loaded.** The chat reads the file up to the end of its

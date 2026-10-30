@@ -89,12 +89,12 @@ public extension Exec {
     /// Waits for the file, then tells its inode, where it reads from (the old mark when it is the same file and no
     /// shorter, else its start) and where its whole lines end (a last line still being written comes later; both read
     /// from the first `s` bytes, which a write meanwhile does not change). awk passes the lines on and tells the bytes
-    /// of each skipped one, so the mark still counts the file's bytes. It reads a pipe that only `tail` writes to (a
-    /// FIFO opened, then removed at once): the wrapper's kill ends `tail`, and awk ends on its EOF, also when the
-    /// script is killed before `tail` starts. mawk (Debian's and Ubuntu's awk) holds lines until 8 KiB come unless it
-    /// reads interactively. The whole lines go out through `head` from a seek (`dd … count=0`), and only the rest
-    /// through `tail`: macOS's `tail` copies 17 MB a second, and a pi session can pass 100 MB. With nothing to skip,
-    /// no awk: macOS's passes 30 MB a second.
+    /// of each skipped one, so the mark still counts the file's bytes. The whole lines go out through `head` from a
+    /// seek (`dd … count=0`), and only the rest through `tail`: macOS's `tail` copies 17 MB a second, and a pi session
+    /// can pass 100 MB. With nothing to skip, no awk (macOS's passes 30 MB a second). awk reads a pipe that only
+    /// `head`, then `tail` write to (a FIFO opened, then removed at once): the wrapper's kill ends `tail`, or ends
+    /// `head` through the trap (a dropped follow sends no more of its backlog over the relay), and awk ends on its
+    /// EOF. mawk (Debian's and Ubuntu's awk) holds lines until 8 KiB come unless it reads interactively.
     static var followScript: String {
         #"""
         f=$1; case $f in /*) ;; *) f=$HOME/$f ;; esac
@@ -104,7 +104,9 @@ public extension Exec {
         [ "$s" -eq 0 ] || [ -z "$(tail -c +"$s" "$f" | head -c 1)" ] ||
           s=$((s - $(head -c "$s" "$f" | tail -n 1 | wc -c)))
         echo "oriel-follow $n $o $s"
-        r() { { [ "$o" -eq 0 ] || dd bs=1 skip="$o" count=0 2>/dev/null; head -c $((s - o)); } <"$f"; }
+        r() { [ "$s" -gt "$o" ] || return 0
+          { dd bs=1 skip="$o" count=0 2>/dev/null; exec head -c $((s - o)); } <"$f" & h=$!
+          trap 'kill $h; exit 143' TERM; wait $h; }
         [ "$4" = 0 ] && { r; exec tail -c +$((s + 1)) -F "$f" 2>/dev/null; }
         p=$(mktemp -u "${TMPDIR:-/tmp}/oriel-follow.XXXXXX") && mkfifo -m 600 "$p" && exec 5<>"$p" 6<"$p" &&
           rm -f "$p" || exit 1
