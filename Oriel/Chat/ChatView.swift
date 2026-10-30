@@ -86,7 +86,8 @@ struct ChatView: View {
                     outgoing(message)
                 }
                 if working {
-                    WorkingRow(since: chat.history.lastTurnStart)
+                    // A message on its way starts a turn the history does not have yet.
+                    WorkingRow(since: chat.outgoing.isEmpty ? chat.history.lastTurnStart : nil)
                 }
                 if let problem = chat.problem {
                     problemCard(problem)
@@ -97,7 +98,12 @@ struct ChatView: View {
             .frame(maxWidth: Self.column)
             .frame(maxWidth: .infinity)
         }
-        // A new chat: the agent's program icon, gray, in the middle.
+        .defaultScrollAnchor(.bottom)
+        .defaultScrollAnchor(.bottom, for: .sizeChanges)
+        .focusEffectDisabled()
+        .accessibilityIdentifier("chat.\(chat.paneID)")
+        // A new chat: the agent's program icon, gray, in the middle. After the messages' id, which would replace its
+        // own.
         .background {
             if rows.isEmpty, chat.outgoing.isEmpty, chat.problem == nil, let pane = page.store.pane(chat.paneID) {
                 ProgramGlyph(icon: pane.iconID, letter: pane.letter, size: 64).opacity(0.5)
@@ -107,10 +113,6 @@ struct ChatView: View {
                     .accessibilityIdentifier("chat.\(chat.paneID).empty")
             }
         }
-        .defaultScrollAnchor(.bottom)
-        .defaultScrollAnchor(.bottom, for: .sizeChanges)
-        .focusEffectDisabled()
-        .accessibilityIdentifier("chat.\(chat.paneID)")
         // The reply box is glass over the messages' bottom, which scroll under it and clear of it.
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if !chat.drawer {

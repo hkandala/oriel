@@ -22,7 +22,7 @@ struct ChatRowView: View, Equatable {
         case let .user(_, text): UserBubble(text: text, paneID: paneID).padding(.vertical, 8)
         // Replies: the line as Activity draws it, with no chevron and no click.
         case let .summary(_, counts, steps) where steps.isEmpty:
-            quiet(counts, "summary").lineLimit(1).frame(height: 24)
+            quiet(counts, "summary").lineLimit(1).truncationMode(.middle).frame(height: 24)
         case let .summary(_, counts, steps):
             stack(steps) { Text(counts).foregroundStyle(.secondary) }
         case let .worked(_, seconds):
@@ -86,7 +86,8 @@ struct UserBubble: View {
     var sending = false
 
     var body: some View {
-        Markdown(text: text)
+        // Its own line breaks kept: Markdown joins a paragraph's lines.
+        Markdown(text: text.replacingOccurrences(of: "\n", with: "  \n"))
             .foregroundStyle(Look.onAccent)
             // Its links in its own text color, not the accent it sits on.
             .tint(Look.onAccent)

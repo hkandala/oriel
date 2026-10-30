@@ -17,7 +17,7 @@ struct ToolStack<Header: View>: View {
         VStack(alignment: .leading, spacing: 2) {
             Button(action: toggle) {
                 HStack(spacing: 6) {
-                    header.lineLimit(1).layoutPriority(1)
+                    header.lineLimit(1).truncationMode(.middle).layoutPriority(1)
                     Chevron(open: open)
                     Spacer(minLength: 4)
                 }

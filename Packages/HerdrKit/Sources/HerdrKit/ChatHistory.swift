@@ -255,10 +255,8 @@ public extension ChatTool {
             }
             numbers[wording.verb, default: 0] += 1
         }
-        let largest = order.enumerated().sorted { first, second in
-            let (one, two) = (numbers[first.element.verb, default: 0], numbers[second.element.verb, default: 0])
-            return one != two ? one > two : first.offset < second.offset
-        }.map(\.element)
+        // A stable sort: ties keep their order.
+        let largest = order.sorted { numbers[$0.verb, default: 0] > numbers[$1.verb, default: 0] }
         let failed = tools.count(where: \.failed)
         let text = (largest.prefix(3).map { verb, noun in
             noun.isEmpty ? verb : "\(verb) \(ChatHistory.count(numbers[verb, default: 0], noun))"
