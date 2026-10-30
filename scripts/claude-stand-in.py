@@ -6,8 +6,9 @@ writes a transcript in Claude Code's format, reports its state to herdr and answ
 shows a dialog until 1 is typed, "ask" asks a question through the PermissionRequest hook, "slow" works until Esc,
 "mute" drops the next prompt, "long" gets a command with 200 lines of output, "big" writes 330 KB of lines the chat
 skips (as a real session's API records), "many" writes 150 more turns (a long session), anything else gets one command
-and the reply "Echo: <prompt>". Ctrl-C clears the line, and on an empty one asks for another; "/exit" quits. Started without flags it reports its session to herdr
-(as herdr's Claude Code integration does) and keeps its transcript, which `--resume <session>` goes on with.
+and the reply "Echo: <prompt>". Ctrl-C clears the line, and on an empty one asks for another; "/exit" quits. Started
+without flags it reports its session to herdr (as herdr's Claude Code integration does) and keeps its transcript, which
+`--resume <session>` goes on with.
 """
 import json
 import os
@@ -131,9 +132,10 @@ def prompt(text, started):
         for turn in range(1, 151):
             write("user", message={"content": f"Question {turn}"})
             tool(f"echo {turn}", str(turn))
-            paragraph = f"Paragraph of reply {turn}, long enough to wrap in a narrow card. " * (1 + turn % 4)
+            paragraphs = [f"Paragraph {k} of reply {turn}, long enough to wrap in a narrow card. " * (1 + turn % 3)
+                          for k in range(1 + turn % 2)]
             write("assistant", message={"model": "claude-stand-in", "content": [
-                {"type": "text", "text": f"Reply {turn}.\n\n" + "\n\n".join([paragraph] * (1 + turn % 3))}]})
+                {"type": "text", "text": f"Reply {turn}.\n\n" + "\n\n".join(paragraphs)}]})
             write("system", subtype="turn_duration", durationMs=1000)
         reply("Last.", started)
     elif text == "big":

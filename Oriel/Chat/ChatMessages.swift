@@ -47,33 +47,29 @@ struct ChatMessages: View, Equatable {
                 .frame(maxWidth: ChatView.column)
                 .frame(maxWidth: .infinity)
             }
-            .scrollPosition(id: $top, anchor: .top)
+            // The scroll view names the row at the top as it scrolls: not at the bottom, which follows new rows. Set
+            // here, not in an onChange, so the body (and the rows) are not built again per row scrolled past.
+            .scrollPosition(id: Binding(get: { top }, set: { top = atBottom ? nil : $0 }), anchor: .top)
             .defaultScrollAnchor(.bottom)
             .defaultScrollAnchor(atBottom ? .bottom : nil, for: .sizeChanges)
             .onScrollGeometryChange(for: Bool.self) { geometry in
-                geometry.contentSize.height - geometry.contentOffset.y - geometry.containerSize.height < 40
+                geometry.contentSize.height + geometry.contentInsets.bottom - geometry.visibleRect.maxY < 40
             } action: {
                 atBottom = $1
                 if $1 {
                     top = nil
                 }
             }
-            // The scroll view names the row at the top as it scrolls: not at the bottom, which follows new rows.
-            .onChange(of: top) {
-                if atBottom, top != nil {
-                    top = nil
-                }
-            }
+            .focusEffectDisabled()
+            .accessibilityIdentifier("chat.\(chat.paneID)")
+            // After the messages' id, which would replace its own.
             .overlay(alignment: .bottom) {
                 if !atBottom {
                     bottomButton { proxy.scrollTo(Self.end, anchor: .bottom) }
                 }
             }
         }
-        .focusEffectDisabled()
-        .accessibilityIdentifier("chat.\(chat.paneID)")
-        // A new chat: the agent's program icon, gray, in the middle. After the messages' id, which would replace its
-        // own.
+        // A new chat: the agent's program icon, gray, in the middle.
         .background {
             if chat.history.entries.isEmpty, chat.outgoing.isEmpty, chat.problem == nil,
                let pane = page.store.pane(chat.paneID)
@@ -168,7 +164,8 @@ struct ChatMessages: View, Equatable {
     }
 }
 
-/// The history's rows at the level. Their own view: a scroll names another row at the top, and that builds no rows.
+/// The history's rows at the level: their own view, built again only when the history, the phase, the level or an
+/// open row changes.
 private struct Rows: View {
     let chat: Chat
     /// Stacks clicked open or closed: they stay so at every level (else open at Everything only).

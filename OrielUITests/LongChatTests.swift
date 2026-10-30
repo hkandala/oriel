@@ -1,7 +1,8 @@
 import XCTest
 
 /// A long chat (ui/chat-view#what-it-looks-like) with Claude Code's stand-in: it shows its newest message, keeps the
-/// message at its top when a split narrows its card, and its button scrolls back to the bottom.
+/// messages at its top when a split narrows its card, its button scrolls back to the bottom, which stays there when the
+/// card widens, and the session opened again shows at once.
 extension OrielUITests {
     func testALongChatKeepsItsPlaceAndScrollsToTheBottom() async throws {
         let (tab, pane) = try await startChat()
@@ -22,27 +23,55 @@ extension OrielUITests {
             }
         }
         XCTAssertTrue(bottom.exists)
-        XCTAssertFalse(last.isHittable)
-        // The scroll's momentum ends before the reply at the top of the view is read.
-        let replies = app.descendants(matching: .any).matching(identifier: "chat.\(pane).reply")
-        var top = ""
+        XCTAssertFalse(last.exists && last.isHittable)
+        // The messages along the top of the view, once the scroll's momentum ends.
+        var top: Set<String> = []
         XCTAssertTrue(until(3) {
-            let seen = replies.allElementsBoundByIndex.first { $0.isHittable && $0.frame.minY > chat.frame.minY }?
-                .stringValue ?? ""
+            let seen = atTop(of: chat, pane)
             defer { top = seen }
             return !seen.isEmpty && seen == top
         })
 
-        // A split beside it narrows the card: its text wraps again, and the same reply stays in view.
+        // A split beside it narrows the card: its text wraps again, and the same messages stay at the top.
         hoverHeader(pane)
         element("pane.\(pane).split-right").click()
-        _ = try await poll("a pane beside the chat") { try await order(tab).count == 2 ? true : nil }
-        let anchor = row(pane, "reply", top)
-        XCTAssertTrue(until(3) { anchor.exists && anchor.isHittable && chat.frame.width < 600 }, "\(chat.frame)")
-        XCTAssertFalse(last.isHittable)
+        let other = try await poll("a pane beside the chat") { try await order(tab).first { $0 != pane } }
+        XCTAssertTrue(until(3) { chat.frame.width < 600 && !atTop(of: chat, pane).isDisjoint(with: top) },
+                      "\(top) \(atTop(of: chat, pane))")
+        XCTAssertFalse(last.exists && last.isHittable)
 
         bottom.click()
-        XCTAssertTrue(until(3) { last.isHittable })
+        XCTAssertTrue(until(3) { last.exists && last.isHittable })
         XCTAssertTrue(bottom.vanishes(within: 2))
+        // At the bottom, it stays there as the card widens again.
+        _ = try await Self.call(one, "pane.close", ["pane_id": other])
+        XCTAssertTrue(until(3) { chat.frame.width > 600 && last.exists && last.isHittable }, "\(chat.frame)")
+        XCTAssertFalse(bottom.exists)
+
+        // Opened again, the long session is read whole as a backlog and shows without a switch.
+        relaunch()
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        element("workspace.w2").click()
+        element("tab.\(tab)").click()
+        let switchToChat = element("pane.\(pane).view.chat")
+        XCTAssertTrue(switchToChat.exists(within: 15))
+        switchToChat.click()
+        XCTAssertTrue(until(10) { last.exists && last.isHittable })
+    }
+
+    /// The values of the replies' blocks and the user's messages along the top 100 pt of the chat, from one snapshot.
+    private func atTop(of chat: XCUIElement, _ pane: String) -> Set<String> {
+        guard let tree = try? chat.snapshot() else { return [] }
+        let kinds = ["chat.\(pane).reply", "chat.\(pane).user"], top = tree.frame.minY
+        var found: Set<String> = [], queue = [tree]
+        while let node = queue.popLast() {
+            queue += node.children
+            if kinds.contains(node.identifier), node.frame.maxY > top, node.frame.minY < top + 100,
+               let value = node.value as? String
+            {
+                found.insert(value)
+            }
+        }
+        return found
     }
 }
