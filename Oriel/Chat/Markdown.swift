@@ -205,6 +205,9 @@ private enum Inline {
     /// `Oriel.app`.
     private static func linked(_ string: String) -> AttributedString {
         var text = AttributedString(string)
+        // Every link starts so: most text has none, and the detector shows in a long chat's scroll.
+        guard ["http", "www."].contains(where: { string.range(of: $0, options: .caseInsensitive) != nil })
+        else { return text }
         for match in detector?.matches(in: string, range: NSRange(string.startIndex..., in: string)) ?? [] {
             guard let range = Range(match.range, in: string), let url = match.url,
                   ["http://", "https://", "www."].contains(where: string[range].lowercased().hasPrefix),
