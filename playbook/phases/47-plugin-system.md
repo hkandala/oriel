@@ -407,3 +407,46 @@ well for easier debugging".
   rule); the Goal's and decision 5's "ships esbuild" are superseded.
 - **Decisions:** a rebuild writes `dist` in place, never emptied first (a failed build keeps the last good one), so a page kept over a rebuild (Keep Editing) can miss its later
   chunks until it reloads. The defaults' edited-copy hash leaves out `dist` and `node_modules`.
+
+### Track G (parity and cleanup)
+
+- **Measured** (decision 7): Release builds of main (1dba133a) and this branch, alternating, each card the first one
+  in a freshly launched app against a throwaway session, timed from its `WebCard`'s start to its loader's end (a
+  timestamp patch in both builds, not committed); memory is the app plus WebKit's processes 5 s after (`footprint`).
+  Load 14–50 (`uptime`), so ±150 ms per sample: medians of 3 runs, 5 for git home and Markdown.
+
+  | Card | main ms | branch ms | | main MB | branch MB |
+  |---|---|---|---|---|---|
+  | File Explorer tree | 626 | 674 | +8 % | 171 | 173 |
+  | File (2,145-line Swift) | 766 | 644 | −16 % | 214 | 215 |
+  | Markdown | 555 | 677 | +22 % | 222 | 222 |
+  | PDF (8 pages) | 597 | 641 | +7 % | 328 | 329 |
+  | Git home | 598 | 673 | +13 % | 169 | 169 |
+  | Diff (14 files) | 612 | 619 | +1 % | 248 | 248 |
+  | Cold first launch, tree (launch to drawn) | 1,650 | 4,450 | +2.8 s | 134 | 139 |
+
+- **Cause, load time:** a plugin card read its state file through a `cat` process before its page loaded (130–230 ms
+  at load 37; main's File Explorer and Git had no state file). **Fix:** This Mac reads it directly
+  (`ProcessExec.read(home:)`); a remote machine still reads through its shell. The tree waited for `git.root`, then
+  for the listing (main's page asked once): both run together. Git's page asked for its row symbols, then read: the
+  first place now reads and draws under the loader meanwhile. pdf.js's viewer CSS (124 KB) was in every explorer
+  card's `main.css`: only a PDF loads it (2 MB less WebKit memory per card). Both plugins are 1.1.1.
+- **Open:** Markdown and the Git home stay 75–120 ms over main: the runtime, then the entry, then the place's chunk
+  load one after the other (main's page was one bundle). A `modulepreload` of the entry made Reload Plugin's page
+  blank on CI (41233504051) and was dropped. The cold launch's 2.8 s is the defaults' install (copy, `npm ci`, build,
+  decision 5 and F2), not on main by design.
+- **Cause, OverviewTests' stty flake:** a new surface first reports libghostty's guess before layout (100×40 at 1x,
+  CI's screens), then the card's grid. When the stream's first frame came between them, `started()` resized to the
+  guess still in `grid` and cancelled the pending real size, so the PTY stayed 100×40 under a 94×38 card. **Fix:** it
+  resizes to the surface's latest grid.
+- **Cause, FilesTests' Open as Root:** the old tree shows until the new root's tree drew, and it had `deep` too (the
+  revealed `main.swift`), so the wait for `deep` passed at once on a slow first card. **Fix:** wait for `a.txt` to go.
+  **Cause, FollowTests' backlog:** the follow starts a dozen processes before it reads, `tail` one; on a starved Mac
+  each start takes seconds. **Fix:** both time first line to last (still red with a `tail`-read backlog).
+- **Fix, cleanup:** `PluginPage`, the old pages' card and bridge leftovers, the patch parser (dead since phase 46) and
+  `PaneLabel.diff`'s root are gone; `Document.swift` is `EditorCommands.swift`; comments point at
+  `docs/content/docs/plugins/`. `files:write`'s trust words say "change files". `opens.urls` works: an `oriel.open`
+  of a web address takes a `default` plugin whose `urls` match (a user's first), else the browser. Closing a card with
+  unsaved edits (a pane, a tab, other tabs, a workspace) shows its tab and Discard / Keep Editing first.
+- **For the user:** an outside rename of a pane (an agent labeling it a card) shows in the app only at its next
+  snapshot, up to 10 s later: herdr sends no event for a pane rename (`pane.updated` does not come).
