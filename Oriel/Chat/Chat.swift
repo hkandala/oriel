@@ -21,8 +21,12 @@ final class Chat {
     var paneID: String
     @ObservationIgnored weak var store: HostStore?
     var history = ChatHistory() {
+        // Not `oldValue`: reading it copies the whole history at every line.
         didSet { confirm() }
     }
+
+    /// The history's entries when `confirm` last looked.
+    @ObservationIgnored private var seen = 0
 
     /// The card shows the chat; else its TUI, which shows first (kept in memory per pane).
     var showsChat = false
@@ -149,15 +153,23 @@ final class Chat {
         }
     }
 
-    /// The oldest message on its way that the history now has, by its text.
+    /// The messages on their way that the history's new entries have, by their text: not only its last entry, as a
+    /// burst brings the user's message with the reply after it.
     private func confirm() {
-        guard !outgoing.isEmpty, case let .user(text)? = history.entries.last?.kind else { return }
-        let sent = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let index = outgoing.firstIndex(where: { $0.text == sent }),
-           // Confirmed after "Not sent": the draft it gave back would send it twice.
-           outgoing.remove(at: index).notSent, draft == sent
-        {
-            draft = ""
+        let (old, count) = (seen, history.entries.count)
+        seen = count
+        guard !outgoing.isEmpty else { return }
+        // The same count: an entry changed in place, the last only (an older same text is an earlier message). Fewer:
+        // a new history, all.
+        for entry in history.entries.dropFirst(count > old ? old : count == old ? max(count - 1, 0) : 0) {
+            guard case let .user(text) = entry.kind else { continue }
+            let sent = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let index = outgoing.firstIndex(where: { $0.text == sent }),
+               // Confirmed after "Not sent": the draft it gave back would send it twice.
+               outgoing.remove(at: index).notSent, draft == sent
+            {
+                draft = ""
+            }
         }
     }
 

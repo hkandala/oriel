@@ -25,6 +25,8 @@ struct ChatMessages: View, Equatable {
     /// The oldest row shown, once the chat left the bottom (new rows then do not move it) or Show Earlier was
     /// clicked; nil: the newest `block` rows.
     @State private var first: String?
+    /// Show Earlier's rows are on their way: the row at the top goes back there once they are in.
+    @State private var earlier = false
     @Environment(\.look) private var look
     private var settings = AppSettings()
     private static let end = "end"
@@ -131,18 +133,21 @@ struct ChatMessages: View, Equatable {
             // here, not in an onChange, so the body is not built again per row scrolled past.
             .scrollPosition(id: Binding(get: { top }, set: { row in
                 hold(atBottom ? nil : row)
-                if !atBottom, first == nil, start > 0 {
+                if !atBottom, first == nil, rows.indices.contains(start) {
                     first = rows[start].id
                 }
             }), anchor: .top)
             .defaultScrollAnchor(.bottom)
             .defaultScrollAnchor(held ? nil : .bottom, for: .sizeChanges)
             .onScrollGeometryChange(for: Bool.self) { $0.visibleRect.minY < 8 } action: { atTop = $1 }
-            // A plain stack's scroll keeps its offset when the rows above change height (a split) or come (Show
-            // Earlier): the row that was at the top goes back there.
-            .onScrollGeometryChange(for: CGFloat.self) { $0.contentSize.height } action: { _, _ in
-                if let top {
+            // A plain stack's scroll keeps its offset when the rows above change height (a new width) or come (Show
+            // Earlier): the row that was at the top goes back there. Not for rows below, which move nothing in view.
+            .onScrollGeometryChange(for: CGSize.self) { $0.contentSize } action: { old, new in
+                if let top, old.width != new.width || earlier {
                     proxy.scrollTo(top, anchor: .top)
+                }
+                if earlier {
+                    earlier = false
                 }
             }
             .onScrollGeometryChange(for: Bool.self) { geometry in
@@ -188,6 +193,7 @@ struct ChatMessages: View, Equatable {
                 if start > 0, atTop {
                     earlierButton {
                         hold(rows[start].id)
+                        earlier = true
                         first = rows[Self.start(rows[..<start], level)].id
                     }
                     .padding(.top, floats ? 28 : 16)
