@@ -13,15 +13,16 @@ const DIFF = ["diff.home", "diff.layout", "diff.file-list", "diff.previous", "di
 
 export default async function main(oriel: Oriel) {
   bind(oriel)
-  // After `bind`: the home reads the card's state as it loads. Loaded while the app draws the symbols.
-  const loading = import("./home")
-  // The SF Symbols the rows draw, as masks in the text's color.
+  // The SF Symbols the rows draw, as masks in the text's color. While the app draws them, the first place reads and
+  // draws under the card's loader, which goes once both are done (`main` returns).
   const names = ["doc", "plus", "minus", "arrow.triangle.branch", "cloud", "tag"]
-  const urls = await Promise.all(names.map((name) => oriel.symbol(name, 12)))
-  const sheet = document.createElement("style")
-  sheet.textContent = `:root { ${names.map((name, index) => `--sf-${name.replaceAll(".", "-")}: url(${urls[index]});`).join(" ")} }`
-  document.head.append(sheet)
-  const Home = await loading
+  const symbols = Promise.all(names.map((name) => oriel.symbol(name, 12))).then((urls) => {
+    const sheet = document.createElement("style")
+    sheet.textContent = `:root { ${names.map((name, index) => `--sf-${name.replaceAll(".", "-")}: url(${urls[index]});`).join(" ")} }`
+    document.head.append(sheet)
+  })
+  // After `bind`: the home reads the card's state as it loads.
+  const Home = await import("./home")
   let Diff: typeof import("./diff") | undefined
   let place = parse(oriel.card.arg)
   let watched = ""
@@ -67,5 +68,5 @@ export default async function main(oriel: Oriel) {
       default: Home.pick(id, value as string | undefined)
     }
   })
-  await show(oriel.card.arg, oriel.card.at)
+  await Promise.all([show(oriel.card.arg, oriel.card.at), symbols])
 }
