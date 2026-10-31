@@ -399,5 +399,11 @@ well for easier debugging".
   `assets` script copies pdf.js's files); `make web` installs, checks and builds all three, as a user would, then copies
   the defaults' and the template's source (no `node_modules`, no `dist`). A first launch builds the defaults after
   `npm ci` (about 1 s each).
-- **Decisions:** a rebuild writes `dist` in place, so a page kept over a rebuild (Keep Editing) can miss its later
+- **Decisions:** builds and Reload run only for a trusted plugin, and the trust words add "Its build script runs as
+  you on this Mac when Oriel builds it." when there is one. An install that built (or ships `dist`) reloads its cards
+  without building again. File Explorer and Git are 1.1.0, so a track-F copy (entry `main.ts`) is replaced.
+- **For the docs pass:** building.mdx (own scripts, the template, New Plugin…, Show Log, the error cards), the manifest
+  page (`entry` is built `.js`, no `assets`), security.mdx (a build script runs as the user, after trust; no metafile
+  rule); the Goal's and decision 5's "ships esbuild" are superseded.
+- **Decisions:** a rebuild writes `dist` in place (each build script empties it first), so a page kept over a rebuild (Keep Editing) can miss its later
   chunks until it reloads. The defaults' edited-copy hash leaves out `dist` and `node_modules`.

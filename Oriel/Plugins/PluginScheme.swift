@@ -26,7 +26,7 @@ final class PluginScheme: NSObject, WKURLSchemeHandler {
         // A plugin's entry page runs the app's runtime (`web/oriel`), which imports the entry's build.
         let script = file == PluginPage.main.rawValue ? "oriel" : file
         let css = file == PluginPage.main.rawValue ? manifest.entryName : file
-        // A page has its own styles when it imports CSS (esbuild writes `<page>.css`).
+        // A page has its own styles when its build wrote `<entry>.css` beside it (a bundler's CSS of the entry).
         let styles = page && FileManager.default.fileExists(atPath: folder.appending(path: "\(css).css").path)
         // The runtime and the card's base style are the app's, for every plugin.
         let from = ["oriel.js", "card.css"].contains(file) ? Registry.folder : folder

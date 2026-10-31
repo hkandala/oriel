@@ -18,7 +18,11 @@ final class PluginBuilds {
         let id = manifest.id, last = running[id]
         let task = Task { () -> PluginProblem? in
             _ = await last?.value
-            guard let package = Registry.package(id) else { return nil }
+            // An author's script runs only for a plugin the user trusts; the card asks first.
+            guard PluginTrust.shared.allows(manifest), let package = Registry.package(id) else { return nil }
+            if Registry.defaults.contains(id), let problem = await DefaultPlugins.shared.installed(manifest) {
+                return problem
+            }
             let start = ContinuousClock.now
             do {
                 guard let output = try await PluginPackages.build(package, exec: localExec.value) else { return nil }
@@ -190,15 +194,16 @@ extension Plugin {
     /// ask first, on the first card that has them.
     /// ponytail: Discard there drops every card's edits, and a card made again starts from its state file (up to
     /// 500 ms behind); ask per card and hand the state over if that bites.
-    static func reload(_ id: String, asked: Bool = false) async {
+    /// `build` false: an install that built it already, or ships its build.
+    static func reload(_ id: String, asked: Bool = false, build: Bool = true) async {
         if !asked, let dirty = cards.first(where: { $0.manifest.id == id && $0.dirty }) {
-            dirty.leave { _ in Task { await reload(id, asked: true) } }
+            dirty.leave { _ in Task { await reload(id, asked: true, build: build) } }
             return
         }
         Registry.reload()
         guard let manifest = Registry.plugin(id), manifest.entry != nil else { return }
         let cards = cards.filter { $0.manifest == manifest }
-        guard let problem = await PluginBuilds.shared.build(manifest) else {
+        guard build, let problem = await PluginBuilds.shared.build(manifest) else {
             cards.forEach { $0.web.reload() }
             return
         }

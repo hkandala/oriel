@@ -33,7 +33,8 @@ PLUGINS := explorer git template
 web: web/node_modules/.package-lock.json $(PLUGINS:%=plugins/%/node_modules/.package-lock.json)
 	rm -rf .build/web
 	mkdir -p plugins/node_modules/@oriel && ln -sfn ../../../web/oriel plugins/node_modules/@oriel/plugin-api
-	for id in $(PLUGINS); do npm --prefix plugins/$$id run --silent check && npm --prefix plugins/$$id run --silent build; done
+	for id in $(PLUGINS); do npm --prefix plugins/$$id run --silent check && npm --prefix plugins/$$id run --silent build \
+		|| exit 1; done
 	mkdir -p .build/web/defaults .build/web/plugin-api
 	rsync -a --exclude node_modules --exclude dist plugins/explorer plugins/git .build/web/defaults/
 	rsync -a --exclude node_modules --exclude dist plugins/template .build/web/

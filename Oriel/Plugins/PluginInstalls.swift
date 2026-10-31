@@ -101,8 +101,50 @@ final class PluginInstalls {
     }
 
     /// New Plugin…: the app's template (`plugins/template`) copied into the plugins folder under a name, installed and
-    /// built, trusted (the user made it), and shown in Finder for an editor or an agent.
+    /// built, and trusted (the user made it). Its row shows its folder, for an editor or an agent.
     func create() async {
+        guard let typed = await askName() else { return }
+        let name = typed.trimmingCharacters(in: .whitespaces).shown
+        let id = name.lowercased().split { !($0.isASCII && ($0.isLetter || $0.isNumber)) }.joined(separator: "-")
+        guard let template = Registry.folder?.appending(path: "template") else { return }
+        guard !id.isEmpty else {
+            failure = ("Use letters or digits in a plugin’s name", nil)
+            return
+        }
+        let folder = Self.plugins.appending(path: id)
+        guard Registry.plugin(id) == nil, !FileManager.default.fileExists(atPath: folder.path) else {
+            failure = ("A plugin named \(id) is already there", nil)
+            return
+        }
+        await run(id, "Creating…") {
+            try FileManager.default.createDirectory(at: Self.plugins, withIntermediateDirectories: true)
+            try FileManager.default.copyItem(at: template, to: folder)
+            do {
+                let file = folder.appending(path: "package.json")
+                // The name as a JSON string: a quote or a backslash in it stays text.
+                let quoted = try String(decoding: JSONEncoder().encode(name), as: UTF8.self)
+                let text = try String(contentsOf: file, encoding: .utf8).replacing("my-plugin", with: id)
+                    .replacing("\"My Plugin\"", with: quoted)
+                try text.write(to: file, atomically: true, encoding: .utf8)
+                let manifest = try PluginManifest(package: Data(contentsOf: file))
+                let exec = await localExec.value
+                let output = try await PluginPackages.dependencies(folder, exec: exec)
+                    + (PluginPackages.build(folder, exec: exec) ?? "")
+                PluginLog.add(id, "created from the template:\n"
+                    + output.trimmingCharacters(in: .whitespacesAndNewlines))
+                PluginTrust.shared.allow(manifest)
+            } catch {
+                // Try Again starts from the template again.
+                try? FileManager.default.removeItem(at: folder)
+                PluginLog.add(id, "New Plugin failed: \(error.localizedDescription)")
+                throw error
+            }
+            Registry.reload()
+        }
+    }
+
+    /// New Plugin's name, or nil on Cancel.
+    private func askName() async -> String? {
         let alert = NSAlert()
         alert.messageText = "New Plugin"
         alert.informativeText = "Oriel copies its template into the plugins folder, then installs and builds it."
@@ -117,32 +159,7 @@ final class PluginInstalls {
         } else {
             alert.runModal()
         }
-        let name = field.stringValue.trimmingCharacters(in: .whitespaces).shown
-        let id = name.lowercased().split { !($0.isASCII && ($0.isLetter || $0.isNumber)) }.joined(separator: "-")
-        guard answer == .alertFirstButtonReturn, !id.isEmpty,
-              let template = Registry.folder?.appending(path: "template")
-        else { return }
-        let folder = Self.plugins.appending(path: id)
-        guard Registry.plugin(id) == nil, !FileManager.default.fileExists(atPath: folder.path) else {
-            failure = ("A plugin named \(id) is already there", nil)
-            return
-        }
-        await run(id, "Creating…") {
-            try FileManager.default.createDirectory(at: Self.plugins, withIntermediateDirectories: true)
-            try FileManager.default.copyItem(at: template, to: folder)
-            let file = folder.appending(path: "package.json")
-            let text = try String(contentsOf: file, encoding: .utf8).replacing("my-plugin", with: id)
-                .replacing("My Plugin", with: name)
-            try text.write(to: file, atomically: true, encoding: .utf8)
-            let manifest = try PluginManifest(package: Data(contentsOf: file))
-            let exec = await localExec.value
-            let output = try await PluginPackages.dependencies(folder, exec: exec)
-                + (PluginPackages.build(folder, exec: exec) ?? "")
-            PluginLog.add(id, "created from the template:\n\(output.trimmingCharacters(in: .whitespacesAndNewlines))")
-            PluginTrust.shared.allow(manifest)
-            Registry.reload()
-            NSWorkspace.shared.activateFileViewerSelecting([folder.appending(path: "src/main.ts")])
-        }
+        return answer == .alertFirstButtonReturn ? field.stringValue : nil
     }
 
     private func fetch(_ source: PluginSource, _ text: String) async throws {
@@ -150,7 +167,9 @@ final class PluginInstalls {
         let staged = try await PluginPackages.fetch(source, into: Self.plugins, exec: exec)
         do {
             try free(staged.manifest.id, for: Self.plugins.appending(path: source.folder ?? ""))
-            guard await trusts(staged.manifest, from: text) else { return PluginPackages.discard(staged) }
+            guard await trusts(staged.manifest, from: text, folder: staged.folder) else {
+                return PluginPackages.discard(staged)
+            }
             let output = try await PluginPackages.finish(staged, into: Self.plugins, exec: exec).output
             PluginLog.add(staged.manifest.id, "installed from \(text):\n"
                 + output.trimmingCharacters(in: .whitespacesAndNewlines))
@@ -166,7 +185,7 @@ final class PluginInstalls {
         let folder = Registry.local(path)
         let manifest = try PluginManifest(package: Data(contentsOf: folder.appending(path: "package.json")))
         try free(manifest.id, for: folder)
-        guard await trusts(manifest, from: text) else { return }
+        guard await trusts(manifest, from: text, folder: folder) else { return }
         try installed(manifest, text)
     }
 
@@ -181,16 +200,16 @@ final class PluginInstalls {
     private func installed(_ manifest: PluginManifest, _ source: String) throws {
         try PluginPackages.list(source, in: Self.settings, add: true)
         PluginTrust.shared.allow(manifest)
-        Task { await Plugin.reload(manifest.id) }
+        Task { await Plugin.reload(manifest.id, build: false) }
     }
 
     /// The trust prompt at install: the source and what the plugin can do. A new source always asks; an update only
     /// when its permissions grew.
-    private func trusts(_ manifest: PluginManifest, from source: String) async -> Bool {
+    private func trusts(_ manifest: PluginManifest, from source: String, folder: URL) async -> Bool {
         let new = !PluginPackages.sources(Self.settings).contains(source)
         guard new || !PluginTrust.shared.allows(manifest) else { return true }
         let text = ["\(manifest.id) \(manifest.version.shown) from \(source)", manifest.description.shown,
-                    PluginTrust.words(manifest).joined(separator: " ")].filter { !$0.isEmpty }
+                    PluginTrust.words(manifest, folder: folder).joined(separator: " ")].filter { !$0.isEmpty }
         return await ask("Trust “\(manifest.name.shown)”?", text.joined(separator: "\n\n"), button: "Install")
     }
 

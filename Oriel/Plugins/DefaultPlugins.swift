@@ -98,7 +98,8 @@ final class DefaultPlugins {
             await put(id)
         }
         guard !FileManager.default.fileExists(atPath: copy.path) else { return nil }
-        return failures[id] ?? PluginProblem(title: "\(manifest.name) is not installed", text: "", button: "Try Again")
+        return failures[id] ?? PluginProblem(title: "\(manifest.name.shown) is not installed", text: "",
+                                             button: "Try Again")
     }
 
     /// Update to Version and Reset to Default: an edited copy goes to the Trash, after a question.
@@ -161,7 +162,7 @@ final class DefaultPlugins {
             offers[id] = nil
             // A first install's cards wait for it (`Bridge.prepare`); an update's load the new copy.
             if had {
-                Task { await Plugin.reload(id) }
+                Task { await Plugin.reload(id, build: false) }
             } else {
                 Registry.reload()
             }

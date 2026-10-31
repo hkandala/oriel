@@ -1,16 +1,15 @@
 {
   "name": "@oriel/explorer",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Files and folders",
   "keywords": ["files", "tree", "folder", "finder"],
   "scripts": {
-    "build": "npm run assets && npm run bundle",
-    "dev": "npm run assets && npm run bundle -- --watch",
-    "bundle": "esbuild src/main.ts --bundle --splitting --format=esm --minify --sourcemap --target=safari18 --log-level=warning --outdir=dist --external:*.svg --external:*.gif",
-    "assets": "mkdir -p dist && cp node_modules/pdfjs-dist/build/pdf.worker.min.mjs node_modules/pdfjs-dist/wasm/openjpeg.wasm node_modules/pdfjs-dist/wasm/jbig2.wasm node_modules/pdfjs-dist/wasm/qcms_bg.wasm node_modules/pdfjs-dist/standard_fonts/*.pfb node_modules/pdfjs-dist/standard_fonts/*.ttf node_modules/pdfjs-dist/cmaps/*.bcmap dist/",
+    "build": "rm -rf dist && mkdir -p dist && cp node_modules/pdfjs-dist/build/pdf.worker.min.mjs node_modules/pdfjs-dist/wasm/openjpeg.wasm node_modules/pdfjs-dist/wasm/jbig2.wasm node_modules/pdfjs-dist/wasm/qcms_bg.wasm node_modules/pdfjs-dist/standard_fonts/*.pfb node_modules/pdfjs-dist/standard_fonts/*.ttf node_modules/pdfjs-dist/cmaps/*.bcmap dist/ && esbuild src/main.ts --bundle --splitting --format=esm --minify --sourcemap --target=safari18 --log-level=warning --outdir=dist --external:*.svg --external:*.gif",
+    "dev": "npm run build -- --watch",
     "check": "tsc -p ."
   },
+
   "dependencies": {
     "@codemirror/commands": "6.11.1",
     "@codemirror/lang-cpp": "6.0.3",
