@@ -54,16 +54,13 @@ final class PluginBuilds {
 
     /// At launch: the host types package `@oriel/plugin-api` in the plugins folder's `node_modules`, where `tsc`
     /// finds it from any plugin in the folder (a plugin lists it in `peerDependencies` and never bundles it), when the
-    /// app's differs; and the staging folders of installs a quit cut short go.
+    /// app's differs.
     static func writeTypes() {
         guard let source = Registry.folder?.appending(path: "plugin-api") else { return }
         let plugins = Registry.config.appending(path: "plugins")
         let target = plugins.appending(path: "node_modules/@oriel/plugin-api")
         Task.detached {
             let files = FileManager.default
-            for name in (try? files.contentsOfDirectory(atPath: plugins.path)) ?? [] where name.hasPrefix(".install-") {
-                try? files.removeItem(at: plugins.appending(path: name))
-            }
             for name in ["package.json", "oriel.d.ts"] {
                 let data = try? Data(contentsOf: source.appending(path: name))
                 guard let data, data != (try? Data(contentsOf: target.appending(path: name))) else { continue }
@@ -250,8 +247,13 @@ extension Bridge {
             plugin.web.ready = true
             return false
         }
-        // ponytail: the default plugins' pages are the app's own build until they are installed packages.
-        guard !Registry.defaults.contains(plugin.manifest.id) else { return true }
+        if Registry.defaults.contains(plugin.manifest.id),
+           let error = await DefaultPlugins.shared.installed(plugin.manifest.id)
+        {
+            failure = ("\(plugin.manifest.name) could not install", error)
+            plugin.web.ready = true
+            return false
+        }
         if let errors = await PluginBuilds.shared.build(plugin.manifest) {
             failure = ("\(plugin.manifest.name.shown) did not build", errors)
             plugin.web.ready = true
@@ -279,7 +281,7 @@ extension Plugin {
             return
         }
         Registry.reload()
-        guard let manifest = Registry.plugin(id), manifest.entry != nil, !Registry.defaults.contains(id) else { return }
+        guard let manifest = Registry.plugin(id), manifest.entry != nil else { return }
         let cards = cards.filter { $0.manifest == manifest && $0.web.page == .main }
         guard let errors = await PluginBuilds.shared.build(manifest, again: true) else {
             cards.forEach { $0.web.reload() }

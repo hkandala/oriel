@@ -20,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         Self.restoredFullScreen = Set(NSApp.windows.filter { $0.styleMask.contains(.fullScreen) }
             .map(ObjectIdentifier.init))
         PluginBuilds.writeTypes()
+        Task { await DefaultPlugins.shared.install() }
     }
 
     /// Oriel's marks on the panes it shows go first (talking-to-herdr#float-requests).

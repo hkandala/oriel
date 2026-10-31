@@ -32,5 +32,8 @@ for s in "$one" "$two" "$three" "$five" "$seven"; do
 done
 herdr session stop "$three" >/dev/null
 
+# The tests' config folder (OrielUITests.noConfig): this build's default plugins install there afresh.
+rm -rf /tmp/oriel-e2e-no-config
+
 # The sandboxed test runner cannot reach herdr; the helper serves it on localhost while the tests run.
 python3 scripts/e2e-helper.py "$one" "$two" "$three" "$four" "$five" "$six" "$seven" "$eight" -- "$@"

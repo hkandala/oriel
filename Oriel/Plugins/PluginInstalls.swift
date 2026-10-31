@@ -178,7 +178,7 @@ final class PluginInstalls {
 /// One row of the list: a plugin, or a listed source whose install is missing.
 struct InstalledPlugin: Identifiable {
     enum Kind: Equatable {
-        /// Came with the app.
+        /// Came with the app, installed in the plugins folder on first launch.
         case bundled
         /// Installed from this `npm:` or `git:` source; not on disk yet when `manifest` is nil.
         case installed(String)

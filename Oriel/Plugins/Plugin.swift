@@ -40,9 +40,9 @@ enum ExplorerPlace: String, CaseIterable {
         }
     }
 
-    /// The page's places.json, read once.
-    private static let places = Registry.files("explorer")
-        .flatMap { try? Data(contentsOf: $0.appending(path: "places.json")) }
+    /// The page's places.json, read once: the installed copy's, else the app's (first launch).
+    private static let places = [Registry.package("explorer"), Registry.folder?.appending(path: "defaults/explorer")]
+        .lazy.compactMap { $0.flatMap { try? Data(contentsOf: $0.appending(path: "places.json")) } }.first
         .flatMap { try? JSONDecoder().decode([String: Set<String>].self, from: $0) } ?? [:]
 
     var symbol: String {

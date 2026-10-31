@@ -210,10 +210,15 @@ extension OrielUITests {
     /// Launches the app on the session (one by default) with no window state from earlier runs and none of the user's
     /// plugins; `launch` ends a running one first.
     func relaunch(_ session: String? = nil, _ args: [String] = []) {
-        let config = args.contains("-configFolder") ? [] : ["-configFolder", "/tmp/oriel-e2e-no-config"]
+        let config = args.contains("-configFolder") ? [] : Self.noConfig
         app.launchArguments = ["-session", session ?? one, "-ApplePersistenceIgnoreState", "YES"] + config + args
+        // The default plugins install from npm's cache (`make web` fills it), never the network.
+        app.launchEnvironment["npm_config_offline"] = "true"
         app.launch()
     }
+
+    /// A config folder of the tests' own: the app installs its default plugins there, never in the user's.
+    static let noConfig = ["-configFolder", "/tmp/oriel-e2e-no-config"]
 
     /// Swipes sideways over the element until the target has the value, one way and then the other: which sign goes
     /// forward follows the natural scrolling setting (one way here, the other on CI), and past the last page nothing

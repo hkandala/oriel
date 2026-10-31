@@ -99,7 +99,7 @@ extension OrielUITests {
     /// Two floating windows, one on top, its own ⌘K, and both back after ⌘Q and a relaunch.
     func testFloatingWindowsHaveTheirOwnCommandsAndComeBackAfterRelaunch() async throws {
         // As testRelaunchRestoresThePagesThatStillRun: ⌘Q saves the window.
-        app.launchArguments = ["-session", one, "-NSQuitAlwaysKeepsWindows", "YES"]
+        app.launchArguments = ["-session", one, "-NSQuitAlwaysKeepsWindows", "YES"] + Self.noConfig
         app.launch()
         let (tab, first) = try await newTab("float-keep")
         let second = try await split(first), third = try await split(second)
@@ -136,7 +136,7 @@ extension OrielUITests {
 
         app.typeKey("q", modifierFlags: .command)
         XCTAssertTrue(app.wait(for: .notRunning, timeout: 5))
-        app.launchArguments = ["-defaultSession", one]
+        app.launchArguments = ["-defaultSession", one] + Self.noConfig
         app.launch()
         let back = app.windows.containing(.any, identifier: "float.\(second)").firstMatch
         XCTAssertTrue(back.exists(within: connect))
