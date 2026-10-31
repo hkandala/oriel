@@ -44,6 +44,8 @@ web: web/node_modules/.package-lock.json plugins/explorer/node_modules/.package-
 	web/node_modules/.bin/esbuild web/oriel/runtime.ts --bundle --format=esm --minify --target=safari18 \
 		--log-level=warning --outfile=.build/web/oriel.js
 	cp web/oriel/card.css .build/web/
+	@# The host types package, which the app writes into the plugins folder for tsc.
+	mkdir -p .build/web/plugin-api && cp web/oriel/oriel.d.ts web/oriel/package.json .build/web/plugin-api/
 	@# pdf.js's worker, decoders, fonts and character maps, which it loads by name from the page's folder. Its viewer's
 	@# CSS names images of the editing tools the cards leave out.
 	cd plugins/explorer/node_modules/pdfjs-dist && cp build/pdf.worker.min.mjs wasm/{openjpeg,jbig2,qcms_bg}.wasm \

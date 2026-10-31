@@ -1,0 +1,5 @@
+table { border-collapse: collapse; font: var(--app-text-size) ui-monospace, monospace; color: var(--text) }
+th { position: sticky; top: 0; text-align: left; cursor: default; backdrop-filter: blur(20px);
+     background: color-mix(in srgb, var(--text) 6%, transparent) }
+th, td { padding: 3px 10px; border-bottom: 0.5px solid var(--divider); white-space: nowrap }
+p { color: var(--dim); font: 12px system-ui; margin: 6px 10px }

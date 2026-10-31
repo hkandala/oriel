@@ -188,6 +188,7 @@ struct CommandList {
             Command(section: .palette, title: fullScreen ? "Exit Full Screen" : "Enter Full Screen",
                     key: .init("f", modifiers: [.command, .control]),
                     symbol: "arrow.up.left.and.arrow.down.right") { NSApp.keyWindow?.toggleFullScreen(nil) },
+            Self.reloadPlugins,
         ]
     }
 

@@ -12,6 +12,7 @@
 		8D4C2A6E1F3B5C7D9E0A1B2C /* Markdown in Frameworks */ = {isa = PBXBuildFile; productRef = AF6E4C8A3B5D7E9F1A2C3D4E /* Markdown */; };
 		D5B2F3C4E5061728394A5B6C /* catalog.json in Resources */ = {isa = PBXBuildFile; fileRef = C4A1E2B3D4F5061728394A5B /* catalog.json */; };
 		7E44A1B2C3D4E5F60718293A /* web in Resources */ = {isa = PBXBuildFile; fileRef = 7E44A1B2C3D4E5F60718293B /* web */; };
+		3C9E5A1B7D2F4E6081A3C5D9 /* esbuild in Helpers */ = {isa = PBXBuildFile; fileRef = 3C9E5A1B7D2F4E6081A3C5DA /* esbuild */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -24,7 +25,22 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		3C9E5A1B7D2F4E6081A3C5DB /* Helpers */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Contents/Helpers;
+			dstSubfolderSpec = 1;
+			files = (
+				3C9E5A1B7D2F4E6081A3C5D9 /* esbuild in Helpers */,
+			);
+			name = Helpers;
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		3C9E5A1B7D2F4E6081A3C5DA /* esbuild */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = esbuild; path = "web/node_modules/@esbuild/darwin-arm64/bin/esbuild"; sourceTree = "<group>"; };
 		7E44A1B2C3D4E5F60718293B /* web */ = {isa = PBXFileReference; lastKnownFileType = folder; name = web; path = .build/web; sourceTree = "<group>"; };
 		C4A1E2B3D4F5061728394A5B /* catalog.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = catalog.json; path = resources/icons/catalog.json; sourceTree = "<group>"; };
 		21288B51504EFA0EF1A20CCE /* Oriel.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Oriel.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -38,6 +54,18 @@
 				Info.plist,
 			);
 			target = FEE888DDB3673F2B4C12F88D /* Oriel */;
+		};
+		3C9E5A1B7D2F4E6081A3C5DC /* Exceptions for "OrielUITests" folder in "OrielUITests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"Fixtures/csv-table/main.ts",
+				"Fixtures/csv-table/package.json",
+				"Fixtures/csv-table/parse.ts",
+				"Fixtures/csv-table/table.css",
+				"Fixtures/plugin-api/main.js",
+				"Fixtures/plugin-api/package.json",
+			);
+			target = 8B5B05292FF21054166B5E2A /* OrielUITests */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -55,6 +83,9 @@
 		};
 		E5E33E2A6BF50261E7A42524 /* OrielUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				3C9E5A1B7D2F4E6081A3C5DC /* Exceptions for "OrielUITests" folder in "OrielUITests" target */,
+			);
 			path = OrielUITests;
 			sourceTree = "<group>";
 		};
@@ -97,6 +128,7 @@
 				E5E33E2A6BF50261E7A42524 /* OrielUITests */,
 				C4A1E2B3D4F5061728394A5B /* catalog.json */,
 				7E44A1B2C3D4E5F60718293B /* web */,
+				3C9E5A1B7D2F4E6081A3C5DA /* esbuild */,
 				108494E918F2B6D742A8C165 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -134,6 +166,7 @@
 				E3B156E207CC421E8FBB9009 /* Sources */,
 				1B106EE7FB92BA4A5D6FAB85 /* Frameworks */,
 				610AC55B206FED638403679C /* Resources */,
+				3C9E5A1B7D2F4E6081A3C5DB /* Helpers */,
 			);
 			buildRules = (
 			);

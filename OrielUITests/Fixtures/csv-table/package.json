@@ -1,0 +1,23 @@
+{
+  "name": "csv-table",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A CSV or TSV file as a table you can sort.",
+  "peerDependencies": { "@oriel/plugin-api": "*" },
+  "peerDependenciesMeta": { "@oriel/plugin-api": { "optional": true } },
+  "oriel": {
+    "id": "csv-table",
+    "name": "CSV Table",
+    "api": 1,
+    "entry": "main.ts",
+    "icon": "tablecells",
+    "opens": { "files": ["*.csv", "*.tsv", "public.comma-separated-values-text"] },
+    "header": [
+      { "id": "rows", "type": "text", "style": "dim" },
+      { "type": "spacer" },
+      { "id": "first-row", "type": "toggle", "symbol": "tablecells.badge.ellipsis", "title": "First Row Is Header", "value": true },
+      { "id": "reload", "type": "button", "symbol": "arrow.clockwise", "title": "Reload" }
+    ],
+    "permissions": ["files:read"]
+  }
+}

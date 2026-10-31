@@ -59,7 +59,7 @@ extension CommandList {
             // herdr's label goes: the header shows the program again. Not a plugin pane's: its label is its kind.
             act("Reset Pane Name", nil, .paneMove, symbol: "arrow.uturn.backward",
                 enabled: pane?.label != nil && pane?.plugin == nil) { await $0.store.rename(pane: $1.id, label: "") },
-        ] + ends(page, pane, target)
+        ] + pluginCard(pane?.terminalID.flatMap { page?.terminals.builtPlugin($0) }) + ends(page, pane, target)
     }
 
     /// Replace Pane, the commands that change the pane's kind (ui/new-pane) and Close Pane: last in the pane's menus,
