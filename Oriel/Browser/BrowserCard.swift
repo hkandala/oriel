@@ -57,8 +57,8 @@ struct BrowserCard: View {
                     Asking(browser: browser, url: url)
                 } else if !browser.ready {
                     // A card made again (its old one dropped, ui/browser): its last picture until its page drew.
-                    if let picture = browser.view.shot.image {
-                        WebPicture(picture: picture, browser: true)
+                    if let picture = browser.view.shot.image, let pane = browser.store?.pane(browser.paneID) {
+                        CardPicture(picture: picture, pane: pane)
                     } else {
                         PluginLoader(kind: .browser)
                     }

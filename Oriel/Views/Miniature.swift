@@ -35,8 +35,7 @@ struct Miniature: View {
 
 /// A card at `scale`: its fill and edge, and what the page's card shows under its header: its terminal's snapshot
 /// (10 pt in, 8 pt up from the bottom), or the terminal live until it has one, or for a terminal never shown the fill;
-/// a web card's last picture (a browser's page, a plugin's content); a chat's own view; else its kind's symbol. A
-/// floated pane's shows the float icon.
+/// a web card's or a chat's last picture; else its kind's symbol. A floated pane's shows the float icon.
 private struct MiniCard: View {
     let id: String
     let page: Page
@@ -61,15 +60,12 @@ private struct MiniCard: View {
                     Image(systemName: "pip").foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if let pane, pane.plugin != nil || page.shownChat(pane) != nil {
-                    // Not a terminal: a web card's picture, a chat's view once the strip made it, else its kind's
-                    // symbol. A tile makes no web view, proxy or transcript read, and takes no web view from its card
-                    // (which then drew blank as it went back).
+                    // Not a terminal: a web card's or a chat's last picture, else its kind's symbol. A tile makes no
+                    // web view, proxy or transcript read, and takes no web view from its card (which then drew blank
+                    // as it went back).
                     if let picture = pane.terminalID.flatMap(page.terminals.picture) {
-                        scaled(WebPicture(picture: picture, browser: pane.browser != nil)
-                            .miniCard(pane.id, pane.plugin?.kind?.rawValue ?? ""), content, under: header)
-                    } else if let chat = page.shownChat(pane), !chat.history.entries.isEmpty {
-                        scaled(ChatView(chat: chat, page: page, terminal: nil).miniCard(pane.id, "chat"), content,
-                               under: header)
+                        scaled(CardPicture(picture: picture, pane: pane)
+                            .miniCard(pane.id, pane.plugin?.kind?.rawValue ?? "chat"), content, under: header)
                     } else {
                         Image(systemName: pane.plugin != nil ? pane.iconID : "bubble.left.and.bubble.right")
                             .foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)

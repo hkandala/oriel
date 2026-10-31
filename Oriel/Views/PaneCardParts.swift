@@ -22,15 +22,44 @@ extension Page {
     }
 }
 
-/// A web card's last picture where its page goes: a browser's page sits 6 pt in, with rounded corners; a plugin's
-/// content as `PluginCard` places it.
-struct WebPicture: View {
+/// A card's last picture where its content goes: a browser's page sits 6 pt in, with rounded corners; a plugin's
+/// content as `PluginCard` places it; a chat's fills the card under its header.
+struct CardPicture: View {
     let picture: CGImage
-    let browser: Bool
+    let pane: HostStore.Pane
 
     var body: some View {
+        let browser = pane.browser != nil, inset = browser ? 6 : pane.plugin != nil ? PaneCard.inset : 0
         Image(decorative: picture, scale: 1).resizable()
             .clipShape(.rect(cornerRadius: browser ? 6 : 0))
-            .padding([.horizontal, .bottom], browser ? 6 : PaneCard.inset)
+            .padding([.horizontal, .bottom], inset)
     }
+}
+
+/// Behind a chat's view in its card: the chat's picture as it leaves view (`PaneViewRegistry.show`), from the window's
+/// layers at its place (`cacheDisplay` drew SwiftUI's content blank).
+struct ChatProbe: NSViewRepresentable {
+    let terminalID: String
+    let registry: PaneViewRegistry
+
+    func makeNSView(context _: Context) -> NSView {
+        let probe = NSView()
+        registry.chatViews[terminalID] = { [weak probe] in
+            guard let probe, let root = probe.window?.contentView?.superview?.layer, !probe.bounds.isEmpty,
+                  let scale = probe.window?.backingScaleFactor else { return nil }
+            let rect = probe.convert(probe.bounds, to: nil)
+            let size = CGSize(width: rect.width * scale, height: rect.height * scale)
+            guard let context = CGContext(data: nil, width: Int(size.width), height: Int(size.height),
+                                          bitsPerComponent: 8, bytesPerRow: 0,
+                                          space: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB(),
+                                          bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue) else { return nil }
+            context.scaleBy(x: scale, y: scale)
+            context.translateBy(x: -rect.minX, y: -rect.minY)
+            root.render(in: context)
+            return context.makeImage()
+        }
+        return probe
+    }
+
+    func updateNSView(_: NSView, context _: Context) {}
 }

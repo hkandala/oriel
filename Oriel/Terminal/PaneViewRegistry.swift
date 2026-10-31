@@ -53,8 +53,12 @@ final class PaneViewRegistry {
     var landings: [String: String] = [:]
     /// The web cards in this window's view.
     private var webInView: Set<String> = []
-    /// Dropped web cards' last pictures, the latest last, until made again.
+    /// Dropped web cards' and chats' last pictures, the latest last, until made again.
     private var pictures: [(id: String, picture: CGImage)] = []
+    /// Chat cards' pictures from their views in the window (`ChatProbe`), by terminal id.
+    var chatViews: [String: () -> CGImage?] = [:]
+    /// The terminals in view at the last `show`: a chat among them that left takes its picture.
+    private var shownIDs: Set<String> = []
 
     init() {
         _ = Self.pressure
@@ -121,6 +125,8 @@ final class PaneViewRegistry {
     /// A card goes with its pane or its label (a rename that breaks it, another iid): its page, timers and proxy share
     /// stop with it.
     private func follow(_ alive: Set<String>) {
+        pictures.removeAll { !alive.contains($0.id) }
+        chatViews = chatViews.filter { alive.contains($0.key) }
         guard !browsers.isEmpty || !plugins.isEmpty else { return }
         let labels = Dictionary((pages?.withFloats ?? []).flatMap(\.store.panes).compactMap { pane in
             pane.terminalID.flatMap { id in pane.plugin.map { (id, $0) } }
@@ -131,7 +137,6 @@ final class PaneViewRegistry {
         }
         browsers = browsers.filter { kept($0.key, $0.value.label) }
         plugins = plugins.filter { kept($0.key, $0.value.label) }
-        pictures.removeAll { !alive.contains($0.id) }
         for (terminalID, plugin) in plugins {
             if let label = labels[terminalID], label != plugin.label {
                 plugin.follow(label)
@@ -174,6 +179,12 @@ final class PaneViewRegistry {
     {
         // A web card's placeholder is no terminal to stream.
         let shown = shown.filter { !web.contains($0.key) }
+        for id in shownIDs.subtracting(shown.keys) {
+            if let picture = chatViews[id]?() {
+                keep(id, picture)
+            }
+        }
+        shownIDs = Set(shown.keys)
         for (terminalID, terminal) in terminals where !alive.contains(terminalID) {
             terminal.close()
             terminals[terminalID] = nil
@@ -200,102 +211,6 @@ final class PaneViewRegistry {
         Self.recent = Self.recent.filter { terminal in !visited.contains { $0 === terminal } } + visited
         streaming.forEach { $0.show() }
         showWeb(web)
-    }
-
-    /// The web cards in view now: the ones that left keep a picture, the ones that came show theirs until drawn; past
-    /// the `spareWeb` most recently shown others, the oldest are dropped.
-    private func showWeb(_ shown: Set<String>) {
-        for id in webInView.subtracting(shown) {
-            webView(id)?.takePicture()
-        }
-        for id in shown.subtracting(webInView) {
-            webView(id)?.coverUntilDrawn()
-        }
-        // Once the strip scrolled to them: WebKit hears of its view's place in the window only from its own frame or
-        // window, so a page the lazy strip made before a jump to it painted one page off (blank, on CI).
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
-            for id in shown {
-                // ponytail: deprecated but still WebKit's hook (`WebViewImpl::renewGState` updates its frames).
-                self?.webView(id)?.perform(NSSelectorFromString("renewGState"))
-            }
-        }
-        // Also the ones made since the last call (a card is made as its page draws).
-        let touched = webInView.union(shown).filter { webView($0) != nil }
-        webInView = shown
-        Self.recentWeb.removeAll { kept in
-            kept.registry == nil || kept.registry === self && (touched.contains(kept.id) || webView(kept.id) == nil)
-        }
-        // A card made out of view (a page the lazy strip keeps): the oldest.
-        let tracked = Set(Self.recentWeb.filter { $0.registry === self }.map(\.id)).union(touched)
-        let untracked = Set(browsers.keys).union(plugins.keys).subtracting(tracked)
-        Self.recentWeb = untracked.map { Kept(registry: self, id: $0) } + Self.recentWeb
-            + touched.sorted { shown.contains($1) && !shown.contains($0) }.map { Kept(registry: self, id: $0) }
-        Self.trim(terminals: Self.spare, web: Self.spareWeb)
-    }
-
-    /// Down to these many kept cards out of view: the least recently shown go.
-    private static func trim(terminals: Int, web: Int) {
-        while recent.count(where: { !$0.inView }) > terminals, let index = recent.firstIndex(where: { !$0.inView }) {
-            recent.remove(at: index).hide()
-        }
-        let droppable = { (kept: Kept) in kept.registry?.droppable(kept.id) == true }
-        while recentWeb.count(where: droppable) > web, let index = recentWeb.firstIndex(where: droppable) {
-            let kept = recentWeb.remove(at: index)
-            kept.registry?.drop(kept.id)
-        }
-    }
-
-    /// Out of view, not floating, and with no unsaved edits.
-    private func droppable(_ id: String) -> Bool {
-        !webInView.contains(id) && pages?.floats(id) != true && plugins[id]?.dirty != true && webView(id) != nil
-    }
-
-    /// The card goes; its picture stays for its tile and its next card (200 MB of them at most per window). One with
-    /// no picture yet (the one asked as it left view is not there) takes one; the snapshot's reply keeps the web view
-    /// until then.
-    private func drop(_ id: String) {
-        let view = webView(id)
-        browsers[id] = nil
-        plugins[id] = nil
-        let keep = { [weak self] (picture: CGImage) in
-            // Not for a closed pane or a card made again meanwhile.
-            guard let self, webView(id) == nil,
-                  pages?.withFloats.contains(where: { $0.store.panes.contains { $0.terminalID == id } }) == true
-            else { return }
-            pictures.removeAll { $0.id == id }
-            pictures.append((id, picture))
-            while pictures.reduce(0, { $0 + $1.picture.bytesPerRow * $1.picture.height }) > 200 << 20 {
-                pictures.removeFirst()
-            }
-        }
-        if let picture = view?.shot.image {
-            return keep(picture)
-        }
-        view?.takePicture { picture in
-            withExtendedLifetime(view) {}
-            keep(picture)
-        }
-    }
-
-    private func keptPicture(_ id: String) -> CGImage? {
-        pictures.firstIndex { $0.id == id }.map { pictures.remove(at: $0).picture }
-    }
-
-    private func webView(_ id: String) -> BrowserView? {
-        browsers[id]?.view ?? plugins[id]?.web.view
-    }
-
-    /// Pictures of these cards' terminals and web cards as they are now (the overview opens).
-    func takePictures(of ids: [String]) {
-        for id in ids {
-            terminals[id]?.takeSnapshot()
-            webView(id)?.takePicture()
-        }
-    }
-
-    /// The web card's last picture, kept or dropped: its overview tile.
-    func picture(_ id: String) -> CGImage? {
-        webView(id)?.shot.image ?? pictures.last { $0.id == id }?.picture
     }
 
     /// The terminals of these terminal ids that this window has.
@@ -345,5 +260,110 @@ extension WindowPages {
             page.store.panes.filter { $0.plugin != nil && (page === current && $0.tabID == page.selectedTab?.id
                     || page.floats($0)) }.compactMap(\.terminalID)
         })
+    }
+}
+
+/// The web cards' budget and the cards' pictures.
+extension PaneViewRegistry {
+    /// The web cards in view now: the ones that left keep a picture, the ones that came show theirs until drawn; past
+    /// the `spareWeb` most recently shown others, the oldest are dropped.
+    private func showWeb(_ shown: Set<String>) {
+        for id in webInView.subtracting(shown) {
+            webView(id)?.takePicture()
+        }
+        for id in shown.subtracting(webInView) {
+            webView(id)?.coverUntilDrawn()
+        }
+        // Once the strip scrolled to them: WebKit hears of its view's place in the window only from its own frame or
+        // window, so a page the lazy strip made before a jump to it painted one page off (blank, on CI).
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+            for id in shown {
+                // ponytail: deprecated but still WebKit's hook (`WebViewImpl::renewGState` updates its frames).
+                self?.webView(id)?.perform(NSSelectorFromString("renewGState"))
+            }
+        }
+        // Also the ones made since the last call (a card is made as its page draws).
+        let touched = webInView.union(shown).filter { webView($0) != nil }
+        webInView = shown
+        Self.recentWeb.removeAll { kept in
+            kept.registry == nil || kept.registry === self && (touched.contains(kept.id) || webView(kept.id) == nil)
+        }
+        // A card made out of view (a page the lazy strip keeps): the oldest.
+        let tracked = Set(Self.recentWeb.filter { $0.registry === self }.map(\.id)).union(touched)
+        let untracked = Set(browsers.keys).union(plugins.keys).subtracting(tracked)
+        Self.recentWeb = untracked.map { Kept(registry: self, id: $0) } + Self.recentWeb
+            + touched.sorted { shown.contains($1) && !shown.contains($0) }.map { Kept(registry: self, id: $0) }
+        Self.trim(terminals: Self.spare, web: Self.spareWeb)
+    }
+
+    /// Down to these many kept cards out of view: the least recently shown go.
+    private static func trim(terminals: Int, web: Int) {
+        while recent.count(where: { !$0.inView }) > terminals, let index = recent.firstIndex(where: { !$0.inView }) {
+            recent.remove(at: index).hide()
+        }
+        let droppable = { (kept: Kept) in kept.registry?.droppable(kept.id) == true }
+        while recentWeb.count(where: droppable) > web, let index = recentWeb.firstIndex(where: droppable) {
+            let kept = recentWeb.remove(at: index)
+            kept.registry?.drop(kept.id)
+        }
+    }
+
+    /// Out of view, not floating, and with no unsaved edits.
+    private func droppable(_ id: String) -> Bool {
+        !webInView.contains(id) && pages?.floats(id) != true && plugins[id]?.dirty != true && webView(id) != nil
+    }
+
+    /// The card goes; its picture stays for its tile and its next card. One with no picture yet (the one asked as it
+    /// left view is not there) takes one; the snapshot's reply keeps the web view
+    /// until then.
+    private func drop(_ id: String) {
+        let view = webView(id)
+        browsers[id] = nil
+        plugins[id] = nil
+        if let picture = view?.shot.image {
+            return keep(id, picture)
+        }
+        view?.takePicture { [weak self] picture in
+            withExtendedLifetime(view) {}
+            // Not for a card made again meanwhile.
+            if self?.webView(id) == nil {
+                self?.keep(id, picture)
+            }
+        }
+    }
+
+    /// A dropped web card's or a chat's picture, while its pane is there; 200 MB of them at most per window.
+    private func keep(_ id: String, _ picture: CGImage) {
+        guard pages?.withFloats.contains(where: { $0.store.panes.contains { $0.terminalID == id } }) == true
+        else { return }
+        pictures.removeAll { $0.id == id }
+        pictures.append((id, picture))
+        while pictures.reduce(0, { $0 + $1.picture.bytesPerRow * $1.picture.height }) > 200 << 20 {
+            pictures.removeFirst()
+        }
+    }
+
+    private func keptPicture(_ id: String) -> CGImage? {
+        pictures.firstIndex { $0.id == id }.map { pictures.remove(at: $0).picture }
+    }
+
+    private func webView(_ id: String) -> BrowserView? {
+        browsers[id]?.view ?? plugins[id]?.web.view
+    }
+
+    /// Pictures of these cards' terminals and web cards as they are now (the overview opens).
+    func takePictures(of ids: [String]) {
+        for id in ids {
+            terminals[id]?.takeSnapshot()
+            webView(id)?.takePicture()
+            if let picture = chatViews[id]?() {
+                keep(id, picture)
+            }
+        }
+    }
+
+    /// The web card's or chat's last picture: its overview tile.
+    func picture(_ id: String) -> CGImage? {
+        webView(id)?.shot.image ?? pictures.last { $0.id == id }?.picture
     }
 }

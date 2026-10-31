@@ -63,12 +63,13 @@ struct PaneCard: View {
                 } else if let pane, let kind = pane.plugin?.kind {
                     // Its last picture until the strip rests.
                     if let picture = pane.terminalID.flatMap(page.terminals.picture) {
-                        WebPicture(picture: picture, browser: kind == .browser)
+                        CardPicture(picture: picture, pane: pane)
                     } else {
                         PluginLoader(kind: kind)
                     }
                 } else if let pane, let chat = page.shownChat(pane) {
                     ChatView(chat: chat, page: page, terminal: terminal)
+                        .background { pane.terminalID.map { ChatProbe(terminalID: $0, registry: page.terminals) } }
                 } else if let terminal {
                     // Rex's text starts 12 pt in from the card's edge.
                     TerminalCard(terminal: terminal, watched: page.watched, alpha: chooser == nil ? content : 0)
