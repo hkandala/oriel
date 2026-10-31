@@ -85,11 +85,6 @@ extension Character {
 }
 
 public extension Exec {
-    func read(home path: String) async -> String? {
-        let text = try? await output(["sh", "-c", #"cat "$HOME/$1" 2>/dev/null"#, "sh", path], timeout: .seconds(5))
-        return text?.isEmpty == false ? text : nil
-    }
-
     /// Writes one line atomically, each writer through its own temporary file; last writer wins. Only the user can read
     /// it.
     func write(home path: String, _ line: String) async {

@@ -72,7 +72,7 @@ extension OrielUITests {
         try await labelEnds(card, " \(root)/src/")
         // The old tree shows until the new one drew, and it has deep too: main.swift is revealed in it.
         XCTAssertTrue(row("a.txt", in: tree).vanishes(within: 10))
-        XCTAssertTrue(row("deep", in: tree).exists)
+        XCTAssertTrue(row("deep", in: tree).exists(within: 5))
         element("pane.\(card).root").click()
         app.menuItems["oriel-e2e-files"].click()
         try await labelEnds(card, " \(root)/")

@@ -12,6 +12,13 @@ public protocol Exec: Sendable {
     func read(home path: String) async -> String?
 }
 
+public extension Exec {
+    func read(home path: String) async -> String? {
+        let text = try? await output(["sh", "-c", #"cat "$HOME/$1" 2>/dev/null"#, "sh", path], timeout: .seconds(5))
+        return text?.isEmpty == false ? text : nil
+    }
+}
+
 extension Exec {
     /// A command's whole stdout, trimmed; past `timeout` the command is killed and this throws.
     func output(_ argv: [String], timeout: Duration = .seconds(10)) async throws -> String {

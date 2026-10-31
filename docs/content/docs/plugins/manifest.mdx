@@ -109,7 +109,8 @@ label's argument holds, and the card's title.
   `{ "folders": true, "files": ["*"] }`.
 - `urls` is a list of globs for web addresses, case blind, where `*` also
   spans `/`. An `oriel.open` of an `http` or `https` address with no `plugin`
-  opens in the first plugin whose `urls` match it, else in the browser.
+  opens in a `default` plugin whose `urls` match it (a user's plugin before a
+  default plugin), else in the browser.
 - `priority` is `"default"` (the default) or `"option"`. An option plugin
   opens a file only when the user picks it in Open With.
 

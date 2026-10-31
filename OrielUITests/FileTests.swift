@@ -6,8 +6,7 @@ extension OrielUITests {
     /// The file in CodeMirror; the jump bar follows the caret; an edit shows the dirty dot and ⌘Z clears it; ⌘S
     /// saves; a change on disk reloads a clean file, and a dirty one gets the toast (Keep Mine, then Reload); ⌘F opens
     /// the editor's search, as do ⌘G and ⇧⌘G; the overview's tile shows it. ⇧⌘← selects in the editor, not Move Tab
-    /// Left; ⌘[ reaches the
-    /// app before CodeMirror.
+    /// Left; ⌘[ reaches the app before CodeMirror. Closing it with edits asks, and Discard closes it.
     func testAFileCardEditsSavesAndReloadsItsFile() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, left) = try await newTab("file")
@@ -54,6 +53,13 @@ extension OrielUITests {
         findKeys(card)
         tiled(card, "explorer")
         try await keysStayInTheEditor(card, shell: left)
+        // Closing it with edits asks; Discard closes it.
+        element("file.\(card).page").textViews.firstMatch.click()
+        XCTAssertTrue(dirty.exists)
+        app.typeKey("w", modifierFlags: .command)
+        XCTAssertTrue(element("pane.\(card).toast").has(\.stringValue, "main.swift has unsaved edits.", within: 3))
+        element("pane.\(card).toast.other").click()
+        try await expect("the card's pane closed") { try await !Self.ids("pane", in: one).contains(card) }
     }
 
     /// ⌘F opens the editor's search with the keyboard; ⌘G and ⇧⌘G (Find Next and Previous) reach it too, and open
