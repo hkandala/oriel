@@ -249,3 +249,25 @@ forward; ask track D for any change in its files.
   run showed a File Explorer page whose web view sat exactly one strip page left of its card (its accessibility
   frame) after a jump to a tab two pages away, its card blank: handed to track B (the strip and `WebHost` are
   theirs) as the likely root of "the content shown is another tab's".
+### Track E
+
+- **Cause (22):** the history ran `git log` of HEAD alone, so other branches never showed. It now runs `--all`
+  (500 commits, `--decorate=full`), with each branch, remote branch and tag as a capsule on its commit, HEAD's branch
+  on the accent and HEAD's dot a ring.
+- **Cause (30):** the diff's sticky file header was a 6 % tint with `backdrop-filter: blur`. It is now opaque in the
+  card's color (`--card`, `Look.cardSolid`) with a hairline under it.
+- **Fix (20, 29):** Changes is now **Git**. Its home is a web page (`git.ts`); row 2 stays native: Back and
+  Forward, the branch menu (local branches, then remote ones; a pick runs `git switch`, `--track` for a remote one),
+  Fetch, Pull with the commits behind, Push with the commits ahead. The page has the message and Commit (staged
+  changes only; on the accent when it can commit; ⌘↩), Staged Changes and Changes with Stage, Unstage, Stage All and
+  Unstage All, then the history. A click opens the diff in the card, ⌘ in a new tab, ⌥ to the side; a right click
+  shows the app's menu. The diff lost its source pop-up and got Git Home (`house`). git's writes run one at a time
+  through `Exec` with `GIT_TERMINAL_PROMPT=0`; a failure shows git's message in the toast (Copy, OK).
+- **Decisions:** Commit needs staged files (no "stage all and commit"). Pull is plain `git pull`, so the user's
+  `pull.rebase` rules; diverged branches with no setting fail with git's own message. Push on a branch with no
+  upstream runs `push -u origin HEAD`. No Discard (it loses work). The page's SF Symbols come from the app as PNG
+  masks, so the rows draw real symbols in the text's color. The diff's file list uses the home's row style.
+- **Decisions:** `Look.cardSolid` is exact in Classic; in Glass it is measured on a card (dark `#2E`, light `#F9`),
+  so an unusual wallpaper moves the card a few steps off the header, and the keyboard card is a step brighter.
+- **For the user:** try Pull and Push on a real remote with SSH keys (a key with a passphrase and no agent fails
+  with ssh's message, since nothing can prompt), commit hooks and signing, and the branch menu with many branches.
