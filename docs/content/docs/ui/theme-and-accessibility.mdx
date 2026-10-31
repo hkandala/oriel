@@ -153,8 +153,8 @@ one row with one keycap for the keys: "Select Pane ⌥ ⌘ ←→↑↓", "Show 
 | ⌘T | new tab, in the keyboard card's folder | File |
 | ⌃⌘T | new workspace | File |
 | ⌥⌘T | Open Session (the panel) | File |
-| ⇧⌘G | Go to Directory (in a card that runs only its shell); over a File or Markdown card, Find Previous | File, Edit |
-| ⌘S | Save, on a File or Markdown card | File |
+| ⇧⌘G | Go to Directory (in a card that runs only its shell); over a File or Markdown page, Find Previous | File, Edit |
+| ⌘S | Save, on a File or Markdown page | File |
 | ⌘R | Reload Page, on a browser card | View |
 | ⇧⌘R | Replace Pane: a fresh shell in the pane's place, size and folder, with the keyboard (asks first unless the pane runs only its shell); on an agent, browser or plugin pane the new shell shows the [New pane](/docs/ui/new-pane) chooser | File |
 | ⌘W | close the pane (asks first unless the pane runs only its shell) | File |
@@ -164,9 +164,9 @@ one row with one keycap for the keys: "Select Pane ⌥ ⌘ ←→↑↓", "Show 
 | ⇧⌘I | Insert Path | Edit |
 | ⌘L | Open Location: the address field of a browser card | Edit |
 | ⌥⌘I | Show Web Inspector, on a browser card | Edit |
-| ⌘F | find in the keyboard card; on a File or Markdown card, the editor's search | Edit |
+| ⌘F | find in the keyboard card; on a File or Markdown page, the editor's search | Edit |
 | ⌘G, or Enter in the find bar | next match (⇧Enter: previous match) | Edit |
-| ⌘E | Edit Mode: Read or Edit, on a Markdown card | View |
+| ⌘E | Edit Mode: Read or Edit, on a Markdown page | View |
 | ⌘K | the command palette; ⇧⌘P also opens it (Rex's key) | View |
 | ⌘. | Show Agents: the Agents view on or off | View |
 | ⌃⌘S | show or hide the sidebar | View |
@@ -175,7 +175,7 @@ one row with one keycap for the keys: "Select Pane ⌥ ⌘ ←→↑↓", "Show 
 | ⇧⌘↩ | zoom or restore the card | View ▸ Pane |
 | ⌥⌘= | Balance Splits: even out the splits of the tab | View ▸ Pane |
 | ⌥⌘ + arrow | Select Pane Left, Right, Up, Down: the keyboard goes to the next card that way (as in Ghostty and iTerm2) | View ▸ Pane |
-| ⌘[ and ⌘] | Select Previous Pane, Select Next Pane | View ▸ Pane |
+| ⌘[ and ⌘] | Select Previous Pane, Select Next Pane; over a plugin card that has a place that way, Back and Forward | View ▸ Pane |
 | ⌥⇧⌘ + arrow | Move Pane: swap the keyboard card with the card that way | View ▸ Pane |
 | ⌘+ (and ⌘=), ⌘-, ⌘0 | Increase, Decrease, Reset Font Size: the text size; on a browser card that has the keyboard, the page's zoom | View |
 | ⌃⌘F | full screen (the macOS key) | View |
@@ -193,8 +193,8 @@ one row with one keycap for the keys: "Select Pane ⌥ ⌘ ←→↑↓", "Show 
 Close Window, Float Pane and Resize Pane (View ▸ Pane, the palette) have no
 shortcut: the window's close button closes it, the card header's button
 floats a pane, and the dividers and Balance Splits cover resizing. Open
-Terminal Here, Start Agent Here, Open Browser Here, Open Files Here and Open
-Changes Here (File, the card's menu, the palette) have none either
+Terminal Here, Start Agent Here, Open Browser Here, Open File Explorer Here
+and Open Git Here (File, the card's menu, the palette) have none either
 ([New pane](/docs/ui/new-pane#commands-that-change-a-panes-kind)). In the palette: ↩ runs, ⎋ goes back or closes, ⌫ on an empty
 field goes back. Keyboard focus among the chrome's buttons follows the
 system's Full Keyboard Access setting.
@@ -209,7 +209,7 @@ Rex shortcuts not taken, and why:
 - ⌘/ (sidebar) is Keyboard Shortcuts instead: ⌃⌘S is the macOS sidebar key.
 - ⌘R reloads only a browser card's page: the snapshot is live, so nothing else needs a refresh. Replace Pane
   is ⇧⌘R.
-- Find Previous has a shortcut only over a File or Markdown card: elsewhere
+- Find Previous has a shortcut only over a File or Markdown page: elsewhere
   ⇧⌘G is Go to Directory. ⌘S and ⌘E have their key only over the cards that
   use them, because a disabled menu item swallows its key
   ([Default plugins](/docs/ui/plugins#keys)).
