@@ -110,20 +110,27 @@ private struct HeaderItem: View {
         .accessibilityAddTraits(isOn ? .isSelected : [])
     }
 
-    /// Plain, dim, or a path: its parts with `›` between them, the first dim. Cut in the middle.
+    /// Plain, dim, or a path: its parts with `›` between them, the first dim. The symbol, dim, before the last part
+    /// (File's `{}` before the scope around the caret). Cut in the middle.
     private var text: some View {
+        let path = control.style == "path"
         let parts: [String] = switch control.value {
-        case let .list(list): list
+        case let .list(list): path ? list : [list.joined(separator: " ")]
         case let .text(text): [text]
         default: []
         }
         let chevron = Text(" › ").foregroundStyle(.tertiary)
-        let shown = control.style == "path"
-            ? parts.enumerated().reduce(Text("")) { line, part in
-                let text = part.offset == 0 ? Text(part.element).foregroundStyle(.secondary) : Text(part.element)
-                return part.offset == 0 ? text : Text("\(line)\(chevron)\(text)")
+        let symbol = control.symbol.map { Text("\(Text(Image(systemName: $0)).foregroundStyle(.secondary)) ") }
+        let shown = parts.indices.reduce(Text("")) { line, index in
+            var part = Text(parts[index])
+            if index == parts.count - 1, let symbol {
+                part = Text("\(symbol)\(part)")
             }
-            : Text(parts.joined()).foregroundStyle(control.style == "dim" ? .secondary : .primary)
+            if path ? index == 0 : control.style == "dim" {
+                part = part.foregroundStyle(.secondary)
+            }
+            return index == 0 ? part : Text("\(line)\(chevron)\(part)")
+        }
         return shown.fontWeight(.regular).lineLimit(1).truncationMode(.middle)
             .accessibilityValue(parts.joined(separator: " › "))
     }
