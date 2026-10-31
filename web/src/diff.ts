@@ -7,7 +7,7 @@ import {
   type FileDiffMetadata,
   parsePatchFiles,
 } from "@pierre/diffs"
-import { ask, at, type How, how, type PatchReply, receive, report } from "./lib/bridge"
+import { ask, at, type How, how, type PatchReply, receive, report, symbols } from "./lib/bridge"
 import "./diff.css"
 
 
@@ -27,11 +27,8 @@ while (!reply) {
   })
   if (!reply) await new Promise<void>((resolve) => receive(() => resolve()))
 }
-const { root, split, list, symbols } = reply
-// The app's SF Symbols, as masks (git.ts has the same); in a style sheet: the app sets the root's own style.
-const sheet = element("style")
-sheet.textContent = `:root { ${Object.entries(symbols).map(([name, url]) => `--sf-${name.replaceAll(".", "-")}: url(${url});`).join(" ")} }`
-document.head.append(sheet)
+const { root, split, list } = reply
+symbols(reply.symbols)
 let patch = ""
 let files: FileDiffMetadata[] = []
 // Each change block's first line, in order, for previous / next; the last one stepped to, or half a step before

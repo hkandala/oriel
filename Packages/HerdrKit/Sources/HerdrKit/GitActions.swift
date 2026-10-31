@@ -60,7 +60,9 @@ extension Git.Change {
             let index = Character(Unicode.Scalar(field[field.startIndex]))
             let tree = Character(Unicode.Scalar(field[field.index(after: field.startIndex)]))
             let path = String(decoding: field.dropFirst(3), as: UTF8.self)
-            let oldPath = index == "R" || index == "C" ? fields.popFirst().map(String.init) : nil
+            // A rename in the work tree (after `add -N`) has its old path too.
+            let oldPath = [index, tree].contains(where: { $0 == "R" || $0 == "C" }) ? fields.popFirst().map(String.init)
+                : nil
             switch (index, tree) {
             case ("?", "?"): unstaged.append(Self(letter: "U", path: path, oldPath: nil))
             case ("!", "!"): continue

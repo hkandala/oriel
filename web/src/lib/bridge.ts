@@ -9,7 +9,7 @@ export type PreviewReply = { type: string; data: string; fallback: Info } | { in
 export type Entry = { name: string; folder: boolean; ignored: boolean }
 /** A changed file from the repository's root (`git`, the tree's letters), its letter as `Git.Change`'s. */
 export type Change = { letter: string; path: string; oldPath?: string | null }
-/** A commit with its row of the history graph (`git`): lanes as `Git.GraphRow`'s, `date` in ms. */
+/** A commit with its row of the history graph (`repo`): lanes as `Git.GraphRow`'s, `date` in ms. */
 export type Commit = {
   hash: string
   subject: string
@@ -43,7 +43,7 @@ type Ask =
   | { op: "paths" }
   | { op: "git" }
   /** The Git home: its state and SF Symbols (`read`), or a write, answered once done. */
-  | { op: "repo"; do: "read" | "stage" | "unstage" | "stageAll" | "unstageAll" | "commit"; path?: string
+  | { op: "repo"; do: "read" | "draft" | "stage" | "unstage" | "stageAll" | "unstageAll" | "commit"; path?: string
       oldPath?: string | null; message?: string }
 /**
  * `open`: `arg` in the card, a new tab or a pane to its side (`how`, the card by default); with no kind, in a File
@@ -105,6 +105,14 @@ export const how = (event: MouseEvent | KeyboardEvent): How => (event.metaKey ? 
 export const menu = (event: MouseEvent, target: { kind?: string; arg: string; at?: string; folder?: boolean }) => {
   event.preventDefault()
   report({ op: "menu", ...target })
+}
+
+/** The app's SF Symbols (name → PNG data URL) as `--sf-<name>` masks; in a style sheet: the app sets the root's own
+ *  style. */
+export const symbols = (urls: Record<string, string>) => {
+  const sheet = document.createElement("style")
+  sheet.textContent = `:root { ${Object.entries(urls).map(([name, url]) => `--sf-${name.replaceAll(".", "-")}: url(${url});`).join(" ")} }`
+  document.head.append(sheet)
 }
 
 /** Rejects with the app's error text; the reply's type is the ask's. */

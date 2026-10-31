@@ -1,29 +1,25 @@
 import HerdrKit
 import SwiftUI
 
-/// A Git card's second row: on the home, Back and Forward, the branch (a menu that switches it), then Fetch, Pull with
-/// the commits behind and Push with the commits ahead; on a diff, the diff's controls (`DiffToolbar`).
+/// The Git home's second row: Back and Forward, the branch (a menu that switches it), then Fetch, Pull with the
+/// commits behind and Push with the commits ahead. A diff has `DiffToolbar`.
 struct GitBar: View {
     let plugin: Plugin
     @Environment(\.look) private var look
 
     var body: some View {
-        if plugin.label.diff.source != nil {
-            DiffToolbar(plugin: plugin)
-        } else {
-            let repo = plugin.web.git, id = "pane.\(plugin.paneID).git"
-            HStack(spacing: 6) {
-                BackForward(plugin: plugin)
-                branch(repo, id: id)
-                Spacer(minLength: 0)
-                HStack(spacing: 2) {
-                    action("fetch", "arrow.clockwise", "Fetch", count: 0, repo.fetch)
-                    action("pull", "arrow.down", "Pull", count: repo.status?.behind ?? 0, repo.pull)
-                    action("push", "arrow.up", "Push", count: repo.status?.ahead ?? 0, repo.push)
-                }
-                .foregroundStyle(look.paneButton)
-                .disabled(repo.failure != nil || repo.running != nil)
+        let repo = plugin.web.git, id = "pane.\(plugin.paneID).git"
+        HStack(spacing: 6) {
+            BackForward(plugin: plugin)
+            branch(repo, id: id)
+            Spacer(minLength: 0)
+            HStack(spacing: 2) {
+                action("fetch", "arrow.clockwise", "Fetch", count: 0, repo.fetch)
+                action("pull", "arrow.down", "Pull", count: repo.status?.behind ?? 0, repo.pull)
+                action("push", "arrow.up", "Push", count: repo.status?.ahead ?? 0, repo.push)
             }
+            .foregroundStyle(look.paneButton)
+            .disabled(repo.failure != nil || repo.running != nil)
         }
     }
 
@@ -56,6 +52,8 @@ struct GitBar: View {
         .buttonStyle(.borderless)
         .fixedSize()
         .disabled(repo.branches.isEmpty || repo.running != nil)
+        .accessibilityLabel("Branch")
+        .accessibilityValue(repo.status?.branch ?? "")
         .accessibilityIdentifier("\(id).branch")
     }
 
@@ -79,8 +77,8 @@ struct GitBar: View {
         }
         .buttonStyle(ChromeStyle(radius: 5.5))
         .help(help)
-        .accessibilityLabel(help)
-        .accessibilityValue(count > 0 ? "\(count)" : "")
+        // In the label: XCUITest reads no button's value.
+        .accessibilityLabel(count > 0 ? "\(help), \(count) \(name == "pull" ? "behind" : "ahead")" : help)
         .accessibilityIdentifier("pane.\(plugin.paneID).git.\(name)")
     }
 }

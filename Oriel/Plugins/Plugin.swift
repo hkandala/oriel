@@ -90,12 +90,12 @@ extension PaneLabel {
                               "diff": "git"][plugin] ?? plugin)
     }
 
-    /// A Git card's repo root and its diff's source: the last word when it is `uncommitted` or a commit hash; nil for
-    /// the home.
+    /// A Git card's repo root and its diff's source: the last word when it is `uncommitted` or a commit hash (7 hex
+    /// digits or more: `Project 2` is a folder); nil for the home.
     var diff: (root: String, source: String?) {
         if let space = arg.lastIndex(of: " ") {
             let source = arg[arg.index(after: space)...]
-            if source == "uncommitted" || !source.isEmpty && source.allSatisfy(\.isHexDigit) {
+            if source == "uncommitted" || source.count >= 7 && source.allSatisfy(\.isHexDigit) {
                 return (String(arg[..<space]), String(source))
             }
         }
@@ -211,9 +211,19 @@ final class Plugin {
             return
         }
         leave { plugin in
-            plugin.back.append((plugin.web.arg, plugin.web.page == .files ? arg : nil))
+            plugin.back.append((plugin.web.arg, plugin.landing(arg, place)))
             plugin.forward = []
             plugin.show(arg, at: place)
+        }
+    }
+
+    /// Where a place comes back when Back returns to it from `arg`: the tree at the file it opened, the Git home at the
+    /// change (`place`) or the commit (`arg`) it opened.
+    private func landing(_ arg: String, _ place: String?) -> String? {
+        switch web.page {
+        case .files: arg
+        case .git: place ?? arg
+        default: nil
         }
     }
 
@@ -228,7 +238,7 @@ final class Plugin {
     func goForward() {
         leave { plugin in
             guard let next = plugin.forward.popLast() else { return }
-            plugin.back.append((plugin.web.arg, plugin.web.page == .files ? next.arg : nil))
+            plugin.back.append((plugin.web.arg, plugin.landing(next.arg, next.at)))
             plugin.show(next.arg, at: next.at)
         }
     }

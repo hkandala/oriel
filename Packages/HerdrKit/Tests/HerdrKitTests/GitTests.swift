@@ -123,8 +123,11 @@ import Testing
         Git.Branch(name: "origin/side", remote: true, current: false),
     ])
     try await Git.run(other, ["pull"], exec: exec)
+    // A stash is no branch: not in the history.
+    _ = try await exec.checkedOutput(["sh", "-c", "cd \"$1\" && echo x >>a && git stash -q", "sh", other])
     #expect(try await Git.log(other, exec: exec).map(\.subject) == ["two", "one"])
-    try await Git.run(other, ["switch", "side"], exec: exec)
+    // As the branch menu switches to a remote branch.
+    try await Git.run(other, ["switch", "--track", "origin/side"], exec: exec)
     #expect(try await Git.branches(other, exec: exec).filter(\.current).map(\.name) == ["side"])
     // git's own words, not a prompt.
     let error = await #expect(throws: HerdrError.self) { try await Git.run(other, ["switch", "nope"], exec: exec) }

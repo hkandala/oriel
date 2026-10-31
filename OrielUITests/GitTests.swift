@@ -21,14 +21,14 @@ extension OrielUITests {
 
         let home = element("git.\(card).page")
         // Every branch: the side branch's commit is not in main's history.
-        XCTAssertTrue(home.buttons["on the side"].exists(within: 10))
-        XCTAssertTrue(home.buttons["second"].exists)
+        XCTAssertTrue(commit("on the side", in: home).exists(within: 10))
+        XCTAssertTrue(commit("second", in: home).exists)
         XCTAssertTrue(home.buttons["Untracked: b.md"].exists)
         keepScreenshot("git home")
         try await commitAndPush(home, card: card, shell: left, repo: repo)
 
         // A commit opens its diff in the card; Back and Forward walk the card's places.
-        home.buttons["second"].click()
+        commit("second", in: home).click()
         try await expect("the label names the commit") { try await paneLabel(card).hasSuffix(" \(root) \(hash)") }
         XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, String(hash.prefix(7)), within: 3))
         let page = element("diff.\(card).page")
@@ -64,14 +64,18 @@ extension OrielUITests {
         home.buttons["Untracked: b.md"].hover()
         home.buttons["Stage b.md"].click()
         XCTAssertTrue(home.buttons["Added: b.md"].exists(within: 5))
+        home.buttons["Unstage b.md"].click()
+        XCTAssertTrue(home.buttons["Untracked: b.md"].exists(within: 5))
+        home.buttons["Stage b.md"].click()
+        XCTAssertTrue(home.buttons["Added: b.md"].exists(within: 5))
         try await expectGit("diff --cached --name-only", "b.md", in: left, repo: repo)
         let message = home.textViews["Message"]
         message.click()
         message.typeText("e2e commit")
         home.buttons["Commit"].click()
         try await expectGit("log -1 --format=%s", "e2e commit", in: left, repo: repo)
-        XCTAssertTrue(home.buttons["e2e commit"].exists(within: 5))
-        XCTAssertTrue(until(5) { element("pane.\(card).git.push").value as? String == "1" })
+        XCTAssertTrue(commit("e2e commit", in: home).exists(within: 5))
+        XCTAssertTrue(element("pane.\(card).git.push").has(\.label, "Push, 1 ahead", within: 5))
         element("pane.\(card).git.push").click()
         try await expectGit("--git-dir \(repo).git log -1 --format=%s main", "e2e commit", in: left, repo: repo)
     }
@@ -103,6 +107,11 @@ extension OrielUITests {
         XCTAssertTrue(far.has(\.isHittable, true, within: 3), "far \(far.frame), page \(page.frame)")
         try await commandClick(far, after: tab, root: root)
         try await show(tab)
+    }
+
+    /// A commit's row in the history: its label starts with the subject, then its names and its date.
+    private func commit(_ subject: String, in home: XCUIElement) -> XCUIElement {
+        home.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", subject + ",")).firstMatch
     }
 
     /// `git <command>` in the shell pane prints the line `expected`, now or within a few tries (the app's write may

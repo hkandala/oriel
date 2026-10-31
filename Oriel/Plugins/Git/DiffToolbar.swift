@@ -12,7 +12,7 @@ struct DiffToolbar: View {
         let id = "pane.\(plugin.paneID).diff"
         HStack(spacing: 6) {
             BackForward(plugin: plugin)
-            IconButton(symbol: "house", help: "Git Home", size: 22) { plugin.go(plugin.label.diff.root) }
+            IconButton(symbol: "house", help: "Git Home", size: 22) { plugin.go(plugin.web.diff.root) }
                 .foregroundStyle(look.paneButton)
                 .accessibilityIdentifier("\(id).home")
             Spacer(minLength: 0)

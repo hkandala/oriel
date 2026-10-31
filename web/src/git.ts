@@ -2,7 +2,7 @@
 // Stage and Unstage, then the history of every branch as a graph. Row 2 (GitBar.swift) has the branch, Fetch, Pull and
 // Push; the app reads git and runs every write (GitRepo.swift).
 import "./git.css"
-import { ask, type Change, type Commit, how, menu, type RepoState, receive, report } from "./lib/bridge"
+import { ask, at, type Change, type Commit, how, menu, type RepoState, receive, report, symbols } from "./lib/bridge"
 
 document.body.innerHTML = `
 <p id="failure" hidden></p>
@@ -22,7 +22,6 @@ const form = document.getElementById("commit") as HTMLFormElement
 const message = document.getElementById("message") as HTMLTextAreaElement
 const commitButton = document.getElementById("commit-button") as HTMLButtonElement
 let state: RepoState = { root: "" }
-let shown = ""
 let committing = false
 
 const WORDS: Record<string, string> = {
@@ -45,9 +44,6 @@ function symbol(name: string, className = "symbol") {
 }
 
 function show(next: RepoState) {
-  const json = JSON.stringify(next)
-  if (json === shown) return
-  shown = json
   state = next
   failure.hidden = !next.failure
   failure.textContent = next.failure ?? ""
@@ -56,7 +52,10 @@ function show(next: RepoState) {
   const staged = next.staged ?? [], unstaged = next.unstaged ?? []
   section("staged", "Staged Changes", staged, true)
   section("unstaged", "Changes", unstaged, false)
-  document.querySelector("#history .rows")!.replaceChildren(...graph(next.commits ?? []))
+  const commits = next.commits ?? []
+  document.querySelector("#history .rows")!.replaceChildren(
+    ...(commits.length ? graph(commits) : [element("p", "empty", "No commits yet")]),
+  )
   ready()
 }
 
@@ -111,14 +110,16 @@ function changeRow(change: Change, staged: boolean) {
     { arg: `${state.root} uncommitted`, at: change.path })
   node.id = `${staged ? "staged" : "change"}.${change.path}`
   node.title = change.oldPath ? `${change.oldPath} → ${name}` : name
-  const toggle = staged ? "Unstage" : "Stage"
+  const toggle = staged ? "Unstage" : "Stage", letter = element("span", `letter ${change.letter}`, change.letter)
+  // The label says it.
+  letter.ariaHidden = "true"
   open.append(symbol("doc"), element("span", "name", name.slice(slash)),
     element("span", "folder", name.slice(0, Math.max(slash - 1, 0))))
   node.append(
     button(staged ? "minus" : "plus", `${toggle} ${name}`, () =>
       write({ op: "repo", do: staged ? "unstage" : "stage", path: change.path, oldPath: change.oldPath }),
     ),
-    element("span", `letter ${change.letter}`, change.letter),
+    letter,
   )
   return node
 }
@@ -147,7 +148,9 @@ function commitRow(commit: Commit, width: number) {
   const dot = head
     ? `<circle cx="${x(lane)}" cy="${mid}" r="4.5" fill="var(--card)" stroke="${color(lane)}" stroke-width="2"/>`
     : `<circle cx="${x(lane)}" cy="${mid}" r="4" fill="${color(lane)}"/>`
-  const { node, open } = row(subject, { arg: `${state.root} ${hash}` })
+  const names = refs.flatMap(badge)
+  const label = [subject, ...names.map((name) => name.textContent), when(date)].join(", ")
+  const { node, open } = row(label, { arg: `${state.root} ${hash}` })
   node.id = `commit.${hash}`
   node.classList.add("commit")
   node.title = `${subject}\n${commit.author} · ${hash.slice(0, 10)}`
@@ -156,7 +159,7 @@ function commitRow(commit: Commit, width: number) {
     ...children.map((at) => line(at, 0, lane, mid)),
     ...parents.map((at) => line(lane, mid, at, HEIGHT)),
   ].join("")}${dot}</svg>`)
-  open.append(...refs.flatMap(badge), element("span", "name", subject), element("span", "hash", hash.slice(0, 7)),
+  open.append(...names, element("span", "name", subject), element("span", "hash", hash.slice(0, 7)),
     element("span", "when", when(date)))
   return node
 }
@@ -186,10 +189,15 @@ function when(ms: number) {
 function ready() {
   commitButton.disabled = committing || !message.value.trim() || !state.staged?.length
 }
-message.addEventListener("input", () => {
+function grow() {
   message.style.height = "auto"
   message.style.height = `${message.scrollHeight}px`
+}
+message.addEventListener("input", () => {
+  grow()
   ready()
+  // Kept by the app: the page loads again at each move in the card.
+  ask({ op: "repo", do: "draft", message: message.value }).catch(() => undefined)
 })
 message.addEventListener("keydown", (event) => {
   if (event.key === "Enter" && event.metaKey) {
@@ -216,13 +224,18 @@ receive((message) => {
   if (message.op === "repo") show(message.repo)
 })
 
-const { repo, symbols } = (await ask({ op: "repo", do: "read" }).catch((error: Error) => ({
+const reply = (await ask({ op: "repo", do: "read" }).catch((error: Error) => ({
   repo: { root: "", failure: error.message },
   symbols: {},
-}))) as { repo: RepoState; symbols: Record<string, string> }
-// In a style sheet: the app sets the root's own style to its colors.
-const sheet = element("style")
-sheet.textContent = `:root { ${Object.entries(symbols).map(([name, url]) => `--sf-${name.replaceAll(".", "-")}: url(${url});`).join(" ")} }`
-document.head.append(sheet)
-show(repo)
+  draft: "",
+}))) as { repo: RepoState; symbols: Record<string, string>; draft: string }
+symbols(reply.symbols)
+message.value = reply.draft
+show(reply.repo)
+if (reply.draft) grow()
+// Back from a diff: at the change or the commit it opened.
+const landing = at?.startsWith(`${reply.repo.root} `)
+  ? document.getElementById(`commit.${at.split(" ").pop()}`)
+  : at && (document.getElementById(`change.${at}`) ?? document.getElementById(`staged.${at}`))
+landing?.scrollIntoView({ block: "center" })
 report({ op: "ready" })

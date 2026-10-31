@@ -10,7 +10,7 @@ main { padding: 10px 0 16px; }
   background: color-mix(in srgb, var(--text) 6%, transparent); }
 #message::placeholder { color: var(--dim); }
 #message:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent); }
-#commit-button { all: unset; height: 30px; padding: 0 16px; border-radius: 15px; font-weight: 500; color: white;
+#commit-button { all: unset; height: 30px; padding: 0 16px; border-radius: 15px; font-weight: 500; color: var(--on-accent);
   background: var(--accent); }
 #commit-button:hover { filter: brightness(1.08); }
 #commit-button:active { filter: brightness(0.92); }
@@ -55,4 +55,4 @@ header .icon { margin-left: auto; }
 .badge { display: flex; align-items: center; gap: 3px; height: 18px; padding: 0 7px; border-radius: 9px; font-size: 11px;
   color: var(--dim); background: color-mix(in srgb, var(--text) 8%, transparent); }
 .badge .symbol { width: 10px; height: 10px; }
-.badge.head { color: white; font-weight: 600; background: var(--accent); }
+.badge.head { color: var(--on-accent); font-weight: 600; background: var(--accent); }

@@ -16,9 +16,12 @@ final class GitRepo {
     private(set) var running: String?
     /// The page's part, as sent to it last.
     @ObservationIgnored private var state: [String: Any]?
+    /// The commit message typed and not committed: the page loads again at each move in the card.
+    @ObservationIgnored private var draft = ""
     /// Writes run one at a time, in order (git takes `index.lock`); each waits for the one before it.
-    @ObservationIgnored private var queue: Task<Void, Never>?
-    @ObservationIgnored private var reading = false
+    @ObservationIgnored private var queue: Task<Bool, Never>?
+    /// The read that runs; a call meanwhile waits for it, and it reads once more.
+    @ObservationIgnored private var loading: Task<Void, Never>?
     @ObservationIgnored private var again = false
 
     init(card: WebCard) {
@@ -39,14 +42,20 @@ final class GitRepo {
         return await store.machine.exec()
     }
 
-    /// Reads everything again and sends the page what changed; a call during a read reads once more after it.
+    /// Reads everything again and sends the page what changed; a call during a read reads once more after it, and
+    /// returns when that is done.
     func load() async {
-        guard !reading else {
+        if let loading {
             again = true
-            return
+            return await loading.value
         }
-        reading = true
-        defer { reading = false }
+        let task = Task { await read() }
+        loading = task
+        await task.value
+        loading = nil
+    }
+
+    private func read() async {
         repeat {
             again = false
             guard let exec = await exec() else { return }
@@ -112,22 +121,36 @@ final class GitRepo {
         let done: Bool
         switch message["do"] as? String {
         case "read":
-            if state == nil {
+            // Another root since (a rename from elsewhere).
+            if state?["root"] as? String != root {
                 await load()
             }
-            return (["repo": state ?? ["failure": failure ?? "Not read"], "symbols": Self.symbols], nil)
-        case "stage" where path != nil: done = await run(["add", "-A"] + paths)
+            return (["repo": state ?? ["failure": failure ?? "Not read"], "symbols": Self.symbols, "draft": draft],
+                    nil)
+        case "draft":
+            draft = message["message"] as? String ?? ""
+            return (nil, nil)
+        // A path, not a pattern: `*.txt` stages that file alone.
+        case "stage" where path != nil: done = await run(["--literal-pathspecs", "add", "-A"] + paths)
         // Also before the first commit, where `restore --staged` finds no HEAD.
-        case "unstage" where path != nil: done = await run(["reset", "-q"] + paths)
+        case "unstage" where path != nil: done = await run(["--literal-pathspecs", "reset", "-q"] + paths)
         case "stageAll": done = await run(["add", "-A"])
         case "unstageAll": done = await run(["reset", "-q"])
-        case "commit":
-            let text = (message["message"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !text.isEmpty else { return (nil, "No message") }
-            done = await run(["commit", "-m", text], busy: "commit")
+        case "commit": done = await commit(message["message"] as? String ?? "")
         default: return (nil, "Unknown message")
         }
         return done ? (true, nil) : (nil, "Failed")
+    }
+
+    /// The staged changes with the message; the draft empties when it worked.
+    private func commit(_ message: String) async -> Bool {
+        let text = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty, await run(["commit", "-m", text], busy: "commit") else { return false }
+        // Not a message typed meanwhile.
+        if draft.trimmingCharacters(in: .whitespacesAndNewlines) == text {
+            draft = ""
+        }
+        return true
     }
 
     func fetch() {
@@ -139,13 +162,9 @@ final class GitRepo {
         Task { await run(["pull"], busy: "pull") }
     }
 
-    /// A branch with no upstream is published to `origin` under its name.
+    /// A branch with no upstream is published under its name (git 2.37 or later; an older one says it has none).
     func push() {
-        Task {
-            guard let exec = await exec() else { return }
-            let upstream = try? await Git.run(root, ["rev-parse", "--abbrev-ref", "@{upstream}"], exec: exec)
-            await run(upstream != nil ? ["push"] : ["push", "-u", "origin", "HEAD"], busy: "push")
-        }
+        Task { await run(["-c", "push.autoSetupRemote=true", "push"], busy: "push") }
     }
 
     /// A remote branch makes a local one that tracks it.
@@ -160,7 +179,7 @@ final class GitRepo {
     private func run(_ arguments: [String], busy: String? = nil) async -> Bool {
         let previous = queue
         let write = Task { [weak self] () -> Bool in
-            await previous?.value
+            _ = await previous?.value
             guard let self, let exec = await exec() else { return false }
             running = busy
             defer { running = nil }
@@ -172,7 +191,7 @@ final class GitRepo {
                 return false
             }
         }
-        queue = Task { _ = await write.value }
+        queue = write
         let done = await write.value
         await load()
         return done

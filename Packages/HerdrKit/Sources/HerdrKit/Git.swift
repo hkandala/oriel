@@ -65,13 +65,18 @@ public enum Git {
                                                    "--porcelain=v1", "-z", "--untracked-files=all"]))
     }
 
-    /// The last 500 commits of every branch, tag and remote branch, newest first, each child before its parents.
+    /// The last 500 commits of every branch, remote branch and tag, and HEAD (also detached), newest first, each child
+    /// before its parents. Not `--all`: the stash, notes and git's own refs would add lanes.
     /// ponytail: 500 rows; a Show More row when a longer history must show.
     public static func log(_ root: String, exec: any Exec) async throws -> [Commit] {
-        try await exec.checkedOutput(["git", "-C", root, "log", "--all", "-n", "500", "--topo-order",
-                                      "--no-show-signature", "--decorate=full",
-                                      "--format=%H%x1f%P%x1f%an%x1f%at%x1f%D%x1f%s"], timeout: .seconds(30))
-            .split(separator: "\n").compactMap(Commit.init)
+        try await exec.checkedOutput(
+            ["git", "-C", root, "log", "--branches", "--remotes", "--tags", "HEAD", "-n", "500", "--topo-order",
+             "--no-show-signature", "--decorate=full",
+             // `--`: a file named HEAD is no revision.
+             "--format=%H%x1f%P%x1f%an%x1f%at%x1f%D%x1f%s", "--"],
+            timeout: .seconds(30),
+        )
+        .split(separator: "\n").compactMap(Commit.init)
     }
 }
 
@@ -121,7 +126,8 @@ extension Git.Change {
         while let field = fields.popFirst()?.utf8, field.count > 3 {
             let index = Character(Unicode.Scalar(field[field.startIndex]))
             let tree = Character(Unicode.Scalar(field[field.index(after: field.startIndex)]))
-            let oldPath = index == "R" || index == "C" ? fields.popFirst().map(String.init) : nil
+            let oldPath = [index, tree].contains(where: { $0 == "R" || $0 == "C" }) ? fields.popFirst().map(String.init)
+                : nil
             changes.append(Self(letter: letter(index, tree), path: String(decoding: field.dropFirst(3), as: UTF8.self),
                                 oldPath: oldPath))
         }
