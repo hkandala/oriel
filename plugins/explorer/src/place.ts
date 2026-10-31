@@ -1,6 +1,6 @@
 // What every place of the card gets from `main.ts`, and the open gestures they share.
 import type { Off, Oriel } from "@oriel/plugin-api"
-import places from "./places.json"
+import places from "../places.json"
 
 export type Place = {
   oriel: Oriel

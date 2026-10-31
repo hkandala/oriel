@@ -29,9 +29,6 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
     /// The app's commands the card takes: `save`, `find`.
     public let handles: [String]
     public let permissions: [String]
-    /// Files the page loads by name at run time (pdf.js's worker and fonts), copied beside the build: paths in the
-    /// package, a `*` allowed in the last part.
-    public let assets: [String]
 
     public struct Opens: Decodable, Sendable, Equatable {
         /// Name globs (`*.csv`, `Makefile`) and uniform type identifiers (`public.image`).
@@ -147,7 +144,7 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
     {
         (self.id, self.name, version, api, entry, self.icon) = (id, name, "1.0.0", 1, nil, icon)
         (self.description, self.keywords, self.opens, self.chooser) = (description, keywords, opens, chooser)
-        (header, history, commands, handles, permissions, assets) = ([], false, [], [], [], [])
+        (header, history, commands, handles, permissions) = ([], false, [], [], [])
     }
 
     /// The entry's build's name, without `.js`: esbuild names it after the entry's file, in the build's top folder.
@@ -190,7 +187,6 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
         commands = try values.decodeIfPresent([Command].self, forKey: .commands) ?? []
         handles = try values.decodeIfPresent([String].self, forKey: .handles) ?? []
         permissions = try values.decodeIfPresent([String].self, forKey: .permissions) ?? []
-        assets = try values.decodeIfPresent([String].self, forKey: .assets) ?? []
         try check(values.codingPath)
     }
 
@@ -199,7 +195,7 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
     }
 
     private enum Keys: String, CodingKey {
-        case id, name, api, entry, icon, opens, chooser, header, history, commands, handles, permissions, assets
+        case id, name, api, entry, icon, opens, chooser, header, history, commands, handles, permissions
     }
 
     /// The manifest page's rules the types do not carry.
@@ -213,12 +209,9 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
         guard !name.isEmpty, !icon.isEmpty else { throw bad(name.isEmpty ? "name" : "icon", "is empty") }
         guard api >= 1 else { throw bad("api", "must be 1 or more") }
         let file = entry ?? ""
-        guard ["ts", "tsx", "js", "jsx"].contains((file as NSString).pathExtension), !file.hasPrefix("/"),
-              !file.split(separator: "/").contains("..")
-        else { throw bad("entry", "must be a .ts, .tsx, .js or .jsx file in the package") }
-        guard !assets.contains(where: { $0.hasPrefix("/") || $0.split(separator: "/").contains("..") }) else {
-            throw bad("assets", "must be paths in the package")
-        }
+        // The package's build writes it (`dist/main.js`); the page loads it with its chunks and CSS from its folder.
+        guard (file as NSString).pathExtension == "js", !file.hasPrefix("/"), !file.split(separator: "/").contains("..")
+        else { throw bad("entry", "must be a built .js file in the package") }
         guard ["default", "option"].contains(opens.priority) else {
             throw bad("opens.priority", "must be default or option")
         }

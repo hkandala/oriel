@@ -1,0 +1,31 @@
+{
+  "name": "my-plugin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A text file with its line count.",
+  "scripts": {
+    "build": "esbuild src/main.ts --bundle --splitting --format=esm --minify --sourcemap --target=safari18 --log-level=warning --outdir=dist",
+    "dev": "npm run build -- --watch",
+    "check": "tsc -p ."
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "typescript": "7.0.2"
+  },
+  "peerDependencies": {
+    "@oriel/plugin-api": "*"
+  },
+  "peerDependenciesMeta": {
+    "@oriel/plugin-api": { "optional": true }
+  },
+  "oriel": {
+    "id": "my-plugin",
+    "name": "My Plugin",
+    "api": 1,
+    "entry": "dist/main.js",
+    "icon": "doc.plaintext",
+    "opens": { "files": ["*.txt"], "priority": "option" },
+    "header": [{ "id": "lines", "type": "text", "style": "dim" }],
+    "permissions": ["files:read"]
+  }
+}

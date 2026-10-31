@@ -25,16 +25,18 @@ lint:
 
 # What the app carries for its plugins (.build/web, copied into its resources): the plugin API's runtime (oriel.js,
 # checked against its types) and card.css, which every plugin's page loads; the host types package (plugin-api), which
-# the app writes into the plugins folder for tsc; and the default plugins' source (defaults/<id>, no node_modules),
-# which the app installs into the plugins folder on first launch and builds there. Each default is also installed and
-# type-checked here, against the API's types (plugins/node_modules/@oriel/plugin-api, a link to web/oriel).
-web: web/node_modules/.package-lock.json plugins/explorer/node_modules/.package-lock.json \
-		plugins/git/node_modules/.package-lock.json
+# the app writes into the plugins folder for tsc; the default plugins' source (defaults/<id>, no node_modules or
+# dist), which the app installs into the plugins folder on first launch and builds there with their own build scripts;
+# and the template a new plugin starts from (template). Each one is installed, type-checked (against
+# plugins/node_modules/@oriel/plugin-api, a link to web/oriel) and built here too, as a user's would be.
+PLUGINS := explorer git template
+web: web/node_modules/.package-lock.json $(PLUGINS:%=plugins/%/node_modules/.package-lock.json)
 	rm -rf .build/web
 	mkdir -p plugins/node_modules/@oriel && ln -sfn ../../../web/oriel plugins/node_modules/@oriel/plugin-api
-	for id in explorer git; do web/node_modules/.bin/tsc -p plugins/$$id; done
+	for id in $(PLUGINS); do npm --prefix plugins/$$id run --silent check && npm --prefix plugins/$$id run --silent build; done
 	mkdir -p .build/web/defaults .build/web/plugin-api
-	rsync -a --exclude node_modules plugins/explorer plugins/git .build/web/defaults/
+	rsync -a --exclude node_modules --exclude dist plugins/explorer plugins/git .build/web/defaults/
+	rsync -a --exclude node_modules --exclude dist plugins/template .build/web/
 	web/node_modules/.bin/tsc -p web/oriel
 	web/node_modules/.bin/esbuild web/oriel/runtime.ts --bundle --format=esm --minify --target=safari18 \
 		--log-level=warning --outfile=.build/web/oriel.js

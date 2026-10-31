@@ -14,7 +14,7 @@ final class DefaultPlugins {
     /// The installs under way (their cards show it), and why the last one of a plugin failed (its card shows it, with
     /// Reload to try again).
     private(set) var installing: Set<String> = []
-    private(set) var failures: [String: String] = [:]
+    private(set) var failures: [String: PluginProblem] = [:]
     /// What the panel offers per default: the app's newer version (Update to Version), or nil for its other source
     /// or the user's edits (Reset to Default).
     private(set) var offers: [String: String?] = [:]
@@ -92,12 +92,13 @@ final class DefaultPlugins {
     }
 
     /// Waits for the plugin's install, made now when its copy is missing: nil once it is in place, else why not.
-    func installed(_ id: String) async -> String? {
-        let copy = PluginInstalls.plugins.appending(path: id)
+    func installed(_ manifest: PluginManifest) async -> PluginProblem? {
+        let id = manifest.id, copy = PluginInstalls.plugins.appending(path: id)
         if tasks[id] != nil || !FileManager.default.fileExists(atPath: copy.path) {
             await put(id)
         }
-        return FileManager.default.fileExists(atPath: copy.path) ? nil : failures[id] ?? "It is not installed"
+        guard !FileManager.default.fileExists(atPath: copy.path) else { return nil }
+        return failures[id] ?? PluginProblem(title: "\(manifest.name) is not installed", text: "", button: "Try Again")
     }
 
     /// Update to Version and Reset to Default: an edited copy goes to the Trash, after a question.
@@ -121,8 +122,8 @@ final class DefaultPlugins {
         await check()
     }
 
-    /// The app's source copied over the plugin's folder, its dependencies from its lockfile, then its cards load
-    /// again. One at a time per plugin; `trash`: the old copy goes to the Trash, not away.
+    /// The app's source copied over the plugin's folder, its dependencies from its lockfile and its build, then its
+    /// cards load again. One at a time per plugin; `trash`: the old copy goes to the Trash, not away.
     func put(_ id: String, trash: Bool = false) async {
         if let task = tasks[id] {
             return await task.value
@@ -145,7 +146,10 @@ final class DefaultPlugins {
         do {
             try FileManager.default.createDirectory(at: staging, withIntermediateDirectories: true)
             try FileManager.default.copyItem(at: source, to: copy)
-            try await PluginPackages.dependencies(copy, exec: localExec.value)
+            let exec = await localExec.value
+            let output = try await PluginPackages.dependencies(copy, exec: exec)
+                + (PluginPackages.build(copy, exec: exec) ?? "")
+            PluginLog.add(id, "installed:\n\(output.trimmingCharacters(in: .whitespacesAndNewlines))")
             let hashes = await (Self.hash(source), Self.hash(copy))
             try PluginPackages.place(copy, at: plugins.appending(path: id), keeping: staging)
             if trash {
@@ -162,8 +166,9 @@ final class DefaultPlugins {
                 Registry.reload()
             }
         } catch {
-            failures[id] = error.localizedDescription.firstLine
-            PluginLog.add(id, "install failed: \(error.localizedDescription)")
+            if let manifest = Self.bundled[id] {
+                failures[id] = .failed(manifest, "could not install", error, button: "Try Again")
+            }
         }
     }
 
@@ -183,7 +188,8 @@ final class DefaultPlugins {
                                                   options: .skipsHiddenFiles)
         var files: [URL] = []
         while let url = walk?.nextObject() as? URL {
-            if url.lastPathComponent == "node_modules" {
+            // What its install and its build write.
+            if ["node_modules", "dist"].contains(url.lastPathComponent) {
                 walk?.skipDescendants()
             } else if (try? url.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true {
                 files.append(url)

@@ -9,5 +9,5 @@
     "skipLibCheck": true,
     "noUncheckedSideEffectImports": false
   },
-  "include": ["*.ts"]
+  "include": ["src"]
 }

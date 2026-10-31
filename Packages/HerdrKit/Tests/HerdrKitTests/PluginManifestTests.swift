@@ -8,7 +8,7 @@ private func manifest(_ oriel: String, package: String = #""version": "0.1.0""#)
     try PluginManifest(package: Data("{\(package), \"oriel\": {\(oriel)}}".utf8))
 }
 
-private let base = #""id": "csv-table", "name": "CSV Table", "api": 1, "entry": "main.ts", "icon": "tablecells""#
+private let base = #""id": "csv-table", "name": "CSV Table", "api": 1, "entry": "dist/main.js", "icon": "tablecells""#
 
 private func error(_ oriel: String, package: String = #""version": "0.1.0""#) -> String? {
     do {
@@ -62,8 +62,9 @@ private func error(_ oriel: String, package: String = #""version": "0.1.0""#) ->
     #expect(error(base.replacingOccurrences(of: #""api": 1"#, with: #""api": "1""#)) == "oriel.api has the wrong type")
     #expect(error(base.replacingOccurrences(of: "csv-table", with: "CSV")) != nil)
     #expect(error(base.replacingOccurrences(of: "csv-table", with: "-csv")) != nil)
-    #expect(error(base.replacingOccurrences(of: "main.ts", with: "../main.ts")) != nil)
-    #expect(error(base.replacingOccurrences(of: "main.ts", with: "main.py")) != nil)
+    #expect(error(base.replacingOccurrences(of: "dist/main.js", with: "../main.js")) != nil)
+    #expect(error(base.replacingOccurrences(of: "dist/main.js", with: "src/main.ts"))
+        == "oriel.entry must be a built .js file in the package")
     #expect(error(base + #", "chooser": "CSV", "opens": {"files": ["*.csv"]}"#)
         == "oriel.chooser needs opens with folders or git, or no opens")
     #expect(error(base + #", "header": [{"type": "slider", "id": "a"}]"#) == "oriel.header has an unknown type slider")
@@ -72,8 +73,6 @@ private func error(_ oriel: String, package: String = #""version": "0.1.0""#) ->
     #expect(error(base + #", "commands": [{"id": "e", "title": "Edit", "key": "e"}]"#) != nil)
     #expect(error(base + #", "permissions": ["network"]"#) == "oriel.permissions has an unknown permission network")
     #expect(error(base + #", "opens": {"priority": "high"}"#) != nil)
-    #expect(error(base + #", "assets": ["../x.js"]"#) == "oriel.assets must be paths in the package")
-    #expect((try? manifest(base + #", "assets": ["node_modules/pdfjs-dist/cmaps/*.bcmap"]"#))?.assets.count == 1)
     #expect(error(base + #", "header": [{"type": "toggle", "id": "a"}, 5]"#) != nil)
     #expect((try? PluginManifest(package: Data("not json".utf8))) == nil)
     #expect(error(base + #", "chooser": "Notes", "opens": {"folders": true}"#) == nil)

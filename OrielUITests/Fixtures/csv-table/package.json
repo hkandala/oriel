@@ -3,13 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "description": "A CSV or TSV file as a table you can sort.",
+  "scripts": {
+    "build": "esbuild src/main.ts --bundle --format=esm --log-level=warning --outdir=dist"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  },
   "peerDependencies": { "@oriel/plugin-api": "*" },
   "peerDependenciesMeta": { "@oriel/plugin-api": { "optional": true } },
   "oriel": {
     "id": "oriel-e2e-csv-table",
     "name": "CSV Table",
     "api": 1,
-    "entry": "main.ts",
+    "entry": "dist/main.js",
     "icon": "tablecells",
     "opens": { "files": ["*.csv", "*.tsv", "public.comma-separated-values-text"] },
     "header": [

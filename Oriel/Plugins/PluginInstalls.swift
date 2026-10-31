@@ -96,8 +96,52 @@ final class PluginInstalls {
                 try FileManager.default.trashItem(at: folder, resultingItemURL: nil)
             }
             PluginTrust.shared.forget(row.id)
-            try? FileManager.default.removeItem(at: PluginBuilds.cache.appending(path: row.id))
             Registry.reload()
+        }
+    }
+
+    /// New Plugin…: the app's template (`plugins/template`) copied into the plugins folder under a name, installed and
+    /// built, trusted (the user made it), and shown in Finder for an editor or an agent.
+    func create() async {
+        let alert = NSAlert()
+        alert.messageText = "New Plugin"
+        alert.informativeText = "Oriel copies its template into the plugins folder, then installs and builds it."
+        let field = NSTextField(string: "")
+        field.frame.size.width = 260
+        alert.accessoryView = field
+        alert.addButton(withTitle: "Create")
+        alert.addButton(withTitle: "Cancel")
+        alert.window.initialFirstResponder = field
+        let answer = if let window = NSApp.keyWindow {
+            await alert.beginSheetModal(for: window)
+        } else {
+            alert.runModal()
+        }
+        let name = field.stringValue.trimmingCharacters(in: .whitespaces).shown
+        let id = name.lowercased().split { !($0.isASCII && ($0.isLetter || $0.isNumber)) }.joined(separator: "-")
+        guard answer == .alertFirstButtonReturn, !id.isEmpty,
+              let template = Registry.folder?.appending(path: "template")
+        else { return }
+        let folder = Self.plugins.appending(path: id)
+        guard Registry.plugin(id) == nil, !FileManager.default.fileExists(atPath: folder.path) else {
+            failure = ("A plugin named \(id) is already there", nil)
+            return
+        }
+        await run(id, "Creating…") {
+            try FileManager.default.createDirectory(at: Self.plugins, withIntermediateDirectories: true)
+            try FileManager.default.copyItem(at: template, to: folder)
+            let file = folder.appending(path: "package.json")
+            let text = try String(contentsOf: file, encoding: .utf8).replacing("my-plugin", with: id)
+                .replacing("My Plugin", with: name)
+            try text.write(to: file, atomically: true, encoding: .utf8)
+            let manifest = try PluginManifest(package: Data(contentsOf: file))
+            let exec = await localExec.value
+            let output = try await PluginPackages.dependencies(folder, exec: exec)
+                + (PluginPackages.build(folder, exec: exec) ?? "")
+            PluginLog.add(id, "created from the template:\n\(output.trimmingCharacters(in: .whitespacesAndNewlines))")
+            PluginTrust.shared.allow(manifest)
+            Registry.reload()
+            NSWorkspace.shared.activateFileViewerSelecting([folder.appending(path: "src/main.ts")])
         }
     }
 
@@ -107,9 +151,12 @@ final class PluginInstalls {
         do {
             try free(staged.manifest.id, for: Self.plugins.appending(path: source.folder ?? ""))
             guard await trusts(staged.manifest, from: text) else { return PluginPackages.discard(staged) }
-            _ = try await PluginPackages.finish(staged, into: Self.plugins, exec: exec)
+            let output = try await PluginPackages.finish(staged, into: Self.plugins, exec: exec).output
+            PluginLog.add(staged.manifest.id, "installed from \(text):\n"
+                + output.trimmingCharacters(in: .whitespacesAndNewlines))
         } catch {
             PluginPackages.discard(staged)
+            PluginLog.add(staged.manifest.id, "install from \(text) failed: \(error.localizedDescription)")
             throw error
         }
         try installed(staged.manifest, text)

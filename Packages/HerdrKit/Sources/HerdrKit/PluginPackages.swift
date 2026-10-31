@@ -108,14 +108,21 @@ public enum PluginPackages {
         }
     }
 
-    /// Installs its dependencies and puts it in place as the source's folder, over an older install. Its path.
-    public static func finish(_ staged: Staged, into plugins: URL, exec: any Exec) async throws -> URL {
+    /// Installs its dependencies, builds it when it has a `build` script and no built entry yet (a published package
+    /// ships its build), and puts it in place as the source's folder, over an older install. Its path, and what the
+    /// package manager printed.
+    public static func finish(_ staged: Staged, into plugins: URL, exec: any Exec) async throws
+        -> (folder: URL, output: String)
+    {
         defer { discard(staged) }
-        try await dependencies(staged.folder, exec: exec)
+        var output = try await dependencies(staged.folder, exec: exec)
+        if !FileManager.default.fileExists(atPath: staged.folder.appending(path: staged.manifest.entry ?? "").path) {
+            output += try await build(staged.folder, exec: exec) ?? ""
+        }
         guard let name = staged.source.folder else { throw HerdrError.failed("A local path is not installed") }
         let target = plugins.appending(path: name)
         try place(staged.folder, at: target, keeping: staged.staging)
-        return target
+        return (target, output)
     }
 
     /// Moves a folder over `target`; the old one waits in `staging` until the move worked, else it goes back.
@@ -139,55 +146,74 @@ public enum PluginPackages {
         try? FileManager.default.removeItem(at: staged.staging)
     }
 
-    /// The package's `dependencies` and `devDependencies` in its own `node_modules`, from its lockfile when it has
-    /// one: with the manager of its lockfile, else the first of npm, pnpm and bun on the `PATH`. No scripts run, and
-    /// no peer dependencies install: `@oriel/plugin-api` is the app's.
-    public static func dependencies(_ folder: URL, exec: any Exec) async throws {
-        let json = try? JSONSerialization.jsonObject(with: Data(contentsOf: folder.appending(path: "package.json")))
-            as? [String: Any]
-        let deps = ["dependencies", "devDependencies"].contains { !((json?[$0] as? [String: Any]) ?? [:]).isEmpty }
-        guard deps else { return }
-        let has = { (name: String) in FileManager.default.fileExists(atPath: folder.appending(path: name).path) }
-        let locked = has("package-lock.json") ? "npm" : has("pnpm-lock.yaml") ? "pnpm"
-            : has("bun.lock") || has("bun.lockb") ? "bun" : nil
-        var found: String?
-        for manager in [locked].compactMap(\.self) + ["npm", "pnpm", "bun"] where found == nil {
-            if await exec.succeeds("command -v \"$1\"", [manager]) {
-                found = manager
-            }
+    /// No npm, pnpm or bun on the login `PATH`: a plugin's card says to install Node.js.
+    public struct NoManager: LocalizedError {
+        public var errorDescription: String? {
+            "Oriel installs and builds plugins with npm, pnpm or bun, and none is on your PATH. Install Node.js from "
+                + "nodejs.org, then try again."
         }
-        let frozen = found == locked
+    }
+
+    /// The package's `dependencies` and `devDependencies` in its own `node_modules`, from its lockfile when it has
+    /// one. No install scripts run, and no peer dependencies install: `@oriel/plugin-api` is the app's. What the
+    /// manager printed; empty with no dependencies.
+    public static func dependencies(_ folder: URL, exec: any Exec) async throws -> String {
+        let json = package(folder)
+        guard ["dependencies", "devDependencies"].contains(where: { !((json[$0] as? [String: Any]) ?? [:]).isEmpty })
+        else { return "" }
+        let (found, frozen) = try await manager(folder, exec: exec)
         let argv: [String] = switch found {
         case "npm": ["npm", frozen ? "ci" : "install", "--no-audit", "--no-fund", "--ignore-scripts",
                      "--legacy-peer-deps"]
         case "pnpm": ["pnpm", "install", frozen ? "--frozen-lockfile" : "--no-frozen-lockfile", "--ignore-scripts",
                       "--config.auto-install-peers=false"]
-        case "bun": ["bun", "install", "--ignore-scripts", "--omit=peer"] + (frozen ? ["--frozen-lockfile"] : [])
-        default: throw HerdrError.failed("Oriel installs a plugin's dependencies with npm, pnpm or bun, and none is "
-                + "on your PATH")
+        default: ["bun", "install", "--ignore-scripts", "--omit=peer"] + (frozen ? ["--frozen-lockfile"] : [])
         }
-        _ = try await exec.checkedOutput(["sh", "-c", #"cd "$1" && shift && exec "$@""#, "sh", folder.path] + argv,
-                                         timeout: .seconds(600))
+        return try await run(argv, in: folder, exec: exec)
     }
 
-    /// A build reads the plugin's own files and `node_modules` only (decision 5): esbuild resolves an import from a
-    /// parent's `node_modules` or a `../` path, and would bundle any file of the Mac into a page with no permissions.
-    /// `paths` are relative to the package; a link counts by where it leads (pnpm's lead into the package's own
-    /// `node_modules`).
-    public static func inside(_ package: URL, _ paths: [String]) throws(PluginError) {
-        /// `realpath`, not `resolvingSymlinksInPath`, which drops `/private` only from paths that exist.
-        func real(_ url: URL) -> String? {
-            realpath(url.path, nil).map { path in
-                defer { free(path) }
-                return String(cString: path)
-            }
+    /// The package's own `build` script, as its author runs it: what it printed; nil when it has none.
+    public static func build(_ folder: URL, exec: any Exec) async throws -> String? {
+        guard builds(folder) else { return nil }
+        return try await run([manager(folder, exec: exec).name, "run", "build"], in: folder, exec: exec)
+    }
+
+    /// Whether the package has a `build` script.
+    public static func builds(_ folder: URL) -> Bool {
+        (package(folder)["scripts"] as? [String: Any])?["build"] is String
+    }
+
+    /// The manager of the package's lockfile, else the first of npm, pnpm and bun on the `PATH`; `frozen` when it
+    /// is the lockfile's.
+    static func manager(_ folder: URL, exec: any Exec) async throws -> (name: String, frozen: Bool) {
+        let has = { (name: String) in FileManager.default.fileExists(atPath: folder.appending(path: name).path) }
+        let locked = has("package-lock.json") ? "npm" : has("pnpm-lock.yaml") ? "pnpm"
+            : has("bun.lock") || has("bun.lockb") ? "bun" : nil
+        for manager in [locked].compactMap(\.self) + ["npm", "pnpm", "bun"]
+            where await exec.succeeds("command -v \"$1\"", [manager])
+        {
+            return (manager, manager == locked)
         }
-        let root = (real(package) ?? package.path) + "/"
-        // esbuild's modules that are no file: `(disabled):fs`, `<data:…>`.
-        let files = paths.filter { !$0.hasPrefix("(") && !$0.hasPrefix("<") }
-        if let outside = files.first(where: { real(package.appending(path: $0))?.hasPrefix(root) != true }) {
-            throw PluginError("outside", "\(outside): imports from outside the package")
+        throw NoManager()
+    }
+
+    /// Runs argv in the folder, its stderr with its stdout: the output, or an error with its last lines.
+    static func run(_ argv: [String], in folder: URL, exec: any Exec) async throws -> String {
+        let channel = try await exec.run(["sh", "-c", #"cd "$1" && shift && exec "$@" 2>&1"#, "sh", folder.path] + argv)
+        channel.closeInput()
+        let lines = try await withTimeout(.seconds(600), onTimeout: channel.terminate) {
+            await channel.lines.reduce(into: []) { $0.append($1) }
         }
+        guard await channel.exit().status == 0 else {
+            let tail = lines.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }.suffix(20)
+            throw HerdrError
+                .failed(tail.isEmpty ? "\(argv.joined(separator: " ")) failed" : tail.joined(separator: "\n"))
+        }
+        return lines.joined(separator: "\n") + "\n"
+    }
+
+    private static func package(_ folder: URL) -> [String: Any] {
+        read(folder.appending(path: "package.json"))
     }
 
     // MARK: settings.json
