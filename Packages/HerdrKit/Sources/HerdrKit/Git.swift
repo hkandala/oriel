@@ -65,10 +65,12 @@ public enum Git {
                                                    "--porcelain=v1", "-z", "--untracked-files=all"]))
     }
 
-    /// The last 100 commits of HEAD, newest first, each child before its parents.
+    /// The last 500 commits of every branch, tag and remote branch, newest first, each child before its parents.
+    /// ponytail: 500 rows; a Show More row when a longer history must show.
     public static func log(_ root: String, exec: any Exec) async throws -> [Commit] {
-        try await exec.checkedOutput(["git", "-C", root, "log", "-n", "100", "--topo-order", "--no-show-signature",
-                                      "--format=%H%x1f%P%x1f%an%x1f%at%x1f%s"])
+        try await exec.checkedOutput(["git", "-C", root, "log", "--all", "-n", "500", "--topo-order",
+                                      "--no-show-signature", "--decorate=full",
+                                      "--format=%H%x1f%P%x1f%an%x1f%at%x1f%D%x1f%s"], timeout: .seconds(30))
             .split(separator: "\n").compactMap(Commit.init)
     }
 }
@@ -91,6 +93,9 @@ public extension Git {
         public let author: String
         public let date: Date
         public let subject: String
+        /// The names on it, as `%D` prints them with `--decorate=full`: `HEAD -> refs/heads/main`, `HEAD` when
+        /// detached, `refs/heads/…`, `refs/remotes/…`, `tag: refs/tags/…`.
+        public var refs: [String] = []
     }
 
     /// One commit's row of the history graph. Lanes are columns, 0 on the left; a lane keeps its column while its
@@ -137,12 +142,13 @@ extension Git.Change {
 }
 
 extension Git.Commit {
-    /// One line of `git log --format=%H%x1f%P%x1f%an%x1f%at%x1f%s`.
+    /// One line of `git log --format=%H%x1f%P%x1f%an%x1f%at%x1f%D%x1f%s`.
     init?(_ line: Substring) {
-        let fields = line.split(separator: "\u{1F}", maxSplits: 4, omittingEmptySubsequences: false)
-        guard fields.count == 5, let time = TimeInterval(fields[3]) else { return nil }
+        let fields = line.split(separator: "\u{1F}", maxSplits: 5, omittingEmptySubsequences: false)
+        guard fields.count == 6, let time = TimeInterval(fields[3]) else { return nil }
         self.init(hash: String(fields[0]), parents: fields[1].split(separator: " ").map(String.init),
-                  author: String(fields[2]), date: Date(timeIntervalSince1970: time), subject: String(fields[4]))
+                  author: String(fields[2]), date: Date(timeIntervalSince1970: time), subject: String(fields[5]),
+                  refs: fields[4].split(separator: ", ").map(String.init))
     }
 }
 
