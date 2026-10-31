@@ -31,12 +31,12 @@ extension OrielUITests {
         try await Task.sleep(for: .seconds(10))
         _ = try await measure("at rest, \(kept) + \(kept) kept")
         // In use: a tab switch every half second.
-        async let use = measure("in use, \(kept) + \(kept) kept", seconds: 10)
+        let use = Task { try await measure("in use, \(kept) + \(kept) kept", seconds: 10) }
         for step in 0 ..< 20 {
             app.typeKey(step % 4 < 2 ? "]" : "[", modifierFlags: [.command, .shift])
             try await Task.sleep(for: .milliseconds(500))
         }
-        _ = try await use
+        _ = try await use.value
         app.typeKey("1", modifierFlags: .command)
         try await Task.sleep(for: .seconds(3))
         app.typeKey("o", modifierFlags: [.command, .control])
