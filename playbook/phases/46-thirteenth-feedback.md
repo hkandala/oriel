@@ -462,3 +462,6 @@ after (Release, `sample` over tab clicks, three swipes and two overview opens).
   here and 3 of 3 on CI on the same commit, and the strip's move code does not run on that path (no tab moves).
   `expectPTYSize` now says both values when it fails, so a next failure tells whether the PTY lags or the 1x rounding
   (one column) is at work.
+- On-demand (B): testACardNeverShowsTheOverviewsSmallSnapshot waited for its tile to turn live; with pictures it
+  waits for the tile's snapshot. The app holds: shown afterwards by its capsule or by the zoom from its tile, the card
+  draws its fill and fades in (frame codes `0 0 f` and none), never the small snapshot (`s`).

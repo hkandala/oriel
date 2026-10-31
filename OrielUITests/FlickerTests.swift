@@ -45,9 +45,9 @@ extension OrielUITests {
         XCTAssertTrue(records.allSatisfy { !$0.contains(#/ [1-9][0-9]*\//#) }, "\(records)")
     }
 
-    /// A card never shows a picture smaller than its pixels: a tab only the overview showed keeps
-    /// the overview's small snapshot, and shown in the strip afterwards (by its capsule, or by the zoom right after its
-    /// tile turned live again), it showed that blurred until it drew. Now it shows its fill and fades in.
+    /// A card never shows a picture smaller than its pixels: a tab only the overview showed keeps the overview's small
+    /// snapshot (its tile's picture, D70), and shown in the strip afterwards (by its capsule, or by the zoom from its
+    /// tile), it showed that blurred until it drew. Now it shows its fill and fades in.
     func testACardNeverShowsTheOverviewsSmallSnapshot() async throws {
         relaunch(one, ["-recordFrames", "YES", "-forceMotion", "YES"])
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
@@ -55,10 +55,10 @@ extension OrielUITests {
         for (name, zooms) in [("capsule after the overview", false), ("zoom after the overview", true)] {
             let (tab, pane) = try await newTab(name, in: "w1")
             try await fill(pane)
-            // Its tile turns live and draws; Esc: it lets go and keeps its snapshot.
+            // Its tile streams until it drew, then lets go and shows the snapshot it took.
             app.typeKey("o", modifierFlags: [.command, .control])
             let card = element("overview.card.\(pane)"), tile = element("overview.tab.\(tab)")
-            XCTAssertTrue(until(5) { card.stringValue.hasPrefix("live") }, "\(card.exists) '\(card.stringValue)'")
+            XCTAssertTrue(until(5) { card.stringValue.hasPrefix("snapshot") }, "\(card.exists) '\(card.stringValue)'")
             app.typeKey(.escape, modifierFlags: [])
             XCTAssertTrue(element("overview").vanishes(within: 2))
             try await Task.sleep(for: .seconds(2))
