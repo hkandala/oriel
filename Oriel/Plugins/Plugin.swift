@@ -12,7 +12,8 @@ enum PluginKind: String, CaseIterable {
         self == .explorer ? "File Explorer" : rawValue.capitalized
     }
 
-    static let symbols = Set(allCases.map(\.symbol))
+    /// Every symbol a plugin card shows: its kind's and its pages'.
+    static let symbols = Set(allCases.map(\.symbol) + ["doc.text", "photo", "doc.richtext", "plusminus"])
 
     /// Its SF Symbol: the card's, the tab's and the chooser's icon.
     var symbol: String {
@@ -53,6 +54,17 @@ enum PluginPage: String {
         }
     }
 
+    /// The card's and the tab's icon while it shows the page: a File Explorer's file by its kind.
+    var symbol: String {
+        switch self {
+        case .files: "folder"
+        case .file: "doc.text"
+        case .preview: "photo"
+        case .markdown: "doc.richtext"
+        case .diff: "plusminus"
+        }
+    }
+
     /// File and Markdown: an editor, which takes ⌘S and ⌘F.
     var edits: Bool {
         self == .file || self == .markdown
@@ -60,6 +72,11 @@ enum PluginPage: String {
 }
 
 extension PaneLabel {
+    /// Its program icon: the page's a File Explorer shows, else the kind's.
+    var symbol: String? {
+        kind == .explorer ? PluginPage(.explorer, arg).symbol : kind?.symbol
+    }
+
     /// The words of the five kinds before File Explorer and Git still open.
     var kind: PluginKind? {
         PluginKind(rawValue: ["file": "explorer", "preview": "explorer", "markdown": "explorer", "files": "explorer",
@@ -204,6 +221,20 @@ final class Plugin {
             self.forward.removeLast()
             self.back.append((self.web.arg, self.web.page == .files ? next.arg : nil))
             self.show(next.arg, at: next.at)
+        }
+    }
+
+    /// Show in File Explorer: the tree with the file revealed, rooted at the tree it came from, else at its folder's
+    /// repository's root or the folder (as Open File Explorer Here).
+    func reveal() async {
+        let file = web.arg
+        var root = back.last { $0.arg.hasSuffix("/") && file.hasPrefix($0.arg) }?.arg
+        if root == nil, let store = web.store {
+            root = await store.arg(.explorer, in: (file as NSString).deletingLastPathComponent)
+        }
+        // Not after another move meanwhile.
+        if let root, web.arg == file {
+            go(root, at: file)
         }
     }
 

@@ -153,7 +153,7 @@ extension HostStore {
 
         /// Its program icon's catalog id.
         var iconID: String {
-            plugin?.kind?.symbol ?? programIcons.iconID(agent: agent, program: program, title: terminalTitle)
+            plugin?.symbol ?? programIcons.iconID(agent: agent, program: program, title: terminalTitle)
         }
     }
 }

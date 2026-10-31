@@ -1,17 +1,10 @@
-// The Files card (Oriel/Plugins/Files): the root's tree, each folder listed as it opens, row 2's filter over every
-// path, and a collapsed Git section with the changes and a graph of the history.
+// The File Explorer's home (Oriel/Plugins/Files): the root's tree, each folder listed as it opens, git's letters,
+// and row 2's filter over every path. A file opens in the card, a new tab or a pane to the side.
 import { FileTree, type FileTreeBatchOperation, type FileTreeDirectoryHandle, type GitStatus } from "@pierre/trees"
 import "./files.css"
-import { type Change, type Commit, type Entry, type How, arg, ask, how, receive, report } from "./lib/bridge"
+import { at, type Change, type Entry, arg, ask, how, menu, receive, report } from "./lib/bridge"
 
-document.body.innerHTML = `
-<p id="message" hidden></p>
-<div id="tree"></div>
-<div id="matches" hidden></div>
-<section id="git" hidden>
-  <button id="git-head" aria-label="Git" aria-expanded="false"><span class="chevron"></span>Git</button>
-  <div id="git-body"><h2>Changes</h2><div id="changes"></div><h2>History</h2><div id="history"></div></div>
-</section>`
+document.body.innerHTML = `<p id="message" hidden></p><div id="tree"></div><div id="matches" hidden></div>`
 
 /** Each folder's entries as the tree has them: `""` is the root, and a folder's path ends in `/`, as the tree's. */
 const children = new Map<string, Set<string>>()
@@ -35,23 +28,48 @@ const root = base || "/"
 const parent = (path: string) => path.slice(0, path.lastIndexOf("/", path.length - 2) + 1)
 const folder = (path: string) => tree.getItem(path) as FileTreeDirectoryHandle | null
 
+/** SF Symbols' shapes, as Finder's list and Xcode's navigator draw them: a thin disclosure chevron (the tree turns
+ *  it), `folder.fill` in the accent, `doc` in secondary. */
+const svg = (body: string) =>
+  `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">${body}</svg>`)}")`
+const FOLDER = svg(`<path d="M1.5 4.3c0-.7.6-1.3 1.3-1.3h3.4c.3 0 .6.1.9.4L8.2 4.5h5c.7 0 1.3.6 1.3 1.3v6.4c0 .7-.6 1.3-1.3 1.3H2.8c-.7 0-1.3-.6-1.3-1.3z"/>`)
+const DOC = svg(`<path fill="none" stroke="black" stroke-width="1.1" stroke-linejoin="round" d="M4.6 1.6h4.3l3.5 3.5v8.3c0 .6-.4 1-1 1H4.6c-.6 0-1-.4-1-1V2.6c0-.6.4-1 1-1zM8.8 1.7v2.9c0 .4.2.6.6.6h2.9"/>`)
+const sprite = `<svg data-icon-sprite aria-hidden="true" width="0" height="0">
+  <symbol id="oriel-chevron" viewBox="0 0 16 16"><path d="M4.5 6.25 8 9.75l3.5-3.5" fill="none" stroke="currentColor"
+    stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="oriel-none" viewBox="0 0 16 16"></symbol></svg>`
+
 // The filter's matches are a second tree, of the files whose name matches with their folders: Pierre's own search
 // matches the whole path.
 const look = {
-  density: "compact" as const,
   // A folder with one folder in it is two rows, as in the Finder.
   flattenEmptyDirectories: false,
+  icons: {
+    set: "minimal" as const,
+    spriteSheet: sprite,
+    remap: { "file-tree-icon-chevron": "oriel-chevron", "file-tree-icon-file": "oriel-none" },
+  },
   unsafeCSS: `:host {
     --trees-bg-override: transparent; --trees-fg-override: var(--text); --trees-fg-muted-override: var(--dim);
     --trees-accent-override: var(--accent); --trees-font-size-override: var(--font-size);
-    --trees-padding-inline-override: 4px; --trees-border-color-override: var(--divider);
-    --trees-selected-bg-override: color-mix(in srgb, var(--accent) 22%, transparent);
+    --trees-padding-inline-override: 6px; --trees-border-color-override: var(--divider);
+    --trees-item-height: 24px; --trees-border-radius-override: 6px; --trees-level-gap-override: 12px;
+    --trees-item-row-gap-override: 5px; --trees-item-padding-x-override: 6px;
+    --trees-bg-muted-override: color-mix(in srgb, var(--text) 6%, transparent);
+    --trees-selected-bg-override: color-mix(in srgb, var(--accent) 24%, transparent);
+    --trees-selected-fg-override: var(--text); --trees-focus-ring-width-override: 0px;
+    --trees-indent-guide-bg-override: var(--divider);
     --truncate-marker-background-color: transparent;
     --trees-git-modified-color-override: var(--needs-you); --trees-git-deleted-color-override: var(--error);
     --trees-git-added-color-override: var(--finished); --trees-git-untracked-color-override: var(--finished);
     --trees-git-renamed-color-override: var(--finished);
   }
-  [data-item-contains-git-change="true"] > [data-item-section="git"] { opacity: 1; }`,
+  [data-item-contains-git-change="true"] > [data-item-section="git"] { opacity: 1; }
+  [data-type="item"] > [data-item-section="icon"] { width: 34px; justify-content: space-between; color: var(--dim); }
+  [data-type="item"] > [data-item-section="icon"]::after { content: ""; flex: none; width: 16px; height: 16px;
+    background: var(--dim); -webkit-mask: ${DOC} center / 16px no-repeat; }
+  [data-item-type="folder"] > [data-item-section="icon"]::after { background: var(--accent); -webkit-mask-image: ${FOLDER}; }
+  [data-item-selected="true"] > [data-item-section="icon"] { color: var(--dim); }`,
 }
 const tree = new FileTree({ paths: [], ...look })
 const results = new FileTree({ paths: [], ...look })
@@ -126,6 +144,7 @@ async function list(at: string) {
   showStatus()
   if (!at) show()
 }
+
 /** The message over the trees: the root's listing failed, or the filter matches nothing. */
 function show() {
   const none = Boolean(filter) && !matched
@@ -162,15 +181,37 @@ function showStatus() {
   results.setGitStatus(status)
 }
 
-/** The git section and the open folders again, after a change on the machine. A closed folder lists when it opens. */
+/** git's letters and the open folders again, after a change on the machine. A closed folder lists when it opens. */
 async function refresh() {
-  await git()
   await list("")
+  await git()
   for (const at of [...children.keys()]) {
     if (!at || unlisted.has(at) || !children.has(at)) continue
     if (folder(at)?.isExpanded()) await list(at)
     else unlisted.add(at)
   }
+}
+
+/** The root's changes from git, for the letters; none when the root is no repository's root. */
+async function git() {
+  changes = (await ask({ op: "git" }).catch(() => null)) ?? []
+  showStatus()
+}
+
+/** A path under the root (absolute, as the app sends it) shown: its folders listed and open, its row selected in the
+ *  middle of the card. */
+async function reveal(path: string) {
+  if (!path.startsWith(`${base}/`)) return
+  const relative = path.slice(base.length + 1)
+  for (const above of folders(relative).reverse()) {
+    if (unlisted.has(above) || !children.has(above)) await list(above)
+    folder(above)?.expand()
+  }
+  const item = tree.getItem(relative) ?? tree.getItem(`${relative}/`)
+  if (!item) return
+  item.select()
+  tree.focusPath(item.getPath())
+  tree.scrollToPath(item.getPath())
 }
 
 // A folder lists when the user opens it.
@@ -191,6 +232,8 @@ receive((message) => {
     void (paths ?? queue).then(match)
   } else if (message.op === "collapse") {
     for (const at of children.keys()) if (at) folder(at)?.collapse()
+  } else if (message.op === "reveal") {
+    run(() => reveal(message.at))
   } else if (message.op === "changed" && !due) {
     due = true
     // The next filter reads the paths again, for the files made since.
@@ -210,119 +253,43 @@ async function loadPaths() {
   tree.batch(operations)
 }
 
-// The Git section: the root's changes and its last 100 commits.
-const section = document.getElementById("git")!
-const head = document.getElementById("git-head")!
-head.addEventListener("click", () => head.setAttribute("aria-expanded", String(section.classList.toggle("open"))))
-
-async function git() {
-  const answer: { changes: Change[]; commits: Commit[] } | null = await ask({ op: "git" }).catch(() => null)
-  section.hidden = !answer
-  changes = answer?.changes ?? []
-  showStatus()
-  if (!answer) return
-  const none = Object.assign(document.createElement("p"), { className: "empty", textContent: "No changes" })
-  document.getElementById("changes")!.replaceChildren(...(changes.length ? changes.map(changeRow) : [none]))
-  document.getElementById("history")!.replaceChildren(...answer.commits.map(commitRow))
+/** The row's path from the root, and whether it is a folder's. */
+const row = (event: Event) => {
+  const node = event.composedPath().find((n): n is HTMLElement => n instanceof HTMLElement && Boolean(n.dataset.itemPath))
+  return node && { path: `${base}/${node.dataset.itemPath!.replace(/\/$/, "")}`, folder: node.dataset.itemType === "folder" }
 }
 
-function row(id: string, label: string, ...parts: [string, string][]) {
-  const element = document.createElement("div")
-  element.className = "row"
-  element.id = id
-  element.setAttribute("role", "button")
-  element.tabIndex = 0
-  element.setAttribute("aria-label", label)
-  element.append(...parts.map(([kind, text]) => Object.assign(document.createElement("span"), { className: kind, textContent: text })))
-  return element
-}
-
-const WORDS: Record<string, string> = {
-  M: "Modified", T: "Type changed", A: "Added", D: "Deleted", R: "Renamed", U: "Untracked", C: "Conflict",
-}
-
-function changeRow({ letter, path }: Change) {
-  const name = path.replace(/\/$/, ""), slash = name.lastIndexOf("/") + 1
-  const element = row(`change.${path}`, `${WORDS[letter] ?? letter}: ${name}`, [`letter ${letter}`, letter], ["name", name.slice(slash)], ["dim", name.slice(0, slash)])
-  element.dataset.change = path
-  return element
-}
-
-const LANE = 12, HEIGHT = 24
-const COLORS = ["var(--accent)", "var(--finished)", "var(--working)", "var(--needs-you)", "var(--error)"]
-const color = (lane: number) => COLORS[lane % COLORS.length]
-const x = (lane: number) => 8 + lane * LANE
-
-/** A row of the graph as `Git.graph` lays it out: lines from the row's top into the dot, from the dot to its
- *  bottom, and straight through; a line between two lanes takes the color of the one that is not the dot's. */
-function commitRow({ hash, subject, date, lane, children, parents, through }: Commit) {
-  const mid = HEIGHT / 2
-  const line = (from: number, y1: number, to: number, y2: number) =>
-    `<path d="M${x(from)} ${y1} C${x(from)} ${mid} ${x(to)} ${mid} ${x(to)} ${y2}" stroke="${color(from === lane ? to : from)}"/>`
-  const width = x(Math.max(lane, ...children, ...parents, ...through)) + 8
-  const when = new Date(date)
-  const year = when.getFullYear() === new Date().getFullYear() ? undefined : "numeric"
-  const element = row(`commit.${hash}`, subject, ["name", subject], ["dim", hash.slice(0, 7)],
-    ["when", when.toLocaleDateString(undefined, { year, month: "short", day: "numeric" })])
-  element.classList.add("commit")
-  element.dataset.commit = hash
-  element.insertAdjacentHTML("afterbegin", `<svg width="${width}" height="${HEIGHT}" fill="none" stroke-width="1.5">${[
-    ...through.map((at) => line(at, 0, at, HEIGHT)),
-    ...children.map((at) => line(at, 0, lane, mid)),
-    ...parents.map((at) => line(lane, mid, at, HEIGHT)),
-  ].join("")}<circle cx="${x(lane)}" cy="${mid}" r="3.5" fill="${color(lane)}"/></svg>`)
-  return element
-}
-
-/** Double-click or Return on what `pick` finds opens it in the card, ⌘-click in a new tab, ⌥-click to the side. In
- *  the capture phase, before the tree's own click (⌘ adds to its selection). */
-function onOpen(element: HTMLElement, pick: (node: HTMLElement) => string | undefined,
-  open: (value: string, how: How) => void) {
-  const under = (event: Event) => {
-    const node = event.composedPath().find((n): n is HTMLElement => n instanceof HTMLElement && pick(n) !== undefined)
-    return node && pick(node)
-  }
-  element.addEventListener(
-    "click",
-    (event) => {
-      const at = event.metaKey || event.altKey || event.detail === 2 ? under(event) : undefined
-      if (at === undefined) return
-      event.stopPropagation()
-      open(at, how(event))
-    },
-    true,
-  )
-  element.addEventListener("keydown", (event) => {
-    const at = event.key === "Enter" ? under(event) : undefined
-    if (at !== undefined) open(at, how(event))
-  })
-}
-
-// A file: in a new tab with its kind; a change: the diff of the uncommitted changes at that file; a commit: its diff.
 for (const trees of [host, matches]) {
-  onOpen(trees, (node) => (node.dataset.itemType === "file" ? node.dataset.itemPath : undefined), (path, how) =>
-    report({ op: "open", arg: `${base}/${path}`, how }),
-  )
-  // A double-click on a folder opens or closes it once, as in the Finder: its second click toggles nothing.
+  // A file: double-click or Return in the card, ⌘-click in a new tab, ⌥-click to the side. In the capture phase,
+  // before the tree's own click (⌘ adds to its selection). A double-click on a folder opens or closes it once, as in
+  // the Finder: its second click toggles nothing.
   trees.addEventListener(
     "click",
     (event) => {
-      const folder = event.composedPath().some((n) => n instanceof HTMLElement && n.dataset.itemType === "folder")
-      if (folder && event.detail >= 2) event.stopPropagation()
+      const at = row(event)
+      if (!at || !(event.metaKey || event.altKey || event.detail >= 2)) return
+      if (at.folder && !event.metaKey && !event.altKey) return event.stopPropagation()
+      event.stopPropagation()
+      report({ op: "open", arg: at.folder ? `${at.path}/` : at.path, how: how(event) })
     },
     true,
   )
+  trees.addEventListener("keydown", (event) => {
+    const at = event.key === "Enter" ? row(event) : undefined
+    if (at && !at.folder) report({ op: "open", arg: at.path, how: how(event) })
+  })
+  // The app's menu: Open (Open as Root on a folder), Open in New Tab, Open to the Side.
+  trees.addEventListener("contextmenu", (event) => {
+    const at = row(event)
+    if (at) menu(event, { arg: at.folder ? `${at.path}/` : at.path, folder: at.folder })
+  })
 }
-onOpen(document.getElementById("changes")!, (node) => node.dataset.change, (path, how) =>
-  report({ op: "open", kind: "git", arg: `${root} uncommitted`, at: path, how }),
-)
-onOpen(document.getElementById("history")!, (node) => node.dataset.commit, (hash, how) =>
-  report({ op: "open", kind: "git", arg: `${root} ${hash}`, how }),
-)
 
-// A page loaded again (a new root, a crashed process) starts with no filter.
+// A page loaded again (a new root, a crashed process) starts with no filter. The rows first, git's letters after.
 report({ op: "filter", text: "" })
 run(async () => {
-  await git()
   await list("")
+  report({ op: "ready" })
+  if (at) await reveal(at)
+  await git()
 })

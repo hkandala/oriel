@@ -20,6 +20,12 @@ struct PluginCard: View {
     var body: some View {
         WebCardContent(card: plugin.web)
             .padding([.horizontal, .bottom], PaneCard.inset)
+            // Over a page that has not drawn yet (a big tree's first listing, a remote file).
+            .overlay {
+                if !plugin.web.ready {
+                    Loading().accessibilityIdentifier("pane.\(plugin.paneID).loading")
+                }
+            }
             .overlay(alignment: .top) {
                 if let toast = plugin.web.toast {
                     ToastView(toast: toast, plugin: plugin).padding(.top, 6)
@@ -72,46 +78,69 @@ private struct ToastView: View {
     }
 }
 
-/// The card header's second row: the kind's controls, and Open With for a file on This Mac.
+/// The card header's second row: Back and Forward, the page's controls, and for a file Show in File Explorer and
+/// Open With (This Mac only) at the right end. It starts at the row's left edge, also in a floating window.
 struct PluginToolbar: View {
     let plugin: Plugin
     let page: Page
+    @Environment(\.look) private var look
 
     var body: some View {
         switch plugin.web.page {
         case .diff: DiffToolbar(plugin: plugin, page: page)
-        case .files: FilesBar(card: plugin.web, paneID: plugin.paneID)
-        case .file, .preview, .markdown:
+        case let shown:
             HStack(spacing: 6) {
-                // Each page's own spacer: Preview's controls sit right of it, by Open With.
-                switch plugin.web.page {
+                BackForward(plugin: plugin)
+                // Each page's own spacer: Preview's controls sit right of it.
+                switch shown {
+                case .files: FilesBar(plugin: plugin, page: page)
                 case .preview: PreviewBar(plugin: plugin)
-                case .markdown: MarkdownBar(plugin: plugin)
+                case .markdown:
+                    MarkdownBar(plugin: plugin)
+                    Spacer(minLength: 0)
                 default:
                     JumpBar(plugin: plugin)
                     Spacer(minLength: 0)
                 }
-                if !page.store.machine.isRemote {
-                    OpenWith(path: plugin.label.arg).accessibilityIdentifier("pane.\(plugin.paneID).open-with")
+                if shown != .files {
+                    IconButton(symbol: "list.bullet.indent", help: "Show in File Explorer", size: 22) {
+                        Task { await plugin.reveal() }
+                    }
+                    .foregroundStyle(look.paneButton)
+                    .accessibilityIdentifier("pane.\(plugin.paneID).reveal")
+                    if !page.store.machine.isRemote {
+                        OpenWith(path: plugin.web.arg).accessibilityIdentifier("pane.\(plugin.paneID).open-with")
+                    }
                 }
             }
         }
     }
 }
 
-/// Open With ▾ (This Mac only): the default app, then the other apps that open the file.
+/// Open With (This Mac only), as other editors draw it: the default app's icon opens the file in it; its menu lists
+/// that app, then the others that open the file, each with its icon.
 private struct OpenWith: View {
     let path: String
 
     var body: some View {
+        let url = URL(filePath: path), main = NSWorkspace.shared.urlForApplication(toOpen: url)
         Menu {
-            OpenWithItems(url: URL(filePath: path))
+            OpenWithItems(url: url)
         } label: {
-            Text("Open With")
+            if let main {
+                Image(nsImage: OpenWithItems.icon(main))
+            } else {
+                Text("Open With")
+            }
+        } primaryAction: {
+            if let main {
+                NSWorkspace.shared.open([url], withApplicationAt: main, configuration: NSWorkspace.OpenConfiguration())
+            }
         }
         .menuStyle(.button)
         .buttonStyle(.borderless)
         .fixedSize()
+        .help(main.map { "Open with \(FileManager.default.displayName(atPath: $0.path))" } ?? "Open With")
     }
 }
 
@@ -136,9 +165,29 @@ private struct OpenWithItems: View {
             Label {
                 Text(FileManager.default.displayName(atPath: app.path))
             } icon: {
-                Image(nsImage: NSWorkspace.shared.icon(forFile: app.path))
+                Image(nsImage: Self.icon(app))
             }
         }
+    }
+
+    /// The app's icon at menu size: LaunchServices gives it at 32 pt.
+    static func icon(_ app: URL) -> NSImage {
+        let icon = NSWorkspace.shared.icon(forFile: app.path)
+        icon.size = NSSize(width: 16, height: 16)
+        return icon
+    }
+}
+
+/// The app's spinner, once a load takes long enough to see.
+private struct Loading: View {
+    @State private var shown = false
+
+    var body: some View {
+        ProgressView().controlSize(.small).opacity(shown ? 1 : 0)
+            .task {
+                try? await Task.sleep(for: .milliseconds(150))
+                shown = true
+            }
     }
 }
 

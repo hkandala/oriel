@@ -25,6 +25,8 @@ final class WebCard {
     /// Opens a link from the page, in the card or beside it (`Page.open(_:arg:at:from:how:)`).
     @ObservationIgnored var open: ((PluginKind, String, String?, Opening) -> Void)?
     fileprivate(set) var dirty = false
+    /// The page drew its first rows or its file: the loader goes.
+    private(set) var ready = false
     /// A diff's row 2: Side by Side, and the file list shown. Per card, not saved.
     var split = false {
         didSet { send(["op": "layout", "split": split]) }
@@ -90,6 +92,7 @@ final class WebCard {
         hash = nil
         toast = nil
         dirty = false
+        ready = false
         if loaded {
             script()
             view.load(URLRequest(url: PluginScheme.url(page)))
@@ -125,14 +128,17 @@ final class WebCard {
             dirty = false
             symbol = ""
             pdfPage = ""
+            defer { ready = true }
             return await read()
         case "save":
             // Only a file read: a nil hash would overwrite whatever is on disk. One save at a time: a second would
             // check the first's old hash; its edits keep the dot for the next ⌘S.
             guard !saving, let text = message["text"] as? String, let hash else { return (nil, "Not read") }
             await save(text, over: hash)
-        case "symbol", "page", "dirty", "markdown":
+        case "symbol", "page", "dirty", "markdown", "ready":
             shows(message)
+        case "menu":
+            menu(message)
         case "patch":
             return await patch()
         case "open":
@@ -146,7 +152,33 @@ final class WebCard {
         return (nil, nil)
     }
 
-    /// A report of what the page shows: the jump bar's symbol, the PDF's page, the dirty dot, Markdown's mode.
+    /// A row's menu at the pointer, after the page's reply: Open (Open as Root for a folder), Open in New Tab, Open to
+    /// the Side.
+    private func menu(_ message: [String: Any]) {
+        guard let arg = message["arg"] as? String else { return }
+        let kind = (message["kind"] as? String).flatMap(PluginKind.init) ?? .explorer
+        let place = message["at"] as? String, folder = message["folder"] as? Bool == true
+        let menu = NSMenu()
+        for (title, how) in [(folder ? "Open as Root" : "Open", Opening.here), ("Open in New Tab", .tab),
+                             ("Open to the Side", .side)]
+        {
+            let action = MenuAction { [weak self] in self?.open?(kind, arg, place, how) }
+            let item = menu.addItem(withTitle: title, action: #selector(MenuAction.fire), keyEquivalent: "")
+            item.target = action
+            item.representedObject = action
+        }
+        Task { @MainActor [view] in
+            guard let window = view.window else { return }
+            menu.popUp(
+                positioning: nil,
+                at: view.convert(window.mouseLocationOutsideOfEventStream, from: nil),
+                in: view,
+            )
+        }
+    }
+
+    /// A report of what the page shows: the jump bar's symbol, the PDF's page, the dirty dot, Markdown's mode, its
+    /// first draw.
     private func shows(_ message: [String: Any]) {
         switch message["op"] as? String {
         case "symbol":
@@ -155,9 +187,24 @@ final class WebCard {
             pdfPage = "\(message["page"] as? Int ?? 1) of \(message["pages"] as? Int ?? 1)"
         case "markdown":
             markdown = (message["edit"] as? Bool == true, message["outline"] as? Bool == true)
+        case "ready":
+            ready = true
         default:
             dirty = message["dirty"] as? Bool == true
         }
+    }
+}
+
+/// A menu item's action as a closure: the item keeps it (`representedObject`), its target is weak.
+private final class MenuAction: NSObject {
+    private let run: () -> Void
+
+    init(_ run: @escaping () -> Void) {
+        self.run = run
+    }
+
+    @objc func fire() {
+        run()
     }
 }
 

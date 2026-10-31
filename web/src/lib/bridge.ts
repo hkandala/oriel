@@ -7,7 +7,7 @@ export type FileReply = { text: string; readOnly: boolean } | { info: Info }
 export type PreviewReply = { type: string; data: string; fallback: Info } | { info: Info }
 /** A folder's entry (`list`). */
 export type Entry = { name: string; folder: boolean; ignored: boolean }
-/** A changed file from the repository's root (`git`), its letter as `Git.Change`'s. */
+/** A changed file from the repository's root (`git`, the tree's letters), its letter as `Git.Change`'s. */
 export type Change = { letter: string; path: string }
 /** A commit with its row of the history graph (`git`): lanes as `Git.GraphRow`'s, `date` in ms. */
 export type Commit = {
@@ -23,7 +23,7 @@ export type Commit = {
 /** `patch`: a diff's patch as git prints it, its repo's root, and row 2's state. */
 export type PatchReply = { patch: string; root: string; split: boolean; list: boolean }
 
-/** `list`, `paths` and `git`: the Files card's root (Oriel/Plugins/Files/FilesCard.swift). */
+/** `list`, `paths` and `git`: the File Explorer's root (Oriel/Plugins/Files/FilesCard.swift). */
 type Ask =
   | { op: "read" }
   | { op: "patch" }
@@ -41,6 +41,10 @@ type Report =
   | { op: "symbol"; symbol: string }
   | { op: "page"; page: number; pages: number }
   | { op: "filter"; text: string }
+  /** The first rows or the file drew: the app's loader goes. */
+  | { op: "ready" }
+  /** The app's menu for a row (`menu` below). */
+  | { op: "menu"; kind?: string; arg: string; at?: string; folder?: boolean }
   /** What the Markdown page shows. */
   | { op: "markdown"; edit: boolean; outline: boolean }
 /** From the app: row 2's controls, menu commands, and the file again after a change on disk. */
@@ -78,6 +82,13 @@ export const at = window.card.at
 /** Where an open goes, by the modifier keys: ⌘ a new tab, ⌥ a pane to the side, else the card itself. */
 export type How = "here" | "tab" | "side"
 export const how = (event: MouseEvent | KeyboardEvent): How => (event.metaKey ? "tab" : event.altKey ? "side" : "here")
+
+/** A row's menu, drawn by the app at the pointer: Open (Open as Root for a folder), Open in New Tab, Open to the
+ *  Side. With no kind, in a File Explorer. */
+export const menu = (event: MouseEvent, target: { kind?: string; arg: string; at?: string; folder?: boolean }) => {
+  event.preventDefault()
+  report({ op: "menu", ...target })
+}
 
 /** Rejects with the app's error text; the reply's type is the ask's. */
 export const ask = (message: Ask) => host.postMessage(message) as Promise<any>

@@ -1,32 +1,104 @@
+import AppKit
 import HerdrKit
 import SwiftUI
 
-/// The Files card's second row: the filter, which the page runs over every path of the root, and Collapse All.
+/// The File Explorer home's second row: the root as a path control, the filter, which the page runs over every path
+/// of the root, and Collapse All.
 struct FilesBar: View {
-    @Bindable var card: WebCard
-    let paneID: String
+    let plugin: Plugin
+    let page: Page
+    /// A remote machine's folder field.
+    @State private var asking = false
+    @State private var typed = ""
 
     var body: some View {
+        @Bindable var card = plugin.web
+        let id = "pane.\(plugin.paneID)"
         HStack(spacing: 6) {
-            FilterField(prompt: "Filter", text: $card.filter, identifier: "pane.\(paneID).filter")
-            Button {
+            root(id)
+            FilterField(prompt: "Filter", text: $card.filter, identifier: "\(id).filter")
+            IconButton(symbol: "rectangle.compress.vertical", help: "Collapse All", size: 22) {
                 card.send(["op": "collapse"])
-            } label: {
-                Image(systemName: "arrow.down.right.and.arrow.up.left")
             }
-            .buttonStyle(.borderless)
-            .help("Collapse All")
-            .accessibilityLabel("Collapse All")
-            .accessibilityIdentifier("pane.\(paneID).collapse")
+            .accessibilityIdentifier("\(id).collapse")
         }
         .onChange(of: card.filter) { card.send(["op": "filter", "text": card.filter]) }
+        .alert("Go to Folder", isPresented: $asking) {
+            TextField("Path", text: $typed)
+            Button("Go") { Task { await go(typed) } }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("A folder on \(page.store.machine.name)")
+        }
+    }
+
+    /// The root's name; its menu lists the folders above it, nearest first, and Choose Folder….
+    private func root(_ id: String) -> some View {
+        let path = plugin.web.arg.count > 1 ? String(plugin.web.arg.dropLast()) : plugin.web.arg
+        // `/` is its own parent.
+        let parents = path == "/" ? [] : Array(sequence(first: (path as NSString).deletingLastPathComponent) {
+            $0 == "/" ? nil : ($0 as NSString).deletingLastPathComponent
+        })
+        return Menu {
+            ForEach(parents, id: \.self) { folder in
+                Button {
+                    plugin.go(folder == "/" ? "/" : folder + "/")
+                } label: {
+                    Label(folder == "/" ? "/" : (folder as NSString).lastPathComponent, systemImage: "folder")
+                }
+            }
+            Divider()
+            Button("Choose Folder…") { choose(path) }
+        } label: {
+            Label((path as NSString).lastPathComponent, systemImage: "folder")
+        }
+        .menuStyle(.button)
+        .buttonStyle(.borderless)
+        .frame(maxWidth: 200)
+        .fixedSize()
+        .accessibilityIdentifier("\(id).root")
+    }
+
+    /// This Mac's folder panel; a remote machine's folder field.
+    private func choose(_ path: String) {
+        guard !page.store.machine.isRemote, let window = NSApp.keyWindow else {
+            typed = path
+            asking = true
+            return
+        }
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.directoryURL = URL(filePath: path)
+        Task {
+            guard await panel.beginSheetModal(for: window) == .OK, let url = panel.url else { return }
+            plugin.go(url.path(percentEncoded: false))
+        }
+    }
+
+    /// A typed folder, `~` as the home folder, as the machine resolves it; else a notice.
+    private func go(_ path: String) async {
+        let script = #"case $1 in "~"*) set -- "$HOME${1#\~}";; esac; cd "$1" 2>/dev/null && pwd -P"#
+        var folder = ""
+        if let channel = try? await page.store.machine.exec().run(["sh", "-c", script, "sh", path]) {
+            channel.closeInput()
+            for await line in channel.lines {
+                folder += line
+            }
+            folder = await channel.exit().status == 0 ? folder : ""
+        }
+        guard folder.hasPrefix("/") else {
+            await page.store.show(Notice(text: "No folder \(path)", tone: .warning))
+            return
+        }
+        plugin.go(folder == "/" ? "/" : folder + "/")
     }
 }
 
 extension WebCard {
-    /// The Files page's asks (`web/src/files.ts`), from the root in the card's argument: a folder's entries, every
-    /// path for the filter, and the repository's changes and history when the root is a repository's; and its report
-    /// that the filter ended. The other kinds' messages come first (`answer`).
+    /// The File Explorer home's asks (`web/src/files.ts`), from the root in the card's argument: a folder's entries,
+    /// every path for the filter, and the repository's changes for the letters when the root is a repository's; and
+    /// its report that the filter ended. The other pages' messages come first (`answer`).
     func files(_ message: [String: Any]) async -> (Any?, String?) {
         let ask = message["op"] as? String
         guard ask != "filter" else {
@@ -45,20 +117,12 @@ extension WebCard {
             case "paths":
                 return try await (Files.paths(arg, repo: repo, exec: exec), nil)
             default:
-                // A root inside a repository but not its root shows no git (the Files pane's root is the repo's).
+                // A root inside a repository but not its root shows no letters: git's paths are from the repo's root.
                 let runs = await store?.gitRuns() == true
                 repo = runs ? await Git.root(arg, exec: exec).flatMap { $0 == arg ? $0 : nil } : nil
-                guard repo != nil else { return (NSNull(), nil) }
-                async let changes = Git.status(arg, exec: exec)
-                // None before the first commit.
-                let commits = await (try? Git.log(arg, exec: exec)) ?? []
-                let history = zip(commits, Git.graph(commits)).map { commit, row in
-                    ["hash": commit.hash, "subject": commit.subject, "date": commit.date.timeIntervalSince1970 * 1000,
-                     "lane": row.lane, "children": row.children, "parents": row.parents,
-                     "through": row.through] as [String: Any]
-                }
-                return try await (["changes": changes.map { ["letter": String($0.letter), "path": $0.path] },
-                                   "commits": history], nil)
+                guard repo != nil else { return ([] as [Any], nil) }
+                return try await (Git.status(arg, exec: exec).map { ["letter": String($0.letter), "path": $0.path] },
+                                  nil)
             }
         } catch {
             return (nil, error.localizedDescription)
