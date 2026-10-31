@@ -139,7 +139,7 @@ extension Page {
             guard let old = replaced.terminal, let pinned = floating[old], let new = replaced.made?.terminalID
             else { continue }
             floating[new] = pinned
-            NSApp.windows.first { $0.frameAutosaveName == "float \(old)" }?.saveFrame(usingName: "float \(new)")
+            FloatFrames.handed[new] = FloatFrames.windows.object(forKey: old as NSString)?.frame
             WindowPages.openWindow?(id: "float", value: Floating(session: id, terminalID: new))
         }
     }
