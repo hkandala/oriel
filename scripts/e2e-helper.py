@@ -18,7 +18,8 @@ POST /<session>/file-drag with "x y tx ty" (screen points) as the body makes a f
 a new folder in /tmp (its one line: oriel-e2e-dropped), shows its icon at x y in a window of scripts/file-drag.swift
 and drags it to tx ty (scripts/drag.swift: both points in an Oriel window). The file's path comes back once a drop took it.
 POST /<session>/usage with a number of seconds as the body measures the app (the one process named Oriel, on CI) over
-that time: its footprint (`footprint`'s summary), its CPU and the session's `terminal session` runs, count and memory.
+that time: its footprint (`footprint`'s summary), its CPU and the session's `terminal session` runs, count and memory;
+and the app's, WebKit's and all its processes' count, footprint, CPU, threads and idle wake-ups (scripts/usage.swift).
 POST /<session>/ssh-drop with an SSH target as the body kills the app's ControlMaster to it (SIGKILL, as a crash
 would), and gives back the pids it killed, one per line.
 POST /<session>/ssh-forget with an SSH target as the body removes its host key from ~/.ssh/known_hosts, on CI only, so
@@ -53,7 +54,7 @@ folders = []
 tools = tempfile.mkdtemp()
 folders.append(tools)
 builds = {name: subprocess.Popen(["swiftc", f"scripts/{name}.swift", "-o", f"{tools}/{name}"],
-                                 stderr=open(f"{tools}/{name}.log", "wb")) for name in ("swipe", "drag", "file-drag")}
+                                 stderr=open(f"{tools}/{name}.log", "wb")) for name in ("swipe", "drag", "file-drag", "usage")}
 
 
 def cpu_seconds(pids):
@@ -70,7 +71,9 @@ def usage(session, seconds):
     pattern = f"^[^ ]*herdr --session {session} terminal session"
     helpers = subprocess.run(["pgrep", "-f", pattern], capture_output=True, text=True).stdout.split()
     start, app_start, helpers_start = time.time(), cpu_seconds([pid]), cpu_seconds(helpers)
-    time.sleep(seconds)
+    builds["usage"].wait()
+    # Over the same seconds: the app's and its processes' (WebKit's) count, CPU, threads and wake-ups.
+    processes = subprocess.run([f"{tools}/usage", pid, str(seconds)], capture_output=True, text=True).stdout
     wall = time.time() - start
     app_cpu, helpers_cpu = cpu_seconds([pid]) - app_start, cpu_seconds(helpers) - helpers_start
     rss = subprocess.run(["ps", "-o", "rss=", "-p", ",".join(helpers)], capture_output=True, text=True).stdout \
@@ -78,7 +81,7 @@ def usage(session, seconds):
     summary = subprocess.run(["footprint", pid], capture_output=True, text=True).stdout.splitlines()
     return "\n".join([f"cpu {100 * app_cpu / wall:.1f}%",
                       f"helpers {len(helpers)} {sum(int(n) for n in rss.split()) // 1024} MB "
-                      f"{100 * helpers_cpu / wall:.1f}%"] + summary[:16]).encode()
+                      f"{100 * helpers_cpu / wall:.1f}%"] + processes.splitlines() + summary[:16]).encode()
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
