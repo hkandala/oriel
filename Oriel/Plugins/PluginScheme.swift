@@ -49,6 +49,8 @@ final class PluginScheme: NSObject, WKURLSchemeHandler {
         let own = "\(Self.name)://\(id)"
         task.didReceive(HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: [
             "Content-Type": mime,
+            // A plugin's build changes under the same names (Reload Plugin): WebKit must not keep the old files.
+            "Cache-Control": "no-store",
             "Content-Security-Policy": "default-src 'none'; script-src \(own) 'wasm-unsafe-eval'; "
                 + "style-src \(own) 'unsafe-inline'; img-src \(own) data: blob:; media-src blob:; "
                 + "font-src \(own) data:; connect-src \(own); frame-src 'none'; form-action 'none'; base-uri 'none'",

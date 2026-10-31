@@ -249,12 +249,15 @@ struct Command {
 struct AppCommands: Commands {
     @FocusedValue(\.commands) private var commands
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
     private var settings = AppSettings()
 
     var body: some Commands {
         // Every main window opens through it. `_ =` is no statement in a builder.
         // swiftlint:disable:next redundant_discardable_let
         let _ = (WindowPages.openWindow = openWindow)
+        // swiftlint:disable:next redundant_discardable_let
+        let _ = (CommandList.openSettings = openSettings)
         // A key runs the key window's command for it, whichever window's list the menu bar holds; behind a sheet,
         // none. With no window: New Window and the settings.
         let list = (commands?.menu ?? CommandList(settings: settings).menuBarList).map { command in
