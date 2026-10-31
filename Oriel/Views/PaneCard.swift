@@ -39,7 +39,7 @@ struct PaneCard: View {
         // The watching window's dim (D66), on the header and the terminal.
         let content = page.watched ? 0.85 : 1
         // A new pane's chooser hides its terminal (ui/new-pane).
-        let chooser = store.chooser(id), browser = pane.flatMap(page.browser), plugin = pane.flatMap(page.plugin)
+        let chooser = store.chooser(id), (browser, plugin) = page.cards(pane)
         // An agent Oriel started with its flags: its chat or its terminal (ui/chat-view).
         let chat = chooser == nil && !floated ? pane.flatMap(page.chat) : nil
         VStack(spacing: 0) {
@@ -60,6 +60,13 @@ struct PaneCard: View {
                     BrowserCard(browser: browser)
                 } else if let plugin {
                     PluginCard(plugin: plugin, page: page)
+                } else if let kind = pane?.plugin?.kind {
+                    // Its last picture until the strip rests.
+                    if let picture = pane?.terminalID.flatMap(page.terminals.picture) {
+                        Image(decorative: picture, scale: 1).resizable().padding([.horizontal, .bottom], 6)
+                    } else {
+                        PluginLoader(kind: kind)
+                    }
                 } else if let pane, let chat = page.shownChat(pane) {
                     ChatView(chat: chat, page: page, terminal: terminal)
                 } else if let terminal {
@@ -155,9 +162,8 @@ struct PaneCard: View {
     private func header(_ pane: HostStore.Pane?, zoomed: Bool, showsButtons: Bool, new: Bool, chat: Chat?)
         -> some View
     {
-        let browser = page.twoRows(pane) ? pane.flatMap(page.browser) : nil
-        let plugin = page.twoRows(pane) ? pane.flatMap(page.plugin) : nil
-        let agent = page.twoRows(pane) && browser == nil && plugin == nil
+        let (browser, plugin) = page.twoRows(pane) ? page.cards(pane) : (nil, nil)
+        let agent = page.twoRows(pane) && pane?.plugin == nil
         return VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 3) {
                 title(pane, new: new, browser: browser, agent: agent)
@@ -195,6 +201,8 @@ struct PaneCard: View {
                 .frame(height: Self.row)
             }
         }
+        // Also with a web card's row not made yet.
+        .frame(height: page.headerHeight(pane), alignment: .top)
         .fontWeight(.medium)
         // Rex's glyph sits 13.5 pt in and its title 30.5 pt.
         .padding(.leading, 11)
@@ -296,6 +304,13 @@ struct PaneCard: View {
 }
 
 extension Page {
+    /// The pane's browser or plugin card. Not made while the strip moves (making a web view took a frame), but where it
+    /// rests.
+    func cards(_ pane: HostStore.Pane?) -> (Browser?, Plugin?) {
+        guard stripMoving else { return (pane.flatMap(browser), pane.flatMap(plugin)) }
+        return (pane?.terminalID.flatMap(terminals.built), pane?.terminalID.flatMap(terminals.builtPlugin))
+    }
+
     /// A browser's, a plugin's or an agent's card has a second header row; a terminal's, a floated or a choosing one
     /// has one.
     func twoRows(_ pane: HostStore.Pane?) -> Bool {

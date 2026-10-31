@@ -65,6 +65,7 @@ struct Strip: View {
         .onScrollGeometryChange(for: ScrollGeometry.self, of: { $0 }, action: { paging.laid($1) })
         .testValue("strip.between", "Strip Between Pages", "\(between)", shown: Self.record)
         .onScrollPhaseChange { _, phase in
+            page.stripMoving = phase != .idle
             // Not a tab that closed meanwhile.
             if phase == .idle, let shown = position.viewID(type: String.self),
                workspace.tabs.contains(where: { $0.id == shown })
@@ -394,7 +395,6 @@ private extension View {
     /// it, the terminal's too. (Padding gave a card sliding in from the left a size below zero, and it came in
     /// header high.)
     func place(_ rect: CGRect) -> some View {
-        frame(width: rect.width, height: rect.height)
-            .position(x: rect.midX, y: rect.midY)
+        frame(width: rect.width, height: rect.height).position(x: rect.midX, y: rect.midY)
     }
 }
