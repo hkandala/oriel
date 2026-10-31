@@ -158,7 +158,7 @@ extension OrielUITests {
         try await running(five)
         // Not relaunch: a launch with -ApplePersistenceIgnoreState saves no state at ⌘Q (CI 39902793320). -session
         // keeps any saved pages out; ⌘Q saves whatever the Mac's "close windows when quitting" setting says.
-        app.launchArguments = ["-session", one, "-NSQuitAlwaysKeepsWindows", "YES"]
+        app.launchArguments = ["-session", one, "-NSQuitAlwaysKeepsWindows", "YES"] + Self.noConfig
         app.launch()
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         element("workspace.w2").click()
@@ -171,7 +171,7 @@ extension OrielUITests {
 
         // No -session, which wins over the saved pages; if they did not come back, the window opens one, never the
         // user's default.
-        app.launchArguments = ["-defaultSession", one]
+        app.launchArguments = ["-defaultSession", one] + Self.noConfig
         app.launch()
         XCTAssertTrue(until(connect) { header == two })
         XCTAssertTrue(element("sidebar.dot.\(one)").exists)

@@ -11,9 +11,10 @@ command line each.
 POST /<session>/stop stops the session; /<session>/start starts its server again, as a user would in a
 terminal.
 POST /<session>/open-folder with the built app's path as the body makes a folder in /tmp and opens it with the
-app (`open -a`), as a drop on the Dock icon does; a launch gets `-session <session>` (a running app ignores
-`--args`). The folder's path comes back.
-POST /<session>/open-url with the built app's path, a newline and an oriel:// URL opens the URL with that app (`open -g -a`).
+app (`open -a`), as a drop on the Dock icon does; a launch gets `-session <session>` and the tests' config folder
+(a running app ignores `--args`). The folder's path comes back.
+POST /<session>/open-url with the built app's path, a newline and an oriel:// URL opens the URL with that app (`open -g -a`;
+a launch gets the tests' config folder).
 POST /<session>/file-drag with "x y tx ty" (screen points) as the body makes a file whose name needs shell escaping in
 a new folder in /tmp (its one line: oriel-e2e-dropped), shows its icon at x y in a window of scripts/file-drag.swift
 and drags it to tx ty (scripts/drag.swift: both points in an Oriel window). The file's path comes back once a drop took it.
@@ -50,6 +51,9 @@ import time
 split = sys.argv.index("--")
 sessions, command = sys.argv[1:split], sys.argv[split + 1:]
 folders = []
+# The tests' config folder (OrielUITests.noConfig): a launch from here installs the default plugins there, never in the
+# user's ~/.config/oriel.
+NO_CONFIG = "/tmp/oriel-e2e-no-config"
 # Compiled once, beside the app's build: `swift` interpreting the script again took up to 10 s a swipe on CI.
 tools = tempfile.mkdtemp()
 folders.append(tools)
@@ -158,14 +162,16 @@ class Handler(http.server.BaseHTTPRequestHandler):
             folder = tempfile.mkdtemp(prefix="oriel-e2e-drop-", dir="/tmp")
             folders.append(folder)
             run = subprocess.run(["open", "-a", body.decode(), folder, "--args", "-session", session,
-                                  "-ApplePersistenceIgnoreState", "YES"], capture_output=True, timeout=10)
+                                  "-ApplePersistenceIgnoreState", "YES", "-configFolder", NO_CONFIG],
+                                 capture_output=True, timeout=10)
             status, reply = (200, folder.encode()) if run.returncode == 0 else (500, run.stderr)
         elif action == "open-url" and not re.fullmatch(rb"[^\n]+\.app\noriel://\S+", body):
             status, reply = 400, b"the body must be an app's path, a newline and an oriel:// URL"
         elif action == "open-url":
             # As pi-herd opens it, to that app: LaunchServices may know other builds of the app.
             app, url = body.decode().split("\n")
-            run = subprocess.run(["open", "-g", "-a", app, url], capture_output=True, timeout=10)
+            run = subprocess.run(["open", "-g", "-a", app, url, "--args", "-configFolder", NO_CONFIG],
+                                 capture_output=True, timeout=10)
             status, reply = (200, b"") if run.returncode == 0 else (500, run.stderr)
         elif action == "file-drag":
             folder = tempfile.mkdtemp(prefix="oriel-e2e-file-", dir="/tmp")

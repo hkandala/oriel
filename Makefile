@@ -23,33 +23,23 @@ lint:
 	swiftformat --lint .
 	swiftlint lint --strict --quiet
 
-# The default plugins' pages (Oriel/Plugins/Web), a folder per plugin that the scheme serves as
-# oriel-plugin://<id>/: its pages (one module each, shared chunks) and its package.json, which the registry reads.
-# File Explorer and Git are packages (plugins/<id>), each built from its entry with its own node_modules, its types
-# checked against the plugin API's (plugins/node_modules/@oriel/plugin-api, a link to web/oriel). Beside them the plugin
-# API's runtime (oriel.js, checked against its types) and card.css, which every plugin's page loads. The project copies
-# .build/web into the app's resources.
-ESBUILD = web/node_modules/.bin/esbuild --bundle --splitting --format=esm --minify --target=safari18 \
-	--log-level=warning --external:*.svg --external:*.gif
-
+# What the app carries for its plugins (.build/web, copied into its resources): the plugin API's runtime (oriel.js,
+# checked against its types) and card.css, which every plugin's page loads; the host types package (plugin-api), which
+# the app writes into the plugins folder for tsc; and the default plugins' source (defaults/<id>, no node_modules),
+# which the app installs into the plugins folder on first launch and builds there. Each default is also installed and
+# type-checked here, against the API's types (plugins/node_modules/@oriel/plugin-api, a link to web/oriel).
 web: web/node_modules/.package-lock.json plugins/explorer/node_modules/.package-lock.json \
 		plugins/git/node_modules/.package-lock.json
 	rm -rf .build/web
 	mkdir -p plugins/node_modules/@oriel && ln -sfn ../../../web/oriel plugins/node_modules/@oriel/plugin-api
-	for id in explorer git; do web/node_modules/.bin/tsc -p plugins/$$id; \
-		$(ESBUILD) plugins/$$id/main.ts --outdir=.build/web/$$id; done
-	for id in explorer git; do cp plugins/$$id/package.json .build/web/$$id/; done
-	cp plugins/explorer/places.json .build/web/explorer/
+	for id in explorer git; do web/node_modules/.bin/tsc -p plugins/$$id; done
+	mkdir -p .build/web/defaults .build/web/plugin-api
+	rsync -a --exclude node_modules plugins/explorer plugins/git .build/web/defaults/
 	web/node_modules/.bin/tsc -p web/oriel
 	web/node_modules/.bin/esbuild web/oriel/runtime.ts --bundle --format=esm --minify --target=safari18 \
 		--log-level=warning --outfile=.build/web/oriel.js
 	cp web/oriel/card.css .build/web/
-	@# The host types package, which the app writes into the plugins folder for tsc.
-	mkdir -p .build/web/plugin-api && cp web/oriel/oriel.d.ts web/oriel/package.json .build/web/plugin-api/
-	@# pdf.js's worker, decoders, fonts and character maps, which it loads by name from the page's folder. Its viewer's
-	@# CSS names images of the editing tools the cards leave out.
-	cd plugins/explorer/node_modules/pdfjs-dist && cp build/pdf.worker.min.mjs wasm/{openjpeg,jbig2,qcms_bg}.wasm \
-		standard_fonts/*.{pfb,ttf} cmaps/*.bcmap ../../../../.build/web/explorer
+	cp web/oriel/oriel.d.ts web/oriel/package.json .build/web/plugin-api/
 
 plugins/%/node_modules/.package-lock.json: plugins/%/package-lock.json
 	npm ci --prefix plugins/$* --no-audit --no-fund

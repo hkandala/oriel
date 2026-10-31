@@ -30,7 +30,11 @@ struct PluginCard: View {
             .padding([.horizontal, .bottom], PaneCard.inset)
             // Over a page that has not drawn yet (a big tree's first listing, a remote file).
             .overlay {
-                if !plugin.web.ready {
+                if DefaultPlugins.shared.installing.contains(plugin.manifest.id), !plugin.web.ready {
+                    // A default plugin's first launch: its copy and `npm ci`, a few seconds.
+                    PluginLoader(plugin: plugin.manifest, verb: "Installing")
+                        .accessibilityIdentifier("pane.\(plugin.paneID).installing")
+                } else if !plugin.web.ready {
                     Loading().accessibilityIdentifier("pane.\(plugin.paneID).loading")
                 }
             }
@@ -137,18 +141,19 @@ private struct Loading: View {
 /// While a browser or a plugin pane takes the chooser's place, or a browser card is built.
 struct PluginLoader: View {
     let plugin: PluginManifest
+    var verb = "Opening"
 
     var body: some View {
         VStack(spacing: 12) {
             Image(systemName: plugin.icon).font(.system(size: 28)).foregroundStyle(.secondary)
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
-                Text("Opening \(plugin.name)…").font(.system(size: 13)).foregroundStyle(.secondary).lineLimit(1)
+                Text("\(verb) \(plugin.name)…").font(.system(size: 13)).foregroundStyle(.secondary).lineLimit(1)
             }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isStaticText)
-        .accessibilityLabel("Opening \(plugin.name)")
+        .accessibilityLabel("\(verb) \(plugin.name)")
     }
 }
 

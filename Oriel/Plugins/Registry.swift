@@ -35,17 +35,19 @@ enum Registry {
         current.loaded = load()
     }
 
-    /// The folder `oriel-plugin://<id>/` serves: a default plugin's built pages, else the package's current build.
+    /// The folder `oriel-plugin://<id>/` serves: the plugin's current build.
     static func files(_ id: String) -> URL? {
-        defaults.contains(id) ? folder?.appending(path: id) : PluginBuilds.shared.folders[id]
+        PluginBuilds.shared.folders[id]
     }
 
-    /// A plugin package's folder, which the app builds from; nil for the browser and the app's built pages.
+    /// A plugin package's folder, which the app builds from (a default plugin's installed copy, maybe not made yet);
+    /// nil for the browser.
     static func package(_ id: String) -> URL? {
         current.loaded.folders[id]
     }
 
-    /// The default plugins' built pages and their `package.json`, in place until the app installs them.
+    /// What the app carries for plugins (`make web`): the runtime, `card.css`, the types package and the default
+    /// plugins' source (`defaults/<id>`).
     static let folder = Bundle.main.resourceURL?.appending(path: "web")
 
     /// `~/.config/oriel`; a test points it elsewhere (`-configFolder`).
@@ -97,13 +99,18 @@ enum Registry {
     }
 
     private static func load() -> Loaded {
-        let mine = packages(in: folder)
+        // The defaults' installed copies, with the app's manifest while a copy is missing (first launch).
+        let plugins = config.appending(path: "plugins")
+        let mine = packages(in: folder?.appending(path: "defaults")).map { manifest, url in
+            let copy = plugins.appending(path: url.lastPathComponent)
+            return package(copy) ?? (manifest, copy)
+        }
         // The old label words open File Explorer or Git.
         var seen = Dictionary(uniqueKeysWithValues: [browser.id, "file", "preview", "markdown", "files", "diff"]
             .map { ($0, "the app") })
         var folders = Set<String>()
         let found = mine + paths().compactMap { package($0, named: true) }
-            + packages(in: config.appending(path: "plugins"))
+            + packages(in: plugins)
         // A settings path into the plugins folder is the same package.
         let kept = found.filter { folders.insert($0.url.standardizedFileURL.path).inserted }.filter { manifest, url in
             if let first = seen[manifest.id] {

@@ -49,6 +49,7 @@ struct PluginsPanel: View {
         .font(.system(size: 13))
         .padding(12)
         .frame(width: 480)
+        .task { await DefaultPlugins.shared.check() }
         .floatingGlass(in: .rect(cornerRadius: 14))
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Plugins")
@@ -85,17 +86,30 @@ private struct PluginRow: View {
                     .accessibilityIdentifier("\(id).source")
             }
             Spacer(minLength: 8)
-            if let busy = installs.busy[row.id] {
+            if let busy = installs.busy[row.id]
+                ?? (DefaultPlugins.shared.installing.contains(row.id) ? "Installing…" : nil)
+            {
                 ProgressView().controlSize(.small)
                 Text(busy).foregroundStyle(.secondary).accessibilityIdentifier("\(id).busy")
             } else {
                 HStack(spacing: 2) {
+                    if row.kind == .bundled {
+                        // An edited copy stays the user's until they pick the app's again.
+                        let defaults = DefaultPlugins.shared
+                        if let version = defaults.newer[row.id] ?? (defaults.edited.contains(row.id) ? "" : nil) {
+                            Button(version.isEmpty ? "Reset to Default" : "Update to Version \(version)") {
+                                Task { await defaults.put(row.id) }
+                            }
+                            .buttonStyle(.glass).controlSize(.small).padding(.trailing, 4)
+                            .accessibilityIdentifier("\(id).reset")
+                        }
+                    }
                     if case .installed = row.kind {
                         IconButton(symbol: "arrow.down.circle", help: row.manifest == nil ? "Install" : "Update",
                                    size: 24) { Task { await installs.update(row) } }
                             .accessibilityIdentifier("\(id).update")
                     }
-                    if row.kind != .bundled, row.manifest != nil {
+                    if row.manifest != nil {
                         IconButton(symbol: "arrow.clockwise", help: "Reload Plugin", size: 24) {
                             Task { await Plugin.reload(row.id) }
                         }
