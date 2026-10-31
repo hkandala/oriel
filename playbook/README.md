@@ -61,3 +61,4 @@ run and test it is in the root `README.md`.
 | 43 | Default plugins with native views (not merged; kept on branch `plugins-native`) | [43-plugins-native.md](phases/43-plugins-native.md) |
 | 44 | Default plugins with web components (merged into main) | [44-plugins-web.md](phases/44-plugins-web.md) |
 | 45 | Twelfth feedback: the chat's turns, empty state, speed and the panes skill | [45-twelfth-feedback.md](phases/45-twelfth-feedback.md) |
+| 46 | Thirteenth feedback: chat bubbles and long chats, pane speed, File Explorer and Git | [46-thirteenth-feedback.md](phases/46-thirteenth-feedback.md) |
