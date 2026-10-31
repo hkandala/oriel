@@ -37,8 +37,8 @@ final class Header {
         }
     }
 
-    /// The page's `oriel.controls.set(id, change)`: value, title, badge, items, hidden, enabled, busy. A wrong type
-    /// leaves that field; an unknown id changes nothing.
+    /// The page's `oriel.controls.set(id, change)`: value, title, symbol, badge, items, hidden, enabled, busy. A wrong
+    /// type leaves that field; an unknown id changes nothing.
     func set(_ id: String, _ change: [String: Any]) {
         guard let index = controls.firstIndex(where: { $0.id == id }) else { return }
         var control = controls[index]
@@ -47,6 +47,9 @@ final class Header {
         }
         if let title = change["title"] as? String {
             control.title = title
+        }
+        if let symbol = change["symbol"] as? String {
+            control.symbol = symbol.isEmpty ? nil : symbol
         }
         if let badge = change["badge"] {
             // A count or a word; 0 and "" clear it.

@@ -64,7 +64,8 @@ extension OrielUITests {
             #"{"id":"root","type":"menu","symbol":"folder","title":"oriel","items":[{"title":"Places"},"#
                 + #"{"value":"/tmp","title":"tmp","symbol":"folder"},"-",{"value":"choose","title":"Choose…"}]}"#,
             #"{"id":"filter","type":"field","placeholder":"Filter"}"#,
-            #"{"id":"jump","type":"text","style":"path","value":["Sources","App.swift","body"]}"#,
+            #"{"id":"jump","type":"text","style":"path","symbol":"curlybraces","#
+                + #""value":["Sources","App.swift","body"]}"#,
             #"{"id":"rows","type":"text","style":"dim","value":"3 of 12"}"#,
             #"{"id":"mode","type":"segmented","options":[{"value":"read","title":"Read"},"#
                 + #"{"value":"edit","title":"Edit"}],"value":"read"}"#,
