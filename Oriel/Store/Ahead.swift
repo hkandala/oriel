@@ -149,8 +149,7 @@ extension HostStore {
             closeStandIns(standIns)
             return nil
         }
-        let tabs = tabIDs(request)
-        let asked = panes.filter { pane in request.paneID.map { $0 == pane.id } ?? tabs.contains(pane.tabID) }
+        let asked = panes(closedBy: request)
         let action = closing(request)
         // ponytail: a program typed in a new tab in its first seconds hides too, and comes back with the question.
         let clear = asked.allSatisfy {
@@ -229,6 +228,12 @@ extension HostStore {
             }
             return names
         }
+    }
+
+    /// The panes a close takes, as the user sees them now.
+    func panes(closedBy close: Close) -> [Pane] {
+        let tabs = tabIDs(close)
+        return panes.filter { pane in close.paneID.map { $0 == pane.id } ?? tabs.contains(pane.tabID) }
     }
 
     /// The tabs a close of tabs or a workspace takes, as the user sees them now; none for a pane.
