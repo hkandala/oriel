@@ -271,8 +271,7 @@ struct BackForward: View {
     }
 }
 
-/// One line at the top of the card with two buttons, the second the default (Reload or Keep Mine, Overwrite or
-/// Reload). A button's action ends it.
+/// One line at the top of the card with two buttons, the second the default. A button's action ends it.
 struct Toast {
     let text: String
     /// None: the main button alone.

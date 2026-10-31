@@ -186,7 +186,7 @@ struct PaneCard: View {
             if let browser {
                 BrowserToolbar(browser: browser, page: page).frame(height: Self.row)
             } else if let plugin {
-                PluginToolbar(plugin: plugin, page: page).frame(height: Self.row)
+                PluginHeader(plugin: plugin, page: page).frame(height: Self.row)
             } else if agent, let pane {
                 HStack(spacing: 6) {
                     ProgramGlyph(icon: pane.iconID, letter: pane.letter).allowsHitTesting(false)

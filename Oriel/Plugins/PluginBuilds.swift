@@ -220,11 +220,7 @@ extension WebCard {
     /// built.
     func reload() {
         ready = false
-        guard let bridge else {
-            script()
-            view.load(URLRequest(url: PluginScheme.url(plugin)))
-            return
-        }
+        guard let bridge else { return }
         loads += 1
         let load = loads
         Task { [weak self] in

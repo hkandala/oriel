@@ -4,7 +4,7 @@ import Observation
 import SwiftUI
 import WebKit
 
-/// A plugin card's content as a page of its plugin's folder (`make web`), in a web view of its own: WebKit makes a
+/// A plugin card's content as its plugin's build (`PluginBuilds`), in a web view of its own: WebKit makes a
 /// process per web view whatever the process pool. The page talks to the app through the plugin API (`Bridge`).
 @MainActor @Observable
 final class WebCard {
@@ -57,19 +57,17 @@ final class WebCard {
         if loaded {
             view.callAsyncJavaScript("document.documentElement.style.cssText = css", arguments: ["css": css],
                                      in: nil, in: .page)
-            // The page hears `theme` after its CSS variables changed.
-            bridge?.theme = theme
-            script()
-        } else {
-            bridge?.theme = theme
-            script()
-            loaded = true
-            // A plugin's page starts with its saved state, and not at all with an API too new.
-            Task {
-                await bridge?.start()
-                if bridge?.failure == nil {
-                    reload()
-                }
+        }
+        // The page hears `theme` after its CSS variables changed.
+        bridge?.theme = theme
+        script()
+        guard !loaded else { return }
+        loaded = true
+        // A plugin's page starts with its saved state, and not at all with an API too new.
+        Task {
+            await bridge?.start()
+            if bridge?.failure == nil {
+                reload()
             }
         }
     }

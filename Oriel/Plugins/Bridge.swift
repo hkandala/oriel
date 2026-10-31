@@ -193,7 +193,7 @@ final class Bridge {
     /// The reply as JSON values, or as JSON already (`Data`); nil for none.
     private func answer(_ name: String, _ args: [String: Any], _ plugin: Plugin) async throws -> Any? {
         switch name {
-        case "run": return try await run(args, plugin)
+        case "run": return try await run(args)
         case "console": PluginLog.add(
                 plugin.manifest.id,
                 "\(args["level"] as? String ?? "log"): \(args["text"] as? String ?? "")",
@@ -274,7 +274,7 @@ final class Bridge {
     }
 
     /// Two at a time per card; the rest wait in order. In the pane's folder unless the page says otherwise.
-    private func run(_ args: [String: Any], _: Plugin) async throws -> Data {
+    private func run(_ args: [String: Any]) async throws -> Data {
         while runs >= 2 {
             await withCheckedContinuation { waiting.append($0) }
         }
