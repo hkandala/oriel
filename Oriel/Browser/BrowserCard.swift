@@ -56,7 +56,13 @@ struct BrowserCard: View {
                 } else if let url = browser.asking {
                     Asking(browser: browser, url: url)
                 } else if !browser.ready {
-                    PluginLoader(kind: .browser)
+                    // A card made again (its old one dropped, ui/browser): its last picture until its page drew.
+                    if let picture = browser.view.picture {
+                        Image(decorative: picture, scale: 1).resizable().clipShape(.rect(cornerRadius: 6))
+                            .padding([.horizontal, .bottom], 6)
+                    } else {
+                        PluginLoader(kind: .browser)
+                    }
                 } else if !browser.loaded {
                     Image(systemName: "globe").font(.system(size: 44, weight: .light)).foregroundStyle(.tertiary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity).contentShape(.rect)
@@ -154,9 +160,12 @@ struct WebHost: NSViewRepresentable {
         // WebKit docks the Web Inspector beside the web view by frames that take y as growing upward: in a plain box,
         // which the (flipped) host fits.
         view.removeFromSuperview()
+        // At the size it has: one set to the new host's zero size laid the page out again and drew it blank.
+        box.frame.size = view.frame.size
         view.frame = box.bounds
         view.autoresizingMask = [.width, .height]
         box.addSubview(view)
+        (view as? BrowserView)?.coverUntilDrawn()
         host.addSubview(box)
         return host
     }

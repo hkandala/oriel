@@ -11,6 +11,22 @@ class BrowserView: WKWebView {
     var opensTab = false
     /// In an overview's tile (D70): keys go to the overview; a claim waits until the card has it back.
     var inTile = false
+    /// The page's last picture (`takePicture`): the overview's tile, and over the page as it comes back into a window
+    /// until WebKit drew it there (`cover`); a page put back in a window drew blank for a frame or two.
+    var picture: CGImage? {
+        get { shot.image }
+        set { shot.image = newValue }
+    }
+
+    /// Observed: a tile shows the picture as it comes.
+    @MainActor @Observable final class Shot {
+        var image: CGImage?
+    }
+
+    private let shot = Shot()
+    /// The picture over the page in its newest host (`WebHost`), until the page drew.
+    weak var cover: NSView?
+    private var coverWatch: NSKeyValueObservation?
 
     /// The key window's browser that has the keyboard: ⌘+ ⌘− ⌘0 zoom its page.
     static var focused: BrowserView? {
@@ -70,6 +86,56 @@ class BrowserView: WKWebView {
         }
     }
 
+    /// At the view's pixel size, as a terminal's kept picture (24 MB for a full-window card on Retina): a cover must
+    /// look as the page does. About 8 ms in WebKit's process, also out of a window.
+    func takePicture(then taken: ((CGImage) -> Void)? = nil) {
+        guard !bounds.isEmpty, url != nil else { return }
+        takeSnapshot(with: nil) { [weak self] image, _ in
+            if let image = image?.cgImage(forProposedRect: nil, context: nil, hints: nil) {
+                self?.picture = image
+                taken?(image)
+            }
+        }
+    }
+
+    /// Its picture over it as it comes into view, until WebKit drew it: WebKit paints only what shows, so a page
+    /// scrolled back into the strip's view or put back into a window drew blank for a frame or two. A picture of
+    /// another size (the card was resized meanwhile) is no cover.
+    func coverUntilDrawn() {
+        self.cover?.removeFromSuperview()
+        let scale = (window?.screen ?? NSScreen.main)?.backingScaleFactor ?? 2
+        guard let box = superview, let picture, abs(CGFloat(picture.width) - bounds.width * scale) < 2 else { return }
+        let cover = Cover(frame: frame)
+        cover.autoresizingMask = [.width, .height]
+        cover.wantsLayer = true
+        cover.layer?.contents = picture
+        cover.layer?.contentsGravity = .resize
+        box.addSubview(cover)
+        self.cover = cover
+        coverWatch = observe(\.isLoading) { view, _ in
+            MainActor.assumeIsolated { view.uncover() }
+        }
+        uncover()
+    }
+
+    /// Once its page is loaded: after the next visible-rect update WebKit sends (as it comes into view), the next
+    /// presentation update (WebKit's SPI, which its own tests use); at the latest 0.5 s after.
+    private func uncover() {
+        guard let cover, !isLoading, url != nil else { return }
+        coverWatch = nil
+        let remove: @convention(block) () -> Void = { [weak cover] in cover?.removeFromSuperview() }
+        let presented: @convention(block) () -> Void = { [weak self] in
+            self?.perform(NSSelectorFromString("_doAfterNextPresentationUpdate:"), with: remove)
+        }
+        let shown = NSSelectorFromString("_doAfterNextVisibleContentRectUpdate:")
+        if responds(to: shown) {
+            perform(shown, with: presented)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + (responds(to: shown) ? 0.5 : 0.1)) { [weak cover] in
+            cover?.removeFromSuperview()
+        }
+    }
+
     func dropClaim() {
         wantsKeyboard = false
     }
@@ -91,5 +157,12 @@ class BrowserView: WKWebView {
             onKeyboard?()
         }
         return became
+    }
+}
+
+/// A web view's picture over it, which takes no clicks.
+private final class Cover: NSView {
+    override func hitTest(_: NSPoint) -> NSView? {
+        nil
     }
 }

@@ -55,11 +55,11 @@ final class Page: Identifiable {
     var find: Find?
     /// Counts ⌘F presses: each one focuses the open bar's field.
     var findFocus = 0
-    /// The strip's scroll offset in pages (1.5 = halfway from the second tab to the third), for the tab marker.
+    /// The strip's offset in pages (1.5: halfway from the second tab to the third), and while it moves (`PaneCard`).
     var stripPage = 0.0
+    var stripMoving = false
     /// The terminals that had the keyboard, the latest last: each tab's keyboard card is its latest, so a closed
-    /// one gives way to the card of its tab used before it. Observed: the tab's icon stack puts it in
-    /// front.
+    /// one gives way to the card of its tab used before it. Observed: the tab's icon stack puts it in front.
     private var usedTerminals: [String] = []
     /// The latest split's card (its stand-in, then herdr's pane) until its terminal has the keyboard, and the
     /// terminal that had it before. Observed: its card is lit.
@@ -180,11 +180,10 @@ final class Page: Identifiable {
         return pane ?? panes.first(where: \.focused)
     }
 
-    /// The selected tab's and the floated terminals (terminal id → pane id) that stream; not a plugin's placeholder.
+    /// The selected tab's and the floated panes' terminals (terminal id → pane id), a plugin's placeholder too.
     var shownTerminals: [String: String] {
         Dictionary(store.panes.compactMap { pane in
-            (pane.tabID == selectedTab?.id || floats(pane)) && pane.plugin == nil
-                ? pane.terminalID.map { ($0, pane.id) } : nil
+            pane.tabID == selectedTab?.id || floats(pane) ? pane.terminalID.map { ($0, pane.id) } : nil
         }, uniquingKeysWith: { first, _ in first })
     }
 

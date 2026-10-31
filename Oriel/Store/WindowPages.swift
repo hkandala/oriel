@@ -220,7 +220,7 @@ final class WindowPages {
             item.dropFind()
             item.floating = [:]
         }
-        terminals.show([:], alive: [], client: nil)
+        terminals.show([:], web: [], alive: [], client: nil)
         pages.forEach { leave($0.store) }
         list = []
         // Its content goes too: nothing of the window may stream again.
@@ -339,10 +339,10 @@ final class WindowPages {
             }
         }
         let unvisited = overview ? overviewStreams(current, snapshot: snapshot) : [:]
-        overviewLive = overview ? Set(unvisited.keys).union(current.shownTerminals.keys) : []
+        overviewLive = overview ? Set(unvisited.keys).union(shown.keys) : []
         // herdr's, for the terminals: a close shown at once may come back (`Ahead`) with its picture.
         let kept = alive.union(withFloats.flatMap { ($0.store.last?.panes ?? []).compactMap(\.terminalID) })
-        terminals.show(shown, unvisited: unvisited, alive: kept, client: current.store.client)
+        terminals.show(shown, web: webInView, unvisited: unvisited, alive: kept, client: current.store.client)
         // Not while the overview or a panel (the palette, Open Session: ⌥⌘[ ] work under it) has the keyboard.
         if !overview, !panelOpen, !snapshot || !(window?.firstResponder is NSText) {
             current.shown(alive: alive)
