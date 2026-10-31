@@ -434,3 +434,5 @@ after (Release, `sample` over tab clicks, three swipes and two overview opens).
 - 12 (E): a `ponytail:` note on the home's watch (each event reads it all; skip ignored folders if it costs).
 - 13 (E): the list rows, titles and symbols live in `web/src/lib/rows.css`, which `git.css` and `diff.css` import.
 - 17 (E): the finding names the push the code runs (`-c push.autoSetupRemote=true push`).
+- Found in the item 31 screenshot pass (D): Back and Forward had the ids `pane.<id>.back` and `.forward`, the same
+  as a floated pane's Bring Back Here in the main window: now `pane.<id>.go-back` and `.go-forward`.

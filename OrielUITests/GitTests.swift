@@ -34,9 +34,9 @@ extension OrielUITests {
         let page = element("diff.\(card).page")
         XCTAssertTrue(page.buttons["a.txt"].exists(within: 10))
         XCTAssertFalse(page.buttons["b.md"].exists)
-        element("pane.\(card).back").click()
+        element("pane.\(card).go-back").click()
         try await expect("back home") { try await paneLabel(card).hasSuffix("e2egit \(root)/") }
-        element("pane.\(card).forward").click()
+        element("pane.\(card).go-forward").click()
         try await expect("forward to the commit") { try await paneLabel(card).hasSuffix(" \(root)/ \(hash)") }
         try await diff(page, card: card, tab: tab, root: root)
         element("pane.\(card).diff.home").click()

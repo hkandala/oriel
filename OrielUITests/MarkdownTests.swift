@@ -54,7 +54,7 @@ extension OrielUITests {
         try await show(tab)
         page.links["Other"].click()
         XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, "other.md", within: 5))
-        element("pane.\(card).back").click()
+        element("pane.\(card).go-back").click()
         XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, "notes.md", within: 5))
     }
 

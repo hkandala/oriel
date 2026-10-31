@@ -55,10 +55,10 @@ extension OrielUITests {
         XCTAssertTrue(file.textViews.firstMatch.exists(within: 10))
         element("pane.\(card).reveal").click()
         XCTAssertTrue(row("main.swift", in: tree).exists(within: 10))
-        XCTAssertTrue(element("pane.\(card).forward").has(\.isEnabled, false, within: 3))
-        element("pane.\(card).back").click()
+        XCTAssertTrue(element("pane.\(card).go-forward").has(\.isEnabled, false, within: 3))
+        element("pane.\(card).go-back").click()
         XCTAssertTrue(file.textViews.firstMatch.exists(within: 10))
-        element("pane.\(card).back").click()
+        element("pane.\(card).go-back").click()
         XCTAssertTrue(row("main.swift", in: tree).exists(within: 10))
 
         try await moveRoot(card, tree, root)

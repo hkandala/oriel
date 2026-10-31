@@ -293,10 +293,10 @@ struct BackForward: View {
         HStack(spacing: 0) {
             IconButton(symbol: "chevron.left", help: "Back", key: .init("["), size: 22) { plugin.goBack() }
                 .disabled(!plugin.canGoBack)
-                .accessibilityIdentifier("pane.\(plugin.paneID).back")
+                .accessibilityIdentifier("pane.\(plugin.paneID).go-back")
             IconButton(symbol: "chevron.right", help: "Forward", key: .init("]"), size: 22) { plugin.goForward() }
                 .disabled(!plugin.canGoForward)
-                .accessibilityIdentifier("pane.\(plugin.paneID).forward")
+                .accessibilityIdentifier("pane.\(plugin.paneID).go-forward")
         }
         .foregroundStyle(look.paneButton)
     }
