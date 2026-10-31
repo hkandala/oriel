@@ -92,8 +92,8 @@ This Mac, or a remote machine over the relay
   Support/`, because people and agents type the path. It has no space, and
   agents know `~/.config`.
 - The launch argument `-configFolder <path>` puts the whole folder
-  somewhere else. The UI tests use it, so they never touch the user's
-  plugins.
+  somewhere else, and the plugin logs in its `logs/plugins`. The UI tests
+  use it, so they never touch the user's plugins or logs.
 - In the repository, the defaults are `plugins/explorer` and `plugins/git`,
   and the template is `plugins/template`. The runtime and the types are in
   `web/oriel/`. `make web` installs, checks and builds the three packages as

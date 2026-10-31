@@ -9,7 +9,8 @@ import WebKit
 final class PluginBuilds {
     static let shared = PluginBuilds()
 
-    /// Each plugin's last build: the next one waits for it, so two never write one plugin's folder at once.
+    /// Each plugin's last build: the next one waits for it, so two never write one plugin's folder at once. Its
+    /// value is that build's problem (`failure`).
     private var running: [String: Task<PluginProblem?, Never>] = [:]
 
     /// Runs the plugin's build script, if it has one. Nil when it passed and the entry is there; else what to say in
@@ -38,6 +39,11 @@ final class PluginBuilds {
         }
         running[id] = task
         return await task.value
+    }
+
+    /// The problem of the plugin's last build, after the one under way: nil when it passed.
+    func failure(_ id: String) async -> PluginProblem? {
+        await running[id]?.value
     }
 
     /// The entry the build writes is there; else the card says it is not built, with Build when there is a script.
@@ -81,6 +87,15 @@ struct PluginProblem {
     /// The button builds before it loads again.
     var builds = false
 
+    /// Its toast over a card that still shows its last good build, with Try Again.
+    @MainActor func toast(_ id: String) -> Toast {
+        Toast(
+            text: "\(title): \(text.firstLine)",
+            other: nil,
+            main: ("Try Again", { Task { await Plugin.reload(id) } }),
+        )
+    }
+
     /// A failed install or build: no package manager says to install Node.js; else the command's last lines.
     static func failed(_ manifest: PluginManifest, _ what: String, _ error: any Error, button: String,
                        builds: Bool = false) -> PluginProblem
@@ -99,9 +114,12 @@ struct PluginProblem {
 }
 
 /// `~/Library/Logs/Oriel/plugins/<id>.log`: a plugin's build errors, console lines, uncaught errors and denied calls,
-/// each with its time, for the author and their agents (`tail -f`).
+/// each with its time, for the author and their agents (`tail -f`). Under `-configFolder` when it is set, so tests
+/// never write the user's logs.
 enum PluginLog {
-    nonisolated static let folder = URL.homeDirectory.appending(path: "Library/Logs/Oriel/plugins")
+    nonisolated static let folder = UserDefaults.standard.string(forKey: "configFolder")
+        .map { URL(filePath: $0).appending(path: "logs/plugins") }
+        ?? URL.homeDirectory.appending(path: "Library/Logs/Oriel/plugins")
     private nonisolated static let queue = DispatchQueue(label: "dev.hkandala.oriel.plugin-log")
 
     nonisolated static func add(_ id: String, _ text: String) {
@@ -169,10 +187,16 @@ extension Bridge {
         if Registry.defaults.contains(manifest.id) {
             problem = await DefaultPlugins.shared.installed(manifest)
         }
+        // A build under way first. After a failed one a card's first page is the last good build, and says so: a card
+        // a failed Reload Plugin made again from its changed manifest, or one opened since.
+        let failed = await PluginBuilds.shared.failure(manifest.id)
         if let problem = problem ?? PluginBuilds.built(manifest) {
             failure = problem
             plugin.web.ready = true
             return false
+        }
+        if let failed, plugin.web.loads == 1 {
+            plugin.web.toast = failed.toast(manifest.id)
         }
         return true
     }
@@ -209,8 +233,7 @@ extension Plugin {
                 card.web.bridge?.failure = problem
                 card.web.ready = true
             } else {
-                card.web.toast = Toast(text: "\(problem.title): \(problem.text.firstLine)", other: nil,
-                                       main: ("Try Again", { Task { await reload(id) } }))
+                card.web.toast = problem.toast(id)
             }
         }
     }

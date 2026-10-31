@@ -492,3 +492,8 @@ well for easier debugging".
   blank page while git answers; the header's controls change with it.
 - **22, 24, 25 (E):** `lib.ts` cites `PaneLabel.diffSource`; a failed move or clipboard write goes to the console; a
   root changed from elsewhere hides the old repository's rows until the new read draws.
+- **2 (F):** with `-configFolder` set, plugin logs go to `<config>/logs/plugins`, so the UI tests never write the
+  user's `~/Library/Logs/Oriel/plugins`; PackageTests reads its log there.
+- **11 (F):** a card's first page waits for a build under way; after a failed one it shows the failure's toast, so a
+  card a failed Reload Plugin made again from a changed manifest says so (PackageTests bumps the version too).
+- **16 (F):** DefaultPlugins' comment names Try Again (landed with 27).

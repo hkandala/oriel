@@ -14,8 +14,8 @@ extension OrielUITests {
         try await waitForPrompt(shell)
         let config = "/tmp/oriel-e2e-packages", csv = "/tmp/oriel-e2e-csv", data = "/tmp/oriel-e2e-csv-data"
         let fixture = URL(filePath: #filePath).deletingLastPathComponent().appending(path: "Fixtures/csv-table").path
-        let logs = "~/Library/Logs/Oriel/plugins/oriel-e2e-", log = logs + "csv-table.log"
-        try await send("rm -rf \(config) \(csv) \(data) \(logs)* ~/.local/state/oriel/\(one)/oriel-e2e-csv-table && "
+        let log = "\(config)/logs/plugins/oriel-e2e-csv-table.log"
+        try await send("rm -rf \(config) \(csv) \(data) ~/.local/state/oriel/\(one)/oriel-e2e-csv-table && "
             + "mkdir -p \(config) \(data) && cp -R \(fixture) \(csv) && (cd \(csv) && npm_config_offline=true npm ci "
             + "--no-audit --no-fund --silent) && printf 'name,count\\nb,2\\na,10\\nc,1\\n' > "
             + "\(data)/a.csv && echo '{\"packages\":[\"\(csv)\"]}' > \(config)/settings.json && clear && "
@@ -85,7 +85,8 @@ extension OrielUITests {
     }
 
     /// An edit that imports from the package's own node_modules, then Reload Plugin over the card: the new page with
-    /// the header's values. Then a build that fails keeps the page and says why.
+    /// the header's values. Then a build that fails, with a new version: the card made again from it loads the last
+    /// good page and says why.
     private func reloads(_ card: String, in cardTab: String, csv: String, shell: String, tab: String) async throws {
         let rows = element("pane.\(card).rows")
         element("tab.\(tab)").click()
@@ -101,9 +102,13 @@ extension OrielUITests {
         XCTAssertTrue(text("CSV Table two").exists(within: 10))
         XCTAssertTrue(rows.has(\.stringValue, "4 rows", within: 5))
 
-        // A build that fails keeps the page and says why.
+        // A build that fails, with a new version: the card made again from it loads the last good page and says why.
         element("tab.\(tab)").click()
-        try await send("echo 'export default {' >> \(csv)/src/main.ts && clear && echo broken-$((6*7))\r", to: shell)
+        try await send(
+            "echo 'export default {' >> \(csv)/src/main.ts && sed -i '' 's/0.1.0/0.1.1/' \(csv)/package.json "
+                + "&& clear && echo broken-$((6*7))\r",
+            to: shell,
+        )
         try await waitFor(shell) { $0.contains("broken-42") }
         try await show(cardTab)
         element("oriel-e2e-csv-table.\(card).card").click()
@@ -111,7 +116,7 @@ extension OrielUITests {
         let toast = element("pane.\(card).toast")
         XCTAssertTrue(toast.exists(within: 10))
         XCTAssertTrue((toast.stringValue).hasPrefix("CSV Table did not build"), toast.stringValue)
-        XCTAssertTrue(text("CSV Table two").exists)
+        XCTAssertTrue(text("CSV Table two").exists(within: 10))
     }
 
     /// Oriel ▸ Plugins… installs the fixture from a local git repository at its tag, after the trust prompt, with its
