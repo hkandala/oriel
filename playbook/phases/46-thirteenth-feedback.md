@@ -328,8 +328,9 @@ after (Release, `sample` over tab clicks, three swipes and two overview opens).
   through `Exec` with `GIT_TERMINAL_PROMPT=0`; a failure shows git's message in the toast (Copy, OK).
 - **Decisions:** Commit needs staged files (no "stage all and commit"). Pull is plain `git pull`, so the user's
   `pull.rebase` rules; diverged branches with no setting fail with git's own message. Push on a branch with no
-  upstream runs `push -u origin HEAD`. No Discard (it loses work). The page's SF Symbols come from the app as PNG
-  masks, so the rows draw real symbols in the text's color. The diff's file list uses the home's row style.
+  upstream runs `-c push.autoSetupRemote=true push` (git 2.37 or later), which publishes it under its name. No
+  Discard (it loses work). The page's SF Symbols come from the app as PNG masks, so the rows draw real symbols in
+  the text's color. The diff's file list uses the home's row style.
 - **Decisions:** `Look.cardSolid` is exact in Classic; in Glass it is measured on a card (dark `#2E`, light `#F9`),
   so an unusual wallpaper moves the card a few steps off the header, and the keyboard card is a step brighter.
 - **Cause (review):** a root whose last word was short hex (`Project 2`) read as a commit (a hash now needs 7 hex
@@ -427,3 +428,9 @@ after (Release, `sample` over tab clicks, three swipes and two overview opens).
 - 14 (F): the strip's page inset is one `Strip.inset`; cards made ahead take their area from `Strip.area`.
 - 3, 4, 16 (B, F docs): no toolbar (window, platform); neighbors made ahead (browser, window, D46); no phase history in
   the plugin pages.
+- 1 (E): Git places end the root in `/` (`<root>/` the home, `<root>/ <source>` a diff); a source counts only after
+  `<root>/ `, old `diff` labels keep their last word (`PaneLabel.place`, now in HerdrKit with a test).
+- 11 (E): one walker over `git status`'s fields (`Change.entries`) for the tree's letters and the home's two lists.
+- 12 (E): a `ponytail:` note on the home's watch (each event reads it all; skip ignored folders if it costs).
+- 13 (E): the list rows, titles and symbols live in `web/src/lib/rows.css`, which `git.css` and `diff.css` import.
+- 17 (E): the finding names the push the code runs (`-c push.autoSetupRemote=true push`).

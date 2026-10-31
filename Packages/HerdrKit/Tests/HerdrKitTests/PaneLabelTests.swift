@@ -30,3 +30,15 @@ import Testing
     #expect(PaneLabel(plugin: "browser", iid: "m4p8sa").statePath(session: "default")
         == ".local/state/oriel/default/browser/m4p8sa.json")
 }
+
+@Test func `a Git place ends its root in a slash, so a root's last word is no source`() {
+    let diff = { (label: String) in PaneLabel(label).map { "\($0.diff.root) | \($0.diff.source ?? "home")" } }
+    #expect(diff("oriel:git#abc123 /x/My Project abcdef0/") == "/x/My Project abcdef0 | home")
+    #expect(diff("oriel:git#abc123 /x/My Project/ abcdef0") == "/x/My Project | abcdef0")
+    #expect(diff("oriel:git#abc123 /x/notes/ uncommitted") == "/x/notes | uncommitted")
+    #expect(diff("oriel:git#abc123 /") == "/ | home")
+    // An old Diff label's last word was always its source; an old Files label gets its slash.
+    #expect(diff("oriel:diff#abc123 /x/My Project uncommitted") == "/x/My Project | uncommitted")
+    #expect(PaneLabel("oriel:diff#abc123 /x/repo 1a2b3c4")?.place == "/x/repo/ 1a2b3c4")
+    #expect(PaneLabel("oriel:files#abc123 /x/repo")?.place == "/x/repo/")
+}

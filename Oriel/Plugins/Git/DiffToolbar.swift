@@ -12,7 +12,7 @@ struct DiffToolbar: View {
         let id = "pane.\(plugin.paneID).diff"
         HStack(spacing: 6) {
             BackForward(plugin: plugin)
-            IconButton(symbol: "house", help: "Git Home", size: 22) { plugin.go(plugin.web.diff.root) }
+            IconButton(symbol: "house", help: "Git Home", size: 22) { plugin.go(home(plugin.web.diff.root)) }
                 .foregroundStyle(look.paneButton)
                 .accessibilityIdentifier("\(id).home")
             Spacer(minLength: 0)
@@ -42,4 +42,9 @@ struct DiffToolbar: View {
             .foregroundStyle(look.paneButton)
         }
     }
+}
+
+/// A Git card's home place: its root with the `/` of a folder (`PaneLabel.diff`); a diff's is `<home> <source>`.
+private func home(_ root: String) -> String {
+    root.hasSuffix("/") ? root : root + "/"
 }

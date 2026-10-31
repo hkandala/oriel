@@ -107,6 +107,8 @@ final class GitRepo {
 
     /// While the card shows: reads again after each change under the root (on This Mac also `.git`'s own: a commit or
     /// a fetch from the terminal).
+    /// ponytail: every event reads it all (status twice, the branches, 500 commits); a build writing in an ignored
+    /// folder makes that about once a second. Skip events under ignored folders if that costs.
     func watch() async {
         await load()
         guard let store = card?.store else { return }

@@ -29,7 +29,7 @@ extension OrielUITests {
         app.typeKey("5", modifierFlags: [])
         let diff = try await replaced(chooser, in: tab, besides: [left])
         let diffLabel = try await paneLabel(diff)
-        XCTAssertTrue(diffLabel.hasPrefix("oriel:git#") && diffLabel.hasSuffix(" \(root)"), diffLabel)
+        XCTAssertTrue(diffLabel.hasPrefix("oriel:git#") && diffLabel.hasSuffix(" \(root)/"), diffLabel)
         XCTAssertTrue(element("git.\(diff).card").exists(within: 3))
         // The Git home, titled by its root.
         XCTAssertTrue(element("pane.\(diff).title").has(\.stringValue, "oriel-e2e-plugins", within: 3))

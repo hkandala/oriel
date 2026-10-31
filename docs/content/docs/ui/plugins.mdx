@@ -29,8 +29,8 @@ The argument is the place the card shows, and it picks the card's page:
 |---|---|---|---|---|
 | `explorer` | a folder's absolute path, ending in `/` | the tree, rooted there | the folder's name | `File Explorer oriel` |
 | `explorer` | a file's absolute path | File, Preview or Markdown, by the file's name | the file's name | `File Explorer main.swift` |
-| `git` | the repository's root | the Git home | the root's name | `Git oriel` |
-| `git` | the root, then `uncommitted` or a commit hash (7 hex digits or more) | a diff | `Changes`, or the short hash | `Git Changes` |
+| `git` | the repository's root, ending in `/` | the Git home | the root's name | `Git oriel` |
+| `git` | the root with its `/`, a space, then `uncommitted` or a commit hash | a diff | `Changes`, or the short hash | `Git Changes` |
 
 - The tab and the floating window read "‹Kind› ‹title›", the title in
   secondary text, as a terminal tab's "zsh oriel"
@@ -39,7 +39,9 @@ The argument is the place the card shows, and it picks the card's page:
 - The old kind words still open: `file`,
   `preview`, `markdown` and `files` open a File Explorer, and `diff` opens
   Git. An old `files` label names its root without the `/`, and it still
-  opens the tree.
+  opens the tree. An old `diff` label (`<root> <source>`) still opens its
+  diff. The root's `/` keeps a root whose last word looks like a hash
+  (`My Project abcdef0`) a home.
 - The placeholder prints the kind's name, the argument and "Shown in Oriel"
   in the middle of the pane in herdr's TUI
   ([In herdr's TUI](/docs/ui/browser#in-herdrs-tui)).

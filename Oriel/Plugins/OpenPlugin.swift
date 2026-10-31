@@ -90,14 +90,14 @@ extension Page {
 
 extension HostStore {
     /// The label's argument of a pane opened in this folder: for File Explorer and Git, the folder's git repository's
-    /// root, else the folder; the File Explorer's with the `/` of a folder.
+    /// root, else the folder, with the `/` of a folder.
     func arg(_ kind: PluginKind, in folder: String) async -> String {
         guard kind != .browser else { return "" }
         var root = folder
         if await gitRuns(), let repo = await Git.root(folder, exec: machine.exec()) {
             root = repo
         }
-        return kind == .git || root.hasSuffix("/") ? root : root + "/"
+        return root.hasSuffix("/") ? root : root + "/"
     }
 
     /// Git runs on a remote machine as it is (one without git fails, harmlessly), on This Mac only once its check

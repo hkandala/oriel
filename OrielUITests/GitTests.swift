@@ -1,7 +1,7 @@
 import XCTest
 
-/// The Git card (phase 46): a pane labeled `oriel:git#<iid> <root>` shows its home (`web/src/git.ts`) with row 2's
-/// branch and buttons; `<root> <source>` shows a diff (`web/src/diff.ts`). The writes run in a throwaway repository.
+/// The Git card (phase 46): a pane labeled `oriel:git#<iid> <root>/` shows its home (`web/src/git.ts`) with row 2's
+/// branch and buttons; `<root>/ <source>` shows a diff (`web/src/diff.ts`). The writes run in a throwaway repository.
 extension OrielUITests {
     /// The home lists every branch's commits and the changes; Stage moves a file to the staged list, Commit commits it
     /// with the typed message, Push sends it to the remote; a commit opens its diff in the card, and Back and Forward
@@ -17,7 +17,7 @@ extension OrielUITests {
         let hash = try await makeRepo(repo, in: left)
         try await show(tab)
         let card = try await split(left)
-        try await Self.call(one, "pane.rename", ["pane_id": card, "label": "oriel:git#e2egit \(root)"])
+        try await Self.call(one, "pane.rename", ["pane_id": card, "label": "oriel:git#e2egit \(root)/"])
 
         let home = element("git.\(card).page")
         // Every branch: the side branch's commit is not in main's history.
@@ -29,21 +29,21 @@ extension OrielUITests {
 
         // A commit opens its diff in the card; Back and Forward walk the card's places.
         commit("second", in: home).click()
-        try await expect("the label names the commit") { try await paneLabel(card).hasSuffix(" \(root) \(hash)") }
+        try await expect("the label names the commit") { try await paneLabel(card).hasSuffix(" \(root)/ \(hash)") }
         XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, String(hash.prefix(7)), within: 3))
         let page = element("diff.\(card).page")
         XCTAssertTrue(page.buttons["a.txt"].exists(within: 10))
         XCTAssertFalse(page.buttons["b.md"].exists)
         element("pane.\(card).back").click()
-        try await expect("back home") { try await paneLabel(card).hasSuffix("e2egit \(root)") }
+        try await expect("back home") { try await paneLabel(card).hasSuffix("e2egit \(root)/") }
         element("pane.\(card).forward").click()
-        try await expect("forward to the commit") { try await paneLabel(card).hasSuffix(" \(root) \(hash)") }
+        try await expect("forward to the commit") { try await paneLabel(card).hasSuffix(" \(root)/ \(hash)") }
         try await diff(page, card: card, tab: tab, root: root)
         element("pane.\(card).diff.home").click()
         // A change opens Uncommitted at its file, which follows the work tree.
         XCTAssertTrue(home.buttons["Modified: a.txt"].exists(within: 10))
         home.buttons["Modified: a.txt"].click()
-        try await expect("the label is Uncommitted") { try await paneLabel(card).hasSuffix(" \(root) uncommitted") }
+        try await expect("the label is Uncommitted") { try await paneLabel(card).hasSuffix(" \(root)/ uncommitted") }
         XCTAssertTrue(page.buttons["a.txt"].exists(within: 10))
         XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, "Changes", within: 3))
         try await send("echo new >c.txt\r", to: left)

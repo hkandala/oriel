@@ -1,0 +1,13 @@
+/* A list's title and rows, as the sidebar's: the Git home's lists and the diff's file list (git.css, diff.css). */
+.title { display: flex; align-items: center; gap: 6px; height: 26px; padding: 0 4px 0 10px; }
+.title h2 { margin: 0; font-size: 11px; font-weight: 600; color: var(--dim); }
+.title .count { font-size: 11px; color: var(--dim); opacity: 0.7; }
+/* No specificity: a row that is a button keeps the row's rules below. */
+:where(button.row) { all: unset; width: 100%; }
+.row { box-sizing: border-box; display: flex; align-items: center; gap: 7px; height: 28px; padding: 0 6px 0 10px;
+  border-radius: 7px; white-space: nowrap; }
+.row:hover { background: color-mix(in srgb, var(--text) 5%, transparent); }
+.row:active { background: color-mix(in srgb, var(--text) 8%, transparent); }
+/* An SF Symbol from the app (`symbols` in bridge.ts), in the text's color. */
+.symbol { display: inline-block; flex: none; width: 13px; height: 13px; background: currentColor;
+  -webkit-mask: var(--symbol) center / contain no-repeat; mask: var(--symbol) center / contain no-repeat; }

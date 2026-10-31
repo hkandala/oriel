@@ -50,6 +50,35 @@ public struct PaneLabel: Equatable, Sendable {
         }
     }
 
+    /// The argument as the card reads it. A folder ends in `/`: a File Explorer's root, and a Git card's, so a root
+    /// that ends in a word is never read as a source. An old Files label names its root without it; an old Diff
+    /// label is `<root> <source>`.
+    public var place: String {
+        guard !arg.hasSuffix("/") else { return arg }
+        switch plugin {
+        case "files": return arg + "/"
+        case "diff":
+            guard let space = arg.lastIndex(of: " ") else { return arg + "/" }
+            return arg[..<space].hasSuffix("/") ? arg : arg[..<space] + "/" + arg[space...]
+        default: return arg
+        }
+    }
+
+    /// A Git card's repo root (without its `/`) and its diff's source (`uncommitted` or a commit hash), from its
+    /// place: `<root>/` is the home, `<root>/ <source>` a diff.
+    public var diff: (root: String, source: String?) {
+        let place = place
+        if let space = place.lastIndex(of: " "), place[..<space].hasSuffix("/") {
+            return (Self.root(place[..<space]), String(place[place.index(after: space)...]))
+        }
+        return (Self.root(place[...]), nil)
+    }
+
+    /// A folder's path without its last `/`; `/` stays.
+    private static func root(_ folder: Substring) -> String {
+        folder.count > 1 && folder.hasSuffix("/") ? String(folder.dropLast()) : String(folder)
+    }
+
     /// The instance state file, relative to the home folder (future-work/plugins/state).
     public func statePath(session: String) -> String {
         ".local/state/oriel/\(session)/\(plugin)/\(iid).json"

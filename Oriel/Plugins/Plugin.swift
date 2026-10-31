@@ -79,27 +79,10 @@ extension PaneLabel {
         kind == .explorer ? PluginPage(.explorer, place).symbol : kind?.symbol
     }
 
-    /// The argument as the card reads it: an old Files label names its root without the `/` of a folder.
-    var place: String {
-        plugin == "files" && !arg.hasSuffix("/") ? arg + "/" : arg
-    }
-
     /// The words of the five kinds before File Explorer and Git still open.
     var kind: PluginKind? {
         PluginKind(rawValue: ["file": "explorer", "preview": "explorer", "markdown": "explorer", "files": "explorer",
                               "diff": "git"][plugin] ?? plugin)
-    }
-
-    /// A Git card's repo root and its diff's source: the last word when it is `uncommitted` or a commit hash (7 hex
-    /// digits or more: `Project 2` is a folder); nil for the home.
-    var diff: (root: String, source: String?) {
-        if let space = arg.lastIndex(of: " ") {
-            let source = arg[arg.index(after: space)...]
-            if source == "uncommitted" || source.count >= 7 && source.allSatisfy(\.isHexDigit) {
-                return (String(arg[..<space]), String(source))
-            }
-        }
-        return (arg, nil)
     }
 
     /// The card's and the tab's title, from the label alone (menus ask for every tab's): the file's or the root's

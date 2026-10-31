@@ -121,18 +121,28 @@ public extension Git {
 extension Git.Change {
     /// From `git status --porcelain=v1 -z`: `XY path`, and a rename's old path as the next field.
     static func parse(_ porcelain: String) -> [Self] {
+        entries(porcelain).map { Self(letter: letter($0.index, $0.tree), path: $0.path, oldPath: $0.oldPath) }
+    }
+
+    /// An entry of `git status --porcelain=v1 -z`: the index's and the work tree's letters, the path, and a rename's or
+    /// a copy's old path (the next field, also for a rename in the work tree after `add -N`).
+    struct Entry {
+        let index: Character, tree: Character, path: String, oldPath: String?
+    }
+
+    static func entries(_ porcelain: String) -> [Entry] {
         var fields = porcelain.split(separator: "\0", omittingEmptySubsequences: true)[...]
-        var changes: [Self] = []
+        var entries: [Entry] = []
         // By bytes: a path may start with a combining character.
         while let field = fields.popFirst()?.utf8, field.count > 3 {
             let index = Character(Unicode.Scalar(field[field.startIndex]))
             let tree = Character(Unicode.Scalar(field[field.index(after: field.startIndex)]))
             let oldPath = [index, tree].contains(where: { $0 == "R" || $0 == "C" }) ? fields.popFirst().map(String.init)
                 : nil
-            changes.append(Self(letter: letter(index, tree), path: String(decoding: field.dropFirst(3), as: UTF8.self),
-                                oldPath: oldPath))
+            entries.append(Entry(index: index, tree: tree, path: String(decoding: field.dropFirst(3), as: UTF8.self),
+                                 oldPath: oldPath))
         }
-        return changes
+        return entries
     }
 
     /// From the index's and the work tree's letters.

@@ -13,7 +13,7 @@ document.body.innerHTML = `
   </form>
   <section id="staged"></section>
   <section id="unstaged"></section>
-  <section id="history"><header><h2>History</h2></header><div class="rows"></div></section>
+  <section id="history"><header class="title"><h2>History</h2></header><div class="rows"></div></section>
 </main>`
 
 const failure = document.getElementById("failure")!
@@ -27,6 +27,9 @@ let committing = false
 const WORDS: Record<string, string> = {
   M: "Modified", T: "Type changed", A: "Added", D: "Deleted", R: "Renamed", U: "Untracked", C: "Conflict",
 }
+
+/** The home's place: the root with the `/` of a folder; a diff's is `<home> <source>` (`PaneLabel.diff`). */
+const place = () => (state.root.endsWith("/") ? state.root : `${state.root}/`)
 
 function element<K extends keyof HTMLElementTagNameMap>(tag: K, className = "", text = "") {
   const node = document.createElement(tag)
@@ -64,7 +67,7 @@ function show(next: RepoState) {
 function section(id: string, title: string, changes: Change[], staged: boolean) {
   const node = document.getElementById(id)!
   node.hidden = staged && !changes.length
-  const header = element("header")
+  const header = element("header", "title")
   header.append(element("h2", "", title), element("span", "count", changes.length ? String(changes.length) : ""))
   if (changes.length) {
     const all = staged ? "Unstage All" : "Stage All"
@@ -107,7 +110,7 @@ function row(label: string, target: { arg: string; at?: string }) {
 function changeRow(change: Change, staged: boolean) {
   const name = change.path.replace(/\/$/, ""), slash = name.lastIndexOf("/") + 1
   const { node, open } = row(`${WORDS[change.letter] ?? change.letter}: ${name}`,
-    { arg: `${state.root} uncommitted`, at: change.path })
+    { arg: `${place()} uncommitted`, at: change.path })
   node.id = `${staged ? "staged" : "change"}.${change.path}`
   node.title = change.oldPath ? `${change.oldPath} → ${name}` : name
   const toggle = staged ? "Unstage" : "Stage", letter = element("span", `letter ${change.letter}`, change.letter)
@@ -150,7 +153,7 @@ function commitRow(commit: Commit, width: number) {
     : `<circle cx="${x(lane)}" cy="${mid}" r="4" fill="${color(lane)}"/>`
   const names = refs.flatMap(badge)
   const label = [subject, ...names.map((name) => name.textContent), when(date)].join(", ")
-  const { node, open } = row(label, { arg: `${state.root} ${hash}` })
+  const { node, open } = row(label, { arg: `${place()} ${hash}` })
   node.id = `commit.${hash}`
   node.classList.add("commit")
   node.title = `${subject}\n${commit.author} · ${hash.slice(0, 10)}`
@@ -234,7 +237,7 @@ message.value = reply.draft
 show(reply.repo)
 if (reply.draft) grow()
 // Back from a diff: at the change or the commit it opened.
-const landing = at?.startsWith(`${reply.repo.root} `)
+const landing = at?.startsWith(`${place()} `)
   ? document.getElementById(`commit.${at.split(" ").pop()}`)
   : at && (document.getElementById(`change.${at}`) ?? document.getElementById(`staged.${at}`))
 landing?.scrollIntoView({ block: "center" })

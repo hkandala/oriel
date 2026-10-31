@@ -54,15 +54,9 @@ public extension Git {
 extension Git.Change {
     /// From `git status --porcelain=v1 -z`: the index's letter for the staged list, the work tree's for the other.
     static func split(_ porcelain: String) -> (staged: [Self], unstaged: [Self]) {
-        var fields = porcelain.split(separator: "\0", omittingEmptySubsequences: true)[...]
         var staged: [Self] = [], unstaged: [Self] = []
-        while let field = fields.popFirst()?.utf8, field.count > 3 {
-            let index = Character(Unicode.Scalar(field[field.startIndex]))
-            let tree = Character(Unicode.Scalar(field[field.index(after: field.startIndex)]))
-            let path = String(decoding: field.dropFirst(3), as: UTF8.self)
-            // A rename in the work tree (after `add -N`) has its old path too.
-            let oldPath = [index, tree].contains(where: { $0 == "R" || $0 == "C" }) ? fields.popFirst().map(String.init)
-                : nil
+        for entry in entries(porcelain) {
+            let (index, tree, path, oldPath) = (entry.index, entry.tree, entry.path, entry.oldPath)
             switch (index, tree) {
             case ("?", "?"): unstaged.append(Self(letter: "U", path: path, oldPath: nil))
             case ("!", "!"): continue
