@@ -4,8 +4,7 @@ import os
 
 /// Every pane kind the app draws over a placeholder pane (future-work/plugins): the browser, whose manifest is written
 /// here, and each plugin package's, read at launch and again after an install, a removal or Reload Plugins. The
-/// chooser,
-/// ⌘K, Open With and linked opens read this list.
+/// chooser, ⌘K, Open With and linked opens read this list.
 @MainActor
 enum Registry {
     /// Native content: no entry, its own toolbar (future-work/plugins/browser-and-native).
