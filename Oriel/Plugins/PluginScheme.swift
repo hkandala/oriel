@@ -10,8 +10,9 @@ final class PluginScheme: NSObject, WKURLSchemeHandler {
     static let shared = PluginScheme()
     static let name = "oriel-plugin"
 
-    static func url(_ plugin: String, _ page: PluginPage) -> URL {
-        URL(string: "\(name)://\(plugin)/")?.appending(path: page.rawValue) ?? URL(filePath: "/")
+    /// A plugin's page: its entry's.
+    static func url(_ plugin: String) -> URL {
+        URL(string: "\(name)://\(plugin)/main") ?? URL(filePath: "/")
     }
 
     func webView(_: WKWebView, start task: any WKURLSchemeTask) {
@@ -22,18 +23,17 @@ final class PluginScheme: NSObject, WKURLSchemeHandler {
             return
         }
         // One folder, no subfolders: the last component is decoded, so `..%2F` would climb out of it.
-        let file = url.lastPathComponent, page = url.pathExtension.isEmpty && PluginPage(rawValue: file) != nil
-        // A plugin's entry page runs the app's runtime (`web/oriel`), which imports the entry's build.
-        let script = file == PluginPage.main.rawValue ? "oriel" : file
-        let css = file == PluginPage.main.rawValue ? manifest.entryName : file
-        // A page has its own styles when its build wrote `<entry>.css` beside it (a bundler's CSS of the entry).
+        let file = url.lastPathComponent, page = file == "main"
+        // The page runs the app's runtime (`web/oriel`), which imports the entry's build; it has the entry's styles
+        // when its build wrote `<entry>.css` beside it (a bundler's CSS of the entry).
+        let css = manifest.entryName
         let styles = page && FileManager.default.fileExists(atPath: folder.appending(path: "\(css).css").path)
         // The runtime and the card's base style are the app's, for every plugin.
         let from = ["oriel.js", "card.css"].contains(file) ? Registry.folder : folder
         let data = file.contains("/") || file.hasPrefix(".") ? nil : page ? Data("""
         <!doctype html><meta charset="utf-8"><link rel="stylesheet" href="card.css">\
         \(styles ? "<link rel=\"stylesheet\" href=\"\(css).css\">" : "")\
-        <script type="module" src="\(script).js"></script>
+        <script type="module" src="oriel.js"></script>
         """.utf8) : from.flatMap { try? Data(contentsOf: $0.appending(path: file)) }
         guard let data else {
             task.didFailWithError(URLError(.fileDoesNotExist))

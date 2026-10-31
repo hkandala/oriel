@@ -6,7 +6,7 @@ extension CommandList {
     /// A plugin card's (future-work/plugins/building#debug-it): Reload Plugin, the Web Inspector and its log, in the
     /// card's menu, View ▸ Pane and ⌘K.
     static func pluginCard(_ plugin: Plugin?) -> [Command] {
-        guard let plugin, plugin.web.page == .main else { return [] }
+        guard let plugin else { return [] }
         let id = plugin.manifest.id, view = plugin.web.view
         return [
             Command(section: .pane, title: "Reload Plugin", key: .init("r", modifiers: [.command, .option]),

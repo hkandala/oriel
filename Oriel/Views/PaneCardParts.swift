@@ -20,7 +20,7 @@ extension Page {
         // Back and Forward; a missing one none.
         guard let label = pane.plugin else { return pane.agent != nil || ChatAdapters.recognize(pane.program) != nil }
         return label.manifest.map { plugin in
-            plugin.entry == nil || PluginPage(plugin.id, label.place).map(plugin.hasRow) ?? false
+            plugin.entry == nil || plugin.hasRow
         } ?? false
     }
 

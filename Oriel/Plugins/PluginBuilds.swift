@@ -143,7 +143,7 @@ extension WebCard {
         ready = false
         guard let bridge else {
             script()
-            view.load(URLRequest(url: PluginScheme.url(plugin, page)))
+            view.load(URLRequest(url: PluginScheme.url(plugin)))
             return
         }
         loads += 1
@@ -154,7 +154,7 @@ extension WebCard {
             bridge.failure = nil
             bridge.reset()
             script()
-            view.load(URLRequest(url: PluginScheme.url(plugin, page)))
+            view.load(URLRequest(url: PluginScheme.url(plugin)))
         }
     }
 }

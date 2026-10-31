@@ -10,8 +10,6 @@ import WebKit
 final class WebCard {
     /// Its plugin's id.
     let plugin: String
-    /// The page the argument picks.
-    private(set) var page: PluginPage
 
     /// The place shown: the plugin's argument. The label follows it (`Plugin.show`).
     private(set) var arg: String
@@ -33,9 +31,8 @@ final class WebCard {
     @ObservationIgnored var loads = 0
     @ObservationIgnored private var css = ""
 
-    init(plugin: String, page: PluginPage, arg: String, place: String?, store: HostStore) {
+    init(plugin: String, arg: String, place: String?, store: HostStore) {
         self.plugin = plugin
-        self.page = page
         self.arg = arg
         self.place = place
         self.store = store
@@ -136,7 +133,7 @@ private final class Relay: NSObject, WKScriptMessageHandlerWithReply, WKNavigati
     /// bridge with it, to any site or to another page.
     func webView(_: WKWebView, decidePolicyFor action: WKNavigationAction) async -> WKNavigationActionPolicy {
         guard let url = action.request.url, let card else { return .cancel }
-        return url == PluginScheme.url(card.plugin, card.page) ? .allow : .cancel
+        return url == PluginScheme.url(card.plugin) ? .allow : .cancel
     }
 
     func webView(_: WKWebView, didFinish _: WKNavigation!) {
