@@ -193,15 +193,18 @@ working until this track switches the default plugins to installed packages.
   sets (no path, not drawn); a `path` text's value is a list of parts; a text's `symbol` draws before its last part
   (File's `{}` before the scope); menu items take a `symbol`, and `{ title }` starts a section ("Remote"); a button's
   `badge` and `busy` (a count after its symbol, a spinner in its place), and `label` for VoiceOver ("Push, 1 ahead").
-- **Decisions:** controls sit 6 pt apart, but icon buttons side by side touch (0 pt), as the built bars' runs do
-  (zoom, previous/next). Free space goes to a spacer or a field; with neither, after the last control, so the row
-  starts at the left. Every control's id is `pane.<pane>.<id>` and segments keep `<id>.<title lowercased>`, so the
-  built bars' ids (`filter`, `root`, `jump`, `mode.read`, `outline`, `git.branch`, `diff.layout.side by side`, …) can
-  stay. A user plugin with neither header nor history has one header row, in a pane and floating.
+- **Decisions:** controls sit 6 pt apart; a control's `gap` sets the points before it, because the built bars group
+  icon buttons only the plugin knows about: 0 between Preview's zoom buttons and before Diff's Previous and Next, 2
+  for Git's Pull and Push, 6 between Preview's last zoom button and Show in File Explorer. A text's `"digits": "mono"`
+  gives monospaced digits (Preview's `3 of 12`); paths stay proportional. Free space goes to a spacer or a field;
+  with neither, after the last control, so the row starts at the left. Every control's id is `pane.<pane>.<id>` and
+  segments keep `<id>.<title lowercased>`, so the built bars' ids (`filter`, `root`, `jump`, `mode.read`, `outline`,
+  `git.branch`, `diff.layout.side by side`, …) can stay. A user plugin with neither header nor history has one header
+  row, in a pane and floating.
 - **For D and E:** a place's controls that other places lack default to `hidden: true` in the manifest, and the page
   shows them in `main` before `card.ready()`: a brand-new card draws the manifest's row until then (a card made again
   draws its saved values). `OpenWith` moved to `HeaderView.swift`; the built bars' row uses it until D deletes that
-  row. Two small parity changes to list: Git's Fetch, Pull and Push touched 2 pt apart and now
-  touch; a PDF's `3 of 12` loses its monospaced digits.
+  row. The manifest page's Header section gets `gap`, `digits`, `label`, `badge`, `busy`, `history`, `openWith`, a
+  text's `symbol` and menu headings (docs pass).
 - **For the user:** a plugin's row 2 in a pane and floating, light and dark: the fixture in
   `OrielUITests/HeaderTests.swift` shows every control type.

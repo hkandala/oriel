@@ -43,6 +43,9 @@ private func error(_ oriel: String, package: String = #""version": "0.1.0""#) ->
     #expect(tree.header[2].items?.first?.value == nil && tree.header[2].items?.first?.title == "Remote")
     #expect(tree.header[2].items?.last?.symbol == "folder")
     #expect(error(base + #", "header": [{"type": "segmented", "id": "a", "options": [{"title": "A"}]}]"#) != nil)
+    #expect(error(base + #", "header": [{"type": "button", "id": "a", "gap": -1}]"#) != nil)
+    #expect(error(base + #", "header": [{"type": "text", "id": "a", "digits": "wide"}]"#) != nil)
+    #expect(error(base + #", "header": [{"type": "text", "id": "a", "digits": "mono", "gap": 0}]"#) == nil)
 }
 
 @Test func `a control's value from the page's JSON: a boolean, a list, a string, nothing else`() {

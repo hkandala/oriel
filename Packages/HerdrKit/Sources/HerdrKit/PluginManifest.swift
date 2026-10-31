@@ -75,6 +75,10 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
         public var placeholder: String?
         /// A text's: `plain`, `dim` or `path`.
         public var style: String?
+        /// A text's `mono`: monospaced digits, so a count (`3 of 12`) keeps its width as it changes.
+        public var digits: String?
+        /// The points before the control: 6 by default; 0 joins icon buttons into a group (zoom), 2 sets them close.
+        public var gap: Double?
         public var hidden: Bool?
         public var enabled: Bool?
         /// A button's count after its symbol (Git's commits ahead).
@@ -221,8 +225,11 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
             guard control.type == "spacer" || control.id.map({ ids.insert($0).inserted }) == true else {
                 throw bad("header", "needs a unique id on each \(control.type)")
             }
-            guard control.options?.allSatisfy({ $0.value != nil }) != false else {
-                throw bad("header", "needs a value and a title on each option of \(control.id ?? "")")
+            // A segmented option without a value would show as picked while nothing is.
+            guard control.gap ?? 0 >= 0, control.digits ?? "mono" == "mono",
+                  control.options?.allSatisfy({ $0.value != nil }) != false
+            else {
+                throw bad("header", "has a bad gap, digits or option on \(control.id ?? "")")
             }
         }
         for command in commands {
