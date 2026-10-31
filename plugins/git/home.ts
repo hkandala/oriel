@@ -30,8 +30,9 @@ let staged: Change[] = []
 /** git's error when the root is no repository (or git cannot run). */
 let failure: string | undefined
 let branches: { name: string; remote: boolean; current: boolean }[] = []
-/** The write that runs, for its button's spinner: fetch, pull, push, switch or commit. */
-let running: string | undefined
+/** The writes with a spinner (fetch, pull, push, switch, commit) in the order they run: the app runs a card's writes
+ *  one at a time. */
+const running: string[] = []
 /** What the page drew last: a read that finds the same draws nothing. */
 let drawn = ""
 
@@ -46,8 +47,9 @@ export async function show(next: string, at?: string) {
     drawn = ""
   }
   page.hidden = false
-  if (message.value) grow()
   await load()
+  // Once its form shows: hidden, it has no height.
+  if (message.value) grow()
   // Back from a diff: at the change or the commit it opened.
   const landing = at?.startsWith(`${home(root)} `)
     ? document.getElementById(`commit.${at.split(" ").pop()}`)
@@ -114,9 +116,9 @@ async function read() {
 
 /** The branch and the three buttons: a spinner on the one that runs, all off while one runs or git cannot read. */
 function buttons() {
-  const off = Boolean(failure || running)
-  control("git.branch", { busy: running === "switch", enabled: branches.length > 0 && !running })
-  for (const name of ["fetch", "pull", "push"]) control(`git.${name}`, { busy: running === name, enabled: !off })
+  const off = Boolean(failure || running.length)
+  control("git.branch", { busy: running[0] === "switch", enabled: branches.length > 0 && !running.length })
+  for (const name of ["fetch", "pull", "push"]) control(`git.${name}`, { busy: running[0] === name, enabled: !off })
 }
 
 function draw(state: { staged?: Change[]; unstaged?: Change[]; commits?: Commit[]; failure?: string }) {
@@ -165,15 +167,15 @@ function button(name: string, label: string, action: () => void) {
 /** After a write, a read; a failure shows git's message in the toast. */
 async function write(done: Promise<void>, busy?: string) {
   if (busy) {
-    running = busy
+    running.push(busy)
     buttons()
   }
   const worked = await done.then(() => true, (error: Error) => {
     void failed(error)
     return false
   })
-  if (busy && running === busy) {
-    running = undefined
+  if (busy) {
+    running.splice(running.indexOf(busy), 1)
     buttons()
   }
   await load()
