@@ -1,7 +1,7 @@
 import XCTest
 
-/// The File and Preview plugins (phase 44, web): a pane labeled `oriel:file#<iid> <path>` or `oriel:preview#…` shows
-/// its kind's page over `oriel-plugin://`, which reads the file over the bridge.
+/// File Explorer's File and Preview places: a pane labeled `oriel:explorer#<iid> <path>` (or an old `oriel:file#…`,
+/// `oriel:preview#…`) shows the explorer's page, which reads the file with the plugin API.
 extension OrielUITests {
     /// The file in CodeMirror; the jump bar follows the caret; an edit shows the dirty dot and ⌘Z clears it; ⌘S
     /// saves; a change on disk reloads a clean file, and a dirty one gets the toast (Keep Mine, then Reload); ⌘F opens
