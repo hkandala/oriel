@@ -25,6 +25,9 @@ final class PaneViewRegistry {
     static let spareWeb = UserDefaults.standard.string(forKey: "spareWebCards").flatMap { Int($0) } ?? 20
     /// Kept web cards of every window, the most recently shown last.
     private static var recentWeb: [Kept] = []
+    /// Every card's picture in the app (a kept or dropped web card's, a chat's), the most recently taken last: past
+    /// 200 MB the oldest go (a card with none shows its loader).
+    private static var pictured: [Kept] = []
     private struct Kept {
         weak var registry: PaneViewRegistry?
         let id: String
@@ -53,7 +56,7 @@ final class PaneViewRegistry {
     var landings: [String: String] = [:]
     /// The web cards in this window's view.
     private var webInView: Set<String> = []
-    /// Dropped web cards' and chats' last pictures, the latest last, until made again.
+    /// Dropped web cards' and chats' last pictures (`pictured`), until made again.
     private var pictures: [(id: String, picture: CGImage)] = []
     /// Chat cards' pictures from their views in the window (`ChatProbe`), by terminal id.
     var chatViews: [String: () -> CGImage?] = [:]
@@ -269,7 +272,7 @@ extension PaneViewRegistry {
     /// the `spareWeb` most recently shown others, the oldest are dropped.
     private func showWeb(_ shown: Set<String>) {
         for id in webInView.subtracting(shown) {
-            webView(id)?.takePicture()
+            webView(id)?.takePicture { [weak self] _ in self?.noted(id) }
         }
         for id in shown.subtracting(webInView) {
             webView(id)?.coverUntilDrawn()
@@ -333,14 +336,27 @@ extension PaneViewRegistry {
         }
     }
 
-    /// A dropped web card's or a chat's picture, while its pane is there; 200 MB of them at most per window.
+    /// A dropped web card's or a chat's picture, while its pane is there.
     private func keep(_ id: String, _ picture: CGImage) {
         guard pages?.withFloats.contains(where: { $0.store.panes.contains { $0.terminalID == id } }) == true
         else { return }
         pictures.removeAll { $0.id == id }
         pictures.append((id, picture))
-        while pictures.reduce(0, { $0 + $1.picture.bytesPerRow * $1.picture.height }) > 200 << 20 {
-            pictures.removeFirst()
+        noted(id)
+    }
+
+    /// The card's picture is the newest; past 200 MB of them in the app, the oldest go.
+    private func noted(_ id: String) {
+        Self.pictured.removeAll { $0.registry === self && $0.id == id }
+        Self.pictured.append(Kept(registry: self, id: id))
+        let bytes = { (kept: Kept) in kept.registry?.picture(kept.id).map { $0.bytesPerRow * $0.height } ?? 0 }
+        Self.pictured.removeAll { bytes($0) == 0 }
+        var total = Self.pictured.reduce(0) { $0 + bytes($1) }
+        while total > 200 << 20, let oldest = Self.pictured.first {
+            total -= bytes(oldest)
+            Self.pictured.removeFirst()
+            oldest.registry?.webView(oldest.id)?.shot.image = nil
+            oldest.registry?.pictures.removeAll { $0.id == oldest.id }
         }
     }
 
@@ -356,7 +372,7 @@ extension PaneViewRegistry {
     func takePictures(of ids: [String]) {
         for id in ids {
             terminals[id]?.takeSnapshot()
-            webView(id)?.takePicture()
+            webView(id)?.takePicture { [weak self] _ in self?.noted(id) }
             if let picture = chatViews[id]?() {
                 keep(id, picture)
             }

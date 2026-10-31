@@ -80,11 +80,15 @@ class BrowserView: WKWebView {
         }
     }
 
-    /// At the view's pixel size, as a terminal's kept picture (24 MB for a full-window card on Retina): a cover must
-    /// look as the page does. About 8 ms in WebKit's process, also out of a window.
+    /// At 1x (6 MB for a full-window card on Retina, not 24): a cover shows a few frames and a tile is scaled down.
+    /// About 8 ms in WebKit's process, also out of a window.
     func takePicture(then taken: ((CGImage) -> Void)? = nil) {
         guard !bounds.isEmpty, url != nil else { return }
-        takeSnapshot(with: nil) { [weak self] image, _ in
+        let configuration = WKSnapshotConfiguration()
+        // In points: the image comes at the screen's scale.
+        configuration.snapshotWidth = NSNumber(value: bounds.width / ((window?.screen ?? NSScreen.main)?
+                .backingScaleFactor ?? 2))
+        takeSnapshot(with: configuration) { [weak self] image, _ in
             if let image = image?.cgImage(forProposedRect: nil, context: nil, hints: nil) {
                 self?.shot.image = image
                 taken?(image)
@@ -118,7 +122,9 @@ class BrowserView: WKWebView {
     }
 
     /// Once its page is loaded: after the next visible-rect update WebKit sends (as it comes into view), the next
-    /// presentation update (WebKit's SPI, which its own tests use); at the latest 0.5 s after.
+    /// presentation update; at the latest 0.5 s after.
+    /// ponytail: WebKit's SPI (its own tests use it); without it the cover goes after 100 ms, which can show a blank
+    /// frame again.
     private func uncover() {
         guard let cover, !isLoading, url != nil else { return }
         coverWatch = nil

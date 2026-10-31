@@ -241,9 +241,12 @@ forward; ask track D for any change in its files.
   switches median 409–448 → 437–484 ms (a first run's 2× was the VM: a second pair gave 448 vs 437). So each kept web
   card costs about 28 MB (its WebKit process), a kept terminal about 7 MB of herdr run plus its surface; neither costs
   CPU at rest. A higher bound works as long as memory does: the pressure source drops to half when macOS warns.
-- **Decisions.** Pictures are at the view's pixel size (a cover must look like the page): about 2.4 MB a card on CI,
-  up to 24 MB for a full-window card on Retina, not purgeable (macOS takes volatile surfaces back within seconds);
-  dropped cards' and chats' pictures are capped at 200 MB a window. `Page.shownTerminals` now holds web cards' panes
+- **Runs, the pictures** (this Mac, Retina, Release, 20 browser tabs over 4 workspaces each shown once, then at rest):
+  all of the app's processes 693 MB on main, 1275 MB with pictures at pixel size, 833 MB at 1x (the app 303 → 406 →
+  328 MB, WebKit's 345 → 827 → 460 MB: a snapshot costs in WebKit's process too). **Decision:** every picture is
+  taken at 1x (6 MB for a full-window card, not 24): a cover shows a few frames, a tile is scaled down. One cap over
+  all pictures in the app, 200 MB, the least recently taken out first (a card with none shows its loader).
+- **Decisions.** Pictures are not purgeable (macOS takes volatile surfaces back within seconds). `Page.shownTerminals` now holds web cards' panes
   too, so a switch between two browser tabs reaches the registry, and Oriel's `mark` writes cover them as floats did.
   Web cards' views get `renewGState` 50 ms after a show, so WebKit learns where the strip put them.
 - **Item 28: not reproduced.** Track D's CI recording shows a File Explorer card and a file card beside it blank for

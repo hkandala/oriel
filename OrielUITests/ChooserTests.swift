@@ -3,7 +3,7 @@ import XCTest
 /// A new pane's chooser (ui/new-pane): Terminal, Agent or Browser, with the keyboard from the start; and the commands
 /// that change a pane's kind.
 /// The chooser's rows the arrow test checks, and Claude Code under an open Agent.
-private let chooserRows = ["terminal", "agent", "browser", "files", "changes", "claude"]
+private let chooserRows = ["terminal", "agent", "browser", "explorer", "git", "claude"]
 
 extension OrielUITests {
     /// A pane the app made shows the chooser: Return picks Terminal.

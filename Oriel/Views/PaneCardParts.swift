@@ -51,8 +51,9 @@ struct ChatProbe: NSViewRepresentable {
         registry.chatViews[terminalID] = { [weak probe] in
             // Not one already out of view: a blank picture would replace a good one.
             guard let probe, let root = probe.window?.contentView?.superview?.layer, !probe.visibleRect.isEmpty,
-                  let scale = probe.window?.backingScaleFactor else { return nil }
-            let rect = probe.convert(probe.bounds, to: nil)
+                  probe.window != nil else { return nil }
+            // At 1x, as web cards' pictures.
+            let rect = probe.convert(probe.bounds, to: nil), scale = 1.0
             let size = CGSize(width: rect.width * scale, height: rect.height * scale)
             guard let context = CGContext(data: nil, width: Int(size.width), height: Int(size.height),
                                           bitsPerComponent: 8, bytesPerRow: 0,
