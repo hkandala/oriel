@@ -29,6 +29,9 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
     /// The app's commands the card takes: `save`, `find`.
     public let handles: [String]
     public let permissions: [String]
+    /// Files the page loads by name at run time (pdf.js's worker and fonts), copied beside the build: paths in the
+    /// package, a `*` allowed in the last part.
+    public let assets: [String]
 
     public struct Opens: Decodable, Sendable, Equatable {
         /// Name globs (`*.csv`, `Makefile`) and uniform type identifiers (`public.image`).
@@ -144,7 +147,7 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
     {
         (self.id, self.name, version, api, entry, self.icon) = (id, name, "1.0.0", 1, nil, icon)
         (self.description, self.keywords, self.opens, self.chooser) = (description, keywords, opens, chooser)
-        (header, history, commands, handles, permissions) = ([], false, [], [], [])
+        (header, history, commands, handles, permissions, assets) = ([], false, [], [], [], [])
     }
 
     /// A package's `package.json`; a missing field or a wrong value throws the field's name and what is wrong.
@@ -182,6 +185,7 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
         commands = try values.decodeIfPresent([Command].self, forKey: .commands) ?? []
         handles = try values.decodeIfPresent([String].self, forKey: .handles) ?? []
         permissions = try values.decodeIfPresent([String].self, forKey: .permissions) ?? []
+        assets = try values.decodeIfPresent([String].self, forKey: .assets) ?? []
         try check(values.codingPath)
     }
 
@@ -190,7 +194,7 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
     }
 
     private enum Keys: String, CodingKey {
-        case id, name, api, entry, icon, opens, chooser, header, history, commands, handles, permissions
+        case id, name, api, entry, icon, opens, chooser, header, history, commands, handles, permissions, assets
     }
 
     /// The manifest page's rules the types do not carry.
@@ -207,6 +211,9 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
         guard ["ts", "tsx", "js", "jsx"].contains((file as NSString).pathExtension), !file.hasPrefix("/"),
               !file.split(separator: "/").contains("..")
         else { throw bad("entry", "must be a .ts, .tsx, .js or .jsx file in the package") }
+        guard !assets.contains(where: { $0.hasPrefix("/") || $0.split(separator: "/").contains("..") }) else {
+            throw bad("assets", "must be paths in the package")
+        }
         guard ["default", "option"].contains(opens.priority) else {
             throw bad("opens.priority", "must be default or option")
         }

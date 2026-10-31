@@ -72,6 +72,8 @@ private func error(_ oriel: String, package: String = #""version": "0.1.0""#) ->
     #expect(error(base + #", "commands": [{"id": "e", "title": "Edit", "key": "e"}]"#) != nil)
     #expect(error(base + #", "permissions": ["network"]"#) == "oriel.permissions has an unknown permission network")
     #expect(error(base + #", "opens": {"priority": "high"}"#) != nil)
+    #expect(error(base + #", "assets": ["../x.js"]"#) == "oriel.assets must be paths in the package")
+    #expect((try? manifest(base + #", "assets": ["node_modules/pdfjs-dist/cmaps/*.bcmap"]"#))?.assets.count == 1)
     #expect(error(base + #", "header": [{"type": "toggle", "id": "a"}, 5]"#) != nil)
     #expect((try? PluginManifest(package: Data("not json".utf8))) == nil)
     #expect(error(base + #", "chooser": "Notes", "opens": {"folders": true}"#) == nil)

@@ -29,7 +29,7 @@ final class PluginBuilds {
             return "\(manifest.name) has no package to build"
         }
         let start = ContinuousClock.now
-        let task = Task.detached { await Self.make(id, package, entry, again: again) }
+        let task = Task.detached { await Self.make(id, package, entry, manifest.assets, again: again) }
         running[id] = task
         let made = await task.value, (folder, errors) = (made.folder, made.errors)
         if running[id] == task {
@@ -73,7 +73,7 @@ final class PluginBuilds {
         + ["png", "jpg", "jpeg", "gif", "webp", "svg", "woff", "woff2", "ttf", "otf", "wasm"]
         .map { "--loader:.\($0)=file" }
 
-    private nonisolated static func make(_ id: String, _ package: URL, _ entry: String,
+    private nonisolated static func make(_ id: String, _ package: URL, _ entry: String, _ assets: [String],
                                          again: Bool) async -> Made
     {
         let files = FileManager.default, root = cache.appending(path: id),
@@ -89,10 +89,12 @@ final class PluginBuilds {
             let text = output.trimmingCharacters(in: .whitespacesAndNewlines)
             return Made(folder: nil, errors: text.isEmpty ? "esbuild failed (\(status))" : text, built: true)
         }
-        try? files.removeItem(at: folder)
         do {
+            try copy(assets, from: package, to: temporary)
+            try? files.removeItem(at: folder)
             try files.moveItem(at: temporary, to: folder)
         } catch {
+            try? files.removeItem(at: temporary)
             return Made(folder: nil, errors: error.localizedDescription, built: true)
         }
         // The plugin's older builds go; a card still on one loads the new one at its next load.
@@ -102,6 +104,19 @@ final class PluginBuilds {
             try? files.removeItem(at: old)
         }
         return Made(folder: folder, errors: nil, built: true)
+    }
+
+    /// The manifest's `assets` beside the build, flat: a `*` in a path's last part matches as a shell's does.
+    private nonisolated static func copy(_ assets: [String], from package: URL, to build: URL) throws {
+        for asset in assets {
+            let path = package.appending(path: asset), pattern = path.lastPathComponent
+            let folder = path.deletingLastPathComponent()
+            let names = pattern.contains("*") ? try FileManager.default.contentsOfDirectory(atPath: folder.path)
+                .filter { fnmatch(pattern, $0, 0) == 0 } : [pattern]
+            for name in names {
+                try FileManager.default.copyItem(at: folder.appending(path: name), to: build.appending(path: name))
+            }
+        }
     }
 
     /// The hash of what a build reads: the package's files (path, size, time) outside `node_modules`, the package
