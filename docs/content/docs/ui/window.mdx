@@ -29,9 +29,10 @@ open, the traffic lights, the sidebar toggle and the machine button sit in a
 leading area as wide as the sidebar, so the first tab starts where the cards
 start, also during a resize. From left to right:
 1. The traffic lights, centered on the row at 23, 46 and 69 pt from the
-   left, where Rex has them. The window keeps AppKit's compact toolbar (whose
-   own row is 40 pt) and moves the three standard buttons with plain frame
-   changes, again after every AppKit layout; full screen has none. The row's
+   left, where Rex has them. The window has no toolbar: `TrafficLights`
+   moves the three standard buttons onto the 46 pt row with plain frame
+   changes, again after every AppKit layout; full screen has none. (An empty
+   toolbar's accessibility frame covered the title row on a Mac with a notch.) The row's
    items start 91 pt in, so the sidebar toggle sits where Rex has it.
 2. The sidebar toggle, always shown outside the overview (⌃⌘S). It has no highlight when the
    sidebar is open. The icon changes instead: an outline window with a sidebar
@@ -455,8 +456,10 @@ tabs.
 - Layout changes animate over 0.13 s: a new card slides in from its side, a
   closed one fades away, a zoom grows the card to the page and back. A
   divider drag follows the pointer.
-- Browser and plugin cards are made only in the selected tab, once the strip
-  rests. A neighbor page shows their last pictures while the strip moves,
+- Browser and plugin cards are made in the selected tab once the strip rests,
+  and in the tabs on either side 0.5 s later while the kept bound has room
+  ([Neighbors made ahead](/docs/ui/browser#pictures-and-switches)). A
+  neighbor page shows their last pictures while the strip moves,
   and a card coming back into view shows its picture until its page drew
   ([Pictures and switches](/docs/ui/browser#pictures-and-switches)).
 

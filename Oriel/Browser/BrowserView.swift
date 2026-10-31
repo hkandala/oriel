@@ -149,7 +149,8 @@ class BrowserView: WKWebView {
         let presented: @convention(block) () -> Void = { [weak self] in
             self?.perform(NSSelectorFromString("_doAfterNextPresentationUpdate:"), with: remove)
         }
-        let shown = NSSelectorFromString("_doAfterNextVisibleContentRectUpdate:"), spi = responds(to: shown)
+        let shown = NSSelectorFromString("_doAfterNextVisibleContentRectUpdate:")
+        let spi = responds(to: shown) && responds(to: NSSelectorFromString("_doAfterNextPresentationUpdate:"))
         if spi {
             perform(shown, with: presented)
         }

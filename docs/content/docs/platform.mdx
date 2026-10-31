@@ -61,7 +61,9 @@ Each library has its entry, with its license, in the app's `Acknowledgements.txt
 
 - The tab bar is part of the app's own 46 pt title row, a horizontal
   `ScrollView` in the hidden title bar. It is not a `ToolbarItem`: the
-  toolbar holds only a `ToolbarSpacer`.
+  window has no toolbar, and `TrafficLights` places the buttons on the 46 pt
+  row (an empty toolbar's accessibility frame covered the title row on a Mac
+  with a notch, so a hit test at a tab found the toolbar).
 - One glass marker follows the strip's scroll offset
   (`onScrollGeometryChange`). The lit tabs come from the same number: every
   tab from `floor(x/w)` to `ceil((x+w)/w) − 1`. When the scroll stops, the

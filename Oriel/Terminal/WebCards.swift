@@ -49,7 +49,7 @@ extension PaneViewRegistry {
             try? await Task.sleep(for: .milliseconds(500))
             guard let self, let page = pages?.current, let workspace = page.selectedWorkspace, stripSize != .zero,
                   let index = workspace.tabs.firstIndex(where: { $0.id == page.selectedTab?.id }) else { return }
-            let area = CGRect(x: 0, y: 0, width: stripSize.width - 2 * gap, height: stripSize.height - 4 - gap)
+            let area = Strip.area(stripSize)
             for tab in [index - 1, index + 1].filter(workspace.tabs.indices.contains).map({ workspace.tabs[$0] }) {
                 for card in tab.tree.map({ Parts($0, in: area, held: [:]).cards }) ?? [] {
                     guard !Task.isCancelled, !page.stripMoving, pages?.overview != true,

@@ -420,3 +420,10 @@ after (Release, `sample` over tab clicks, three swipes and two overview opens).
 - 10 (A): a backlog read off the main actor stops with its follow (checked every 500 lines); its marks end at the last
   line it read.
 - 18 (A): OpenCode reads each event once off the main actor, and again on it only for the events the waits read.
+- 6 (B): the cover's SPI path runs only when WebKit answers both selectors, else the 100 ms fallback (an unchecked one
+  would crash on a WebKit without it).
+- 9 (B): a window that closes drops its own web cards and kept entries at once, with no picture and no trim of other
+  windows' kept cards.
+- 14 (F): the strip's page inset is one `Strip.inset`; cards made ahead take their area from `Strip.area`.
+- 3, 4, 16 (B, F docs): no toolbar (window, platform); neighbors made ahead (browser, window, D46); no phase history in
+  the plugin pages.

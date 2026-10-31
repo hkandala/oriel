@@ -26,11 +26,9 @@ struct Strip: View {
                     ForEach(workspace.tabs) { tab in
                         Group {
                             if let tree = tab.tree {
-                                // Inside the scroll view, which clips: room for the cards' outer stroke and shadow.
                                 let zoomed = page.zoomedPaneID.flatMap { tree.paneIDs.contains($0) ? $0 : nil }
                                 SplitLayout(tree: tree, zoomed: zoomed, page: page, tabID: tab.id)
-                                    .padding([.horizontal, .bottom], gap)
-                                    .padding(.top, 4)
+                                    .padding(Self.inset)
                             } else {
                                 Text("No layout for this tab").foregroundStyle(.secondary)
                             }
@@ -84,6 +82,15 @@ struct Strip: View {
             // can miss the scroll: again once it has.
             Task { position.scrollTo(id: target, anchor: .leading) }
         }
+    }
+
+    /// A page's cards inside its page: room for the cards' outer stroke and shadow, the scroll view clips.
+    static let inset = EdgeInsets(top: 4, leading: gap, bottom: gap, trailing: gap)
+
+    /// The cards' area in a page of this size.
+    static func area(_ size: CGSize) -> CGRect {
+        CGRect(x: 0, y: 0, width: size.width - inset.leading - inset.trailing,
+               height: size.height - inset.top - inset.bottom)
     }
 
     /// The selected tab's page as a point of the pages' width.

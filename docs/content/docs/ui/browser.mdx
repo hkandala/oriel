@@ -170,6 +170,13 @@ card (a browser's or a plugin's) keeps a picture of its page:
   neighbor page that the lazy strip lays out shows the card's last picture,
   else the loader. 50 ms after a card comes into view, its web view gets
   `renewGState`, so WebKit learns where the strip put it.
+- **Neighbors made ahead.** 0.5 s after a tab shows, while the strip rests
+  and not under the overview, the web cards of the tabs on either side are
+  made one at a time, 0.1 s apart, at their size in the page, and only while
+  the kept bound has room for the cards in view too. They count as the least
+  recently shown. A browser loads out of a window and takes its picture as
+  its load ends, which covers its first frames in a window; a File Explorer or
+  Git page loads only once shown.
 - When a new host adopts a web view, the view keeps its size: one set to the
   host's zero size laid the page out again and drew it blank.
 

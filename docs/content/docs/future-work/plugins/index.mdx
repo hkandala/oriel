@@ -152,10 +152,10 @@ browser card with a heavy site costs more: 120 to 200 MB.
 | 16 + 16 | 190 MB | 480 MB | 656 MB | 284 MB | about 1.6 GB |
 | 20 + 20 (proposed) | 190 MB | 600 MB | 820 MB | 284 MB | about 1.9 GB |
 | 25 + 25 | 190 MB | 750 MB | 1,025 MB | 284 MB | about 2.3 GB |
-| before phase 46: 16 terminals, every web card kept | 190 MB | 480 MB | 41 MB × every card shown since launch | 284 MB | no limit |
+| 16 terminals, every web card kept | 190 MB | 480 MB | 41 MB × every card shown since launch | 284 MB | no limit |
 
 - Dropped cards add at most 200 MB of stills in all.
-- Measured in phase 46 on CI's VM: each kept web card costs about 28 MB (its
+- Measured on CI's VM: each kept web card costs about 28 MB (its
   WebKit process), a kept terminal about 7 MB of herdr run plus its surface,
   and neither costs CPU at rest. 40 + 40 worked too: 1.7 GB for all 89
   processes.
@@ -167,9 +167,9 @@ browser card with a heavy site costs more: 120 to 200 MB.
 
 ### The overview
 
-Since phase 46 every overview tile shows pictures: a terminal's snapshot, a
-web card's or a chat's still. With 20 + 20 kept it opened in 205 ms, 327 ms
-before ([Overview](/docs/ui/window#overview)).
+Every overview tile shows pictures: a terminal's snapshot, a web card's or a
+chat's still. With 20 + 20 kept it opens in 205 ms, against 327 ms with live
+tiles ([Overview](/docs/ui/window#overview)).
 
 ## A missing plugin
 

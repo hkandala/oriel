@@ -189,7 +189,7 @@ final class PaneViewRegistry {
     {
         // A web card's placeholder is no terminal to stream.
         let shown = shown.filter { !web.contains($0.key) }
-        for id in shownIDs.subtracting(shown.keys) {
+        for id in alive.isEmpty ? [] : shownIDs.subtracting(shown.keys) {
             if let picture = chatViews[id]?() {
                 keep(id, picture)
             }
@@ -220,6 +220,13 @@ final class PaneViewRegistry {
         }
         Self.recent = Self.recent.filter { terminal in !visited.contains { $0 === terminal } } + visited
         streaming.forEach { $0.show() }
+        // The window closes: its web cards go with it, with no picture, and the other windows' kept cards stay.
+        guard !alive.isEmpty else {
+            prewarming?.cancel()
+            Self.recentWeb.removeAll { $0.registry === self }
+            (browsers, plugins, webInView) = ([:], [:], [])
+            return
+        }
         showWeb(web)
     }
 
