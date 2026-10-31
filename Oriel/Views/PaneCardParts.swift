@@ -18,9 +18,7 @@ extension Page {
         guard let pane, !floats(pane), store.chooser(pane.id) == nil else { return false }
         // Only a plugin with pages has controls, a user's only with a header or Back and Forward; a missing one none.
         guard let label = pane.plugin else { return pane.agent != nil || ChatAdapters.recognize(pane.program) != nil }
-        return label.manifest.map { plugin in
-            PluginPage(plugin.id, label.place).map { $0 != .main || !plugin.header.isEmpty || plugin.history } ?? false
-        } ?? false
+        return label.manifest.map { plugin in PluginPage(plugin.id, label.place).map(plugin.hasRow) ?? false } ?? false
     }
 
     /// The card's header: one row or two.

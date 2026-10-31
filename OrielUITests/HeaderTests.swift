@@ -3,9 +3,10 @@ import XCTest
 /// A plugin's header row (phase 47, future-work/plugins/manifest#header).
 extension OrielUITests {
     /// A user plugin's controls, drawn from its manifest before its page loads: Back and Forward at the row's left
-    /// edge,
-    /// a path text, a badge in a button's label, a field that takes the free width, Open With; a hidden control is not
-    /// drawn. A toggle and segments change at once, and the floating window draws the same row with the same values.
+    /// edge, a menu with a section and a divider, a path text, a badge in a button's label, a field that takes the free
+    /// width, Open With; a hidden control is not drawn. A toggle and segments change at once, a menu pick leaves the
+    /// value to the page, and the floating window draws the same row with the same values. A plugin with no header has
+    /// one header row.
     func testAPluginsHeaderDrawsItsManifestsControls() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (_, shell) = try await newTab("header")
@@ -16,15 +17,7 @@ extension OrielUITests {
         relaunch(nil, ["-configFolder", config])
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         element("workspace.w2").click()
-        let reply = try await Self.call(one, "layout.apply", ["workspace_id": "w2", "focus": false, "root": [
-            "type": "pane", "cwd": "/tmp", "label": "oriel:fixture#e2ehdr /tmp/notes.md",
-            "command": ["sh", "-c", "cat", "sh"],
-        ]])
-        let layout = reply["layout"] as? [String: Any]
-        let tab: String = try field(layout?["tab_id"], "layout's tab")
-        let card: String = try field((layout?["root"] as? [String: Any])?["pane_id"], "layout's pane")
-        closeAfter("tab", tab)
-        try await show(tab)
+        let card = try await pluginTab("oriel:fixture#e2ehdr /tmp/notes.md")
 
         let control = { (id: String) in self.element("pane.\(card).\(id)") }
         XCTAssertTrue(control("root").exists(within: 5))
@@ -45,6 +38,13 @@ extension OrielUITests {
         XCTAssertTrue(control("outline").has(\.isSelected, false, within: 2))
         control("mode.edit").click()
         XCTAssertTrue(control("mode.edit").has(\.isSelected, true, within: 2))
+        control("root").click()
+        for item in ["Places", "tmp", "Choose…"] {
+            XCTAssertTrue(control("root").menuItems[item].exists(within: 2), item)
+        }
+        control("root").menuItems["tmp"].click()
+        XCTAssertTrue(control("root").menuItems["tmp"].vanishes(within: 2))
+        XCTAssertEqual(control("root").value as? String, "oriel")
 
         let window = try float(card)
         let floating = { (id: String) in self.element("pane.\(card).\(id)", in: window) }
@@ -55,10 +55,29 @@ extension OrielUITests {
         keepScreen("plugin header floating")
         window.buttons[XCUIIdentifierCloseWindow].click()
         XCTAssertTrue(window.vanishes(within: 3))
-        try await send("rm -rf \(config)\r", to: shell)
+
+        // The page starts right under row 1.
+        let bare = try await pluginTab("oriel:bare#e2ebar /tmp")
+        XCTAssertTrue(element("bare.\(bare).card").exists(within: 5))
+        let top = element("bare.\(bare).card").frame.minY - element("pane.\(bare)").frame.minY
+        XCTAssertLessThan(top, 50, "one row of 36 pt, not two")
+        try await send("rm -rf \(config) /tmp/notes.md\r", to: shell)
     }
 
-    /// A shell line that writes a plugin whose header has every control type.
+    /// A new tab whose pane has this label, shown; its pane.
+    private func pluginTab(_ label: String) async throws -> String {
+        let reply = try await Self.call(one, "layout.apply", ["workspace_id": "w2", "focus": false, "root": [
+            "type": "pane", "cwd": "/tmp", "label": label, "command": ["sh", "-c", "cat", "sh"],
+        ]])
+        let layout = reply["layout"] as? [String: Any]
+        let tab: String = try field(layout?["tab_id"], "layout's tab")
+        let pane: String = try field((layout?["root"] as? [String: Any])?["pane_id"], "layout's pane")
+        closeAfter("tab", tab)
+        try await show(tab)
+        return pane
+    }
+
+    /// A shell line that writes a plugin whose header has every control type, and one with no header.
     private func fixture(in config: String) -> String {
         let header = [
             #"{"id":"root","type":"menu","symbol":"folder","title":"oriel","items":[{"title":"Places"},"#
@@ -76,7 +95,9 @@ extension OrielUITests {
         ].joined(separator: ",")
         let json = #"{"version":"1.0.0","oriel":{"id":"fixture","name":"Fixture","api":1,"entry":"main.ts","#
             + #""icon":"testtube.2","history":true,"header":[\#(header)]}}"#
-        return "rm -rf \(config) && mkdir -p \(config)/plugins/fixture && touch /tmp/notes.md"
-            + " && echo '\(json)' > \(config)/plugins/fixture/package.json && clear && echo made-$((6*7))"
+        let bare = #"{"version":"1.0.0","oriel":{"id":"bare","name":"Bare","api":1,"entry":"main.ts","icon":"leaf"}}"#
+        return "rm -rf \(config) && mkdir -p \(config)/plugins/fixture \(config)/plugins/bare && touch /tmp/notes.md"
+            + " && echo '\(json)' > \(config)/plugins/fixture/package.json"
+            + " && echo '\(bare)' > \(config)/plugins/bare/package.json && clear && echo made-$((6*7))"
     }
 }

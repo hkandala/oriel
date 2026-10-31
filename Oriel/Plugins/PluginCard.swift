@@ -204,7 +204,7 @@ struct FloatingPlugin: View {
     var body: some View {
         VStack(spacing: 0) {
             // A plugin with no header and no Back and Forward has no row, as in a pane.
-            if plugin.web.page != .main || plugin.header.history || !plugin.header.controls.isEmpty {
+            if plugin.manifest.hasRow(plugin.web.page) {
                 PluginToolbar(plugin: plugin, page: page).padding(.horizontal, 11).frame(height: PaneCard.header)
             }
             PluginCard(plugin: plugin, page: page)

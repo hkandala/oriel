@@ -221,6 +221,9 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
             guard control.type == "spacer" || control.id.map({ ids.insert($0).inserted }) == true else {
                 throw bad("header", "needs a unique id on each \(control.type)")
             }
+            guard control.options?.allSatisfy({ $0.value != nil }) != false else {
+                throw bad("header", "needs a value and a title on each option of \(control.id ?? "")")
+            }
         }
         for command in commands {
             guard ids.insert(command.id).inserted else { throw bad("commands", "has the id \(command.id) twice") }
@@ -284,5 +287,45 @@ public struct ManifestError: Error, Equatable, CustomStringConvertible {
 
     public var description: String {
         text
+    }
+}
+
+public extension PluginManifest.Value {
+    /// From the page's JSON: a boolean, a list of strings or a string.
+    init?(json: Any) {
+        // A JSON number is an NSNumber too: only a real boolean is one.
+        if let number = json as? NSNumber, CFGetTypeID(number) == CFBooleanGetTypeID() {
+            self = .bool(number.boolValue)
+        } else if let list = json as? [String] {
+            self = .list(list)
+        } else if let text = json as? String {
+            self = .text(text)
+        } else {
+            return nil
+        }
+    }
+
+    var json: Any {
+        switch self {
+        case let .bool(bool): bool
+        case let .text(text): text
+        case let .list(list): list
+        }
+    }
+
+    var text: String? {
+        if case let .text(text) = self {
+            text
+        } else {
+            nil
+        }
+    }
+}
+
+public extension PluginManifest.Item {
+    /// From the page's JSON: `{ value, title, symbol }`, `{ title }` (a section heading) or `"-"` (a divider).
+    init(json: Any) {
+        let item = json as? [String: Any] ?? [:]
+        self.init(value: item["value"] as? String, title: item["title"] as? String, symbol: item["symbol"] as? String)
     }
 }
