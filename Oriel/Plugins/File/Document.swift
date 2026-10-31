@@ -1,32 +1,6 @@
 import HerdrKit
 import SwiftUI
 
-/// Git's pages follow their work tree while the card shows (`PluginCard`), so a remote machine is asked every 2 s
-/// only then. A change while the card was hidden shows when it comes back.
-extension WebCard {
-    func watch() async {
-        guard let store else { return }
-        if page == .git {
-            return await git.watch()
-        }
-        // A diff of the uncommitted changes follows its work tree; a commit's never changes.
-        // ponytail: on This Mac a build under an ignored folder makes the diff ask git about once a second; skip
-        // events under ignored folders if that costs.
-        guard page == .diff, diff.source == "uncommitted" else { return }
-        let changes = await Files.watch(diff.root, exec: store.machine.exec())
-        // What changed while the card was hidden.
-        send(["op": "changed"])
-        for await _ in changes {
-            send(["op": "changed"])
-        }
-    }
-
-    /// A diff's repo root and source, from its argument.
-    var diff: (root: String, source: String?) {
-        PaneLabel(plugin: plugin, iid: "", arg: arg).diff
-    }
-}
-
 extension Page {
     /// The File or Markdown card with the keyboard: the menu's Save and Find go to its page.
     var editor: Plugin? {

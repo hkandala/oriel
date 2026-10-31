@@ -5,8 +5,7 @@ import SwiftUI
 import WebKit
 
 /// A plugin card's content as a page of its plugin's folder (`make web`), in a web view of its own: WebKit makes a
-/// process per web view whatever the process pool. Git's pages talk to the app through `web/src/lib/bridge.ts`; a
-/// plugin's entry page (`main`) through the plugin API (`Bridge`).
+/// process per web view whatever the process pool. The page talks to the app through the plugin API (`Bridge`).
 @MainActor @Observable
 final class WebCard {
     /// Its plugin's id.
@@ -14,36 +13,22 @@ final class WebCard {
     /// The page the argument picks.
     private(set) var page: PluginPage
 
-    /// The place shown: a file's or a folder's path, a diff's root and source. The label follows it (`Plugin.show`).
+    /// The place shown: the plugin's argument. The label follows it (`Plugin.show`).
     private(set) var arg: String
 
     @ObservationIgnored weak var store: HostStore?
     @ObservationIgnored let view: WebCardView
-    /// A `main` page's calls and events.
+    /// The page's calls and events.
     var bridge: Bridge?
-    /// A linked open's landing, for the first load only: a line for a file, a path from the repo's root for a diff.
+    /// A linked open's landing, for the first load only (`oriel.card.at`).
     @ObservationIgnored private(set) var place: String?
     /// Opens a link from the page, in the card or beside it (`Page.open(_:arg:at:from:how:)`).
     @ObservationIgnored var open: ((PluginManifest, String, String?, Opening) -> Void)?
     var dirty = false
     /// The page drew its first rows or its file: the loader goes.
     var ready = false
-    /// A diff's row 2: Side by Side, and the file list shown. Per card, not saved.
-    var split = false {
-        didSet { send(["op": "layout", "split": split]) }
-    }
-
-    var list = true {
-        didSet { send(["op": "list", "open": list]) }
-    }
-
     var toast: Toast?
     @ObservationIgnored private var loaded = false
-    /// The card had the keyboard when it moved to another place: the new page takes it as it finishes, as WebKit
-    /// drops it with the page that had it.
-    @ObservationIgnored fileprivate var refocus = false
-    /// Git's home: its data and writes, also for row 2.
-    @ObservationIgnored private(set) lazy var git = GitRepo(card: self)
     @ObservationIgnored private var css = ""
 
     init(plugin: String, page: PluginPage, arg: String, place: String?, store: HostStore) {
@@ -78,10 +63,6 @@ final class WebCard {
             bridge?.theme = theme
             script()
             loaded = true
-            guard page == .main else {
-                view.load(URLRequest(url: PluginScheme.url(plugin, page)))
-                return
-            }
             // A plugin's page starts with its saved state, and not at all with an API too new.
             Task {
                 await bridge?.start()
@@ -101,110 +82,27 @@ final class WebCard {
         view.load(URLRequest(url: PluginScheme.url(plugin, page)))
     }
 
-    /// Another place: its page loads with it.
+    /// Another place: the page draws it itself. The toast was the old place's, as a page loaded again drops it.
     func show(_ arg: String, at place: String?) {
-        // A plugin's page draws its places itself. The toast was the old place's, as a page loaded again drops it.
-        guard page != .main else {
-            bridge?.dropToast()
-            toast = nil
-            self.arg = arg
-            self.place = place
-            bridge?.place(arg, at: place)
-            return
-        }
-        self.arg = arg
-        page = PluginPage(plugin, arg) ?? page
-        self.place = place
+        bridge?.dropToast()
         toast = nil
-        dirty = false
-        ready = false
-        refocus = view.window?.firstResponder === view
-        if loaded {
-            script()
-            view.load(URLRequest(url: PluginScheme.url(plugin, page)))
-        }
+        self.arg = arg
+        self.place = place
+        bridge?.place(arg, at: place)
     }
 
-    /// A message to the page's `receive` handler (`web/src/lib/bridge.ts`): row 2's controls. A page reads their first
-    /// state from its first ask's reply, so one sent before it listens is no loss.
-    func send(_ message: [String: Any]) {
-        view.callAsyncJavaScript("window.receive?.(message)", arguments: ["message": message], in: nil, in: .page)
-    }
-
-    /// The card's context and colors, in the page before its code runs: a plugin's `oriel_card` (`Bridge.context`),
-    /// Git's `card`.
+    /// The card's context and colors (`Bridge.context`), in the page before its code runs.
     private func script() {
-        var card: [String: Any] = ["arg": arg, "css": css]
-        card["at"] = place
-        let name = page == .main ? "oriel_card" : "card"
-        if let bridge, page == .main {
-            card = bridge.context().merging(["css": css]) { $1 }
-        }
+        let card = (bridge?.context() ?? [:]).merging(["css": css]) { $1 }
         let json = (try? JSONSerialization.data(withJSONObject: card)).map {
             String(decoding: $0, as: UTF8.self)
         } ?? "{}"
         let content = view.configuration.userContentController
         content.removeAllUserScripts()
         content.addUserScript(WKUserScript(
-            source: "window.\(name) = \(json); document.documentElement.style.cssText = window.\(name).css",
+            source: "window.oriel_card = \(json); document.documentElement.style.cssText = window.oriel_card.css",
             injectionTime: .atDocumentStart, forMainFrameOnly: true,
         ))
-    }
-
-    /// One message from the page: a reply or an error text for an ask, nothing for a report.
-    fileprivate func answer(_ body: Any) async -> (Any?, String?) {
-        let message = body as? [String: Any] ?? [:]
-        switch message["op"] as? String {
-        case "ready":
-            ready = true
-        case "menu":
-            menu(message)
-        case "repo":
-            return await git.answer(message)
-        case "patch":
-            defer { ready = true }
-            return await patch()
-        case "open":
-            // No `how`: in the card.
-            guard let arg = message["arg"] as? String,
-                  let opener = opener(message, arg) else { return (nil, "No path") }
-            open?(opener, arg, message["at"] as? String, (message["how"] as? String).flatMap(Opening.init) ?? .here)
-        default:
-            return (nil, "Unknown message")
-        }
-        return (nil, nil)
-    }
-
-    /// A row's menu at the pointer, after the page's reply: Open (Open as Root for a folder), Open in New Tab, Open to
-    /// the Side.
-    private func menu(_ message: [String: Any]) {
-        guard let arg = message["arg"] as? String, let opener = opener(message, arg) else { return }
-        let place = message["at"] as? String, folder = message["folder"] as? Bool == true
-        let menu = NSMenu()
-        for (title, how) in [(folder ? "Open as Root" : "Open", Opening.here), ("Open in New Tab", .tab),
-                             ("Open to the Side", .side)]
-        {
-            let action = MenuAction { [weak self] in self?.open?(opener, arg, place, how) }
-            let item = menu.addItem(withTitle: title, action: #selector(MenuAction.fire), keyEquivalent: "")
-            item.target = action
-            item.representedObject = action
-        }
-        Task { @MainActor [view] in
-            guard let window = view.window else { return }
-            menu.popUp(
-                positioning: nil,
-                at: view.convert(window.mouseLocationOutsideOfEventStream, from: nil),
-                in: view,
-            )
-        }
-    }
-
-    /// The plugin an open from the page names (`kind`), else a file's default plugin; a folder's is File Explorer.
-    private func opener(_ message: [String: Any], _ arg: String) -> PluginManifest? {
-        if let id = message["kind"] as? String {
-            return Registry.plugin(id)
-        }
-        return arg.hasSuffix("/") ? Registry.plugin("explorer") : Registry.openers(arg).first
     }
 }
 
@@ -235,12 +133,8 @@ private final class Relay: NSObject, WKScriptMessageHandlerWithReply, WKNavigati
     func userContentController(_: WKUserContentController,
                                didReceive message: WKScriptMessage) async -> (Any?, String?)
     {
-        guard let card else { return (nil, "Closed") }
-        // A plugin's page has the plugin API alone; File Explorer's and Git's pages the old messages.
-        if card.page == .main, let bridge = card.bridge {
-            return await bridge.call(message.body as? [String: Any] ?? [:])
-        }
-        return await card.answer(message.body)
+        guard let bridge = card?.bridge else { return (nil, "Closed") }
+        return await bridge.call(message.body as? [String: Any] ?? [:])
     }
 
     /// The card's own page only: a Markdown file's HTML (a `<meta>` refresh, a form) would take the view, and the
@@ -250,30 +144,16 @@ private final class Relay: NSObject, WKScriptMessageHandlerWithReply, WKNavigati
         return url == PluginScheme.url(card.plugin, card.page) ? .allow : .cancel
     }
 
-    /// The keyboard back to a card that moved to another place, unless another view took it meanwhile.
     func webView(_: WKWebView, didFinish _: WKNavigation!) {
         reloaded = false
-        guard let card, card.refocus else { return }
-        card.refocus = false
-        if let window = card.view.window, window.firstResponder === window || window.firstResponder === card.view {
-            card.view.takeKeyboard()
-        }
     }
 
-    func webView(_: WKWebView, didFail _: WKNavigation!, withError _: any Error) {
-        card?.refocus = false
-    }
-
-    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+    func webViewWebContentProcessDidTerminate(_: WKWebView) {
         guard !reloaded else { return }
         reloaded = true
         card?.dirty = false
-        // A plugin's page again with its state now.
-        if card?.page == .main {
-            card?.reload()
-        } else {
-            webView.reload()
-        }
+        // The page again with its state now.
+        card?.reload()
     }
 }
 

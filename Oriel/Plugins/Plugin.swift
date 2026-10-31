@@ -1,31 +1,21 @@
 import HerdrKit
 import SwiftUI
 
-/// A plugin card's web page (`web/src/<page>.ts`), which its argument picks: Git's home (`<root>`) or a diff
-/// (`<root> <source>`); any other plugin's entry (`main`), which draws every place of its card itself through the
+/// A plugin card's web page: its plugin's entry (`main`), which draws every place of its card itself through the
 /// plugin API (`Bridge`).
+/// ponytail: one case left once File Explorer and Git moved onto the API; it goes with the rest of the old pages.
 enum PluginPage: String, CaseIterable {
-    case diff, git, main
+    case main
 
     /// Nil for a plugin with no entry (the browser).
-    init?(_ plugin: String, _ arg: String) {
-        if plugin == "git" {
-            // Git's home, or one of its diffs.
-            self = PaneLabel(plugin: plugin, iid: "", arg: arg).diff.source == nil ? .git : .diff
-        } else if Registry.plugin(plugin)?.entry != nil {
-            self = .main
-        } else {
-            return nil
-        }
+    init?(_ plugin: String, _: String) {
+        guard Registry.plugin(plugin)?.entry != nil else { return nil }
+        self = .main
     }
 
     /// The card's and the tab's icon while it shows the page.
     var symbol: String {
-        switch self {
-        case .diff: "plusminus"
-        case .git: "arrow.triangle.branch"
-        case .main: Registry.missing
-        }
+        Registry.missing
     }
 }
 
@@ -140,9 +130,7 @@ final class Plugin {
         web = WebCard(plugin: manifest.id, page: page, arg: label.place, place: place, store: store)
         header = Header(manifest: manifest)
         name()
-        if page == .main {
-            web.bridge = Bridge(plugin: self)
-        }
+        web.bridge = Bridge(plugin: self)
         web.view.step = { [weak self] back in
             guard let self, back ? canGoBack : canGoForward else { return false }
             if back {
@@ -154,16 +142,16 @@ final class Plugin {
         }
     }
 
-    /// The page's identifier names the page it shows, a File Explorer's its place: `file.<pane>.page`.
+    /// The page's identifier names its plugin, a File Explorer's its place: `git.<pane>.page`, `file.<pane>.page`.
     func name() {
-        let page = manifest.id == "explorer" ? ExplorerPlace(web.arg).rawValue : web.page.rawValue
+        let page = manifest.id == "explorer" ? ExplorerPlace(web.arg).rawValue : manifest.id
         web.view.setAccessibilityIdentifier("\(page).\(paneID).page")
     }
 
     /// A plugin's page takes what its manifest `handles` (`save`, `find`); a File Explorer only in File and Markdown.
     func handles(_ command: String) -> Bool {
         let place = manifest.id == "explorer" ? ExplorerPlace(web.arg) : nil
-        return web.page == .main && manifest.handles.contains(command) && place != .files && place != .preview
+        return manifest.handles.contains(command) && place != .files && place != .preview
     }
 
     /// A menu command for the card's page: `save`, `find`, `findNext` or `findPrevious`.
@@ -196,11 +184,7 @@ final class Plugin {
     /// comes back with the file it opened revealed.
     func go(_ arg: String, at place: String? = nil) {
         guard arg != web.arg else {
-            if web.page == .main {
-                web.bridge?.place(arg, at: place)
-            } else if let place {
-                web.send(["op": "reveal", "at": place])
-            }
+            web.bridge?.place(arg, at: place)
             return
         }
         // A path that makes no label (a control character, over 1024 characters) opens nothing, as a linked open.
@@ -215,7 +199,7 @@ final class Plugin {
     /// Where a place comes back when Back returns to it from `arg`: where it came back from, so the tree reveals the
     /// file it opened, the Git home the change (`place`) or the commit (`arg`) it opened.
     private func landing(_ arg: String, _ place: String?) -> String? {
-        web.page == .diff ? nil : place ?? arg
+        place ?? arg
     }
 
     func goBack() {

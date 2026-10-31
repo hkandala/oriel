@@ -282,3 +282,30 @@ working until this track switches the default plugins to installed packages.
   it after the card's (a race in the test, which now waits for the move). 41217702085 (439bc03e): 11 of 12; Back to the
   tree showed the filter field with the last tree's text until the page cleared it, and a field shown with text takes
   the keyboard, so ⌘] went to the field. The filter now shows empty in the same change that shows it.
+
+### Track E (Git on the API)
+
+- **Decisions:** Git is the package `plugins/git` (its own `package.json`, lockfile and `node_modules` with
+  `@pierre/diffs`; `@oriel/plugin-api` an optional peer, as npm would fetch it otherwise). `main.ts` routes the two
+  places in one page; the diff and `@pierre/diffs` load with `import()` on the first diff. `make web` builds it with
+  web's esbuild and checks it with `tsc` against the host types, found through a gitignored
+  `plugins/node_modules/@oriel/plugin-api` link to `web/oriel`, the layout the app's plugins folder has.
+- **Decisions:** one document holds both places, so each place's CSS is nested under its container (`#home`,
+  `#diff`) and the shared rows stay global; all CSS is imported by `main.ts`, as esbuild links no CSS of a
+  dynamic chunk. The home scrolls in its container, not the body.
+- **Decisions:** row 2 is the manifest's header: the branch menu (`label: "Branch"`, items and value from the page,
+  a `{ title: "Remote" }` heading), Fetch, Pull and Push with `badge`, `label` ("Push, 1 ahead") and `busy`; the
+  diff's Git Home, `Unified | Side by Side`, the file list button (its title Hide/Show File List) and Previous/Next
+  with `gap: 0`. One spacer serves both places; the diff's controls start hidden and the page swaps them per place.
+  Every control keeps its old id, and the page ids stay `git.<pane>.page` and `diff.<pane>.page`
+  (`Plugin.name()`); another plugin's entry page is `<plugin id>.<pane>.page`.
+- **Decisions:** the commit message and the file list are in the card's state, Side by Side is the header's saved
+  value: all three now also survive a drop, a reload and a relaunch (they were kept while the app ran). Writes and
+  their toasts (Copy, OK) go through the API; `clipboard` joined the permissions for Copy.
+- **Fix:** `GitBar`, `DiffToolbar`, `GitRepo`, `DiffPatch`, the old pages and the old bridge's `repo`, `patch`,
+  `layout`, `list`, `step` and `symbols` are gone; `@pierre/diffs` left `web/package.json`.
+- **Runs:** parity is pixel-equal against main: the home, the diff, Side by Side, no file list, and the home and the
+  diff floating, dark and light (a throwaway test with a fixed-date repository, run on both builds; the only
+  difference was the caret's blink).
+- **For the user:** the Git card looks and works as before. A dropped or relaunched card now keeps its typed commit
+  message and its Side by Side and file list.

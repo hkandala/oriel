@@ -82,7 +82,7 @@ extension OrielUITests {
 
     /// The calls that ask the user or move the card, from the fixture's buttons.
     private func cardCalls(_ card: String, in tab: String, root: String) async throws {
-        let button = { (title: String) in self.element("main.\(card).page").buttons[title] }
+        let button = { (title: String) in self.element("plugin-api.\(card).page").buttons[title] }
         button("Toast").click()
         XCTAssertTrue(element("pane.\(card).toast").exists(within: 3))
         element("pane.\(card).toast.main").click()

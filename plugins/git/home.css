@@ -1,0 +1,52 @@
+/* The Git home (home.ts): rows as the sidebar's, the app's fonts and colors. The page scrolls as the card's body did. */
+[hidden] { display: none !important; }
+body { user-select: none; -webkit-user-select: none; }
+#home {
+  height: 100%; overflow-y: auto; cursor: default;
+  #failure { position: fixed; inset: 0; margin: auto; height: fit-content; padding: 0 24px; text-align: center;
+    color: var(--dim); }
+  main { padding: 10px 0 16px; }
+  #commit { display: flex; align-items: flex-end; gap: 8px; margin: 0 2px 18px; }
+  #message { flex: 1; box-sizing: border-box; min-height: 30px; max-height: calc(5 * 18px + 12px); resize: none;
+    padding: 6px 10px; border: 0; border-radius: 8px; outline: none; font: inherit; line-height: 18px; color: var(--text);
+    background: color-mix(in srgb, var(--text) 6%, transparent); }
+  #message::placeholder { color: var(--dim); }
+  #message:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent); }
+  #commit-button { all: unset; height: 30px; padding: 0 16px; border-radius: 15px; font-weight: 500; color: var(--on-accent);
+    background: var(--accent); }
+  #commit-button:hover { filter: brightness(1.08); }
+  #commit-button:active { filter: brightness(0.92); }
+  #commit-button:disabled { color: var(--dim); background: color-mix(in srgb, var(--text) 8%, transparent); filter: none; }
+  #commit-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  section { margin-bottom: 16px; }
+  .title .icon { margin-left: auto; }
+  .open { all: unset; display: flex; align-items: center; gap: 7px; flex: 1; min-width: 0; height: 100%; }
+  .open:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 7px; }
+  .open > span { overflow: hidden; text-overflow: ellipsis; flex: none; }
+  .open > .name { flex: 0 1 auto; min-width: 0; }
+  .open > .folder { flex: 0 1000 auto; min-width: 0; font-size: 11px; color: var(--dim); direction: rtl; text-align: left; }
+  /* Shown under the pointer; still there for VoiceOver and a click. */
+  .row > .icon { margin-left: auto; opacity: 0; }
+  .row:hover > .icon, .row:focus-within > .icon { opacity: 1; }
+  .empty { margin: 0; padding: 0 10px; height: 28px; line-height: 28px; color: var(--dim); }
+  .open > .symbol { color: var(--dim); }
+  .icon { all: unset; display: grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 6px;
+    color: var(--dim); }
+  .icon .symbol { width: 11px; height: 11px; }
+  .icon:hover { color: var(--text); background: color-mix(in srgb, var(--text) 9%, transparent); }
+  .icon:focus-visible { outline: 2px solid var(--accent); }
+  .letter { width: 12px; font: 600 11px ui-monospace, monospace; text-align: center; }
+  /* A git letter's color, as the File Explorer's tree. */
+  .M, .T { color: var(--needs-you); }
+  .A, .U, .R { color: var(--finished); }
+  .D, .C { color: var(--error); }
+  .commit { padding-left: 4px; }
+  .commit .open { gap: 6px; }
+  .commit svg { flex: none; }
+  .commit .hash { margin-left: auto; font: 11px ui-monospace, monospace; color: var(--dim); }
+  .commit .when { min-width: 52px; text-align: right; font-size: 11px; color: var(--dim); }
+  .badge { display: flex; align-items: center; gap: 3px; height: 18px; padding: 0 7px; border-radius: 9px; font-size: 11px;
+    color: var(--dim); background: color-mix(in srgb, var(--text) 8%, transparent); }
+  .badge .symbol { width: 10px; height: 10px; }
+  .badge.head { color: var(--on-accent); font-weight: 600; background: var(--accent); }
+}
