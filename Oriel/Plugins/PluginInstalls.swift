@@ -1,7 +1,7 @@
 import AppKit
 import HerdrKit
 
-/// The Plugins panel's work (future-work/plugins, decision 5): install, update and remove of `npm:`, `git:` and local
+/// The Plugins panel's work (plugins/packages): install, update and remove of `npm:`, `git:` and local
 /// path sources, the `packages` list of `settings.json`, and the trust prompt before a package's dependencies install.
 @MainActor @Observable
 final class PluginInstalls {

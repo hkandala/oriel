@@ -42,7 +42,7 @@ final class PluginScheme: NSObject, WKURLSchemeHandler {
         // UTType knows no MIME type for pdf.js's decoders.
         let mime = page ? "text/html" : url.pathExtension == "wasm" ? "application/wasm"
             : UTType(filenameExtension: url.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
-        // Scripts, styles, fonts and fetches only from the plugin's own folder (future-work/plugins/security); a
+        // Scripts, styles, fonts and fetches only from the plugin's own folder (plugins/security); a
         // preview shows its file from a blob.
         let own = "\(Self.name)://\(id)"
         task.didReceive(HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: [

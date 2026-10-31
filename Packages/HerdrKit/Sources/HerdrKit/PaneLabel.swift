@@ -1,6 +1,6 @@
 import Foundation
 
-/// A plugin pane's herdr label (future-work/plugins/labels): `oriel:<plugin>[/<pane>]#<iid>[ <arg>]`. The label marks
+/// A plugin pane's herdr label (plugins/labels): `oriel:<plugin>[/<pane>]#<iid>[ <arg>]`. The label marks
 /// the pane: it survives moves and herdr restarts, and every device sees it.
 public struct PaneLabel: Equatable, Sendable {
     public let plugin: String
@@ -72,7 +72,7 @@ public struct PaneLabel: Equatable, Sendable {
         return String(place[place.index(after: space)...])
     }
 
-    /// The instance state file, relative to the home folder (future-work/plugins/state).
+    /// The instance state file, relative to the home folder (plugins/api#state).
     public func statePath(session: String) -> String {
         ".local/state/oriel/\(session)/\(plugin)/\(iid).json"
     }

@@ -35,7 +35,7 @@ extension HostStore {
     /// so the new one fills the old one's place in the tree, at its size. The new pane hides until the old one is
     /// gone (`Ahead.replacing`). `made` runs as herdr makes the new pane, before the close.
     /// A browser or plugin pane (`plugin`) is made with its label and placeholder in a new tab, then moved beside the
-    /// pane (future-work/plugins/labels#create).
+    /// pane (plugins/labels#create).
     func replace(_ paneID: String, plugin: PluginManifest? = nil, made: (HerdrKit.Pane) -> Void) async {
         guard let old = pane(paneID), let workspace = workspace(of: old.tabID) else { return }
         ahead.replacing[paneID] = Ahead.Replacing(tabID: old.tabID, known: Set(last?.panes.map(\.id) ?? []),

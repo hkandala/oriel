@@ -2,12 +2,12 @@ import Foundation
 import HerdrKit
 import os
 
-/// Every pane kind the app draws over a placeholder pane (future-work/plugins): the browser, whose manifest is written
+/// Every pane kind the app draws over a placeholder pane (plugins): the browser, whose manifest is written
 /// here, and each plugin package's, read at launch and again after an install, a removal or Reload Plugins. The
 /// chooser, ⌘K, Open With and linked opens read this list.
 @MainActor
 enum Registry {
-    /// Native content: no entry, its own toolbar (future-work/plugins/browser-and-native).
+    /// Native content: no entry, its own toolbar (plugins/browser).
     static let browser = PluginManifest(
         id: "browser", name: "Browser", icon: "globe", description: "Web page", keywords: ["web", "url", "localhost"],
         opens: .init(urls: ["http://*", "https://*", "file://*"]), chooser: "Browser",
@@ -69,7 +69,7 @@ enum Registry {
 
     static let missing = "puzzlepiece.extension"
 
-    /// The plugins that open a file, best first (future-work/plugins/manifest#which-plugin-opens-a-file): the most
+    /// The plugins that open a file, best first (plugins/manifest#which-plugin-opens-a-file): the most
     /// specific pattern, then a user's plugin before one of the app's, then the lower id. `option` ones only when
     /// `options`.
     static func openers(_ path: String, options: Bool = false) -> [PluginManifest] {

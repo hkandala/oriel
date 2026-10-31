@@ -1,7 +1,7 @@
 import HerdrKit
 import SwiftUI
 
-/// A plugin card's second header row (future-work/plugins/manifest#header): the manifest's controls, drawn before the
+/// A plugin card's second header row (plugins/manifest#header): the manifest's controls, drawn before the
 /// page loads, with the page's changes over them (`oriel.controls.set`). Part of the card's native state, so a card
 /// loaded again draws the same row.
 @MainActor @Observable

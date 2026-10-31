@@ -26,7 +26,7 @@ public struct PluginError: Error, Equatable {
     }
 }
 
-/// A plugin page's calls on its card's machine (future-work/plugins/api): files, git and run, each behind the
+/// A plugin page's calls on its card's machine (plugins/api): files, git and run, each behind the
 /// manifest's permission. Arguments and replies are JSON, as the page sends and reads them. The card's own calls (its
 /// place, state, header, toast, menus) are the app's.
 public struct PluginCalls: Sendable {
@@ -40,7 +40,7 @@ public struct PluginCalls: Sendable {
         (self.permissions, self.exec, self.remote, self.gitRuns) = (permissions, exec, remote, gitRuns)
     }
 
-    /// The permission a call needs (future-work/plugins/manifest#permissions); nil for none.
+    /// The permission a call needs (plugins/manifest#permissions); nil for none.
     public static func permission(_ call: String) -> String? {
         switch call {
         case "files.write": "files:write"
