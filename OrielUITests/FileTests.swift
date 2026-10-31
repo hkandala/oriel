@@ -112,7 +112,8 @@ extension OrielUITests {
         element("find.close").click()
     }
 
-    /// A change on disk while dirty: the toast; Keep Mine keeps the edit and the next ⌘S writes it over the change;
+    /// Show in File Explorer while dirty asks first. A change on disk while dirty: the toast; Keep Mine keeps the edit
+    /// and the next ⌘S writes it over the change;
     /// a ⌘S over it offers Overwrite; Reload takes the disk's text and clears the dot.
     private func diskChangesWhileDirty(_ card: String, file: String, shell: String) async throws {
         let editor = element("file.\(card).page").textViews.firstMatch, dirty = element("pane.\(card).dirty")
@@ -121,6 +122,11 @@ extension OrielUITests {
         app.typeKey(.downArrow, modifierFlags: .command)
         app.typeText("mine")
         XCTAssertTrue(dirty.exists(within: 3))
+        // Leaving the file with edits asks first; Keep Editing stays.
+        element("pane.\(card).reveal").click()
+        XCTAssertTrue(toast.has(\.stringValue, "main.swift has unsaved edits.", within: 3))
+        element("pane.\(card).toast.main").click()
+        XCTAssertTrue(toast.vanishes(within: 2) && dirty.exists)
         try await send("printf 'let z = 3\\n' >\(file)\r", to: shell)
         XCTAssertTrue(toast.has(\.stringValue, "main.swift changed on disk.", within: 5))
         element("pane.\(card).toast.main").click()
