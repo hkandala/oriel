@@ -2,7 +2,7 @@ import HerdrKit
 import SwiftUI
 
 extension Page {
-    /// The File or Markdown card with the keyboard: the menu's Save and Find go to its page.
+    /// The card with the keyboard when it takes ⌘S or ⌘F: the menu's Save and Find go to its page.
     var editor: Plugin? {
         editor(keyboardPane)
     }
@@ -16,15 +16,15 @@ extension Page {
         }
     }
 
-    /// The pane's card when it takes ⌘S or ⌘F (`handles`): a File Explorer's File and Markdown.
+    /// The pane's card when it takes ⌘S or ⌘F (`handles`): File Explorer's File and Markdown.
     func editor(_ pane: HostStore.Pane?) -> Plugin? {
         pane.flatMap(plugin).flatMap { $0.handles("save") || $0.handles("find") ? $0 : nil }
     }
 }
 
 extension CommandList {
-    /// Save, Find…, Find Next and Find Previous, in the main and the floating windows. Over a File or
-    /// Markdown card (`editor`, asked again when an item runs: the menu bar may be older than the last keyboard move)
+    /// Save, Find…, Find Next and Find Previous, in the main and the floating windows. Over a card that
+    /// takes them (`editor`, asked again when an item runs: the menu bar may be older than the last keyboard move)
     /// they act in its page; else Find opens `pane`'s find bar (the keyboard card's when nil) when `terminal`. ⌘S and
     /// ⇧⌘G have their key only over an editor: a disabled item would swallow them elsewhere (⇧⌘G is Go to Directory).
     static func editorCommands(page: Page?, pane: HostStore.Pane?, terminal: Bool,
