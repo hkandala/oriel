@@ -1,4 +1,4 @@
-// File: the card's file in CodeMirror with its language's colors, reporting the symbol at the caret for the jump bar.
+// File: the card's file in CodeMirror with its language's colors, and the jump bar `folder › file › {} symbol`.
 import { HighlightStyle, StreamLanguage, type StreamParser, syntaxHighlighting, syntaxTree } from "@codemirror/language"
 import { type EditorState, type Extension, RangeSetBuilder } from "@codemirror/state"
 import {
@@ -12,8 +12,8 @@ import {
 } from "@codemirror/view"
 import type { SyntaxNode } from "@lezer/common"
 import { tags } from "@lezer/highlight"
-import { arg, report } from "./lib/bridge"
-import { editor } from "./lib/editor"
+import { editor } from "./editor"
+import { name, type Place, type Reveal } from "./place"
 
 /** One color per look: the card's `color-scheme` picks the side. */
 const color = (light: string, dark: string) => `light-dark(${light}, ${dark})`
@@ -57,10 +57,12 @@ const aliases: Record<string, string> = {
   hpp: "cpp", hh: "cpp", m: "cpp", mm: "cpp", kts: "kt", rake: "rb", gemspec: "rb", bash: "sh", zsh: "sh",
   zshrc: "sh", bashrc: "sh", profile: "sh", jsonc: "json", yml: "yaml", htm: "html",
 }
-const name = arg.split("/").pop() ?? ""
-const ext = name.includes(".") ? (name.split(".").pop() ?? "").toLowerCase() : name
-const key = aliases[ext] ?? (ext === "Gemfile" || ext === "Rakefile" ? "rb" : ext)
-const language = await (languages[key]?.() ?? [])
+/** The file's language, by its extension, or its name for a dotfile, a Gemfile or a Rakefile. */
+const language = (path: string) => {
+  const file = name(path), ext = file.includes(".") ? (file.split(".").pop() ?? "").toLowerCase() : file
+  const key = aliases[ext] ?? (ext === "Gemfile" || ext === "Rakefile" ? "rb" : ext)
+  return languages[key]?.() ?? []
+}
 
 /** Nodes that name a scope in the spec's Lezer grammars, and the nodes that hold their names. */
 const scopes = new Set([
@@ -76,7 +78,7 @@ const names =
   /^((Variable|Property|Type)Definition|VariableName|DefName|FieldName|BoundIdentifier|TypeIdentifier|Identifier|FieldIdentifier|ScopedIdentifier|NamespaceIdentifier|DestructorName|Definition|PropertyName|Key)$/
 
 const named = (node: SyntaxNode, state: EditorState): string | undefined => {
-  if (node.name === "RuleSet") return node.firstChild && state.sliceDoc(node.firstChild.from, node.firstChild.to)
+  if (node.name === "RuleSet") return node.firstChild ? state.sliceDoc(node.firstChild.from, node.firstChild.to) : undefined
   for (let child = node.firstChild; child; child = child.nextSibling) {
     if (names.test(child.name)) return state.sliceDoc(child.from, child.to).replace(/^["']|["']$/g, "")
     // C and C++ name a function inside its declarator.
@@ -141,19 +143,25 @@ const hanging = ViewPlugin.fromClass(
   { decorations: (plugin) => plugin.decorations },
 )
 
-let last = ""
-await editor([
-  lineNumbers(),
-  highlightActiveLineGutter(),
-  syntaxHighlighting(highlight),
-  EditorView.lineWrapping,
-  hanging,
-  language,
-  EditorView.updateListener.of((update) => {
-    const now = symbol(update.state)
-    if (now !== last) {
-      last = now
-      report({ op: "symbol", symbol: now })
-    }
-  }),
-])
+export async function show(place: Place): Promise<Reveal> {
+  const { oriel, arg } = place
+  /** The jump bar: the file's folder and name, then the scopes around the caret after `{}`. */
+  const folder = name(arg.slice(0, arg.lastIndexOf("/")) || "/")
+  const jump = (scope: string) =>
+    oriel.controls.set("jump", { value: [folder, name(arg), ...(scope ? [scope] : [])], symbol: scope ? "curlybraces" : "" })
+  jump("")
+  let last = ""
+  const shown = await editor(place, [
+    lineNumbers(),
+    highlightActiveLineGutter(),
+    syntaxHighlighting(highlight),
+    EditorView.lineWrapping,
+    hanging,
+    await language(arg),
+    EditorView.updateListener.of((update) => {
+      const now = symbol(update.state)
+      if (now !== last) jump((last = now))
+    }),
+  ], place.root)
+  return shown?.land
+}

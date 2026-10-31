@@ -1,5 +1,5 @@
-/* The Markdown card (markdown.ts): the outline column, then Read's article or Edit's editor. */
-body {
+/* The Markdown place (markdown.ts): the outline column, then Read's article or Edit's editor. */
+[data-place="markdown"] {
   display: flex;
 }
 /* CodeMirror's own display would win over the attribute. */

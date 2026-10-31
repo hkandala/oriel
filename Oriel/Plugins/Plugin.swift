@@ -2,28 +2,43 @@ import HerdrKit
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// A plugin card's web page (`web/src/<page>.ts`), which its argument picks: the File Explorer's tree, File, Preview
-/// or Markdown; Git's home (`<root>`) or a diff (`<root> <source>`); any other plugin's entry (`main`), which draws
-/// every place of its card itself through the plugin API (`Bridge`).
+/// A plugin card's web page (`web/src/<page>.ts`), which its argument picks: Git's home (`<root>`) or a diff
+/// (`<root> <source>`); any other plugin's entry (`main`), which draws every place of its card itself through the
+/// plugin API (`Bridge`).
 enum PluginPage: String, CaseIterable {
-    case files, file, preview, markdown, diff, git, main
+    case diff, git, main
 
-    /// A folder's argument ends in `/`; a file opens by its name alone (a remote file is not read first): Markdown,
-    /// then images, PDF, audio and video, then text. A name the system does not know (`.rs`, `Makefile`) is text;
-    /// anything else previews, which shows its icon, size and Open With.
     /// Nil for a plugin with no entry (the browser).
     init?(_ plugin: String, _ arg: String) {
-        switch plugin {
-        case "git":
+        if plugin == "git" {
             // Git's home, or one of its diffs.
             self = PaneLabel(plugin: plugin, iid: "", arg: arg).diff.source == nil ? .git : .diff
-            return
-        case "explorer": break
-        default:
-            guard Registry.plugin(plugin)?.entry != nil else { return nil }
+        } else if Registry.plugin(plugin)?.entry != nil {
             self = .main
-            return
+        } else {
+            return nil
         }
+    }
+
+    /// The card's and the tab's icon while it shows the page.
+    var symbol: String {
+        switch self {
+        case .diff: "plusminus"
+        case .git: "arrow.triangle.branch"
+        case .main: Registry.missing
+        }
+    }
+}
+
+/// The place a File Explorer card shows, which its page (plugins/explorer/main.ts) picks the same way: its card's and
+/// tab's icon, its page's identifier, and whether it takes ⌘S and ⌘F. A folder's argument ends in `/`; a file goes
+/// by its name alone (a remote file is not read first): Markdown, then images, PDF, audio and video, then text. A name
+/// the system does not know (`.rs`, `Makefile`) is text; anything else previews, which shows its icon, size and Open
+/// With.
+enum ExplorerPlace: String, CaseIterable {
+    case files, file, preview, markdown
+
+    init(_ arg: String) {
         let ext = (arg as NSString).pathExtension.lowercased()
         if arg.hasSuffix("/") {
             self = .files
@@ -40,29 +55,20 @@ enum PluginPage: String, CaseIterable {
         }
     }
 
-    /// The card's and the tab's icon while it shows the page: a File Explorer's file by its kind.
     var symbol: String {
         switch self {
         case .files: "folder"
         case .file: "doc.text"
         case .preview: "photo"
         case .markdown: "doc.richtext"
-        case .diff: "plusminus"
-        case .git: "arrow.triangle.branch"
-        case .main: Registry.missing
         }
-    }
-
-    /// File and Markdown: an editor, which takes ⌘S and ⌘F.
-    var edits: Bool {
-        self == .file || self == .markdown
     }
 }
 
 extension PaneLabel {
-    /// Its program icon: the page's a File Explorer shows, else its plugin's; a missing plugin's.
+    /// Its program icon: the place a File Explorer shows, else its plugin's; a missing plugin's.
     var symbol: String {
-        manifest.map { $0.id == "explorer" ? PluginPage($0.id, place)?.symbol ?? $0.icon : $0.icon } ?? Registry.missing
+        manifest.map { $0.id == "explorer" ? ExplorerPlace(place).symbol : $0.icon } ?? Registry.missing
     }
 
     /// Its plugin; nil when it is not on this Mac (a missing plugin's card shows).
@@ -148,14 +154,16 @@ final class Plugin {
         }
     }
 
-    /// The page's identifier names the page it shows: `file.<pane>.page`.
+    /// The page's identifier names the page it shows, a File Explorer's its place: `file.<pane>.page`.
     func name() {
-        web.view.setAccessibilityIdentifier("\(web.page.rawValue).\(paneID).page")
+        let page = manifest.id == "explorer" ? ExplorerPlace(web.arg).rawValue : web.page.rawValue
+        web.view.setAccessibilityIdentifier("\(page).\(paneID).page")
     }
 
-    /// File and Markdown take ⌘S and ⌘F; a plugin's page what its manifest `handles` (`save`, `find`).
+    /// A plugin's page takes what its manifest `handles` (`save`, `find`); a File Explorer only in File and Markdown.
     func handles(_ command: String) -> Bool {
-        web.page.edits || web.page == .main && manifest.handles.contains(command)
+        let place = manifest.id == "explorer" ? ExplorerPlace(web.arg) : nil
+        return web.page == .main && manifest.handles.contains(command) && place != .files && place != .preview
     }
 
     /// A menu command for the card's page: `save`, `find`, `findNext` or `findPrevious`.
@@ -208,15 +216,10 @@ final class Plugin {
         }
     }
 
-    /// Where a place comes back when Back returns to it from `arg`: the tree at the file it opened, the Git home at the
-    /// change (`place`) or the commit (`arg`) it opened.
+    /// Where a place comes back when Back returns to it from `arg`: where it came back from, so the tree reveals the
+    /// file it opened, the Git home the change (`place`) or the commit (`arg`) it opened.
     private func landing(_ arg: String, _ place: String?) -> String? {
-        switch web.page {
-        case .files: arg
-        // A plugin's page: where it came back from.
-        case .git, .main: place ?? arg
-        default: nil
-        }
+        web.page == .diff ? nil : place ?? arg
     }
 
     func goBack() {
@@ -242,20 +245,6 @@ final class Plugin {
             let text = PaneLabel(plugin: other.id, iid: plugin.label.iid, arg: plugin.web.arg).text
             guard let store = plugin.web.store else { return }
             Task { [paneID = plugin.paneID] in await store.write { try await $0.rename(pane: paneID, label: text) } }
-        }
-    }
-
-    /// Show in File Explorer: the tree with the file revealed, rooted at the tree it came from, else at its folder's
-    /// repository's root or the folder (as Open File Explorer Here).
-    func reveal() async {
-        let file = web.arg
-        var root = back.last { $0.arg.hasSuffix("/") && file.hasPrefix($0.arg) }?.arg
-        if root == nil, let store = web.store {
-            root = await store.arg(manifest, in: (file as NSString).deletingLastPathComponent)
-        }
-        // Not after another move meanwhile.
-        if let root, web.arg == file {
-            go(root, at: file)
         }
     }
 

@@ -1,5 +1,5 @@
 /* The File Explorer's home (files.ts); the trees draw in their own shadow roots. */
 [hidden] { display: none !important; }
-body { display: flex; flex-direction: column; }
+[data-place="files"] { display: flex; flex-direction: column; }
 #message { color: var(--dim); margin: 12px; }
 #tree, #matches { flex: 1; min-height: 0; }

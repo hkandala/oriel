@@ -87,47 +87,17 @@ private struct ToastView: View {
     }
 }
 
-/// The card header's second row: Back and Forward, the page's controls, and for a file Show in File Explorer and
-/// Open With (This Mac only) at the right end. It starts at the row's left edge, also in a floating window.
+/// The card header's second row: a plugin's from its manifest, Git's own bars. It starts at the row's left edge, also
+/// in a floating window.
 struct PluginToolbar: View {
     let plugin: Plugin
     let page: Page
-    @Environment(\.look) private var look
 
     var body: some View {
         switch plugin.web.page {
         case .main: PluginHeader(plugin: plugin, page: page)
         case .diff: DiffToolbar(plugin: plugin)
         case .git: GitBar(plugin: plugin)
-        case let shown:
-            HStack(spacing: 6) {
-                BackForward(plugin: plugin)
-                // Each page's own spacer: Preview's controls sit right of it.
-                switch shown {
-                case .files: FilesBar(plugin: plugin, page: page)
-                case .preview: PreviewBar(plugin: plugin)
-                case .markdown:
-                    MarkdownBar(plugin: plugin)
-                    Spacer(minLength: 0)
-                default:
-                    JumpBar(plugin: plugin)
-                    Spacer(minLength: 0)
-                }
-                if shown != .files {
-                    IconButton(symbol: "list.bullet.indent", help: "Show in File Explorer", size: 22) {
-                        Task { await plugin.reveal() }
-                    }
-                    .foregroundStyle(look.paneButton)
-                    .accessibilityIdentifier("pane.\(plugin.paneID).reveal")
-                    // The Mac's apps on This Mac only; the other plugins that open the file on every machine.
-                    let others = Registry.openers(plugin.web.arg, options: true).filter { $0.id != plugin.manifest.id }
-                    if !page.store.machine.isRemote || !others.isEmpty {
-                        OpenWith(path: plugin.web.arg, apps: !page.store.machine.isRemote, plugins: others,
-                                 pick: plugin.reopen(as:))
-                            .accessibilityIdentifier("pane.\(plugin.paneID).open-with")
-                    }
-                }
-            }
         }
     }
 }

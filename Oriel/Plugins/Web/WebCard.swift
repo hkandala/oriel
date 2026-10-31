@@ -6,11 +6,11 @@ import UniformTypeIdentifiers
 import WebKit
 
 /// A plugin card's content as a page of its plugin's folder (`make web`), in a web view of its own: WebKit makes a
-/// process per web view whatever the process pool. File Explorer's and Git's pages talk to the app through
-/// `web/src/lib/bridge.ts`; a plugin's entry page (`main`) through the plugin API (`Bridge`).
+/// process per web view whatever the process pool. Git's pages talk to the app through `web/src/lib/bridge.ts`; a
+/// plugin's entry page (`main`) through the plugin API (`Bridge`).
 @MainActor @Observable
 final class WebCard {
-    /// Its plugin's id: File Explorer's or Git's.
+    /// Its plugin's id.
     let plugin: String
     /// The page the argument picks.
     private(set) var page: PluginPage
@@ -38,21 +38,7 @@ final class WebCard {
         didSet { send(["op": "list", "open": list]) }
     }
 
-    /// Files: row 2's filter; a page loaded again ends it.
-    var filter = ""
-    /// The tree's root and its repository, when the root is a repository's root; listings then carry git's state.
-    @ObservationIgnored var repo: (root: String, path: String?)?
-    /// What the Markdown page shows, as it reports it.
-    private(set) var markdown = (edit: false, outline: false)
     var toast: Toast?
-    /// A File card's jump bar: the scopes around the caret (`file.ts`).
-    private(set) var symbol = ""
-    /// A PDF preview's `3 of 12`.
-    private(set) var pdfPage = ""
-    /// The file's hash as last read or saved, which a save checks (`Document.swift`).
-    @ObservationIgnored var hash: String?
-    /// A save is writing: its own change on disk is no reload.
-    @ObservationIgnored var saving = false
     @ObservationIgnored private var loaded = false
     /// The card had the keyboard when it moved to another place: the new page takes it as it finishes, as WebKit
     /// drops it with the page that had it.
@@ -128,12 +114,9 @@ final class WebCard {
         self.arg = arg
         page = PluginPage(plugin, arg) ?? page
         self.place = place
-        hash = nil
         toast = nil
         dirty = false
         ready = false
-        // The new page starts with none; a filter field shown with text would take the keyboard.
-        filter = ""
         refocus = view.window?.firstResponder === view
         if loaded {
             script()
@@ -148,7 +131,7 @@ final class WebCard {
     }
 
     /// The card's context and colors, in the page before its code runs: a plugin's `oriel_card` (`Bridge.context`),
-    /// File Explorer's and Git's `card`.
+    /// Git's `card`.
     private func script() {
         var card: [String: Any] = ["arg": arg, "css": css]
         card["at"] = place
@@ -171,20 +154,8 @@ final class WebCard {
     fileprivate func answer(_ body: Any) async -> (Any?, String?) {
         let message = body as? [String: Any] ?? [:]
         switch message["op"] as? String {
-        case "read":
-            // A page loaded again, maybe for another file: its reports come again.
-            dirty = false
-            symbol = ""
-            pdfPage = ""
-            defer { ready = true }
-            return await read()
-        case "save":
-            // Only a file read: a nil hash would overwrite whatever is on disk. One save at a time: a second would
-            // check the first's old hash; its edits keep the dot for the next ⌘S.
-            guard !saving, let text = message["text"] as? String, let hash else { return (nil, "Not read") }
-            await save(text, over: hash)
-        case "symbol", "page", "dirty", "markdown", "ready":
-            shows(message)
+        case "ready":
+            ready = true
         case "menu":
             menu(message)
         case "repo":
@@ -198,7 +169,7 @@ final class WebCard {
                   let opener = opener(message, arg) else { return (nil, "No path") }
             open?(opener, arg, message["at"] as? String, (message["how"] as? String).flatMap(Opening.init) ?? .here)
         default:
-            return await files(message)
+            return (nil, "Unknown message")
         }
         return (nil, nil)
     }
@@ -233,23 +204,6 @@ final class WebCard {
             return Registry.plugin(id)
         }
         return arg.hasSuffix("/") ? Registry.plugin("explorer") : Registry.openers(arg).first
-    }
-
-    /// A report of what the page shows: the jump bar's symbol, the PDF's page, the dirty dot, Markdown's mode, its
-    /// first draw.
-    private func shows(_ message: [String: Any]) {
-        switch message["op"] as? String {
-        case "symbol":
-            symbol = message["symbol"] as? String ?? ""
-        case "page":
-            pdfPage = "\(message["page"] as? Int ?? 1) of \(message["pages"] as? Int ?? 1)"
-        case "markdown":
-            markdown = (message["edit"] as? Bool == true, message["outline"] as? Bool == true)
-        case "ready":
-            ready = true
-        default:
-            dirty = message["dirty"] as? Bool == true
-        }
     }
 }
 
