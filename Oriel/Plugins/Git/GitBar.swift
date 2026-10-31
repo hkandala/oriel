@@ -5,12 +5,11 @@ import SwiftUI
 /// the commits behind and Push with the commits ahead; on a diff, the diff's controls (`DiffToolbar`).
 struct GitBar: View {
     let plugin: Plugin
-    let page: Page
     @Environment(\.look) private var look
 
     var body: some View {
         if plugin.label.diff.source != nil {
-            DiffToolbar(plugin: plugin, page: page)
+            DiffToolbar(plugin: plugin)
         } else {
             let repo = plugin.web.git, id = "pane.\(plugin.paneID).git"
             HStack(spacing: 6) {

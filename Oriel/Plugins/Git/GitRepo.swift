@@ -186,8 +186,8 @@ final class GitRepo {
         }), main: ("OK", {}))
     }
 
-    /// The SF Symbols the page's rows draw, as PNG data URLs it uses as masks in the text's color.
-    private static let symbols: [String: String] = Dictionary(uniqueKeysWithValues: [
+    /// The SF Symbols the home's and the diff's rows draw, as PNG data URLs the pages use as masks in the text's color.
+    static let symbols: [String: String] = Dictionary(uniqueKeysWithValues: [
         "doc", "plus", "minus", "arrow.triangle.branch", "cloud", "tag",
     ].compactMap { name in
         let configuration = NSImage.SymbolConfiguration(pointSize: 24, weight: .regular)

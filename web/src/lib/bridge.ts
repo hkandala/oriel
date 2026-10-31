@@ -33,7 +33,7 @@ export type RepoState = {
 }
 
 /** `patch`: a diff's patch as git prints it, its repo's root, and row 2's state. */
-export type PatchReply = { patch: string; root: string; split: boolean; list: boolean }
+export type PatchReply = { patch: string; root: string; split: boolean; list: boolean; symbols: Record<string, string> }
 
 /** `list`, `paths` and `git`: the File Explorer's root (Oriel/Plugins/Files/FilesCard.swift). */
 type Ask =

@@ -27,7 +27,11 @@ while (!reply) {
   })
   if (!reply) await new Promise<void>((resolve) => receive(() => resolve()))
 }
-const { root, split, list } = reply
+const { root, split, list, symbols } = reply
+// The app's SF Symbols, as masks (git.ts has the same); in a style sheet: the app sets the root's own style.
+const sheet = element("style")
+sheet.textContent = `:root { ${Object.entries(symbols).map(([name, url]) => `--sf-${name.replaceAll(".", "-")}: url(${url});`).join(" ")} }`
+document.head.append(sheet)
 let patch = ""
 let files: FileDiffMetadata[] = []
 // Each change block's first line, in order, for previous / next; the last one stepped to, or half a step before
@@ -166,12 +170,19 @@ function show(next: string) {
   changes = files.flatMap(blocks)
   change = -1
   empty.textContent = files.length ? "" : "No changes"
-  nav.replaceChildren(element("div", "count", `${files.length} ${files.length === 1 ? "file" : "files"}`))
+  // As the Git home's lists: a title, its count after it.
+  const title = element("header", "title")
+  title.append(element("h2", "", "Files"), element("span", "count", files.length ? String(files.length) : ""))
+  nav.replaceChildren(title)
   for (const file of files) {
     const button = element("button", viewed.has(file.name) ? "row viewed" : "row")
     button.dataset.id = file.name
     const slash = file.name.lastIndexOf("/")
+    const symbol = element("span", "symbol")
+    symbol.style.setProperty("--symbol", "var(--sf-doc)")
+    symbol.ariaHidden = "true"
     button.append(
+      symbol,
       element("span", "name", file.name.slice(slash + 1)),
       element("span", "folder", file.name.slice(0, Math.max(slash, 0))),
       ...counts(file),

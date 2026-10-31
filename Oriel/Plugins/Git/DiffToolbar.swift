@@ -5,7 +5,6 @@ import SwiftUI
 /// and next change.
 struct DiffToolbar: View {
     let plugin: Plugin
-    let page: Page
     @Environment(\.look) private var look
 
     var body: some View {

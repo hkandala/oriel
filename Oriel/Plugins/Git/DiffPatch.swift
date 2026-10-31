@@ -6,14 +6,15 @@ extension WebCard {
     /// state.
     func patch() async -> (Any?, String?) {
         guard let store else { return (nil, "Closed") }
-        // The home shows no page.
+        // The home asks for none.
         guard let source = diff.source else { return (nil, "No diff") }
         let root = diff.root
         guard await store.gitRuns() else { return (nil, "git is not installed") }
         do {
             let patch = try await Git.patch(root, commit: source == "uncommitted" ? nil : source,
                                             exec: store.machine.exec())
-            return (["patch": patch, "root": root, "split": split, "list": list], nil)
+            return (["patch": patch, "root": root, "split": split, "list": list,
+                     "symbols": GitRepo.symbols], nil)
         } catch {
             return (nil, error.localizedDescription)
         }
