@@ -316,3 +316,36 @@ working until this track switches the default plugins to installed packages.
 - **For the user:** the Git card looks and works as before, but a new card's row 2 shows only Back and Forward until
   its page runs (a moment; the old row drew at once). A dropped or relaunched card now keeps its typed commit
   message and its Side by Side and file list.
+
+### Track F (packages)
+
+- **Decisions:** the app builds every package with `Contents/Helpers/esbuild` (the locked npm binary, arm64 only, as
+  the app now says with `ARCHS = arm64`; signed on copy) into `~/Library/Caches/dev.hkandala.oriel/plugins/<id>/<hash>`,
+  the hash over the package's files outside `node_modules` plus the package manager's record of it. Minified with a
+  linked source map; asset imports become flat files; one build per plugin at a time; the build before stays for a page
+  that kept running. A build reads only the package (esbuild's metafile, every input under the package's real path):
+  esbuild otherwise resolves from parent folders and `../`, which would let a plugin with no permissions bundle any file.
+- **Decisions:** the manifest grew `assets` (files a page loads by name, copied beside the build: pdf.js's worker,
+  fonts, cmaps). The host types package goes to `<plugins>/node_modules/@oriel/plugin-api` at launch. A package marks
+  `@oriel/plugin-api` `optional` in `peerDependenciesMeta`: npm 7+ installs peers by itself and the name is not on the
+  registry (E404); the app's own installs also pass `--legacy-peer-deps` (pnpm, bun: their flags) and `--ignore-scripts`.
+- **Decisions:** sources as pi's: `npm:` is `npm pack` then the tarball unpacked (so npm sources need npm), `git:` a
+  clone at the ref, both into `plugins/<package or repository name>` after the trust prompt, then dependencies from the
+  lockfile with its manager, else the first of npm, pnpm, bun. Update fetches the same source again. Install, Update,
+  Remove (to the Trash; a local path only leaves the list) live in the Plugins panel: a glass panel like Open Session,
+  Oriel ▸ Plugins… and ⌘K Plugins… (no Settings window, D62). ⌘K also has Reload Plugins.
+- **Decisions:** trust lives in `trust.json` in the config folder (per `-configFolder`, so tests never touch the
+  user's); anything that can write the plugins folder can write it, as the security page's model already allows.
+  Installing a new source always asks; an update or a card asks only when permissions grew. A local path or a hand-made
+  folder asks in its first card. **Don't Allow closes the pane** (the design said the card keeps the prompt). ⌘K's
+  Forget Plugin Trust is not built (Remove forgets).
+- **Decisions:** Reload Plugin (⌥⌘R, the card's menu, View ▸ Pane, ⌘K) reads the registry again, builds, then loads
+  each card's page again with its state and header values; a card whose manifest changed is made again from the new one.
+  Unsaved edits ask on the first dirty card; Discard covers every card of the plugin. A failed build keeps the page and
+  shows a toast with Try Again. Show/Hide Web Inspector is in the card's menu without ⌥⌘I: the browser's disabled
+  command holds that key in the menu bar.
+- **Decisions:** `~/Library/Logs/Oriel/plugins/<id>.log` gets build times and errors, console lines and uncaught
+  errors (the runtime forwards them), stopped pages, denied calls, failed updates, and manifests the registry left out
+  (under the folder's name). esbuild warnings stay out (`--log-level=error`).
+- **For the docs pass:** building.mdx's watcher, inline source map, `manifest.json`, `oriel-plugin://app/<id>` and the
+  shared default build go; Reload Plugin, the panel, `assets`, `optional` peer, the metafile rule and the log lines come in.
