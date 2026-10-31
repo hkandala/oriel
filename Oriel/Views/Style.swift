@@ -134,6 +134,16 @@ struct Look {
         dark ? Color(hex: 0xF85149) : Color(hex: 0xCF222E)
     }
 
+    /// A chat's bubbles, as macOS Messages draws them (ChatKit's `CKBlueBalloonColor1` and gray balloon): the user's
+    /// with white text, the agent's with the label color.
+    var sentBubble: Color {
+        contrast ? Color(hex: 0x0040DD) : dark ? Color(hex: 0x0091FF) : Color(hex: 0x0088FF)
+    }
+
+    var receivedBubble: Color {
+        dark ? Color(hex: 0x3B3B3D) : Color(hex: 0xE5E5EA)
+    }
+
     private func pick<Value>(_ glassDark: Value, _ glassLight: Value, _ classicDark: Value,
                              _ classicLight: Value) -> Value
     {

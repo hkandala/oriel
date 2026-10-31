@@ -27,7 +27,7 @@ extension OrielUITests {
         stack.click()
         XCTAssertTrue(stack.has(\.stringValue, "open", within: 2))
         XCTAssertTrue(element("chat.\(pane).tool").exists(within: 2))
-        level("Replies", in: pane)
+        level("Replies only", in: pane)
         XCTAssertTrue(stack.vanishes(within: 2))
         // The counts on top, the time under the reply.
         XCTAssertEqual(element("chat.\(pane).summary").stringValue, "Ran 1 command")
@@ -46,7 +46,7 @@ extension OrielUITests {
         // Clicked closed, a run stays closed.
         stacks.element(boundBy: 0).click()
         XCTAssertTrue(stacks.element(boundBy: 0).has(\.stringValue, "closed", within: 2))
-        level("Replies", in: pane)
+        level("Replies only", in: pane)
         level("Everything", in: pane)
         XCTAssertTrue(stacks.element(boundBy: 0).has(\.stringValue, "closed", within: 2))
 
@@ -120,12 +120,12 @@ extension OrielUITests {
         XCTAssertEqual(composer.placeholderValue, "Ask Anything")
         // Its text on the reply's left edge.
         XCTAssertEqual(composer.frame.minX, reply.frame.minX, accuracy: 1)
-        // Grown to 10 lines, it keeps the last message clear of it.
-        for _ in 1 ... 9 {
+        // Grown to 5 lines, it keeps the last message clear of it.
+        for _ in 1 ... 4 {
             app.typeKey(.return, modifierFlags: .shift)
         }
         XCTAssertTrue(
-            until(2) { composer.frame.height > 150 && reply.frame.maxY <= composer.frame.minY },
+            until(2) { composer.frame.height > 75 && reply.frame.maxY <= composer.frame.minY },
             "\(reply.frame)",
         )
         keepScreenshot("floating chat", of: window)
@@ -148,7 +148,7 @@ extension OrielUITests {
     }
 
     /// A tool call opens on its own to its input and output. A click on a reply or on the chat's empty side gives the
-    /// card the keyboard in its reply box, which grows with its lines up to 10 and then scrolls.
+    /// card the keyboard in its reply box, which grows with its lines up to 5 and then scrolls.
     func testAChatTakesTheKeyboardOnAnyClickAndItsBoxGrows() async throws {
         let (tab, pane) = try await startChat()
         try await say("hello", in: pane)
@@ -166,15 +166,15 @@ extension OrielUITests {
         let one = composer.frame.height
         var heights: [Int: CGFloat] = [:]
         app.typeText("1")
-        for line in 2 ... 12 {
+        for line in 2 ... 7 {
             app.typeKey(.return, modifierFlags: line.isMultiple(of: 2) ? .shift : .option)
             app.typeText("\(line)")
             XCTAssertTrue(until(2) { composer.stringValue.hasSuffix("\n\(line)") })
             heights[line] = composer.frame.height
         }
         XCTAssertGreaterThan(heights[3] ?? 0, one * 2.5, "\(one) \(heights)")
-        XCTAssertGreaterThan(heights[10] ?? 0, heights[9] ?? 0, "\(heights)")
-        XCTAssertEqual(heights[12], heights[10], "\(heights)")
+        XCTAssertGreaterThan(heights[5] ?? 0, heights[4] ?? 0, "\(heights)")
+        XCTAssertEqual(heights[7], heights[5], "\(heights)")
         app.typeKey("a", modifierFlags: .command)
         app.typeKey(.delete, modifierFlags: [])
 

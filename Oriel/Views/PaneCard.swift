@@ -165,11 +165,6 @@ struct PaneCard: View {
                     DirtyDot(paneID: id)
                 }
                 Spacer(minLength: 0)
-                if let chat {
-                    ChatCapsule(chat: chat, state: pane?.state)
-                } else if agent, let state = pane?.state {
-                    StateCapsule(state: state).fixedSize().accessibilityIdentifier("pane.\(id).state")
-                }
                 // Hidden, they take no width from a narrow card. A zoomed card has only Restore and Close.
                 // Not on a split's or a new tab's empty card before herdr has its pane (`Ahead`).
                 if showsButtons, pane != nil {
@@ -188,6 +183,8 @@ struct PaneCard: View {
                     Text("\(name) \(Text(pane.folder ?? "").foregroundStyle(.secondary))")
                         .fontWeight(.regular).lineLimit(1).truncationMode(.middle).allowsHitTesting(false)
                         .accessibilityIdentifier("pane.\(id).program")
+                    // The agent's state on this row, clear of the title and of the buttons that show on hover.
+                    CardState(chat: chat, state: pane.state, paneID: id).padding(.leading, 4)
                     Spacer(minLength: 0)
                     if let chat {
                         ChatSwitch(chat: chat, page: page)

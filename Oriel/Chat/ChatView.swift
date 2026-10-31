@@ -69,7 +69,7 @@ struct Composer: View {
     @Bindable var chat: Chat
     var composing: FocusState<Bool>.Binding
     /// Its text from its sides.
-    static let inset: CGFloat = 14
+    static let inset: CGFloat = 18
 
     var body: some View {
         let working = chat.phase == .working
@@ -77,7 +77,7 @@ struct Composer: View {
             TextField("Ask Anything", text: $chat.draft, axis: .vertical)
                 .textFieldStyle(.plain)
                 .font(.system(size: 14))
-                .lineLimit(1 ... 10)
+                .lineLimit(1 ... 5)
                 .focused(composing)
                 .onSubmit { chat.send(chat.draft) }
                 // ⇧Return adds a line, as ⌥Return does.
@@ -87,7 +87,7 @@ struct Composer: View {
                     return .handled
                 }
                 // Its text ends as far in as it starts; Send sits closer to the box's side.
-                .padding(.trailing, Self.inset - 7)
+                .padding(.trailing, Self.inset - 11)
                 .accessibilityIdentifier("chat.\(chat.paneID).composer")
             HStack(spacing: 8) {
                 let model = [chat.history.model.map(ChatHistory.modelName), chat.history.effort].compactMap(\.self)
@@ -100,31 +100,24 @@ struct Composer: View {
                 if working, chat.draft.isEmpty {
                     roundButton("stop.fill", help: "Stop", id: "chat.\(chat.paneID).stop", action: chat.stop)
                 } else {
-                    let text = !chat.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                    let ready = [.ready, .working].contains(chat.phase) || chat.draft.hasPrefix("/")
-                    roundButton("arrow.up", help: "Send", id: "chat.\(chat.paneID).send", enabled: text && ready) {
-                        chat.send(chat.draft)
-                    }
+                    // Always in the accent; `send` does nothing with an empty box or while the agent cannot take it.
+                    roundButton("arrow.up", help: "Send", id: "chat.\(chat.paneID).send") { chat.send(chat.draft) }
                 }
             }
         }
-        .padding(.leading, Self.inset).padding(.trailing, 7).padding(.top, 9).padding(.bottom, 7)
+        .padding(.leading, Self.inset).padding(.trailing, 11).padding(.top, 13).padding(.bottom, 11)
         .glassEffect(.regular, in: .rect(cornerRadius: 18))
         .contentShape(.rect)
         .onTapGesture { composing.wrappedValue = true }
     }
 
-    private func roundButton(_ symbol: String, help: String, id: String, enabled: Bool = true,
-                             action: @escaping () -> Void) -> some View
-    {
+    private func roundButton(_ symbol: String, help: String, id: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Image(systemName: symbol).font(.system(size: 10, weight: .bold))
-                .foregroundStyle(enabled ? AnyShapeStyle(Look.onAccent) : AnyShapeStyle(.tertiary))
+            Image(systemName: symbol).font(.system(size: 10, weight: .bold)).foregroundStyle(Look.onAccent)
                 .frame(width: 22, height: 22)
-                .background(enabled ? AnyShapeStyle(.tint) : AnyShapeStyle(.quaternary), in: .circle)
+                .background(.tint, in: .circle)
         }
         .buttonStyle(.plain)
-        .disabled(!enabled)
         .help(help)
         .accessibilityLabel(help)
         .accessibilityIdentifier(id)

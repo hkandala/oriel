@@ -389,11 +389,7 @@ private struct PaneInfo: View {
                 }
             }
             .fontWeight(.medium)
-            if let chat {
-                ChatCapsule(chat: chat, state: pane.state)
-            } else if let state = pane.state {
-                StateCapsule(state: state)
-            }
+            CardState(chat: chat, state: pane.state, paneID: pane.id)
         }
         .accessibilityElement(children: .combine)
     }

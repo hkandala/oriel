@@ -29,6 +29,8 @@ struct ChatRowView: View, Equatable {
             quiet(seconds.map { "Worked " + ChatHistory.duration($0) } ?? "Worked", "worked")
         case let .reply(_, text):
             Markdown(text: text).accessibilityIdentifier("chat.\(paneID).reply")
+                .bubble(look.receivedBubble).padding(.leading, -Composer.inset).padding(.trailing, 48)
+                .frame(maxWidth: .infinity, alignment: .leading)
         case .thinking:
             Text("Thought").font(.system(size: 12)).italic().foregroundStyle(.tertiary)
         case let .stack(_, steps):
@@ -78,12 +80,13 @@ struct WorkingRow: View {
     }
 }
 
-/// The user's message, as in Messages: the accent color, on the right.
+/// The user's message, as in Messages: blue, on the right.
 struct UserBubble: View {
     let text: String
     let paneID: String
     /// On its way: not in the history yet.
     var sending = false
+    @Environment(\.look) private var look
 
     var body: some View {
         // Its own line breaks kept: Markdown joins a paragraph's lines.
@@ -91,12 +94,21 @@ struct UserBubble: View {
             .foregroundStyle(Look.onAccent)
             // Its links in its own text color, not the accent it sits on.
             .tint(Look.onAccent)
-            .padding(.horizontal, 14).padding(.vertical, 8)
-            .background(Color.accentColor, in: .rect(cornerRadius: 18))
+            .bubble(look.sentBubble)
+            .padding(.trailing, -Composer.inset)
             .padding(.leading, 48)
             .frame(maxWidth: .infinity, alignment: .trailing)
             .accessibilityValue(text)
             .accessibilityIdentifier("chat.\(paneID).\(sending ? "sending" : "user")")
+    }
+}
+
+extension View {
+    /// A message's bubble, as in Messages (ui/chat-view#what-it-looks-like). Its text sits as far in as the reply
+    /// box's, and its outer side reaches as far out as the box: the caller pulls it out by `Composer.inset`, so its
+    /// text keeps the messages' edge.
+    func bubble(_ color: Color) -> some View {
+        padding(.horizontal, Composer.inset).padding(.vertical, 8).background(color, in: .rect(cornerRadius: 18))
     }
 }
 

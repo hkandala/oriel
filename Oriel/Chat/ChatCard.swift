@@ -39,6 +39,7 @@ struct ChatSwitch: View {
     @Bindable var chat: Chat
     let page: Page
     private var settings = AppSettings()
+    @Environment(\.look) private var look
 
     var body: some View {
         let id = chat.paneID
@@ -56,7 +57,7 @@ struct ChatSwitch: View {
         }
     }
 
-    /// "Show: Replies ⌄", a pull-down of the levels (ui/chat-view#detail-levels).
+    /// "Replies only ⌄", a pull-down of the levels in a pill like Chat | TUI's (ui/chat-view#detail-levels).
     private var level: some View {
         Menu {
             Picker("Show", selection: settings.$chatLevel) {
@@ -67,13 +68,15 @@ struct ChatSwitch: View {
         } label: {
             // One text: an image beside it was a second element with the menu's identifier.
             let chevron = Text(Image(systemName: "chevron.down")).font(.system(size: 8, weight: .semibold))
-            Text("Show: \(settings.chatLevel.title)  \(chevron)")
-                .font(.system(size: 11, weight: .medium)).padding(.horizontal, 8).frame(height: 24)
+            Text("\(settings.chatLevel.title)  \(chevron)")
+                .font(.system(size: 11, weight: .medium)).padding(.horizontal, 8).frame(height: 20)
         }
         .menuStyle(.button)
         .menuIndicator(.hidden)
         .buttonStyle(ChromeStyle(radius: 6))
         .fixedSize()
+        .padding(2)
+        .background(look.track, in: .rect(cornerRadius: 8))
         .accessibilityLabel("Show")
         .accessibilityValue(settings.chatLevel.title)
         .accessibilityIdentifier("chat.\(chat.paneID).level")
@@ -82,27 +85,34 @@ struct ChatSwitch: View {
 
 extension ChatLevel {
     var title: String {
-        rawValue.capitalized
+        self == .replies ? "Replies only" : rawValue.capitalized
     }
 }
 
-/// A chat card's state capsule; none while idle.
-struct ChatCapsule: View {
-    let chat: Chat
+/// An agent card's state as t3code draws a thread's: a dot and the word, in the state's color. A chat's follows its
+/// phase and shows none while idle; another agent's is herdr's.
+struct CardState: View {
+    let chat: Chat?
     let state: AgentState?
+    let paneID: String
     @Environment(\.look) private var look
 
     var body: some View {
-        if let (text, color) = capsule {
-            Text(text).font(.system(size: 11, weight: .medium)).foregroundStyle(color)
-                .padding(.horizontal, 6).padding(.vertical, 1)
-                .background(color.opacity(0.15), in: .rect(cornerRadius: 4))
-                .fixedSize()
-                .accessibilityIdentifier("pane.\(chat.paneID).state")
+        if let (text, color) = label {
+            HStack(spacing: 5) {
+                Circle().fill(color).frame(width: 6, height: 6)
+                Text(text).font(.system(size: 11, weight: .medium)).foregroundStyle(color)
+            }
+            .fixedSize()
+            .accessibilityElement(children: .ignore)
+            .accessibilityAddTraits(.isStaticText)
+            .accessibilityValue(text)
+            .accessibilityIdentifier("pane.\(paneID).state")
         }
     }
 
-    private var capsule: (String, Color)? {
+    private var label: (String, Color)? {
+        guard let chat else { return state.map { ($0.capsule, $0.color(look)) } }
         // Only while the chat shows: nothing follows the agent behind its terminal, so nothing would clear it.
         if chat.problem != nil, chat.showsChat {
             return ("Error", look.error)
