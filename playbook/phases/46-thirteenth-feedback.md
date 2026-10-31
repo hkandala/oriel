@@ -269,5 +269,9 @@ forward; ask track D for any change in its files.
   masks, so the rows draw real symbols in the text's color. The diff's file list uses the home's row style.
 - **Decisions:** `Look.cardSolid` is exact in Classic; in Glass it is measured on a card (dark `#2E`, light `#F9`),
   so an unusual wallpaper moves the card a few steps off the header, and the keyboard card is a step brighter.
+- **Cause (review):** a root whose last word was short hex (`Project 2`) read as a commit (a hash now needs 7 hex
+  digits); Stage passed paths as pathspecs, so `a*` staged `ab` too (`--literal-pathspecs`); `--all` drew the stash
+  and notes (now `--branches --remotes --tags HEAD`); the page lost a typed message at each move (the app keeps the
+  draft); Back came to the home's top (it lands at the change or commit it opened).
 - **For the user:** try Pull and Push on a real remote with SSH keys (a key with a passphrase and no agent fails
   with ssh's message, since nothing can prompt), commit hooks and signing, and the branch menu with many branches.
