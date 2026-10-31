@@ -66,6 +66,12 @@ final class Bridge {
         }
     }
 
+    /// A closed card or one of another kind leaves `plugins` before `showWeb` hears of it: its watches end here. A
+    /// pending state write goes on.
+    isolated deinit {
+        watching.values.forEach { $0.cancel() }
+    }
+
     /// The card's context for the runtime, in the page before its code runs.
     func context() -> [String: Any] {
         guard let plugin, let store = plugin.web.store else { return [:] }

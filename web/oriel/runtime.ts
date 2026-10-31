@@ -69,6 +69,7 @@ window.oriel_receive = (name, data: any) => {
       break
     case "visible":
     case "keyboard":
+      if (context[name] === data) return
       context[name] = data
       break
     case "theme":
