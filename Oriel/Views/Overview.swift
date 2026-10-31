@@ -102,7 +102,8 @@ struct Overview: View {
             }
             .overlay(alignment: .topLeading) {
                 if let zoom {
-                    Miniature(tab: zoom.tab, page: zoom.page, size: strip.size, live: pages.overviewLive)
+                    Miniature(tab: zoom.tab, page: zoom.page, size: strip.size, live: pages.overviewLive,
+                              pictures: false)
                         .modifier(Grow(progress: grown ? 1 : 0, from: zoom.from, page: strip))
                 }
             }
@@ -273,6 +274,8 @@ extension WindowPages {
             leaving = true
         } else {
             overview = true
+            // The cards in view: their pictures now, for their tiles (D70).
+            terminals.takePictures(of: current?.shownTerminals.keys.map(\.self) ?? [])
             showTerminals()
         }
     }
@@ -316,17 +319,14 @@ extension WindowPages {
     /// snapshot.
     func overviewCards(_ page: Page) -> [String: String] {
         let tabs = (overviewTabs[page.id] ?? []).reversed().map { tileCards(page, $0) }
-        // Those with a card that has no picture yet first (a loader shows there), so each tile in view gets one in
-        // turn; one that drew lets go if another waits, and keeps its snapshot. Then the live ones, so
-        // the last turn does not start another.
+        // Only those with a card that has no picture yet (a loader shows there), so each tile in view gets one in turn;
+        // one that drew lets go and keeps its snapshot (D70: the tiles show pictures).
         let drawn = { (tab: [(String, String)]) in self.pictured(page, tab) }
-        let live = { (tab: [(String, String)]) in tab.allSatisfy { self.overviewLive.contains($0.0) } }
         let size = window.map { $0.contentLayoutRect.size.applying(.init(scaleX: $0.backingScaleFactor,
                                                                          y: $0.backingScaleFactor)) }
         let most = size.map { Int(400e6 / max($0.width * $0.height * 12, 1)) } ?? 16
         var cards: [String: String] = [:], taken = 0
-        let waiting = tabs.filter { !drawn($0) }, shown = tabs.filter { drawn($0) && live($0) }
-        for tabCards in waiting + shown + tabs.filter({ drawn($0) && !live($0) }) {
+        for tabCards in tabs.filter({ !drawn($0) }) {
             // A tab over the caps alone still loads.
             guard cards.isEmpty || cards.count + tabCards.count <= (machine.isRemote ? 6 : 16) && taken < most
             else { continue }

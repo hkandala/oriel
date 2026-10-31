@@ -2,14 +2,16 @@ import AppKit
 import HerdrKit
 import SwiftUI
 
-/// A tab's page at the size it is given: its cards in herdr's layout (or its zoomed card), each with its terminal
-/// at its place in the card, live or its snapshot (`live`), scaled from the strip's page (`size`).
+/// A tab's page at the size it is given: its cards in herdr's layout (or its zoomed card), each with its picture at
+/// its place in the card, scaled from the strip's page (`size`).
 struct Miniature: View {
     let tab: HostStore.Tab
     let page: Page
     let size: CGSize
-    /// The terminals that stream and draw here; the others show their snapshot.
+    /// The terminals that stream and draw here until they have a snapshot (all of them: `pictures` off).
     let live: Set<String>
+    /// The tiles show pictures (D70); the zoom to the page shows its terminals live.
+    var pictures = true
 
     var body: some View {
         GeometryReader { proxy in
@@ -20,7 +22,8 @@ struct Miniature: View {
                 ZStack(alignment: .topLeading) {
                     ForEach(cards, id: \.id) { card in
                         let rect = zoomed == nil ? card.rect : area
-                        MiniCard(id: card.id, page: page, size: rect.size, scale: scale, live: live)
+                        MiniCard(id: card.id, page: page, size: rect.size, scale: scale, live: live,
+                                 pictures: pictures)
                             .frame(width: rect.width * scale, height: rect.height * scale)
                             .position(x: rect.midX * scale, y: rect.midY * scale)
                     }
@@ -30,10 +33,10 @@ struct Miniature: View {
     }
 }
 
-/// A card at `scale`: its fill and edge, and what the page's card shows under its header: its terminal (10 pt in,
-/// 8 pt up from the bottom) live (its snapshot until it drew), or its snapshot, or for a terminal never shown the
-/// fill; any other card's own view, live, once the strip made it (a browser's page, a plugin's content, a chat), else
-/// its kind's symbol. A floated pane's shows the float icon.
+/// A card at `scale`: its fill and edge, and what the page's card shows under its header: its terminal's snapshot
+/// (10 pt in, 8 pt up from the bottom), or the terminal live until it has one, or for a terminal never shown the fill;
+/// a web card's last picture (a browser's page, a plugin's content); a chat's own view; else its kind's symbol. A
+/// floated pane's shows the float icon.
 private struct MiniCard: View {
     let id: String
     let page: Page
@@ -41,6 +44,7 @@ private struct MiniCard: View {
     let size: CGSize
     let scale: CGFloat
     let live: Set<String>
+    let pictures: Bool
     @Environment(\.look) private var look
 
     var body: some View {
@@ -57,14 +61,13 @@ private struct MiniCard: View {
                     Image(systemName: "pip").foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if let pane, pane.plugin != nil || page.shownChat(pane) != nil {
-                    // Not a terminal: its own view once the strip made it, else its kind's symbol. A tile makes no
-                    // web view, proxy or transcript read: unlike a terminal's, it has no cap to keep.
-                    if let browser = pane.terminalID.flatMap(page.terminals.built) {
-                        // Its web view moves here, as a terminal's does, and back to the card after.
-                        scaled(BrowserCard(browser: browser).miniCard(pane.id, "browser"), content, under: header)
-                    } else if let plugin = pane.terminalID.flatMap(page.terminals.builtPlugin) {
-                        scaled(PluginCard(plugin: plugin, page: page).miniCard(pane.id, plugin.kind.rawValue), content,
-                               under: header)
+                    // Not a terminal: a web card's picture, a chat's view once the strip made it, else its kind's
+                    // symbol. A tile makes no web view, proxy or transcript read, and takes no web view from its card
+                    // (which then drew blank as it went back).
+                    if let picture = pane.terminalID.flatMap(page.terminals.picture) {
+                        let inset = pane.browser != nil ? 6 : PaneCard.inset
+                        scaled(Image(decorative: picture, scale: 1).resizable().padding([.horizontal, .bottom], inset)
+                            .miniCard(pane.id, pane.plugin?.kind?.rawValue ?? ""), content, under: header)
                     } else if let chat = page.shownChat(pane), !chat.history.entries.isEmpty {
                         scaled(ChatView(chat: chat, page: page, terminal: nil).miniCard(pane.id, "chat"), content,
                                under: header)
@@ -77,9 +80,10 @@ private struct MiniCard: View {
                     let isLive = live.contains(id)
                     // Not made for a tile that is not live (a view and a session each, while it scrolls).
                     let view = isLive ? page.terminal(pane) : page.terminals.terminals([id]).first
+                    let drawsLive = isLive && (!pictures || view?.snapshot == nil)
                     ZStack {
                         Color.clear
-                        if isLive, let view {
+                        if drawsLive, let view {
                             // Its snapshot is its picture until it drew (`dropPicture`).
                             MiniTerminal(terminal: view, size: terminal)
                         } else if let snapshot = view?.snapshot {
@@ -87,7 +91,7 @@ private struct MiniCard: View {
                         }
                     }
                     // e2e: and its snapshot's width in pixels.
-                    .miniCard(pane.id, "\(view?.pictured != true ? "loading" : isLive ? "live" : "snapshot") "
+                    .miniCard(pane.id, "\(view?.pictured != true ? "loading" : drawsLive ? "live" : "snapshot") "
                         + "\(view?.snapshot?.width ?? 0)")
                     .frame(width: terminal.width * scale, height: terminal.height * scale)
                     .padding(.leading, PaneCard.inset * scale)

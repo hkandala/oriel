@@ -287,9 +287,9 @@ extension OrielUITests {
         XCTAssertTrue(overview.vanishes(within: 2))
     }
 
-    /// A browser's and a chat's cards show their own view in their tile, live: the page follows a new address. The
-    /// web view there takes no keys, also when its card is given the keyboard (the palette closing), and has it
-    /// again after.
+    /// A browser's card shows its page's picture in its tile, taken as the overview opens, and a chat's card its view.
+    /// The tile stays a picture as the page follows a new address out of view. The web view takes no keys while the
+    /// overview is open, also when its card is given the keyboard (the palette closing), and has it again after.
     func testOverviewShowsBrowserAndChatCards() async throws {
         let (tab, chat) = try await startChat()
         closeAfter("tab", tab)
@@ -323,12 +323,14 @@ extension OrielUITests {
         scrollOverview(to: shot, whole: true)
         let light = mean(shot)
         keepScreenshot("overview, browser and chat")
-        // Another address from the label (as an agent sets it): the tile follows the page.
+        XCTAssertGreaterThan(light, 150, "the light page's picture")
+        // Another address from the label (as an agent sets it): the card follows, the tile keeps its picture.
         try await Self.call(one, "pane.rename", ["pane_id": browser,
                                                  "label": "oriel:browser#\(iid) file://\(folder)/dark.html"])
         try await Self.call(one, "pane.report_metadata", ["pane_id": browser, "source": "oriel-panes",
                                                           "tokens": ["oriel-label": "1"], "ttl_ms": 1000])
-        XCTAssertTrue(until(5) { mean(shot) < light - 100 }, "\(light) \(mean(shot))")
+        XCTAssertTrue(title.has(\.stringValue, "Dark", within: 5))
+        XCTAssertGreaterThan(mean(shot), 150, "the tile's picture")
         // The palette closing gives the keyboard card the keyboard, here the browser: it waits for the strip.
         app.typeKey("k", modifierFlags: .command)
         XCTAssertTrue(hasKeyboard(element("palette.filter")))
