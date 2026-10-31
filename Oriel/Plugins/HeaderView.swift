@@ -118,8 +118,9 @@ private struct HeaderItem: View {
             }
             return index == 0 ? part : Text("\(line)\(chevron)\(part)")
         }
+        // Its whole width before a spacer takes any: cut only when the row is full.
         return (control.digits == "mono" ? shown.monospacedDigit() : shown).fontWeight(.regular).lineLimit(1)
-            .truncationMode(.middle)
+            .truncationMode(.middle).layoutPriority(1)
             .accessibilityValue(parts.joined(separator: " › "))
     }
 
