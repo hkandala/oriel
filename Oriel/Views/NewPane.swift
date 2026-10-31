@@ -28,8 +28,8 @@ struct NewPane: View {
             Group {
                 if let agent = chooser.starting {
                     loader(agent)
-                } else if let kind = chooser.opening {
-                    PluginLoader(kind: kind).accessibilityIdentifier("pane.\(cardID).loader")
+                } else if let plugin = chooser.opening {
+                    PluginLoader(plugin: plugin).accessibilityIdentifier("pane.\(cardID).loader")
                 } else {
                     let rows = chooser.rows
                     let height = CGFloat(rows.count) * (Self.row + Self.spacing) - Self.spacing
@@ -140,7 +140,7 @@ struct NewPane: View {
             switch row {
             case .terminal: Image(systemName: "terminal")
             case .agent: Image(systemName: "sparkles")
-            case let .plugin(kind): Image(systemName: kind.symbol)
+            case let .plugin(id): Image(systemName: Registry.plugin(id)?.icon ?? Registry.missing)
             case .start: ProgramTile(icon: row.id)
             }
         }

@@ -5,15 +5,14 @@ import SwiftUI
 import UniformTypeIdentifiers
 import WebKit
 
-/// A plugin card's content as a page of the `web/` bundle (`make web`), in a web view of its own: WebKit makes a
+/// A plugin card's content as a page of its plugin's folder (`make web`), in a web view of its own: WebKit makes a
 /// process per web view whatever the process pool. The page talks to the app through `web/src/lib/bridge.ts`.
 @MainActor @Observable
 final class WebCard {
-    let kind: PluginKind
+    /// Its plugin's id: File Explorer's or Git's.
+    let plugin: String
     /// The page the argument picks.
-    var page: PluginPage {
-        PluginPage(kind, arg)
-    }
+    private(set) var page: PluginPage
 
     /// The place shown: a file's or a folder's path, a diff's root and source. The label follows it (`Plugin.show`).
     private(set) var arg: String
@@ -23,7 +22,7 @@ final class WebCard {
     /// A linked open's landing, for the first load only: a line for a file, a path from the repo's root for a diff.
     @ObservationIgnored private var place: String?
     /// Opens a link from the page, in the card or beside it (`Page.open(_:arg:at:from:how:)`).
-    @ObservationIgnored var open: ((PluginKind, String, String?, Opening) -> Void)?
+    @ObservationIgnored var open: ((PluginManifest, String, String?, Opening) -> Void)?
     fileprivate(set) var dirty = false
     /// The page drew its first rows or its file: the loader goes.
     private(set) var ready = false
@@ -59,8 +58,9 @@ final class WebCard {
     @ObservationIgnored private(set) lazy var git = GitRepo(card: self)
     @ObservationIgnored private var css = ""
 
-    init(kind: PluginKind, arg: String, place: String?, store: HostStore) {
-        self.kind = kind
+    init(plugin: String, page: PluginPage, arg: String, place: String?, store: HostStore) {
+        self.plugin = plugin
+        self.page = page
         self.arg = arg
         self.place = place
         self.store = store
@@ -86,13 +86,14 @@ final class WebCard {
                                      in: nil, in: .page)
         } else {
             loaded = true
-            view.load(URLRequest(url: PluginScheme.url(page)))
+            view.load(URLRequest(url: PluginScheme.url(plugin, page)))
         }
     }
 
     /// Another place: its page loads with it.
     func show(_ arg: String, at place: String?) {
         self.arg = arg
+        page = PluginPage(plugin, arg) ?? page
         self.place = place
         hash = nil
         toast = nil
@@ -103,7 +104,7 @@ final class WebCard {
         refocus = view.window?.firstResponder === view
         if loaded {
             script()
-            view.load(URLRequest(url: PluginScheme.url(page)))
+            view.load(URLRequest(url: PluginScheme.url(plugin, page)))
         }
     }
 
@@ -153,10 +154,10 @@ final class WebCard {
             defer { ready = true }
             return await patch()
         case "open":
-            // No kind: the File Explorer's; no `how`: in the card.
-            guard let arg = message["arg"] as? String else { return (nil, "No path") }
-            open?((message["kind"] as? String).flatMap(PluginKind.init) ?? .explorer, arg, message["at"] as? String,
-                  (message["how"] as? String).flatMap(Opening.init) ?? .here)
+            // No `how`: in the card.
+            guard let arg = message["arg"] as? String,
+                  let opener = opener(message, arg) else { return (nil, "No path") }
+            open?(opener, arg, message["at"] as? String, (message["how"] as? String).flatMap(Opening.init) ?? .here)
         default:
             return await files(message)
         }
@@ -166,14 +167,13 @@ final class WebCard {
     /// A row's menu at the pointer, after the page's reply: Open (Open as Root for a folder), Open in New Tab, Open to
     /// the Side.
     private func menu(_ message: [String: Any]) {
-        guard let arg = message["arg"] as? String else { return }
-        let kind = (message["kind"] as? String).flatMap(PluginKind.init) ?? .explorer
+        guard let arg = message["arg"] as? String, let opener = opener(message, arg) else { return }
         let place = message["at"] as? String, folder = message["folder"] as? Bool == true
         let menu = NSMenu()
         for (title, how) in [(folder ? "Open as Root" : "Open", Opening.here), ("Open in New Tab", .tab),
                              ("Open to the Side", .side)]
         {
-            let action = MenuAction { [weak self] in self?.open?(kind, arg, place, how) }
+            let action = MenuAction { [weak self] in self?.open?(opener, arg, place, how) }
             let item = menu.addItem(withTitle: title, action: #selector(MenuAction.fire), keyEquivalent: "")
             item.target = action
             item.representedObject = action
@@ -186,6 +186,14 @@ final class WebCard {
                 in: view,
             )
         }
+    }
+
+    /// The plugin an open from the page names (`kind`), else a file's default plugin; a folder's is File Explorer.
+    private func opener(_ message: [String: Any], _ arg: String) -> PluginManifest? {
+        if let id = message["kind"] as? String {
+            return Registry.plugin(id)
+        }
+        return arg.hasSuffix("/") ? Registry.plugin("explorer") : Registry.openers(arg).first
     }
 
     /// A report of what the page shows: the jump bar's symbol, the PDF's page, the dirty dot, Markdown's mode, its
@@ -240,7 +248,7 @@ private final class Relay: NSObject, WKScriptMessageHandlerWithReply, WKNavigati
     /// bridge with it, to any site or to another page.
     func webView(_: WKWebView, decidePolicyFor action: WKNavigationAction) async -> WKNavigationActionPolicy {
         guard let url = action.request.url, let card else { return .cancel }
-        return url == PluginScheme.url(card.page) ? .allow : .cancel
+        return url == PluginScheme.url(card.plugin, card.page) ? .allow : .cancel
     }
 
     /// The keyboard back to a card that moved to another place, unless another view took it meanwhile.
@@ -286,30 +294,34 @@ final class WebCardView: BrowserView {
     }
 }
 
-/// Serves the bundle: `oriel-plugin://app/<page>` is a page that runs `<page>.js`, any other name a file of it.
-/// `loadFileURL` runs no module scripts.
+/// Serves each plugin from its own folder: `oriel-plugin://<id>/<page>` is a page that runs `<page>.js`, any other
+/// name a file of it. `loadFileURL` runs no module scripts.
 @MainActor
 final class PluginScheme: NSObject, WKURLSchemeHandler {
     static let shared = PluginScheme()
     static let name = "oriel-plugin"
-    private static let folder = Bundle.main.resourceURL?.appending(path: "web")
 
-    static func url(_ page: PluginPage) -> URL {
-        URL(string: "\(name)://app/")?.appending(path: page.rawValue) ?? URL(filePath: "/")
+    static func url(_ plugin: String, _ page: PluginPage) -> URL {
+        URL(string: "\(name)://\(plugin)/")?.appending(path: page.rawValue) ?? URL(filePath: "/")
     }
 
     func webView(_: WKWebView, start task: any WKURLSchemeTask) {
-        guard let url = task.request.url else { return }
+        // The default plugins' built pages, until the app builds plugins itself.
+        guard let url = task.request.url, let id = url.host(), Registry.defaults.contains(id),
+              let folder = Registry.folder?.appending(path: id)
+        else {
+            task.didFailWithError(URLError(.fileDoesNotExist))
+            return
+        }
         // One folder, no subfolders: the last component is decoded, so `..%2F` would climb out of it.
         let file = url.lastPathComponent, page = url.pathExtension.isEmpty && PluginPage(rawValue: file) != nil
         // A page has its own styles when it imports CSS (esbuild writes `<page>.css`).
-        let styles = page && Self.folder
-            .map { FileManager.default.fileExists(atPath: $0.appending(path: "\(file).css").path) } == true
+        let styles = page && FileManager.default.fileExists(atPath: folder.appending(path: "\(file).css").path)
         let data = file.contains("/") || file.hasPrefix(".") ? nil : page ? Data("""
         <!doctype html><meta charset="utf-8"><link rel="stylesheet" href="card.css">\
         \(styles ? "<link rel=\"stylesheet\" href=\"\(file).css\">" : "")\
         <script type="module" src="\(file).js"></script>
-        """.utf8) : Self.folder.flatMap { try? Data(contentsOf: $0.appending(path: file)) }
+        """.utf8) : try? Data(contentsOf: folder.appending(path: file))
         guard let data else {
             task.didFailWithError(URLError(.fileDoesNotExist))
             return
@@ -317,11 +329,15 @@ final class PluginScheme: NSObject, WKURLSchemeHandler {
         // UTType knows no MIME type for pdf.js's decoders.
         let mime = page ? "text/html" : url.pathExtension == "wasm" ? "application/wasm"
             : UTType(filenameExtension: url.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
-        // The page's scripts come only from the bundle; a preview shows its file from a blob.
+        // Scripts, styles, fonts and fetches only from the plugin's own folder (future-work/plugins/security); a
+        // preview
+        // shows its file from a blob.
+        let own = "\(Self.name)://\(id)"
         task.didReceive(HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: [
             "Content-Type": mime,
-            "Content-Security-Policy": "default-src \(Self.name):; script-src \(Self.name): 'wasm-unsafe-eval'; "
-                + "img-src \(Self.name): data: blob:; media-src blob:; style-src \(Self.name): 'unsafe-inline'",
+            "Content-Security-Policy": "default-src 'none'; script-src \(own) 'wasm-unsafe-eval'; "
+                + "style-src \(own) 'unsafe-inline'; img-src \(own) data: blob:; media-src blob:; "
+                + "font-src \(own) data:; connect-src \(own); frame-src 'none'; form-action 'none'; base-uri 'none'",
         ]) ?? URLResponse())
         task.didReceive(data)
         task.didFinish()

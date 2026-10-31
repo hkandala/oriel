@@ -60,12 +60,16 @@ struct PaneCard: View {
                     BrowserCard(browser: browser)
                 } else if let plugin {
                     PluginCard(plugin: plugin, page: page)
-                } else if let pane, let kind = pane.plugin?.kind {
+                } else if let pane, let label = pane.plugin, terminal == nil {
                     // Its last picture until the strip rests.
-                    if let picture = pane.terminalID.flatMap(page.terminals.picture) {
-                        CardPicture(picture: picture, pane: pane)
+                    if let plugin = label.manifest {
+                        if let picture = pane.terminalID.flatMap(page.terminals.picture) {
+                            CardPicture(picture: picture, pane: pane)
+                        } else {
+                            PluginLoader(plugin: plugin)
+                        }
                     } else {
-                        PluginLoader(kind: kind)
+                        MissingPlugin(label: label, pane: pane, page: page)
                     }
                 } else if let pane, let chat = page.shownChat(pane) {
                     ChatView(chat: chat, page: page, terminal: terminal)

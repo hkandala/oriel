@@ -5,7 +5,7 @@ import SwiftUI
 extension Page {
     /// A plugin pane's card, made on first use; nil for a browser's and every other pane.
     func plugin(_ pane: HostStore.Pane) -> Plugin? {
-        guard let terminalID = pane.terminalID, let label = pane.plugin, label.kind != .browser else { return nil }
+        guard let terminalID = pane.terminalID, let label = pane.plugin else { return nil }
         return terminals.plugin(pane, label, terminalID: terminalID, store: store)
     }
 }
@@ -46,7 +46,7 @@ struct PluginCard: View {
                 }
             }
             .accessibilityElement(children: .contain)
-            .accessibilityIdentifier("\(plugin.kind.rawValue).\(plugin.paneID).card")
+            .accessibilityIdentifier("\(plugin.manifest.id).\(plugin.paneID).card")
     }
 }
 
@@ -109,8 +109,12 @@ struct PluginToolbar: View {
                     }
                     .foregroundStyle(look.paneButton)
                     .accessibilityIdentifier("pane.\(plugin.paneID).reveal")
-                    if !page.store.machine.isRemote {
-                        OpenWith(path: plugin.web.arg).accessibilityIdentifier("pane.\(plugin.paneID).open-with")
+                    // The Mac's apps on This Mac only; the other plugins that open the file on every machine.
+                    let others = Registry.openers(plugin.web.arg, options: true).filter { $0.id != plugin.manifest.id }
+                    if !page.store.machine.isRemote || !others.isEmpty {
+                        OpenWith(path: plugin.web.arg, apps: !page.store.machine.isRemote, plugins: others,
+                                 pick: plugin.reopen(as:))
+                            .accessibilityIdentifier("pane.\(plugin.paneID).open-with")
                     }
                 }
             }
@@ -118,17 +122,22 @@ struct PluginToolbar: View {
     }
 }
 
-/// Open With (This Mac only), as other editors draw it: the default app's icon opens the file in it; its menu lists
-/// that app, then the others that open the file, each with its icon.
+/// Open With, as other editors draw it: the default app's icon opens the file in it; its menu lists that app, then
+/// the others that open the file, each with its icon, then the other plugins that open it, whose pick turns the card
+/// into theirs.
 private struct OpenWith: View {
     let path: String
+    /// The Mac's apps: on This Mac.
+    let apps: Bool
+    let plugins: [PluginManifest]
+    let pick: (PluginManifest) -> Void
 
     var body: some View {
         let url = URL(filePath: path)
         Group {
-            if let main = NSWorkspace.shared.urlForApplication(toOpen: url) {
+            if apps, let main = NSWorkspace.shared.urlForApplication(toOpen: url) {
                 Menu {
-                    OpenWithItems(url: url)
+                    OpenWithItems(url: url, plugins: plugins, pick: pick)
                 } label: {
                     Image(nsImage: OpenWithItems.icon(main))
                 } primaryAction: {
@@ -137,7 +146,7 @@ private struct OpenWith: View {
                 }
                 .help("Open with \(FileManager.default.displayName(atPath: main.path))")
             } else {
-                Menu("Open With") { OpenWithItems(url: url) }
+                Menu("Open With") { OpenWithItems(url: apps ? url : nil, plugins: plugins, pick: pick) }
             }
         }
         .menuStyle(.button)
@@ -148,19 +157,30 @@ private struct OpenWith: View {
 
 /// Their own view: SwiftUI asks LaunchServices again only when the path changes, not at every render of the card.
 private struct OpenWithItems: View {
-    let url: URL
+    /// Nil: no apps (a remote machine's file).
+    let url: URL?
+    let plugins: [PluginManifest]
+    let pick: (PluginManifest) -> Void
 
     var body: some View {
-        let workspace = NSWorkspace.shared, main = workspace.urlForApplication(toOpen: url)
-        let others = workspace.urlsForApplications(toOpen: url).filter { $0 != main }
-        if let main {
-            item(main)
-            Divider()
+        if let url {
+            let workspace = NSWorkspace.shared, main = workspace.urlForApplication(toOpen: url)
+            let others = workspace.urlsForApplications(toOpen: url).filter { $0 != main }
+            if let main {
+                item(main, url)
+                Divider()
+            }
+            ForEach(others, id: \.self) { item($0, url) }
+            if !plugins.isEmpty {
+                Divider()
+            }
         }
-        ForEach(others, id: \.self, content: item)
+        ForEach(plugins, id: \.id) { plugin in
+            Button(plugin.name, systemImage: plugin.icon) { pick(plugin) }
+        }
     }
 
-    private func item(_ app: URL) -> some View {
+    private func item(_ app: URL, _ url: URL) -> some View {
         Button {
             NSWorkspace.shared.open([url], withApplicationAt: app, configuration: NSWorkspace.OpenConfiguration())
         } label: {
@@ -195,19 +215,53 @@ private struct Loading: View {
 
 /// While a browser or a plugin pane takes the chooser's place, or a browser card is built.
 struct PluginLoader: View {
-    let kind: PluginKind
+    let plugin: PluginManifest
 
     var body: some View {
         VStack(spacing: 12) {
-            Image(systemName: kind.symbol).font(.system(size: 28)).foregroundStyle(.secondary)
+            Image(systemName: plugin.icon).font(.system(size: 28)).foregroundStyle(.secondary)
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
-                Text("Opening \(kind.name)…").font(.system(size: 13)).foregroundStyle(.secondary).lineLimit(1)
+                Text("Opening \(plugin.name)…").font(.system(size: 13)).foregroundStyle(.secondary).lineLimit(1)
             }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isStaticText)
-        .accessibilityLabel("Opening \(kind.name)")
+        .accessibilityLabel("Opening \(plugin.name)")
+    }
+}
+
+/// The card of a label naming a plugin not on this Mac (removed, or from another Mac): the plugin id and the
+/// argument. The label stays, so the card comes back with the plugin.
+struct MissingPlugin: View {
+    let label: PaneLabel
+    let pane: HostStore.Pane
+    let page: Page
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Image(systemName: Registry.missing).font(.system(size: 28)).foregroundStyle(.secondary)
+            VStack(spacing: 4) {
+                Text("\(label.plugin) is not on this Mac").font(.system(size: 13, weight: .semibold))
+                    .accessibilityIdentifier("pane.\(pane.id).missing")
+                if !label.arg.isEmpty {
+                    Text(label.arg).font(.system(size: 12)).foregroundStyle(.secondary).lineLimit(2)
+                        .truncationMode(.middle).textSelection(.enabled)
+                }
+            }
+            .multilineTextAlignment(.center)
+            HStack(spacing: 8) {
+                Button("Show Placeholder") { pane.placeholder = true }
+                    .accessibilityIdentifier("pane.\(pane.id).show-placeholder")
+                Button("Close Pane") { page.closePane(pane) }
+                    .accessibilityIdentifier("pane.\(pane.id).close-missing")
+            }
+            .buttonStyle(.glass)
+            .controlSize(.small)
+            .padding(.top, 4)
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 

@@ -189,7 +189,8 @@ final class Page: Identifiable {
 
     /// The pane's terminal, made on first use once the store is connected.
     func terminal(_ pane: HostStore.Pane) -> PaneTerminal? {
-        guard let terminalID = pane.terminalID, let client = store.client, pane.plugin == nil else { return nil }
+        guard let terminalID = pane.terminalID, let client = store.client, pane.plugin == nil || pane.placeholder
+        else { return nil }
         return terminals.terminal(terminalID, pane: pane.id, client: client)
     }
 

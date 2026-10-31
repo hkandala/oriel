@@ -78,3 +78,86 @@ extension OrielUITests {
         }
     }
 }
+
+extension OrielUITests {
+    /// The registry (phase 47): packages in the plugins folder and the settings' local paths get chooser rows after
+    /// Git, by id, and Open ‹chooser› Here; a bad manifest and a taken id are left out. A label naming a plugin not on
+    /// this Mac shows its missing card, whose Show Placeholder shows the pane's terminal.
+    func testTheRegistryListsUserPackagesAndShowsAMissingPlugin() async throws {
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        let (tab, pane) = try await newTab("registry")
+        try await waitForPrompt(pane)
+        let config = "/tmp/oriel-e2e-config"
+        try await send(packages(in: config) + "\r", to: pane)
+        try await waitFor(pane) { $0.contains("made-42") }
+        relaunch(nil, ["-configFolder", config])
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        element("workspace.w2").click()
+
+        let before = try await tabIDs()
+        closeNew("tab", besides: before)
+        app.typeKey("t", modifierFlags: .command)
+        let newTab = try await newTabID(after: before), new = try await self.pane(of: newTab)
+        let row = { (id: String) in self.element("pane.\(new).chooser.\(id)") }
+        XCTAssertTrue(row("notes").has(\.label, "Notes", within: 3))
+        XCTAssertTrue(row("kanban").has(\.label, "Kanban", within: 1))
+        XCTAssertEqual(row("explorer").label, "File Explorer")
+        XCTAssertFalse(row("broken").exists)
+        XCTAssertLessThan(row("git").frame.minY, row("kanban").frame.minY)
+        XCTAssertLessThan(row("kanban").frame.minY, row("notes").frame.minY)
+        keepScreenshot("user plugins in the chooser")
+        // Terminal, Agent, Browser, File Explorer, Git, Kanban, Notes: a folder plugin's label names the folder.
+        app.typeKey("7", modifierFlags: [])
+        let notes = try await replaced(new, in: newTab, besides: [])
+        let label = try await paneLabel(notes)
+        XCTAssertTrue(label.hasPrefix("oriel:notes#") && label.hasSuffix("/"), label)
+
+        element("tab.\(tab)").click()
+        element("terminal.\(pane)").click()
+        openPalette()
+        app.typeText("open kanban here")
+        XCTAssertTrue(element("palette.command.Open Kanban Here").exists(within: 2))
+        app.typeKey(.escape, modifierFlags: [])
+        try await missingCard()
+    }
+
+    /// A shell line that writes the config folder: two good packages (one from the settings' local path), a bad
+    /// manifest, and a second `explorer`.
+    private func packages(in config: String) -> String {
+        func package(_ id: String, _ more: String) -> String {
+            #"{"version":"1.0.0","description":"\#(id) rows","oriel":{"id":"\#(id)","name":"\#(id)","api":1,"#
+                + #""entry":"main.ts","icon":"note.text"\#(more)}}"#
+        }
+        let files = [
+            ("plugins/notes", package("notes", #","opens":{"folders":true},"chooser":"Notes""#)),
+            ("plugins/broken", #"{"version":"1.0.0","oriel":{"id":"broken","chooser":"Broken"}}"#),
+            ("plugins/twin", package("explorer", #","chooser":"Twin""#)),
+            ("local/kanban", package("kanban", #","chooser":"Kanban""#)),
+        ]
+        var script = "rm -rf \(config)"
+        for (folder, json) in files {
+            script += " && mkdir -p \(config)/\(folder) && echo '\(json)' > \(config)/\(folder)/package.json"
+        }
+        return script + #" && echo '{"packages":["./local/kanban"]}' > \#(config)/settings.json"#
+            + " && clear && echo made-$((6*7))"
+    }
+
+    /// A label naming a plugin not on this Mac: its card, then the pane's terminal.
+    private func missingCard() async throws {
+        let reply = try await Self.call(one, "layout.apply", ["workspace_id": "w2", "focus": false, "root": [
+            "type": "pane", "cwd": "/tmp", "label": "oriel:csv-table#e2emis /tmp/data.csv",
+            "command": ["sh", "-c", "cat", "sh"],
+        ]])
+        let layout = reply["layout"] as? [String: Any]
+        let tab: String = try field(layout?["tab_id"], "layout's tab")
+        let pane: String = try field((layout?["root"] as? [String: Any])?["pane_id"], "layout's pane")
+        closeAfter("tab", tab)
+        try await show(tab)
+        XCTAssertTrue(element("pane.\(pane).missing").has(\.stringValue, "csv-table is not on this Mac", within: 5))
+        XCTAssertFalse(element("terminal.\(pane)").exists)
+        keepScreenshot("missing plugin")
+        element("pane.\(pane).show-placeholder").click()
+        XCTAssertTrue(element("terminal.\(pane)").exists(within: 3))
+        XCTAssertTrue(element("pane.\(pane).missing").vanishes(within: 2))
+    }
+}

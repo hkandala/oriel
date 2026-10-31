@@ -93,7 +93,7 @@ extension Browser {
               let url = Self.url(Self.shown(link, alias).absoluteString, local: !store.machine.isRemote)
         else { return false }
         approve(url)
-        let label = store.newLabel(.browser, arg: url.absoluteString)
+        let label = store.newLabel(Registry.browser, arg: url.absoluteString)
         Task {
             await store.write {
                 _ = try await $0.newTab(workspace: workspace.id, cwd: pane.cwd ?? "~", label: label.text,
