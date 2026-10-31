@@ -336,3 +336,29 @@ extension OrielUITests {
                       "\(first) then \(title.stringValue)")
     }
 }
+
+extension OrielUITests {
+    /// A browser's page that moved along the strip while out of view (a tab made before its tab) draws in its card
+    /// when shown: WebKit hears of a move of the views around it only when told, and painted where the page was, one
+    /// page off, the card blank (item 28).
+    func testABrowserMovedAlongTheStripDrawsInItsCard() async throws {
+        let (tab, pane) = try await newTab("moved")
+        try await waitForPrompt(pane)
+        let address = try await writePages(from: pane)
+        try await Self.call(one, "pane.rename", ["pane_id": pane, "label": "oriel:browser#e2emov \(address)"])
+        try await show(tab)
+        let text = pageText("oriel-page-one"), card = element("pane.\(pane)")
+        XCTAssertTrue(text.exists(within: connect))
+        app.typeKey("1", modifierFlags: .command)
+        XCTAssertTrue(element("tab.\(tab)").has(\.isSelected, false, within: 3))
+        // A tab before it: its page moves one page along, out of view.
+        let (before, _) = try await createTab(in: "w2")
+        closeAfter("tab", before)
+        try await Self.call(one, "tab.move", ["tab_id": before, "insert_index": 1])
+        XCTAssertTrue(element("tab.\(before)").exists(within: 5))
+        try await expect("the browser's tab after the new one") { try await order(of: tab) == 2 }
+        try await show(tab)
+        XCTAssertTrue(until(5) { card.frame.contains(CGPoint(x: text.frame.midX, y: text.frame.midY)) },
+                      "the page's text at \(text.frame), its card at \(card.frame)")
+    }
+}
