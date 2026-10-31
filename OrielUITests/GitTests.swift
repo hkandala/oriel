@@ -144,7 +144,7 @@ extension OrielUITests {
 
     /// Side by Side puts the old line and the new one on one row; the file list hides and comes back.
     private func sideBySide(_ card: String, _ page: XCUIElement, _ far: XCUIElement) async throws {
-        element("pane.\(card).diff.layout").radioButtons["Side by Side"].click()
+        element("pane.\(card).diff.layout.side by side").click()
         let old = page.staticTexts.matching(NSPredicate(format: "value CONTAINS 'line 290'")).firstMatch
         // By their tops: a narrow column wraps the old line.
         XCTAssertTrue(until(3) {

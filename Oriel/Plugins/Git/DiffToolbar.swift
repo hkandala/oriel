@@ -16,15 +16,9 @@ struct DiffToolbar: View {
                 .foregroundStyle(look.paneButton)
                 .accessibilityIdentifier("\(id).home")
             Spacer(minLength: 0)
-            Picker("Layout", selection: $web.split) {
-                Text("Unified").tag(false)
-                Text("Side by Side").tag(true)
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .controlSize(.small)
-            .fixedSize()
-            .accessibilityIdentifier("\(id).layout")
+            // The app's segments, as Markdown's Read | Edit: the system's turns accent blue in a key window.
+            Segments(id: "\(id).layout", options: [("Unified", false), ("Side by Side", true)], selection: $web.split)
+                .fixedSize()
             HStack(spacing: 0) {
                 IconButton(symbol: "sidebar.left", help: web.list ? "Hide File List" : "Show File List", size: 22) {
                     web.list.toggle()
