@@ -213,7 +213,7 @@ private struct HeaderMenu: View {
 /// Open With, as other editors draw it: the default app's icon opens the file in it; its menu lists that app, then
 /// the others that open the file, each with its icon, then the other plugins that open it, whose pick turns the card
 /// into theirs.
-struct OpenWith: View {
+private struct OpenWith: View {
     let path: String
     /// The Mac's apps: on This Mac.
     let apps: Bool
