@@ -119,6 +119,7 @@ extension OrielUITests {
         XCTAssertTrue(element("palette.command.Open Kanban Here").exists(within: 2))
         app.typeKey(.escape, modifierFlags: [])
         try await missingCard()
+        try await send("rm -rf \(config)\r", to: pane)
     }
 
     /// A shell line that writes the config folder: two good packages (one from the settings' local path), a bad

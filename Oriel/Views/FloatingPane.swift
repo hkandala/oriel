@@ -198,7 +198,7 @@ struct FloatingWindow: View {
                     FloatingBrowser(browser: browser, page: page)
                 } else if let plugin {
                     FloatingPlugin(plugin: plugin, page: page)
-                } else if let pane, let label = pane.plugin, label.manifest == nil, terminal == nil {
+                } else if let pane, let label = pane.plugin, terminal == nil {
                     MissingPlugin(label: label, pane: pane, page: page)
                 } else if let chat, chat.showsChat {
                     ChatView(chat: chat, page: page, terminal: terminal)

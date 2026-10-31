@@ -353,7 +353,8 @@ extension WindowPages {
         let panes = (page.store.tabPanes[tab] ?? []).filter { !page.floats($0) }
         let zoomed = panes.filter { $0.id == page.zoomedPaneID }
         return (zoomed.isEmpty ? panes : zoomed).compactMap { pane in
-            pane.plugin == nil && page.shownChat(pane) == nil ? pane.terminalID.map { ($0, pane.id) } : nil
+            (pane.plugin == nil || pane.placeholder) && page.shownChat(pane) == nil ? pane.terminalID
+                .map { ($0, pane.id) } : nil
         }
     }
 

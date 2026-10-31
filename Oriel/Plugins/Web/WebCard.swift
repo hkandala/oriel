@@ -306,7 +306,8 @@ final class PluginScheme: NSObject, WKURLSchemeHandler {
     }
 
     func webView(_: WKWebView, start task: any WKURLSchemeTask) {
-        // The default plugins' built pages, until the app builds plugins itself.
+        // The default plugins' built pages, until the app builds plugins itself: `make web` names each folder by its
+        // plugin's id.
         guard let url = task.request.url, let id = url.host(), Registry.defaults.contains(id),
               let folder = Registry.folder?.appending(path: id)
         else {
@@ -330,8 +331,7 @@ final class PluginScheme: NSObject, WKURLSchemeHandler {
         let mime = page ? "text/html" : url.pathExtension == "wasm" ? "application/wasm"
             : UTType(filenameExtension: url.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
         // Scripts, styles, fonts and fetches only from the plugin's own folder (future-work/plugins/security); a
-        // preview
-        // shows its file from a blob.
+        // preview shows its file from a blob.
         let own = "\(Self.name)://\(id)"
         task.didReceive(HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: [
             "Content-Type": mime,
