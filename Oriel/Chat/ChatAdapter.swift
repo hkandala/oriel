@@ -126,7 +126,7 @@ extension Chat {
     /// being read off the main actor are in.
     func change(_ body: @escaping (inout ChatHistory) -> Void) {
         if reading {
-            queued.append(body)
+            queued.append((source, body))
         } else if loading {
             body(&backlog)
         } else {
@@ -206,12 +206,13 @@ extension Chat {
         if self.source == source {
             parser.put(state)
             marks[source] = run.last?.mark
+            if five {
+                problem = Self.unknownFormat
+            }
+            check(torn: torn)
         }
-        if five {
-            problem = Self.unknownFormat
-        }
-        check(torn: torn)
-        for body in queued {
+        // The changes made meanwhile, of the session they were made in.
+        for (made, body) in queued where made == self.source {
             change(body)
         }
         queued = []

@@ -151,24 +151,15 @@ struct OpenCode: ChatAdapter {
         }
         guard var session = await history(chat, url, id, exec) else { return }
         chat.history = session.history
-        // A status before the stream dropped may be old; a card answered before (the answer may be lost) is new again.
-        waits.busy = nil
-        await waits.load(url, folder, exec)
-        waits.fresh = true
-        guard !Task.isCancelled else { return }
-        waits.publish(chat)
-        while let line = await lines.next(), !Task.isCancelled {
+        await waits.load(url, folder, exec, chat)
+        while let line = await lines.next() {
             guard line.hasPrefix("data: "),
                   let event = try? JSONSerialization.jsonObject(with: Data(line.utf8.dropFirst(6))) as? [String: Any]
             else { continue }
-            // Built again whole for each event (OpenCodeSession's ponytail): off the main actor.
             let changed: Bool
-            (session, changed) = await Task.detached { [session] in
-                var session = session
-                let event = try? JSONSerialization.jsonObject(with: Data(line.utf8.dropFirst(6))) as? [String: Any]
-                let changed = event.map { session.apply($0) } ?? false
-                return (session, changed)
-            }.value
+            (session, changed) = await Self.apply(line, to: session)
+            // Cancelled: the stream dropped, or another session's took over meanwhile.
+            guard !Task.isCancelled else { return }
             if changed {
                 chat.history = session.history
             }
@@ -176,6 +167,18 @@ struct OpenCode: ChatAdapter {
                 waits.publish(chat)
             }
         }
+    }
+
+    /// An event's line applied to the session off the main actor (it builds the history again whole: OpenCodeSession's
+    /// ponytail), which reads the event again (its JSON objects are not Sendable): the session, and whether its history
+    /// changed.
+    private static func apply(_ line: String, to session: OpenCodeSession) async -> (OpenCodeSession, Bool) {
+        await Task.detached {
+            var session = session
+            let event = try? JSONSerialization.jsonObject(with: Data(line.utf8.dropFirst(6))) as? [String: Any]
+            let changed = event.map { session.apply($0) } ?? false
+            return (session, changed)
+        }.value
     }
 
     /// The session's history, else a problem.
@@ -188,6 +191,7 @@ struct OpenCode: ChatAdapter {
             var session = OpenCodeSession(id: id)
             return answer?.status == 200 && session.load(answer?.body ?? "") ? session : nil
         }.value
+        guard !Task.isCancelled else { return nil }
         guard let session else {
             chat.problem = Self.serverProblem + " did not give the session" + (answer.map { " (\($0.status))" } ?? "")
             return nil
@@ -255,8 +259,16 @@ struct OpenCode: ChatAdapter {
         requests.sort { $0.id.dropFirst(4) < $1.id.dropFirst(4) }
     }
 
-    /// The requests that wait now, all at once: a publish meanwhile keeps the old ones.
-    func load(_ url: String, _ folder: String, _ exec: any Exec) async {
+    /// The requests that wait now, all at once (a publish meanwhile keeps the old ones), then published. A status
+    /// before the stream dropped may be old; a card answered before (the answer may be lost) is new again.
+    func load(_ url: String, _ folder: String, _ exec: any Exec, _ chat: Chat) async {
+        busy = nil
+        defer {
+            fresh = true
+            if !Task.isCancelled {
+                publish(chat)
+            }
+        }
         var lists: [(String, [[String: Any]])] = []
         for kind in ["permission", "question"] {
             let body = await exec.openCode(url, "/\(kind)", folder: folder)?.body ?? ""
