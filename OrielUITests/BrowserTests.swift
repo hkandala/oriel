@@ -301,3 +301,38 @@ extension OrielUITests {
         try await waitFor(pane, in: session) { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     }
 }
+
+extension OrielUITests {
+    /// Past the kept web cards (`-spareWebCards 0`), a browser's card is dropped as its tab hides and keeps its
+    /// picture: its overview tile shows the page, and the card comes back from its label when shown (the page loads
+    /// again: its title, stamped as it loads, is a new one).
+    func testADroppedBrowserKeepsItsPictureAndComesBack() async throws {
+        relaunch(nil, ["-spareWebCards", "0"])
+        let (tab, pane) = try await newTab("dropped")
+        try await waitForPrompt(pane)
+        let folder = "/tmp/oriel-e2e-dropped"
+        try await send("mkdir -p \(folder) && printf '<script>document.title = \\x27Light \\x27 + Date.now()</script>' "
+            + ">\(folder)/light.html && clear\r", to: pane)
+        try await waitFor(pane) { !$0.contains("printf") }
+        let iid = String(format: "e2e%03x", Int.random(in: 0 ..< 4096)), title = element("pane.\(pane).title")
+        try await Self.call(
+            one,
+            "pane.rename",
+            ["pane_id": pane, "label": "oriel:browser#\(iid) file://\(folder)/light.html"],
+        )
+        XCTAssertTrue(until(connect) { title.stringValue.hasPrefix("Light ") }, title.stringValue)
+        let first = title.stringValue
+        app.typeKey("1", modifierFlags: .command)
+        XCTAssertTrue(element("tab.\(tab)").has(\.isSelected, false, within: 3))
+        app.typeKey("o", modifierFlags: [.command, .control])
+        let tile = element("overview.card.\(pane)")
+        XCTAssertTrue(tile.has(\.stringValue, "browser", within: 3), tile.stringValue)
+        scrollOverview(to: tile, whole: true)
+        XCTAssertGreaterThan(mean(tile), 150, "the dropped page's picture")
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(element("overview").vanishes(within: 2))
+        try await show(tab)
+        XCTAssertTrue(until(connect) { title.stringValue.hasPrefix("Light ") && title.stringValue != first },
+                      "\(first) then \(title.stringValue)")
+    }
+}

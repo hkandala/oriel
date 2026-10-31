@@ -17,7 +17,7 @@ extension OrielUITests {
         executionTimeAllowance = 1200
         relaunch(nil, ["-spareTerminals", "\(kept)", "-spareWebCards", "\(kept)", "-recordLatency", "YES"])
         addTeardownBlock { @MainActor in self.keep(self.element("app.latency").stringValue, as: "latency") }
-        let opened = try await keptTabs(kept)
+        let (opened, titles) = try await keptTabs(kept)
         // Each tab once, by Show Next Tab, until its card shows; then back to the first.
         XCTAssertTrue(element("tab.\(opened.last?.0 ?? "")").exists(within: 10))
         app.typeKey("1", modifierFlags: .command)
@@ -25,6 +25,10 @@ extension OrielUITests {
             app.typeKey("]", modifierFlags: [.command, .shift])
             XCTAssertTrue(element("tab.\(tab)").has(\.isSelected, true, within: 5), tab)
             XCTAssertTrue(element("pane.\(pane)").exists(within: 10), pane)
+            // A browser's page loaded: its title.
+            if let title = titles[pane] {
+                XCTAssertTrue(element("pane.\(pane).title").has(\.stringValue, title, within: 10), pane)
+            }
         }
         app.typeKey("1", modifierFlags: .command)
         XCTAssertTrue(element("tab.\(opened[0].0)").has(\.isSelected, true, within: 5))
@@ -46,17 +50,20 @@ extension OrielUITests {
         XCTAssertTrue(element("overview").vanishes(within: 5))
     }
 
-    /// A workspace of a terminal beside a browser, then terminal and web tabs in turn: each tab and its pane.
-    private func keptTabs(_ kept: Int) async throws -> [(String, String)] {
+    /// A workspace of a terminal beside a browser, then terminal and web tabs in turn: each tab and its pane, and the
+    /// browsers' page titles.
+    private func keptTabs(_ kept: Int) async throws -> ([(String, String)], [String: String]) {
         let (tabs, shell) = try await newWorkspace("kept")
         let workspace = workspace(of: tabs[0]), folder = "/tmp/oriel-e2e-kept"
         try await waitForPrompt(shell)
         // Pages with some text to lay out, a different one per card.
-        try await send("mkdir -p \(folder) && cd \(folder) && for i in $(seq 0 \(kept)); do { echo \"<title>Page $i"
-            + "</title><h1>Page $i</h1>\"; for j in $(seq 300); do echo \"<p>Paragraph $j of page $i, words to lay "
-            + "out and paint.</p>\"; done; } >$i.html; { echo \"# Notes $i\"; for j in $(seq 300); do echo \"- Line $j "
-            + "of notes $i, *some* \\`code\\` and text.\"; done; } >$i.md; done; clear; echo made-$((1+1))\r",
-            to: shell)
+        let html = "{ echo \"<title>Page $i</title><h1>Page $i</h1>\"; for j in $(seq 300); do echo \"<p>Paragraph $j "
+            + "of page $i, words to lay out and paint.</p>\"; done; } >$i.html"
+        let markdown = "{ echo \"# Notes $i\"; for j in $(seq 300); do "
+            + "echo \"- Line $j of notes $i, *some* \\`code\\`.\"; done; } >$i.md"
+        let pages = "for i in $(seq 0 \(kept)); do \(html); \(markdown); done"
+        try await send("rm -rf \(folder) && mkdir \(folder) && cd \(folder) && \(pages); clear; echo made-$((1+1))\r",
+                       to: shell)
         try await waitFor(shell, times: 200) { $0.contains("made-2") }
         func leaf(_ kind: String, _ arg: String) -> [String: Any] {
             let iid = String(UUID().uuidString.lowercased().filter(\.isHexDigit).prefix(6))
@@ -67,7 +74,7 @@ extension OrielUITests {
         try await Self.call(one, "pane.rename", ["pane_id": browser,
                                                  "label": leaf("browser", "file://\(folder)/0.html")["label"] ?? ""])
         // Terminals and web cards in turn.
-        var opened = [(tabs[0], browser)]
+        var opened = [(tabs[0], browser)], titles: [String: String] = [:]
         for index in 1 ... 2 * kept {
             let web = index.isMultiple(of: 2), page = (index + 1) / 2
             let root = web ? leaf(page.isMultiple(of: 2) ? "browser" : "markdown",
@@ -77,7 +84,10 @@ extension OrielUITests {
                                                                    "root": root])["layout"] as? [String: Any]
             let pane = (layout?["root"] as? [String: Any])?["pane_id"] as? String ?? ""
             try opened.append((field(layout?["tab_id"], "tab"), pane))
+            if web, page.isMultiple(of: 2) {
+                titles[pane] = "Page \(page)"
+            }
         }
-        return opened
+        return (opened, titles)
     }
 }

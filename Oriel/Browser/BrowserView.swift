@@ -11,19 +11,13 @@ class BrowserView: WKWebView {
     var opensTab = false
     /// In an overview's tile (D70): keys go to the overview; a claim waits until the card has it back.
     var inTile = false
-    /// The page's last picture (`takePicture`): the overview's tile, and over the page as it comes back into a window
-    /// until WebKit drew it there (`cover`); a page put back in a window drew blank for a frame or two.
-    var picture: CGImage? {
-        get { shot.image }
-        set { shot.image = newValue }
-    }
-
-    /// Observed: a tile shows the picture as it comes.
+    /// The page's last picture (`takePicture`): its overview tile, and over the page as it comes into view until
+    /// WebKit drew it (`coverUntilDrawn`). Observed: a tile shows it as it comes.
+    let shot = Shot()
     @MainActor @Observable final class Shot {
         var image: CGImage?
     }
 
-    private let shot = Shot()
     /// The picture over the page in its newest host (`WebHost`), until the page drew.
     weak var cover: NSView?
     private var coverWatch: NSKeyValueObservation?
@@ -92,19 +86,21 @@ class BrowserView: WKWebView {
         guard !bounds.isEmpty, url != nil else { return }
         takeSnapshot(with: nil) { [weak self] image, _ in
             if let image = image?.cgImage(forProposedRect: nil, context: nil, hints: nil) {
-                self?.picture = image
+                self?.shot.image = image
                 taken?(image)
             }
         }
     }
 
     /// Its picture over it as it comes into view, until WebKit drew it: WebKit paints only what shows, so a page
-    /// scrolled back into the strip's view or put back into a window drew blank for a frame or two. A picture of
-    /// another size (the card was resized meanwhile) is no cover.
+    /// scrolled back into the strip's view or put back into a window drew blank for a frame or two. Not over a page
+    /// that shows already (a swipe's landing), nor one of other proportions (resized meanwhile); a new web view (its
+    /// card made again) takes it at any size. At most 2 s, also while a page loads.
     func coverUntilDrawn() {
-        self.cover?.removeFromSuperview()
-        let scale = (window?.screen ?? NSScreen.main)?.backingScaleFactor ?? 2
-        guard let box = superview, let picture, abs(CGFloat(picture.width) - bounds.width * scale) < 2 else { return }
+        cover?.removeFromSuperview()
+        guard let box = superview, let picture = shot.image, window == nil || visibleRect.isEmpty,
+              bounds.isEmpty || abs(Double(picture.width) * bounds.height - Double(picture.height) * bounds.width)
+              < bounds.width * 2 else { return }
         let cover = Cover(frame: frame)
         cover.autoresizingMask = [.width, .height]
         cover.wantsLayer = true
@@ -112,6 +108,9 @@ class BrowserView: WKWebView {
         cover.layer?.contentsGravity = .resize
         box.addSubview(cover)
         self.cover = cover
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak cover] in
+            cover?.removeFromSuperview()
+        }
         coverWatch = observe(\.isLoading) { view, _ in
             MainActor.assumeIsolated { view.uncover() }
         }
@@ -127,11 +126,11 @@ class BrowserView: WKWebView {
         let presented: @convention(block) () -> Void = { [weak self] in
             self?.perform(NSSelectorFromString("_doAfterNextPresentationUpdate:"), with: remove)
         }
-        let shown = NSSelectorFromString("_doAfterNextVisibleContentRectUpdate:")
-        if responds(to: shown) {
+        let shown = NSSelectorFromString("_doAfterNextVisibleContentRectUpdate:"), spi = responds(to: shown)
+        if spi {
             perform(shown, with: presented)
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + (responds(to: shown) ? 0.5 : 0.1)) { [weak cover] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + (spi ? 0.5 : 0.1)) { [weak cover] in
             cover?.removeFromSuperview()
         }
     }

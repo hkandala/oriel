@@ -65,8 +65,7 @@ private struct MiniCard: View {
                     // symbol. A tile makes no web view, proxy or transcript read, and takes no web view from its card
                     // (which then drew blank as it went back).
                     if let picture = pane.terminalID.flatMap(page.terminals.picture) {
-                        let inset = pane.browser != nil ? 6 : PaneCard.inset
-                        scaled(Image(decorative: picture, scale: 1).resizable().padding([.horizontal, .bottom], inset)
+                        scaled(WebPicture(picture: picture, browser: pane.browser != nil)
                             .miniCard(pane.id, pane.plugin?.kind?.rawValue ?? ""), content, under: header)
                     } else if let chat = page.shownChat(pane), !chat.history.entries.isEmpty {
                         scaled(ChatView(chat: chat, page: page, terminal: nil).miniCard(pane.id, "chat"), content,

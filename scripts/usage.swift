@@ -1,5 +1,6 @@
 // What an app and the processes it is responsible for (WebKit's, its herdr runs) use over some seconds: their count,
-// footprint at the end, CPU, threads and idle wake-ups a second, for the app, WebKit's processes and all of them.
+// footprint at the end, CPU, threads and interrupt wake-ups a second, for the app, WebKit's processes and all of them.
+// A process started meanwhile counts no CPU or wake-ups.
 // Usage: usage <pid> <seconds>   (the e2e helper's `usage`)
 import Darwin
 import Foundation

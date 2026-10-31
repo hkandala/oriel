@@ -329,7 +329,8 @@ extension OrielUITests {
                                                  "label": "oriel:browser#\(iid) file://\(folder)/dark.html"])
         try await Self.call(one, "pane.report_metadata", ["pane_id": browser, "source": "oriel-panes",
                                                           "tokens": ["oriel-label": "1"], "ttl_ms": 1000])
-        XCTAssertTrue(title.has(\.stringValue, "Dark", within: 5))
+        let tile = element("overview.tab.\(tab)")
+        XCTAssertTrue(until(5) { tile.label.contains("Dark") }, tile.label)
         XCTAssertGreaterThan(mean(shot), 150, "the tile's picture")
         // The palette closing gives the keyboard card the keyboard, here the browser: it waits for the strip.
         app.typeKey("k", modifierFlags: .command)

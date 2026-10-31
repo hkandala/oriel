@@ -57,9 +57,8 @@ struct BrowserCard: View {
                     Asking(browser: browser, url: url)
                 } else if !browser.ready {
                     // A card made again (its old one dropped, ui/browser): its last picture until its page drew.
-                    if let picture = browser.view.picture {
-                        Image(decorative: picture, scale: 1).resizable().clipShape(.rect(cornerRadius: 6))
-                            .padding([.horizontal, .bottom], 6)
+                    if let picture = browser.view.shot.image {
+                        WebPicture(picture: picture, browser: true)
                     } else {
                         PluginLoader(kind: .browser)
                     }
@@ -75,7 +74,9 @@ struct BrowserCard: View {
                     Popup(view: popup.view, title: popup.host, close: browser.closePopup).padding(24)
                 }
             }
-            .animation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.15), value: browser.ready)
+            // No fade over a picture: half way, both showed the card's fill through.
+            .animation(reduceMotion && !Animation.forceMotion || browser.view.shot.image != nil ? nil
+                : .easeOut(duration: 0.15), value: browser.ready)
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("browser.\(browser.paneID).card")
     }

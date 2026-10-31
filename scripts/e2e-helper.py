@@ -19,7 +19,7 @@ a new folder in /tmp (its one line: oriel-e2e-dropped), shows its icon at x y in
 and drags it to tx ty (scripts/drag.swift: both points in an Oriel window). The file's path comes back once a drop took it.
 POST /<session>/usage with a number of seconds as the body measures the app (the one process named Oriel, on CI) over
 that time: its footprint (`footprint`'s summary), its CPU and the session's `terminal session` runs, count and memory;
-and the app's, WebKit's and all its processes' count, footprint, CPU, threads and idle wake-ups (scripts/usage.swift).
+and the app's, WebKit's and all its processes' count, footprint, CPU, threads and interrupt wake-ups (scripts/usage.swift).
 POST /<session>/ssh-drop with an SSH target as the body kills the app's ControlMaster to it (SIGKILL, as a crash
 would), and gives back the pids it killed, one per line.
 POST /<session>/ssh-forget with an SSH target as the body removes its host key from ~/.ssh/known_hosts, on CI only, so
@@ -67,11 +67,11 @@ def cpu_seconds(pids):
 
 
 def usage(session, seconds):
+    builds["usage"].wait()
     pid = subprocess.run(["pgrep", "-nx", "Oriel"], capture_output=True, text=True).stdout.strip()
     pattern = f"^[^ ]*herdr --session {session} terminal session"
     helpers = subprocess.run(["pgrep", "-f", pattern], capture_output=True, text=True).stdout.split()
     start, app_start, helpers_start = time.time(), cpu_seconds([pid]), cpu_seconds(helpers)
-    builds["usage"].wait()
     # Over the same seconds: the app's and its processes' (WebKit's) count, CPU, threads and wake-ups.
     processes = subprocess.run([f"{tools}/usage", pid, str(seconds)], capture_output=True, text=True).stdout
     wall = time.time() - start

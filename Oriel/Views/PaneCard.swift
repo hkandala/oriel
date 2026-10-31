@@ -60,10 +60,10 @@ struct PaneCard: View {
                     BrowserCard(browser: browser)
                 } else if let plugin {
                     PluginCard(plugin: plugin, page: page)
-                } else if let kind = pane?.plugin?.kind {
+                } else if let pane, let kind = pane.plugin?.kind {
                     // Its last picture until the strip rests.
-                    if let picture = pane?.terminalID.flatMap(page.terminals.picture) {
-                        Image(decorative: picture, scale: 1).resizable().padding([.horizontal, .bottom], 6)
+                    if let picture = pane.terminalID.flatMap(page.terminals.picture) {
+                        WebPicture(picture: picture, browser: kind == .browser)
                     } else {
                         PluginLoader(kind: kind)
                     }
@@ -300,27 +300,6 @@ struct PaneCard: View {
         if let pane {
             page.go(to: pane)
         }
-    }
-}
-
-extension Page {
-    /// The pane's browser or plugin card. Not made while the strip moves (making a web view took a frame), but where it
-    /// rests (`stripMoving`, false again also when the strip goes mid-scroll).
-    func cards(_ pane: HostStore.Pane?) -> (Browser?, Plugin?) {
-        guard stripMoving else { return (pane.flatMap(browser), pane.flatMap(plugin)) }
-        return (pane?.terminalID.flatMap(terminals.built), pane?.terminalID.flatMap(terminals.builtPlugin))
-    }
-
-    /// A browser's, a plugin's or an agent's card has a second header row; a terminal's, a floated or a choosing one
-    /// has one.
-    func twoRows(_ pane: HostStore.Pane?) -> Bool {
-        guard let pane, !floats(pane), store.chooser(pane.id) == nil else { return false }
-        return pane.plugin != nil || pane.agent != nil || ChatAdapters.recognize(pane.program) != nil
-    }
-
-    /// The card's header: one row or two.
-    func headerHeight(_ pane: HostStore.Pane?) -> CGFloat {
-        PaneCard.header + (twoRows(pane) ? PaneCard.row : 0)
     }
 }
 
