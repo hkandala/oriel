@@ -109,9 +109,10 @@ final class PaneViewRegistry {
         return browser
     }
 
-    /// The plugin pane's card, made on first use from its label; nil for a plugin not on this Mac or with no pages.
+    /// The plugin pane's card, made on first use from its label, and again when its manifest changed (Reload Plugin);
+    /// nil for a plugin not on this Mac or with no pages.
     func plugin(_ pane: HostStore.Pane, _ label: PaneLabel, terminalID: String, store: HostStore) -> Plugin? {
-        if let plugin = plugins[terminalID], plugin.label.iid == label.iid, plugin.manifest.id == label.manifest?.id {
+        if let plugin = plugins[terminalID], plugin.label.iid == label.iid, plugin.manifest == label.manifest {
             if plugin.paneID != pane.id {
                 plugin.paneID = pane.id
             }

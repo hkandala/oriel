@@ -276,16 +276,8 @@ final class Browser: NSObject {
         }
     }
 
-    /// Web Inspector, docked under the page; its own control moves it to a window. No public API shows it:
-    /// `_WKInspector` (cmux ships it).
     func showInspector() {
-        let inspector = NSSelectorFromString("_inspector"), show = NSSelectorFromString("show")
-        guard view.responds(to: inspector), let object = view.perform(inspector)?.takeUnretainedValue() as? NSObject,
-              object.responds(to: show) else { return }
-        // Docked each time: WebKit keeps the last choice of a window in the app's defaults.
-        // ponytail: WebKit's private key; if it changes, the inspector opens as it was left.
-        UserDefaults.standard.removeObject(forKey: "__WebInspectorPageGroupLevel1__.WebKit2InspectorStartsAttached")
-        object.perform(show)
+        view.showInspector()
     }
 
     /// A save still pending would bring back the state file a close removed.

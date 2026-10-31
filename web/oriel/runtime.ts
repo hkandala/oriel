@@ -178,6 +178,27 @@ const oriel: Oriel = {
   },
 }
 
+// Console lines and uncaught errors go to the plugin's log too (~/Library/Logs/Oriel/plugins/<id>.log), where its
+// author and their agents read them.
+const text = (value: unknown) => {
+  if (typeof value === "string") return value
+  if (value instanceof Error) return `${value.message}${value.stack ? `\n${value.stack.split("\n")[0]}` : ""}`
+  try {
+    return JSON.stringify(value) ?? String(value)
+  } catch {
+    return String(value)
+  }
+}
+for (const level of ["log", "info", "warn", "error", "debug"] as const) {
+  const original = console[level].bind(console)
+  console[level] = (...values: unknown[]) => {
+    original(...values)
+    void call("console", { level, text: values.map(text).join(" ") }).catch(() => {})
+  }
+}
+addEventListener("error", (event) => console.error(event.error ?? event.message))
+addEventListener("unhandledrejection", (event) => console.error(event.reason))
+
 // The card is ready when `main` returns or calls `card.ready()`; an error from it shows in the card.
 try {
   // Not a literal: the build leaves it to the page, which loads the plugin's own file.

@@ -23,7 +23,9 @@ final class Chooser {
         case terminal, agent, plugin(String), start(Int)
     }
 
-    static let plugins = Registry.all.filter { $0.chooser != nil }.map { Row.plugin($0.id) }
+    static var plugins: [Row] {
+        Registry.all.filter { $0.chooser != nil }.map { Row.plugin($0.id) }
+    }
 
     @ObservationIgnored let standIn: String?
     /// herdr's pane, once it answered.

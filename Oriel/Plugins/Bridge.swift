@@ -82,8 +82,8 @@ final class Bridge {
             "machine": ["id": machine.id, "name": machine.name, "remote": machine.isRemote],
             "cwd": store.pane(plugin.paneID)?.cwd ?? "/", "visible": visible, "keyboard": keyboard,
             "controls": plugin.header.values, "theme": theme,
-            // esbuild names the entry's build after it.
-            "entry": (entry as NSString).deletingPathExtension + ".js",
+            // esbuild names the entry's build after its file, in the build's top folder.
+            "entry": ((entry as NSString).lastPathComponent as NSString).deletingPathExtension + ".js",
         ]
         context["at"] = plugin.web.place
         context["state"] = state
@@ -182,6 +182,9 @@ final class Bridge {
             let data = try JSONSerialization.data(withJSONObject: reply, options: [.fragmentsAllowed, .sortedKeys])
             return (String(decoding: data, as: UTF8.self), nil)
         } catch let error as PluginError {
+            if error.code == "denied", let id = plugin?.manifest.id {
+                PluginLog.add(id, "denied: \(error.text)")
+            }
             return (nil, "\(error.code): \(error.text)")
         } catch {
             return (nil, "failed: \(error.localizedDescription)")
@@ -192,6 +195,10 @@ final class Bridge {
     private func answer(_ name: String, _ args: [String: Any], _ plugin: Plugin) async throws -> Any? {
         switch name {
         case "run": return try await run(args, plugin)
+        case "console": PluginLog.add(
+                plugin.manifest.id,
+                "\(args["level"] as? String ?? "log"): \(args["text"] as? String ?? "")",
+            )
         case "files.info": return try await info(args)
         case "files.watch", "files.unwatch": try watch(name, args)
         case _ where PluginCalls.gitWrites.contains(name): return try await serial { try await self.calls(name, args) }
@@ -218,6 +225,7 @@ final class Bridge {
         case "card.failed":
             failure = ("\(plugin.manifest.name) stopped", [args["text"], args["stack"]].compactMap { $0 as? String }
                 .filter { !$0.isEmpty }.joined(separator: "\n"))
+            PluginLog.add(plugin.manifest.id, "stopped: \(failure?.text ?? "")")
             plugin.web.ready = true
         case "state.set":
             let value = args["value"] ?? NSNull()

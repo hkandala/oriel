@@ -23,6 +23,8 @@ struct PluginCard: View {
             .overlay {
                 if let failure = plugin.web.bridge?.failure {
                     PluginFailure(plugin: plugin, title: failure.title, text: failure.text)
+                } else if plugin.web.bridge != nil, !PluginTrust.shared.allows(plugin.manifest) {
+                    TrustPrompt(plugin: plugin, page: page)
                 }
             }
             .padding([.horizontal, .bottom], PaneCard.inset)

@@ -38,6 +38,8 @@ final class WebCard {
         self.place = place
         self.store = store
         let configuration = WKWebViewConfiguration()
+        // The card's Show Web Inspector opens nothing without it.
+        configuration.preferences.setValue(true, forKey: "developerExtrasEnabled")
         configuration.setURLSchemeHandler(PluginScheme.shared, forURLScheme: PluginScheme.name)
         view = WebCardView(frame: .zero, configuration: configuration)
         // The card's fill draws behind the page.
@@ -73,13 +75,22 @@ final class WebCard {
         }
     }
 
-    /// The page again, from its start: Reload after it stopped.
+    /// The page again, from its start: Reload after it stopped, Reload Plugin. A plugin's page once it is trusted and
+    /// built.
     func reload() {
         bridge?.reset()
         bridge?.failure = nil
         ready = false
-        script()
-        view.load(URLRequest(url: PluginScheme.url(plugin, page)))
+        guard let bridge else {
+            script()
+            view.load(URLRequest(url: PluginScheme.url(plugin, page)))
+            return
+        }
+        Task {
+            guard await bridge.prepare() else { return }
+            script()
+            view.load(URLRequest(url: PluginScheme.url(plugin, page)))
+        }
     }
 
     /// Another place: the page draws it itself. The toast was the old place's, as a page loaded again drops it.

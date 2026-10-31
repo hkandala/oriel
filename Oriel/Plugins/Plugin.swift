@@ -228,8 +228,8 @@ final class Plugin {
         }
     }
 
-    /// Unsaved edits ask first: Back or a click would drop them. The toast keeps the card weakly.
-    private func leave(_ then: @escaping (Plugin) -> Void) {
+    /// Unsaved edits ask first: Back, a click or a reload would drop them. The toast keeps the card weakly.
+    func leave(_ then: @escaping (Plugin) -> Void) {
         guard web.dirty else { return then(self) }
         web.bridge?.dropToast()
         let name = (web.arg as NSString).lastPathComponent

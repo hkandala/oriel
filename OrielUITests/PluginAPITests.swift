@@ -58,13 +58,16 @@ extension OrielUITests {
         try await send("rm -rf \(config) \(folder) ~/.local/state/oriel/\(one)/plugin-api\r", to: shell)
     }
 
-    /// The settings with the fixture's folder as a local path, an empty folder for it, and no state file of an earlier
-    /// run.
+    /// The settings with the fixture's folder as a local path, the fixture trusted, an empty folder for it, and no
+    /// state
+    /// file of an earlier run.
     private func writeConfig(_ config: String, folder: String, shell: String) async throws {
         let fixture = URL(filePath: #filePath).deletingLastPathComponent().appending(path: "Fixtures/plugin-api").path
         try await send(
             "rm -rf \(config) \(folder) ~/.local/state/oriel/\(one)/plugin-api && mkdir -p \(config) \(folder)/sub && "
-                + "echo '{\"packages\":[\"\(fixture)\"]}' > \(config)/settings.json && clear && echo made-$((6*7))\r",
+                + "echo '{\"packages\":[\"\(fixture)\"]}' > \(config)/settings.json && echo '{\"plugin-api\":"
+                + "[\"files:read\",\"files:write\",\"git\",\"run\",\"clipboard\"]}' > \(config)/trust.json && "
+                + "clear && echo made-$((6*7))\r",
             to: shell,
         )
         try await waitFor(shell) { $0.contains("made-42") }

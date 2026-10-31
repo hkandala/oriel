@@ -3,7 +3,10 @@ import HerdrKit
 import os
 
 /// Every pane kind the app draws over a placeholder pane (future-work/plugins): the browser, whose manifest is written
-/// here, and each plugin package's, read once at launch. The chooser, ⌘K, Open With and linked opens read this list.
+/// here, and each plugin package's, read at launch and again after an install, a removal or Reload Plugins. The
+/// chooser,
+/// ⌘K, Open With and linked opens read this list.
+@MainActor
 enum Registry {
     /// Native content: no entry, its own toolbar (future-work/plugins/browser-and-native).
     static let browser = PluginManifest(
@@ -12,18 +15,35 @@ enum Registry {
     )
 
     /// The browser, the default plugins, then the user's, each group by id: the chooser's order.
-    static let all = loaded.all
+    static var all: [PluginManifest] {
+        current.loaded.all
+    }
 
     /// The ones that came with the app: before the user's in the chooser, after them on a tie for a file.
-    static let defaults = loaded.defaults
+    static var defaults: Set<String> {
+        current.loaded.defaults
+    }
 
-    private static let loaded = load()
-    private static let byID = Dictionary(uniqueKeysWithValues: all.map { ($0.id, $0) })
+    /// Observed, so the chooser and the menus show a list read again.
+    @Observable final class Current {
+        var loaded = load()
+    }
 
-    /// The folder `oriel-plugin://<id>/` serves: a default plugin's built pages, else the package's folder.
-    /// ponytail: a package's files as they are, so its entry must be JavaScript until the app builds packages.
+    private static let current = Current()
+
+    /// Reads every package again: after an install, a removal, or Reload Plugins.
+    static func reload() {
+        current.loaded = load()
+    }
+
+    /// The folder `oriel-plugin://<id>/` serves: a default plugin's built pages, else the package's current build.
     static func files(_ id: String) -> URL? {
-        defaults.contains(id) ? folder?.appending(path: id) : loaded.folders[id]
+        defaults.contains(id) ? folder?.appending(path: id) : PluginBuilds.shared.folders[id]
+    }
+
+    /// A plugin package's folder, which the app builds from; nil for the browser and the app's built pages.
+    static func package(_ id: String) -> URL? {
+        current.loaded.folders[id]
     }
 
     /// The default plugins' built pages and their `package.json`, in place until the app installs them.
@@ -35,15 +55,15 @@ enum Registry {
 
     /// A label's plugin; the words of the five kinds before File Explorer and Git still open.
     static func plugin(_ id: String) -> PluginManifest? {
-        byID[["file": "explorer", "preview": "explorer", "markdown": "explorer", "files": "explorer",
-              "diff": "git"][id] ?? id]
+        current.loaded.byID[["file": "explorer", "preview": "explorer", "markdown": "explorer", "files": "explorer",
+                             "diff": "git"][id] ?? id]
     }
 
     /// Every SF Symbol a plugin card shows: the plugins' and the File Explorer's pages', and a missing plugin's. Not a
     /// program icon's id (`terminal`, `swift`): those tiles stay the catalog's.
-    static let symbols = Set(all.map(\.icon) + PluginPage.allCases.map(\.symbol) + ExplorerPlace.allCases.map(\.symbol)
-        + [missing])
-        .subtracting(programIcons.map(\.id))
+    static var symbols: Set<String> {
+        current.loaded.symbols
+    }
 
     static let missing = "puzzlepiece.extension"
 
@@ -64,8 +84,17 @@ enum Registry {
 
     /// The first package of an id wins, in this order: the app's, the settings' local paths, the plugins folder. A bad
     /// manifest or a taken id is left out, with the reason in the log.
-    private struct Loaded {
+    struct Loaded {
         let all: [PluginManifest], defaults: Set<String>, folders: [String: URL]
+        let byID: [String: PluginManifest], symbols: Set<String>
+
+        init(all: [PluginManifest], defaults: Set<String>, folders: [String: URL]) {
+            (self.all, self.defaults, self.folders) = (all, defaults, folders)
+            byID = Dictionary(uniqueKeysWithValues: all.map { ($0.id, $0) })
+            symbols = Set(all.map(\.icon) + PluginPage.allCases.map(\.symbol) + ExplorerPlace.allCases.map(\.symbol)
+                + [missing])
+                .subtracting(programIcons.map(\.id))
+        }
     }
 
     private static func load() -> Loaded {

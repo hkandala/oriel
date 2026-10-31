@@ -68,6 +68,8 @@ struct OrielApp: App {
             .restorationBehavior(.disabled)
             .commandsRemoved()
             .handlesExternalEvents(matching: [])
+        // Oriel ▸ Settings… (⌘,): the plugins (future-work/plugins).
+        Settings { PluginSettings() }
     }
 }
 
