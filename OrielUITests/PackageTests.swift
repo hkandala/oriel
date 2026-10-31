@@ -39,21 +39,7 @@ extension OrielUITests {
         closeAfter("tab", cardTab)
         try await show(cardTab)
 
-        // Its code runs only after Allow.
-        let trust = element("pane.\(card).trust")
-        XCTAssertTrue(trust.has(\.stringValue, "Trust “CSV Table”?", within: 10))
-        XCTAssertEqual(element("pane.\(card).trust.words").stringValue,
-                       "It can read files and folders on the machine of each card you open.")
-        XCTAssertFalse(text("CSV Table one").exists)
-        keepScreenshot("plugin trust prompt")
-        element("pane.\(card).trust.allow").click()
-        // Not built yet: Build runs its build script.
-        XCTAssertTrue(element("pane.\(card).failure").has(\.stringValue, "CSV Table is not built", within: 10))
-        XCTAssertEqual(element("pane.\(card).failure.text").stringValue,
-                       "dist/main.js is missing. Build runs its build script.")
-        keepScreenshot("plugin not built")
-        element("pane.\(card).build").click()
-        XCTAssertTrue(text("CSV Table one").exists(within: 20))
+        try await trustsAndBuilds(card, csv: csv, shell: shell, tab: tab, cardTab: cardTab)
         let rows = element("pane.\(card).rows")
         XCTAssertTrue(rows.has(\.stringValue, "3 rows", within: 5))
         // A header value the page reads again after the reload.
@@ -66,6 +52,36 @@ extension OrielUITests {
         try await waitFor(shell) { $0.contains("1\nlogged-42") }
 
         try await installFromGit(fixture, config: config, shell: shell)
+    }
+
+    /// Its code runs only after Allow: Reload Plugins over the prompt builds nothing. Then it is not built yet, and
+    /// Build runs its build script.
+    private func trustsAndBuilds(_ card: String, csv: String, shell: String, tab: String,
+                                 cardTab: String) async throws
+    {
+        let trust = element("pane.\(card).trust")
+        XCTAssertTrue(trust.has(\.stringValue, "Trust “CSV Table”?", within: 10))
+        XCTAssertEqual(element("pane.\(card).trust.words").stringValue,
+                       "It can read files and folders on the machine of each card you open. "
+                           + "Its build script runs as you on this Mac when Oriel builds it.")
+        XCTAssertFalse(text("CSV Table one").exists)
+        keepScreenshot("plugin trust prompt")
+        let filter = openPalette()
+        filter.typeText("reload plugins")
+        XCTAssertTrue(element("palette.command.Reload Plugins").exists(within: 2))
+        filter.typeText("\r")
+        XCTAssertTrue(trust.exists(within: 2))
+        element("tab.\(tab)").click()
+        try await send("clear; ls \(csv)/dist || echo unbuilt-$((6*7))\r", to: shell)
+        try await waitFor(shell) { $0.contains("unbuilt-42") }
+        try await show(cardTab)
+        element("pane.\(card).trust.allow").click()
+        XCTAssertTrue(element("pane.\(card).failure").has(\.stringValue, "CSV Table is not built", within: 10))
+        XCTAssertEqual(element("pane.\(card).failure.text").stringValue,
+                       "dist/main.js is missing. Build runs its build script.")
+        keepScreenshot("plugin not built")
+        element("pane.\(card).build").click()
+        XCTAssertTrue(text("CSV Table one").exists(within: 20))
     }
 
     /// An edit that imports from the package's own node_modules, then Reload Plugin over the card: the new page with
@@ -99,7 +115,8 @@ extension OrielUITests {
     }
 
     /// Oriel ▸ Plugins… installs the fixture from a local git repository at its tag, after the trust prompt, with its
-    /// dependencies and its build; the row shows the tag's version and its source.
+    /// dependencies and its build; the row shows the tag's version and its source. New Plugin… makes one from the
+    /// template.
     private func installFromGit(_ fixture: String, config: String, shell: String) async throws {
         let repo = "/tmp/oriel-e2e-csv-repo", git = "git -C \(repo) -c user.name=e2e -c user.email=e2e@e2e"
         try await send(
@@ -124,11 +141,19 @@ extension OrielUITests {
         XCTAssertEqual(element("plugins.oriel-e2e-csv-git.source").stringValue, "git:\(repo)@v1")
         XCTAssertTrue(element("plugins.oriel-e2e-csv-git.update").exists)
         XCTAssertEqual(element("plugins.oriel-e2e-csv-table.source").stringValue, "/tmp/oriel-e2e-csv")
+        // New Plugin… makes one from the template, installed and built.
+        element("plugins.new").click()
+        let name = app.sheets.textFields.firstMatch
+        XCTAssertTrue(name.exists(within: 5))
+        name.typeText("Oriel E2E Lines")
+        app.sheets.buttons["Create"].click()
+        XCTAssertTrue(element("plugins.oriel-e2e-lines.version").has(\.stringValue, "0.1.0", within: 30))
         keepScreenshot("plugins panel")
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertFalse(source.exists)
-        try await send("clear; ls \(config)/plugins/oriel-e2e-csv-repo/dist; echo built-$((6*7))\r", to: shell)
-        try await waitFor(shell) { $0.contains("main.js") && $0.contains("built-42") }
+        try await send("clear; test -f \(config)/plugins/oriel-e2e-csv-repo/dist/main.js && test -f "
+            + "\(config)/plugins/oriel-e2e-lines/dist/main.js && echo built-$((6*7))\r", to: shell)
+        try await waitFor(shell) { $0.contains("built-42") }
     }
 
     /// Text the plugin's page shows.

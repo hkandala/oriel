@@ -147,7 +147,7 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
         (header, history, commands, handles, permissions) = ([], false, [], [], [])
     }
 
-    /// The entry's build's name, without `.js`: esbuild names it after the entry's file, in the build's top folder.
+    /// The built entry's file name without `.js`: the runtime imports it, and its CSS shares the name.
     public var entryName: String {
         (((entry ?? "") as NSString).lastPathComponent as NSString).deletingPathExtension
     }

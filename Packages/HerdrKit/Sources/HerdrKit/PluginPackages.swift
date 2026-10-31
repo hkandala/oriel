@@ -175,7 +175,8 @@ public enum PluginPackages {
     /// The package's own `build` script, as its author runs it: what it printed; nil when it has none.
     public static func build(_ folder: URL, exec: any Exec) async throws -> String? {
         guard builds(folder) else { return nil }
-        return try await run([manager(folder, exec: exec).name, "run", "build"], in: folder, exec: exec)
+        // `--silent`: the script's own lines, not the manager's banner, head an error.
+        return try await run([manager(folder, exec: exec).name, "run", "--silent", "build"], in: folder, exec: exec)
     }
 
     /// Whether the package has a `build` script.
@@ -201,8 +202,13 @@ public enum PluginPackages {
     static func run(_ argv: [String], in folder: URL, exec: any Exec) async throws -> String {
         let channel = try await exec.run(["sh", "-c", #"cd "$1" && shift && exec "$@" 2>&1"#, "sh", folder.path] + argv)
         channel.closeInput()
-        let lines = try await withTimeout(.seconds(600), onTimeout: channel.terminate) {
-            await channel.lines.reduce(into: []) { $0.append($1) }
+        let lines: [String]
+        do {
+            lines = try await withTimeout(.seconds(600), onTimeout: channel.terminate) {
+                await channel.lines.reduce(into: []) { $0.append($1) }
+            }
+        } catch {
+            throw HerdrError.failed("\(argv.joined(separator: " ")) took over 10 minutes")
         }
         guard await channel.exit().status == 0 else {
             let tail = lines.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }.suffix(20)

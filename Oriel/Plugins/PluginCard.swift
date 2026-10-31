@@ -102,6 +102,7 @@ struct PluginToolbar: View {
 private struct PluginFailure: View {
     let plugin: Plugin
     let problem: PluginProblem
+    @State private var building = false
     @Environment(\.look) private var look
 
     var body: some View {
@@ -114,7 +115,9 @@ private struct PluginFailure: View {
             HStack(spacing: 8) {
                 Button("Show Log") { PluginLog.show(plugin.manifest.id) }.buttonStyle(.glass)
                     .accessibilityIdentifier("\(id).show-log")
-                if let button = problem.button {
+                if building {
+                    ProgressView().controlSize(.small).accessibilityIdentifier("\(id).building")
+                } else if let button = problem.button {
                     Button(button) { fix() }.buttonStyle(.glassProminent)
                         .accessibilityIdentifier(problem.builds ? "\(id).build" : "\(id).reload")
                 }
@@ -131,7 +134,9 @@ private struct PluginFailure: View {
     /// Build runs the package's build script first; Reload and Try Again load the page again.
     private func fix() {
         guard problem.builds else { return plugin.web.reload() }
+        building = true
         Task {
+            defer { building = false }
             if let problem = await PluginBuilds.shared.build(plugin.manifest) {
                 plugin.web.bridge?.failure = problem
             } else {
@@ -200,6 +205,8 @@ struct MissingPlugin: View {
                 if let problem {
                     Text(problem).font(.system(size: 12).monospaced()).foregroundStyle(.secondary).lineLimit(4)
                         .textSelection(.enabled).accessibilityIdentifier("pane.\(pane.id).missing.text")
+                    Button("Show Log") { PluginLog.show(label.plugin) }.buttonStyle(.glass).controlSize(.small)
+                        .padding(.top, 4).accessibilityIdentifier("pane.\(pane.id).show-log")
                 } else if !label.arg.isEmpty {
                     Text(label.arg).font(.system(size: 12)).foregroundStyle(.secondary).lineLimit(2)
                         .truncationMode(.middle).textSelection(.enabled)

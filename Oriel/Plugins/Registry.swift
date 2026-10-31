@@ -156,7 +156,10 @@ enum Registry {
             let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
             if let id = (json?["oriel"] as? [String: Any])?["id"] as? String {
                 problems[id] = text
-                PluginLog.add(id, text)
+                // `note` wrote it under the folder's name.
+                if id != folder.lastPathComponent {
+                    PluginLog.add(id, text)
+                }
             }
             return nil
         }

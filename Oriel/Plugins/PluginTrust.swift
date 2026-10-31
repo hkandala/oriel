@@ -40,7 +40,8 @@ final class PluginTrust {
     }
 
     /// What it can do, a sentence per permission in the manifest's order; the first says where.
-    static func words(_ manifest: PluginManifest) -> [String] {
+    /// `folder`: the package, whose build script, when it has one, the app runs as the user.
+    static func words(_ manifest: PluginManifest, folder: URL?) -> [String] {
         var place = "on the machine of each card you open"
         let words = manifest.permissions.map { permission in
             defer { place = "there" }
@@ -52,7 +53,9 @@ final class PluginTrust {
             default: "It can write to the clipboard."
             }
         }
-        return words.isEmpty ? ["It can only draw in its card."] : words
+        let build = folder.map(PluginPackages.builds) == true
+            ? ["Its build script runs as you on this Mac when Oriel builds it."] : []
+        return (words.isEmpty ? ["It can only draw in its card."] : words) + build
     }
 }
 
@@ -85,7 +88,8 @@ struct TrustPrompt: View {
                 if !manifest.description.isEmpty {
                     Text(manifest.description.shown).font(.system(size: 12)).lineLimit(3)
                 }
-                Text(PluginTrust.words(manifest).joined(separator: " ")).font(.system(size: 12))
+                Text(PluginTrust.words(manifest, folder: Registry.package(manifest.id)).joined(separator: " "))
+                    .font(.system(size: 12))
                     .foregroundStyle(.secondary).accessibilityIdentifier("\(id).words")
             }
             .multilineTextAlignment(.center)

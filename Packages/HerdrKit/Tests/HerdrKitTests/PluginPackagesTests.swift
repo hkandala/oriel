@@ -127,7 +127,9 @@ private func package(_ folder: URL, version: String, extra: [String: Any] = [:])
 }
 
 /// A package whose `build` script copies its entry into `dist`, or fails.
-private func buildable(_ folder: URL, build: String = "mkdir -p dist && cp main.js dist/main.js") throws {
+private func buildable(_ folder: URL, build: String = "mkdir -p dist && cp main.js dist/main.js && echo built-ok")
+    throws
+{
     try package(folder, version: "1.0.0", extra: ["scripts": ["build": build]])
 }
 
@@ -144,7 +146,8 @@ private func buildable(_ folder: URL, build: String = "mkdir -p dist && cp main.
     let (folder, output) = try await PluginPackages.finish(PluginPackages.fetch(source, into: plugins, exec: offline),
                                                            into: plugins, exec: offline)
     #expect(FileManager.default.fileExists(atPath: folder.appending(path: "dist/main.js").path))
-    #expect(output.contains("mkdir -p dist"))
+    // The script's own lines, not npm's banner (`--silent`).
+    #expect(output.contains("built-ok") && !output.contains("> csv-table"))
 
     // A build in the repository (a published package's `dist`) needs no build: this script would fail.
     try buildable(repo, build: "exit 3")

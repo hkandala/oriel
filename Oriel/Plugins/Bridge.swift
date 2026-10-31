@@ -11,7 +11,7 @@ final class Bridge {
     @ObservationIgnored private(set) weak var plugin: Plugin?
     /// The page's changes of its commands (`controls.set` of a command's id): `title`, `checked`, `enabled`.
     private(set) var commands: [String: [String: Any]] = [:]
-    /// `main` threw or the page cannot run: the card shows this (a title and the error's first lines) with Reload.
+    /// Why the page cannot run (`PluginProblem`: it stopped, is not built, ...): the card shows it with its fix.
     var failure: PluginProblem?
     /// The plugin's state value as last set (JSON), kept beside the header's values.
     @ObservationIgnored private var state: Any?
@@ -58,12 +58,12 @@ final class Bridge {
         plugin.web.view.keyboard = { [weak self] in self?.keyboard = $0 }
         if plugin.manifest.api > Self.api {
             plugin.web.ready = true
-            failure = PluginProblem(
+            failure = .noted(plugin.manifest, PluginProblem(
                 title: "\(plugin.manifest.name.shown) needs a newer Oriel",
                 text: "It is written for version \(plugin.manifest.api) of "
                     + "the plugin API; this Oriel has version \(Self.api).",
                 button: nil,
-            )
+            ))
         }
     }
 
