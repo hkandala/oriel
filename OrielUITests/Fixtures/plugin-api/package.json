@@ -1,0 +1,26 @@
+{
+  "name": "oriel-plugin-api-fixture",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Calls every part of the plugin API (PluginAPITests)",
+  "peerDependencies": { "@oriel/plugin-api": "*" },
+  "oriel": {
+    "id": "plugin-api",
+    "name": "Plugin API",
+    "api": 1,
+    "entry": "main.js",
+    "icon": "puzzlepiece",
+    "opens": { "folders": true },
+    "header": [
+      { "id": "count", "type": "text", "value": "" },
+      { "type": "spacer" },
+      { "id": "again", "type": "button", "symbol": "arrow.clockwise", "title": "Again" }
+    ],
+    "commands": [
+      { "id": "shout", "title": "Shout", "menu": "view", "key": "cmd+shift+y", "symbol": "megaphone" },
+      { "id": "taken", "title": "Taken Key", "menu": "file", "key": "cmd+t" }
+    ],
+    "handles": ["save"],
+    "permissions": ["files:read", "files:write", "git", "run", "clipboard"]
+  }
+}
