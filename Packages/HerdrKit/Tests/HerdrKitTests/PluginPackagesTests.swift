@@ -174,3 +174,23 @@ private func buildable(_ folder: URL, build: String = "mkdir -p dist && cp main.
     await #expect(throws: PluginPackages.NoManager.self) { try await PluginPackages.build(scratch, exec: bare) }
     #expect(try await PluginPackages.build(scratch.appending(path: "none"), exec: bare) == nil)
 }
+
+@Test func `the scheme serves a package's files, never through a symlink out of it`() throws {
+    let files = FileManager.default
+    let root = URL.temporaryDirectory.appending(path: "oriel-served-\(UUID().uuidString)")
+    let package = root.appending(path: "csv"), dist = package.appending(path: "dist")
+    defer { try? files.removeItem(at: root) }
+    try files.createDirectory(at: dist, withIntermediateDirectories: true)
+    try Data("secret".utf8).write(to: root.appending(path: "secret"))
+    try Data("x".utf8).write(to: dist.appending(path: "main.js"))
+    try files.createSymbolicLink(at: dist.appending(path: "k"), withDestinationURL: root.appending(path: "secret"))
+    try files.createSymbolicLink(at: package.appending(path: "out"), withDestinationURL: root)
+    #expect(try PluginPackages.served("main.js", in: dist, within: package).map { try Data(contentsOf: $0) }
+        == Data("x".utf8))
+    #expect(PluginPackages.served("k", in: dist, within: package) == nil)
+    // A build folder that is itself a symlink out of the package.
+    #expect(PluginPackages.served("secret", in: package.appending(path: "out"), within: package) == nil)
+    for name in ["", ".env", "../secret", "a/b"] {
+        #expect(PluginPackages.served(name, in: dist, within: package) == nil, "\(name)")
+    }
+}

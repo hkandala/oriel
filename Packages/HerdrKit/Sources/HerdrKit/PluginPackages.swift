@@ -179,6 +179,18 @@ public enum PluginPackages {
         return try await run([manager(folder, exec: exec).name, "run", "--silent", "build"], in: folder, exec: exec)
     }
 
+    /// The file `oriel-plugin://<id>/<name>` serves from `folder`, nil when it would leave it: a name with a folder or
+    /// a hidden one, or a symlink (`git clone` keeps them) out of `folder`, or a `folder` that resolves out of `root`
+    /// (its package). Else a page with no permissions could read any file of the user's with `fetch`.
+    public static func served(_ name: String, in folder: URL, within root: URL) -> URL? {
+        guard !name.isEmpty, !name.contains("/"), !name.hasPrefix(".") else { return nil }
+        let real = folder.resolvingSymlinksInPath(), top = root.resolvingSymlinksInPath().path
+        let file = real.appending(path: name).resolvingSymlinksInPath()
+        guard file.deletingLastPathComponent().path == real.path, real.path == top || real.path.hasPrefix(top + "/")
+        else { return nil }
+        return file
+    }
+
     /// Whether the package has a `build` script.
     public static func builds(_ folder: URL) -> Bool {
         (package(folder)["scripts"] as? [String: Any])?["build"] is String

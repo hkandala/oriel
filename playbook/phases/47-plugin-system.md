@@ -458,6 +458,9 @@ well for easier debugging".
 
 ### Final review fixes
 
+- **1 (A):** the scheme serves a file only when its real path is in the plugin's folder and that folder is in its
+  package, so a symlink out of either (`dist/k -> ~/.ssh/id_rsa`, `dist -> ~`) is not found (`PluginPackages.served`,
+  unit tested).
 - **3 (B):** a manifest command's key the app already uses goes to the plugin's log, with a line in errors.mdx.
 - **12 (B):** the menus take only a plugin card already made (`builtPlugin`), never make one.
 - **13 (B):** `Plugin.landing` is gone: Back's landing is `place ?? arg` at its two places.

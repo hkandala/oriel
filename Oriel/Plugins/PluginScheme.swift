@@ -22,7 +22,8 @@ final class PluginScheme: NSObject, WKURLSchemeHandler {
             task.didFailWithError(URLError(.fileDoesNotExist))
             return
         }
-        // One folder, no subfolders: the last component is decoded, so `..%2F` would climb out of it.
+        // One folder, no subfolders and no symlinks out of it: the last component is decoded, so `..%2F` would climb
+        // out of it.
         let file = url.lastPathComponent, page = file == "main"
         // The page runs the app's runtime (`web/oriel`), which imports the entry's build: the entry's own script tag
         // fetches it beside the runtime (one module, a module map per page); it has the entry's styles when its build
@@ -30,12 +31,14 @@ final class PluginScheme: NSObject, WKURLSchemeHandler {
         let css = "\(manifest.entryName).css"
         let styles = page && FileManager.default.fileExists(atPath: folder.appending(path: css).path)
         // The runtime and the card's base style are the app's, for every plugin.
-        let from = ["oriel.js", "card.css"].contains(file) ? Registry.folder : folder
-        let data = file.contains("/") || file.hasPrefix(".") ? nil : page ? Data("""
+        let app = ["oriel.js", "card.css"].contains(file) ? Registry.folder : nil
+        let root = app ?? Registry.package(id), from = app ?? folder
+        let data = page ? Data("""
         <!doctype html><meta charset="utf-8"><link rel="stylesheet" href="card.css">\
         \(styles ? "<link rel=\"stylesheet\" href=\"\(css)\">" : "")\
         <script type="module" src="oriel.js"></script><script type="module" src="\(manifest.entryName).js"></script>
-        """.utf8) : from.flatMap { try? Data(contentsOf: $0.appending(path: file)) }
+        """.utf8) : root.flatMap { PluginPackages.served(file, in: from, within: $0) }
+            .flatMap { try? Data(contentsOf: $0) }
         guard let data else {
             task.didFailWithError(URLError(.fileDoesNotExist))
             return
