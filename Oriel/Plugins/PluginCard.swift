@@ -222,12 +222,20 @@ struct FloatingPlugin: View {
     }
 }
 
-/// Unsaved edits, after the title in the card's header and the floating window's title row.
+/// Unsaved edits, after the title in the card's header and the floating window's title row: 7 pt, centered on the
+/// title's x-height (a little under the line's middle), as a document window's.
 struct DirtyDot: View {
     let paneID: String
+    private static let drop = {
+        let font = NSFont.systemFont(ofSize: NSFont.systemFontSize)
+        return (font.ascender + font.descender - font.xHeight) / 2
+    }()
 
     var body: some View {
-        Circle().fill(.secondary).frame(width: 6, height: 6).padding(.horizontal, 3)
+        Circle().fill(.secondary).frame(width: 7, height: 7)
+            .alignmentGuide(VerticalAlignment.center) { $0[VerticalAlignment.center] - Self.drop }
+            .padding(.horizontal, 3)
+            .help("Edited")
             .accessibilityElement()
             .accessibilityAddTraits(.isStaticText)
             .accessibilityLabel("Edited")

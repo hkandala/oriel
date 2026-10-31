@@ -140,7 +140,7 @@ const view = await editor([
   Prec.highest(EditorView.theme({
     "&": { fontSize: "calc(var(--font-size) + 1px)" },
     ".cm-scroller": { fontFamily: "system-ui", lineHeight: "1.55" },
-    ".cm-content": { boxSizing: "border-box", maxWidth: "640px", margin: "0 auto", padding: "16px 24px 48px" },
+    ".cm-content": { boxSizing: "border-box", maxWidth: "640px", margin: "0 auto", padding: "28px 24px 48px" },
     ".cm-frontmatter, .cm-frontmatter *": {
       fontFamily: "ui-monospace, monospace", fontSize: "12px", color: "var(--dim)",
     },
