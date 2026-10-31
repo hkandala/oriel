@@ -155,9 +155,15 @@ and no backslash.
   - **Shown once loaded.** The chat reads the file up to the end of its
     whole lines at the open into a backlog, off screen, then shows it at
     once. Lines after that show as they come. A read that is cut short keeps
-    what it read. The read yields every 200 lines: a 106 MB pi session loads
-    in under a second. There is no loader: a local read of a usual session
-    takes milliseconds.
+    what it read. The backlog is parsed off the main thread, one run of
+    lines at a time, with the parser's state handed over and back, so the
+    window stays smooth while a 108 MB session loads (a few seconds on a busy
+    Mac). Meanwhile
+    the empty chat shows a small spinner, the loader. It starts when the
+    file opens: Claude Code and pi write the file only with the first
+    message, so a new chat shows its glyph, not the loader.
+    OpenCode's first load and each event's rebuild run off the main thread
+    too.
   - The chat keeps a mark (inode and offset) per file in memory, so a card
     shown again goes on from there. Another inode, or a shorter file, starts
     the file again.
@@ -313,12 +319,13 @@ and **Show TUI**, and the header's capsule says Error:
 
 ## Detail levels
 
-One setting for the app (`chatLevel`, Replies by default): **Replies**,
-**Activity** and **Everything**, in the `Show: Replies ⌄` pull-down left of
-Chat | TUI. It shows only while the chat does. A saved `steps` or `all`
-reads as Replies.
+One setting for the app (`chatLevel`, Replies only by default):
+**Replies only**, **Activity** and **Everything**. The level pill left of
+Chat | TUI reads the current level (`Replies only ⌄`) in the same pill as
+Chat | TUI. A click opens the menu of the three levels. It shows only while
+the chat does. A saved `steps` or `all` reads as Replies only.
 
-- **Replies:** the user's messages, and for each turn its quiet line on
+- **Replies only:** the user's messages, and for each turn its quiet line on
   top, its last reply, its notes and, once the turn ends, "Worked 1m 48s"
   under them in 12 pt secondary text. The quiet line counts every tool call
   of the turn and does not open: "Read 9 files, ran 4 commands, 1 failed".
@@ -362,33 +369,66 @@ and the time.
 
 ## What it looks like
 
-- As in Messages: the user's messages are bubbles in the accent color on the
-  right (14 pt, radius 18). They are Markdown, drawn as the replies are, in
-  the bubble's text color (links too), with their own line breaks kept. Replies are plain, selectable text on
-  the left.
+- **Bubbles, as in Messages.** The user's messages are blue bubbles with
+  white text on the right. The agent's replies are gray bubbles with the
+  label color on the left. The colors are the ones macOS Messages draws
+  (`Look.sentBubble`, `Look.receivedBubble`):
+
+  | Bubble | Light | Dark | Increased contrast |
+  |---|---|---|---|
+  | The user's | `#0088FF` | `#0091FF` | `#0040DD` |
+  | The agent's | `#E5E5EA` | `#3B3B3D` | as light or dark |
+
+  A bubble has radius 18, 18 pt of padding at its sides and 8 pt above and
+  under its text. Its text stays on the messages' 32 pt edge, so the bubble
+  reaches 18 pt past it, as far out as the reply box. 48 pt stay free on
+  the bubble's other side. Both are Markdown, drawn the same way. The
+  user's keeps its own line breaks, and its links are white. The summary
+  line, tool rows, Working and Worked stay outside the bubbles.
 - Rows sit 10 pt apart, and a user's bubble has 8 pt more above and under
   it, so each turn reads as one block.
 - **An empty chat** shows the agent's program glyph (the one in the tab), 64
-  pt and gray, in the middle of the messages, until the first message.
+  pt and gray, in the middle of the messages, until the first message. While
+  a history loads, it shows the loader in its place. An empty chat has no
+  scroll view: the scroll view is made with the rows, at the bottom (one
+  made empty kept a blank above a long history that came later).
 - The messages, the question card and the reply box sit in a 760 pt column,
   centered on any card, 32 pt in from its sides. The messages scroll, newest
   at the bottom, and fade in under the header. In a floating window they
   start 28 pt under the title row, not 16 pt, because the card has no header
   there.
-- **Scrolling.** The messages are a lazy stack: only the rows near the view
-  are built. At the bottom, the chat stays at the bottom as messages come and
-  as the card resizes. Scrolled up, the message at the top stays at the top
-  instead, from when the scroll first passes a message's top. Until then
-  (scrolled up inside the newest message), the bottom keeps its place.
+- **Scrolling.** The messages are a plain stack of the newest 40 rows
+  (about 10 turns), not a lazy one: every row is built, so every height is
+  real, and an open, a split and Scroll to Bottom land exactly. (A lazy
+  stack guessed the heights of rows it had not built, and after a split
+  showed a blank where it guessed wrong.) The block starts at a user's
+  message near its cut, so its turn shows whole. At Everything, an open run
+  counts its steps toward the 40. At the bottom, the chat stays at the
+  bottom as messages come and as the card resizes. Scrolled up, the message
+  at the top stays at the top instead, from when the scroll first passes a
+  message's top. Until then (scrolled up inside the newest message), the
+  bottom keeps its place. Once the chat leaves the bottom, its block stays
+  put: new rows do not take rows from its top. Back at the bottom, or at
+  another level, it is the newest 40 again.
+- **Show Earlier.** When a chat has older rows and the stack's top row is
+  in view, a glass pill "Show Earlier" (12 pt, 28 pt tall) sits over the
+  top of the messages, as Scroll to Bottom sits at the bottom. A click adds
+  the next block of 40 above, and the rows in view stay where they are.
+  While older rows exist, the stack has no top padding, so the top row's
+  top goes back to the top exactly.
 - **Resizing.** A narrow card (under 824 pt, where the column narrows too)
   lays its messages out at its new width once the width stops changing for
   150 ms, as a terminal does: a split's motion or a drag wraps the text once,
   not at every frame. Meanwhile the card clips the messages, or its fill
   shows beside them. The reply box and the Scroll to Bottom button follow the
-  card at once.
+  card at once. After the new width, the row that was at the top is scrolled
+  back to the top.
+- **The end.** 32 pt stay free between the last row and the reply box (an
+  empty last row, 22 pt, plus the rows' spacing).
 - **Scroll to Bottom.** While the bottom of the messages is more than 40 pt
   out of view, a round glass button with a down arrow (30 pt) sits 10 pt
-  above the reply box, in the middle. A click jumps to the newest message.
+  above the reply box, in the middle. A click scrolls to the stack's last
+  row, the same place where a chat opens.
 - **Over the messages.** The question card and the reply box sit over the
   bottom of the messages, which scroll under the glass. The last message
   scrolls clear of the box as it grows. This is the one place where
@@ -415,23 +455,26 @@ and the time.
     fetches it: a reply could send what the agent read to any server.
   - Footnotes read as written (`[^1]`): swift-markdown has none.
 - **The reply box.** A glass box (radius 18) with "Ask Anything", 14 pt. Its
-  text is 14 pt in from the box's sides, and the box is 18 pt in from the
-  column, so the text lines up with the messages' 32 pt edges. It grows from
-  1 to 10 lines, then scrolls. Under
+  text is 18 pt in from the box's sides, and the box is 14 pt in from the
+  column, so the text lines up with the messages' 32 pt edges. It has 13 pt
+  of padding on top and 11 pt at the bottom. It grows up to 5 lines, then
+  scrolls. Under
   the text, on the left: the model and the effort in 11 pt secondary
   ("Opus 5.5 · high"). Claude's model ids read as the family and version.
-  Other models show as the agent writes them. On the right: a 22 pt round
-  Send, in the accent while it can send, or Stop.
+  Other models show as the agent writes them. On the right, 11 pt in: a
+  22 pt round Send, always in the accent, or Stop. A click on Send with an
+  empty box, or while the agent cannot take text, does nothing.
 - **A click anywhere** on the chat, on text too, gives the reply box the
   keyboard (the drawer's terminal while the drawer shows). A button or a link
   acts as well. A double or triple click, a ⇧-click or a ⌃-click leaves the
   keyboard where it is, so selected text can be copied.
-- **The header.** Row 1: the pane's name ([Session titles](#session-titles)),
-  the state capsule (Working, Needs you, Done or Error, in the status colors,
-  and none while idle) and the card buttons. Row 2: the program glyph, the
-  agent's name and the folder, then `Show: Replies ⌄` and Chat | TUI in
-  the app's own pill segments
-  ([Pane card](/docs/ui/window#pane-card)).
+- **The header.** Row 1: the pane's name ([Session titles](#session-titles))
+  and the card buttons. Row 2: the program glyph, the agent's name and the
+  folder, then the state, then the level pill and Chat | TUI in the app's
+  own pill segments ([Pane card](/docs/ui/window#pane-card)). The state is
+  a 6 pt dot and its word in 11 pt, both in the status color, as t3code
+  draws a thread's: Working, Needs you, Done or Error, and none while idle.
+  An agent card with no chat shows herdr's state there the same way.
 - The reply box takes the keyboard when the chat appears and when the drawer
   goes. The keyboard moved to a chat card goes to its reply box.
 
@@ -443,8 +486,8 @@ and the time.
   [Relaunch with Chat](#relaunch-with-chat) it opens on the chat. The choice
   is kept in memory per pane, for every window of the session. The card keeps
   the keyboard across a switch: the reply box or the terminal.
-- A floated chat pane shows its chat in its floating window, with `Show` and
-  Chat | TUI in the window's title row
+- A floated chat pane shows its chat in its floating window, with the level
+  pill and Chat | TUI in the window's title row
   ([Floating pane](/docs/ui/window#floating-pane)).
 - The switch changes only what the card draws: the agent, its turn and its
   pane go on. The terminal stream stays open while the chat shows.
@@ -479,12 +522,12 @@ snapshot does not start every run at once.
 
 - Messages, replies, the quiet lines and notes read as text with their
   words. A run and each call are buttons whose value is "open" or "closed".
-  The Show pull-down's value is the level. Send, Stop and Scroll to Bottom
-  are named.
+  The level pill is named "Show", and its value is the level. Send, Stop,
+  Scroll to Bottom and Show Earlier are named. The state reads as its word.
 - Identifiers, after `chat.‹pane id›`: `.composer`, `.send`, `.stop`,
   `.model`, `.level`, `.user`, `.sending`, `.not-sent`, `.reply`,
   `.summary`, `.worked`, `.empty`, `.stack`, `.tool`, `.tool.input`,
-  `.tool.output`, `.note`, `.bottom`, `.question`, `.option.‹option›`,
+  `.tool.output`, `.note`, `.bottom`, `.earlier`, `.question`, `.option.‹option›`,
   `.drawer`, `.open-terminal`, `.problem` and `.show-terminal`. The header has `pane.‹id›.title`,
   `pane.‹id›.state`, `pane.‹id›.program`, `pane.‹id›.view.chat`
   (`.tui`) and `pane.‹id›.enable-chat` (Relaunch with Chat).
@@ -566,5 +609,5 @@ on This Mac and on a remote machine, in light mode and in Classic.
 
 ## Choices
 
-The decisions are D74 to D79 and D82 to D86 on the
+The decisions are D74 to D79, D82 to D86 and D95 on the
 [Decisions](/docs/decisions#pane-kinds) page.
