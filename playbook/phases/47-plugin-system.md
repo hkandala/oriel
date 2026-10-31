@@ -177,3 +177,28 @@ working until this track switches the default plugins to installed packages.
   plugin that needs them (tracks D, B).
 - **For the user:** nothing changes on screen with no packages of your own. A label `oriel:<unknown>#abc123 x`
   shows the missing card.
+
+### Track C (the header)
+
+- **Decisions:** `Header` (one per card, in `Plugin`, so a dropped or reloaded card keeps it) holds the manifest's
+  controls with the page's changes over them. `controls.set` takes value, title, label, symbol, badge, items, hidden,
+  enabled and busy; `""` or `0` clears a badge, `""` a symbol or label. A toggle, segments and a field change their
+  value natively, then the page hears `{ id, value, submit? }`; a menu pick only sends (an item may be an action such
+  as Choose Folder…), and the page sets the menu's value. `values` is `controls.get`'s and the state file's
+  `"controls"`; `restore` puts saved values back; `changed` fires on every change for track B's 500 ms write.
+- **Decisions:** the manifest grew what the two plugins need: `history: true` draws Back and Forward first
+  (`pane.<id>.go-back` / `go-forward`, the card's own history); the type `openWith`, whose value is the path the page
+  sets (no path, not drawn); a `path` text's value is a list of parts; a text's `symbol` draws before its last part
+  (File's `{}` before the scope); menu items take a `symbol`, and `{ title }` starts a section ("Remote"); a button's
+  `badge` and `busy` (a count after its symbol, a spinner in its place), and `label` for VoiceOver ("Push, 1 ahead").
+- **Decisions:** controls sit 6 pt apart, but icon buttons side by side touch (0 pt), as the built bars' runs do
+  (zoom, previous/next). Free space goes to a spacer or a field; with neither, after the last control, so the row
+  starts at the left. Every control's id is `pane.<pane>.<id>` and segments keep `<id>.<title lowercased>`, so the
+  built bars' ids (`filter`, `root`, `jump`, `mode.read`, `outline`, `git.branch`, `diff.layout.side by side`, …) can
+  stay. A user plugin with neither header nor history has one header row, in a pane and floating.
+- **For D and E:** a place's controls that other places lack default to `hidden: true` in the manifest, and the page
+  shows them in `main` before `card.ready()`: a brand-new card draws the manifest's row until then (a card made again
+  draws its saved values). Two small parity changes to list: Git's Fetch, Pull and Push touched 2 pt apart and now
+  touch; a PDF's `3 of 12` loses its monospaced digits.
+- **For the user:** a plugin's row 2 in a pane and floating, light and dark: the fixture in
+  `OrielUITests/HeaderTests.swift` shows every control type.
