@@ -19,6 +19,12 @@ struct PluginCard: View {
 
     var body: some View {
         WebCardContent(card: plugin.web)
+            // Over the page alone, as the page is.
+            .overlay {
+                if let failure = plugin.web.bridge?.failure {
+                    PluginFailure(plugin: plugin, title: failure.title, text: failure.text)
+                }
+            }
             .padding([.horizontal, .bottom], PaneCard.inset)
             // Over a page that has not drawn yet (a big tree's first listing, a remote file).
             .overlay {
@@ -30,11 +36,6 @@ struct PluginCard: View {
                 if let toast = plugin.web.toast {
                     ToastView(toast: toast, plugin: plugin).padding(.top, 6)
                         .transition(.move(edge: .top).combined(with: .opacity))
-                }
-            }
-            .overlay {
-                if let failure = plugin.web.bridge?.failure {
-                    PluginFailure(plugin: plugin, title: failure.title, text: failure.text)
                 }
             }
             .animation(.easeOut(duration: 0.15), value: plugin.web.toast == nil)
