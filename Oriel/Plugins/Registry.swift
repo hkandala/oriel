@@ -93,7 +93,7 @@ enum Registry {
         init(all: [PluginManifest], defaults: Set<String>, folders: [String: URL], problems: [String: String]) {
             (self.all, self.defaults, self.folders, self.problems) = (all, defaults, folders, problems)
             byID = Dictionary(uniqueKeysWithValues: all.map { ($0.id, $0) })
-            symbols = Set(all.map(\.icon) + PluginPage.allCases.map(\.symbol) + ExplorerPlace.allCases.map(\.symbol)
+            symbols = Set(all.map(\.icon) + ExplorerPlace.allCases.map(\.symbol)
                 + [missing])
                 .subtracting(programIcons.map(\.id))
         }

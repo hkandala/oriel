@@ -118,8 +118,8 @@ final class PaneViewRegistry {
             }
             return plugin
         }
-        guard let manifest = label.manifest, let page = PluginPage(manifest.id, label.place) else { return nil }
-        let plugin = Plugin(terminalID: terminalID, paneID: pane.id, label: label, manifest: manifest, page: page,
+        guard let manifest = label.manifest, manifest.entry != nil else { return nil }
+        let plugin = Plugin(terminalID: terminalID, paneID: pane.id, label: label, manifest: manifest,
                             place: landings.removeValue(forKey: terminalID), store: store)
         plugin.web.view.onKeyboard = claim(terminalID)
         plugin.web.view.pictured = { [weak self] in self?.noted(terminalID) }

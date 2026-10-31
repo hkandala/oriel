@@ -1,24 +1,6 @@
 import HerdrKit
 import SwiftUI
 
-/// A plugin card's web page: its plugin's entry (`main`), which draws every place of its card itself through the
-/// plugin API (`Bridge`).
-/// ponytail: one case left once File Explorer and Git moved onto the API; it goes with the rest of the old pages.
-enum PluginPage: String, CaseIterable {
-    case main
-
-    /// Nil for a plugin with no entry (the browser).
-    init?(_ plugin: String, _: String) {
-        guard Registry.plugin(plugin)?.entry != nil else { return nil }
-        self = .main
-    }
-
-    /// The card's and the tab's icon while it shows the page.
-    var symbol: String {
-        Registry.missing
-    }
-}
-
 /// The place a File Explorer card shows: its card's and tab's icon, its page's identifier, and whether it takes ⌘S
 /// and ⌘F. By the rule and the extensions its page picks it by (`kind` in plugins/explorer/place.ts, places.json): a
 /// folder's tree; Markdown; text (no extension too); Preview for the kinds it draws and the known kinds that are not
@@ -116,18 +98,18 @@ final class Plugin {
     /// The pane's label as the last snapshot has it: the card's own renames come later. Its iid never changes.
     private(set) var label: PaneLabel
     let manifest: PluginManifest
-    /// The content: `web/src/<page>.ts`.
+    /// The content: the plugin's entry page.
     let web: WebCard
     let header: Header
 
-    init(terminalID: String, paneID: String, label: PaneLabel, manifest: PluginManifest, page: PluginPage,
-         place: String?, store: HostStore)
+    init(terminalID: String, paneID: String, label: PaneLabel, manifest: PluginManifest, place: String?,
+         store: HostStore)
     {
         self.terminalID = terminalID
         self.paneID = paneID
         self.label = label
         self.manifest = manifest
-        web = WebCard(plugin: manifest.id, page: page, arg: label.place, place: place, store: store)
+        web = WebCard(plugin: manifest.id, arg: label.place, place: place, store: store)
         header = Header(manifest: manifest)
         name()
         web.bridge = Bridge(plugin: self)
