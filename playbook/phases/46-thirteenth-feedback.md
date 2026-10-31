@@ -402,6 +402,11 @@ after (Release, `sample` over tab clicks, three swipes and two overview opens).
   the toolbar's view from accessibility made the hit test find the window instead, not the capsule (tried, dropped).
   **Open:** the fix is to drop the empty toolbar (the title bar's height then needs another way) or to keep the tab
   row below the toolbar's frame; that is a chrome change for the orchestrator.
+- **Review.** One code review, no blocker: neighbors are now made one a turn 0.1 s apart, once per selected tab (a
+  herdr snapshot restarted the wait, so with busy agents it never ran), not under the overview, and only with room
+  for the cards in view too (else the next switch dropped one never shown); the Agents button is made per session, as
+  the tab bar (an open Agents panel held the old session). A 60 fps recording of clicks onto prewarmed browser tabs
+  showed no blank frame.
 - **Measurement note.** The scroll meter's frame counts were 3–5 a swipe for before and after alike late at night
   (the display was likely asleep): swipe frame rates are not compared here.
 
