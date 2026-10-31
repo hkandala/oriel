@@ -25,19 +25,19 @@ lint:
 
 # The default plugins' pages (Oriel/Plugins/Web), a folder per plugin that the scheme serves as
 # oriel-plugin://<id>/: its pages (one module each, shared chunks) and its package.json, which the registry reads.
-# File Explorer is a package (plugins/explorer) built from its entry with its own node_modules, its types checked
-# against the plugin API's (plugins/node_modules/@oriel/plugin-api, a link to web/oriel). Beside them the plugin API's
-# runtime (oriel.js, checked against its types) and card.css, which every plugin's page loads. The project copies
+# File Explorer and Git are packages (plugins/<id>), each built from its entry with its own node_modules, its types
+# checked against the plugin API's (plugins/node_modules/@oriel/plugin-api, a link to web/oriel). Beside them the plugin
+# API's runtime (oriel.js, checked against its types) and card.css, which every plugin's page loads. The project copies
 # .build/web into the app's resources.
 ESBUILD = web/node_modules/.bin/esbuild --bundle --splitting --format=esm --minify --target=safari18 \
 	--log-level=warning --external:*.svg --external:*.gif
 
-web: web/node_modules/.package-lock.json plugins/explorer/node_modules/.package-lock.json
+web: web/node_modules/.package-lock.json plugins/explorer/node_modules/.package-lock.json \
+		plugins/git/node_modules/.package-lock.json
 	rm -rf .build/web
 	mkdir -p plugins/node_modules/@oriel && ln -sfn ../../../web/oriel plugins/node_modules/@oriel/plugin-api
-	web/node_modules/.bin/tsc -p plugins/explorer
-	$(ESBUILD) plugins/explorer/main.ts --outdir=.build/web/explorer
-	$(ESBUILD) web/src/{git,diff}.ts web/src/{git,diff}.css --outdir=.build/web/git
+	for id in explorer git; do web/node_modules/.bin/tsc -p plugins/$$id; \
+		$(ESBUILD) plugins/$$id/main.ts --outdir=.build/web/$$id; done
 	for id in explorer git; do cp plugins/$$id/package.json .build/web/$$id/; done
 	cp plugins/explorer/places.json .build/web/explorer/
 	web/node_modules/.bin/tsc -p web/oriel
@@ -49,8 +49,8 @@ web: web/node_modules/.package-lock.json plugins/explorer/node_modules/.package-
 	cd plugins/explorer/node_modules/pdfjs-dist && cp build/pdf.worker.min.mjs wasm/{openjpeg,jbig2,qcms_bg}.wasm \
 		standard_fonts/*.{pfb,ttf} cmaps/*.bcmap ../../../../.build/web/explorer
 
-plugins/explorer/node_modules/.package-lock.json: plugins/explorer/package-lock.json
-	npm ci --prefix plugins/explorer --no-audit --no-fund
+plugins/%/node_modules/.package-lock.json: plugins/%/package-lock.json
+	npm ci --prefix plugins/$* --no-audit --no-fund
 
 web/node_modules/.package-lock.json: web/package-lock.json
 	npm ci --prefix web --no-audit --no-fund

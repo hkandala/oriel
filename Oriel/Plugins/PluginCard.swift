@@ -39,13 +39,6 @@ struct PluginCard: View {
                 }
             }
             .animation(.easeOut(duration: 0.15), value: plugin.web.toast == nil)
-            // Not in an overview tile: the card's own watch catches up when it shows again. A plugin's page has its
-            // own (`Bridge.shown`).
-            .task(id: "\(isEnabled) \(plugin.web.arg)") {
-                if isEnabled, plugin.web.page != .main {
-                    await plugin.web.watch()
-                }
-            }
             // In place of the card that had the keyboard.
             .onAppear {
                 if isEnabled, page.hasKeyboard(plugin.paneID) {
@@ -87,18 +80,14 @@ private struct ToastView: View {
     }
 }
 
-/// The card header's second row: a plugin's from its manifest, Git's own bars. It starts at the row's left edge, also
-/// in a floating window.
+/// The card header's second row, from its plugin's manifest. It starts at the row's left edge, also in a floating
+/// window.
 struct PluginToolbar: View {
     let plugin: Plugin
     let page: Page
 
     var body: some View {
-        switch plugin.web.page {
-        case .main: PluginHeader(plugin: plugin, page: page)
-        case .diff: DiffToolbar(plugin: plugin)
-        case .git: GitBar(plugin: plugin)
-        }
+        PluginHeader(plugin: plugin, page: page)
     }
 }
 

@@ -1,9 +1,6 @@
 {
   "name": "oriel-web",
   "private": true,
-  "dependencies": {
-    "@pierre/diffs": "1.6.2"
-  },
   "devDependencies": {
     "esbuild": "0.28.2",
     "typescript": "7.0.2"

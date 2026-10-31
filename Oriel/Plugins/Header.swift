@@ -91,8 +91,8 @@ final class Header {
 }
 
 extension PluginManifest {
-    /// A card's row 2: File Explorer's and Git's pages, else a header or Back and Forward.
-    func hasRow(_ page: PluginPage) -> Bool {
-        page != .main || history || !header.isEmpty
+    /// A card's row 2: a header or Back and Forward.
+    func hasRow(_: PluginPage) -> Bool {
+        history || !header.isEmpty
     }
 }

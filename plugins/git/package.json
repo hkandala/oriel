@@ -4,6 +4,15 @@
   "private": true,
   "description": "Changes and history",
   "keywords": ["diff", "changes", "commit", "uncommitted", "history"],
+  "dependencies": {
+    "@pierre/diffs": "1.6.2"
+  },
+  "peerDependencies": {
+    "@oriel/plugin-api": "*"
+  },
+  "peerDependenciesMeta": {
+    "@oriel/plugin-api": { "optional": true }
+  },
   "oriel": {
     "id": "git",
     "name": "Git",
@@ -12,6 +21,23 @@
     "icon": "arrow.triangle.branch",
     "opens": { "git": true },
     "chooser": "Git",
-    "permissions": ["files:read", "git"]
+    "permissions": ["files:read", "git", "clipboard"],
+    "history": true,
+    "header": [
+      { "type": "menu", "id": "git.branch", "symbol": "arrow.triangle.branch", "title": "—", "label": "Branch",
+        "enabled": false },
+      { "type": "button", "id": "diff.home", "symbol": "house", "title": "Git Home", "hidden": true },
+      { "type": "spacer" },
+      { "type": "button", "id": "git.fetch", "symbol": "arrow.clockwise", "title": "Fetch" },
+      { "type": "button", "id": "git.pull", "symbol": "arrow.down", "title": "Pull", "gap": 2 },
+      { "type": "button", "id": "git.push", "symbol": "arrow.up", "title": "Push", "gap": 2 },
+      { "type": "segmented", "id": "diff.layout", "value": "unified", "hidden": true,
+        "options": [{ "value": "unified", "title": "Unified" }, { "value": "split", "title": "Side by Side" }] },
+      { "type": "button", "id": "diff.file-list", "symbol": "sidebar.left", "title": "Hide File List", "hidden": true },
+      { "type": "button", "id": "diff.previous", "symbol": "chevron.up", "title": "Previous Change", "gap": 0,
+        "hidden": true },
+      { "type": "button", "id": "diff.next", "symbol": "chevron.down", "title": "Next Change", "gap": 0,
+        "hidden": true }
+    ]
   }
 }

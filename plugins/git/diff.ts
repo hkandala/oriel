@@ -1,5 +1,5 @@
-// A Git card's diff: the pane's patch in @pierre/diffs' CodeView, one scroll with a sticky header per file, and the file
-// list beside it. Row 2 (DiffToolbar.swift) sends the layout, the list and previous / next change.
+// A Git card's diff: a source's patch in @pierre/diffs' CodeView, one scroll with a sticky header per file, and the
+// file list beside it. Row 2 has the layout, the list and previous / next change (`main.ts`).
 import {
   CodeView,
   type CodeViewDiffItem,
@@ -7,29 +7,22 @@ import {
   type FileDiffMetadata,
   parsePatchFiles,
 } from "@pierre/diffs"
-import { ask, at, type How, how, type PatchReply, receive, report, symbols } from "./lib/bridge"
-import "./diff.css"
-
+import { control, element, type How, how, keep, open, oriel } from "./lib"
 
 const letters = { change: "M", "rename-pure": "R", "rename-changed": "R", new: "A", deleted: "D" }
+const page = element("div")
+page.id = "diff"
+page.hidden = true
 const nav = element("nav", "list")
 const main = element("main", "diff")
 const empty = element("p", "empty")
-document.body.append(nav, main, empty)
+page.append(nav, main, empty)
+document.body.append(page)
 
-// A first ask that fails (a folder not yet a repo, a machine away) waits for a change in the work tree.
-let reply: PatchReply | undefined
-while (!reply) {
-  reply = await ask({ op: "patch" }).catch((error: Error) => {
-    empty.textContent = error.message
-    report({ op: "ready" })
-    return undefined
-  })
-  if (!reply) await new Promise<void>((resolve) => receive(() => resolve()))
-}
-const { root, split, list } = reply
-symbols(reply.symbols)
-let patch = ""
+let root = ""
+let source = ""
+/** The patch drawn, "" before the first; a failed read is undefined. */
+let patch: string | undefined
 let files: FileDiffMetadata[] = []
 // Each change block's first line, in order, for previous / next; the last one stepped to, or half a step before
 // the next one after a pick in the list.
@@ -37,11 +30,14 @@ let changes: { id: string; lineNumber: number; side: "additions" | "deletions" }
 let change = -1
 /** The files marked Viewed, with their text then: a file that changes since drops the mark. */
 const viewed = new Map<string, string>()
+// Side by Side and the file list, kept per card.
+const split = oriel.controls.get("diff.layout") === "split"
+let list = oriel.state.get<{ list?: boolean }>()?.list ?? true
 nav.hidden = !list
 
 const options: CodeViewOptions<undefined, undefined> = {
   theme: { dark: "pierre-dark", light: "pierre-light" },
-  themeType: scheme(),
+  themeType: oriel.theme.dark ? "dark" : "light",
   diffStyle: split ? "split" : "unified",
   // Side by Side wraps each column's lines: a line scrolled past its narrow column was cut off where a click lands.
   overflow: split ? "wrap" : "scroll",
@@ -82,7 +78,9 @@ const options: CodeViewOptions<undefined, undefined> = {
       box-shadow: inset 0 -0.5px var(--divider);
       cursor: default;
     }`,
-  renderHeaderPrefix: (diff: FileDiffMetadata) => {
+  // A diff item's file is its diff.
+  renderHeaderPrefix: (file) => {
+    const diff = file as FileDiffMetadata
     const button = header(diff, "prefix", () => {
       const button = element("button", "disclosure", "›")
       button.ariaLabel = "Show or hide the file"
@@ -92,7 +90,7 @@ const options: CodeViewOptions<undefined, undefined> = {
     button.classList.toggle("shut", Boolean(item(diff.name)?.collapsed))
     return button
   },
-  renderHeaderMetadata: (diff: FileDiffMetadata) => header(diff, "metadata", () => {
+  renderHeaderMetadata: (file) => header(file as FileDiffMetadata, "metadata", (diff) => {
     const box = element("span", "actions")
     box.append(...counts(diff))
     const label = element("label", "mark")
@@ -118,10 +116,11 @@ const options: CodeViewOptions<undefined, undefined> = {
     return box
   }),
   // ⌘-click: the file at the line in a new tab (⌥-click: to the side), or for a removed line at the one after it.
-  onLineClick: ({ event, lineNumber, annotationSide }, context) => {
-    const file = files.find((file) => file.name === context.item.id)
+  onLineClick: (line, context) => {
+    const { event, lineNumber } = line, file = files.find((file) => file.name === context.item.id)
     if ((event.metaKey || event.altKey) && file && file.type !== "deleted") {
-      openFile(file.name, annotationSide === "additions" ? lineNumber : newLine(file, lineNumber), how(event))
+      const added = "annotationSide" in line && line.annotationSide === "additions"
+      openFile(file.name, added ? lineNumber : newLine(file, lineNumber), how(event))
     }
   },
 }
@@ -130,25 +129,45 @@ const options: CodeViewOptions<undefined, undefined> = {
  * highlighter's answer), and a click whose press and release land on two different nodes does nothing.
  */
 const headers = new Map<string, { text: string; node: HTMLElement }>()
-function header(diff: FileDiffMetadata, slot: string, make: () => HTMLElement) {
+function header(diff: FileDiffMetadata, slot: string, make: (diff: FileDiffMetadata) => HTMLElement) {
   const key = `${slot} ${diff.name}`, body = text(diff), made = headers.get(key)
   if (made?.text === body) return made.node
-  const node = make()
+  const node = make(diff)
   headers.set(key, { text: body, node })
   return node
 }
 
 const viewer = new CodeView(options)
 viewer.setup(main)
-show(reply.patch)
-report({ op: "ready" })
-if (at && files.some((file) => file.name === at)) reveal(at)
+
+/** Shows a source of a root, from its top, at a file (`at`) when it has it. A first read that fails (a folder not yet
+ *  a repository, a machine away) shows git's error and reads again at the next change in the work tree. */
+export async function show(nextRoot: string, nextSource: string, at?: string) {
+  // The diff shown, with a landing: only a scroll to the file.
+  const again = !page.hidden && nextRoot === root && nextSource === source && patch !== undefined
+  page.hidden = false
+  control("diff.file-list", { title: list ? "Hide File List" : "Show File List" })
+  if (again) return void (at && files.some((file) => file.name === at) && reveal(at))
+  root = nextRoot
+  source = nextSource
+  patch = undefined
+  viewed.clear()
+  headers.clear()
+  viewer.setItems([])
+  main.scrollTop = 0
+  await refresh()
+  if (at && files.some((file) => file.name === at)) reveal(at)
+}
+
+export const hide = () => {
+  page.hidden = true
+}
 
 /**
  * Draws a new patch. A file keeps its place, its fold and its Viewed while its text is the same; a Viewed file that
  * changed opens again. A file new to the card with over 2,000 changed lines starts folded.
  */
-function show(next: string) {
+function draw(next: string) {
   patch = next
   files = parsePatchFiles(patch).flatMap((parsed) => parsed.files)
   const changed = new Set<string>()
@@ -250,25 +269,14 @@ function text(file: FileDiffMetadata) {
   return `${file.deletionLines.join("")}\0${file.additionLines.join("")}`
 }
 
-function element<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, content = "") {
-  const node = document.createElement(tag)
-  node.className = className
-  node.textContent = content
-  return node
-}
-
 function openFile(name: string, line: number | undefined, how: How) {
-  report({ op: "open", arg: `${root}/${name}`, at: line ? String(line) : undefined, how })
+  open(`${root}/${name}`, { how, at: line ? String(line) : undefined })
 }
 
 /** Another layout or width gives the lines other heights: back to the change last stepped to, not wherever the old
  * offset now falls. */
 function keepChange() {
   if (changes[change]) viewer.scrollTo({ type: "line", ...changes[change], align: "center" })
-}
-
-function scheme() {
-  return document.documentElement.style.colorScheme === "light" ? "light" : "dark"
 }
 
 function item(id: string) {
@@ -292,56 +300,63 @@ function reveal(id: string) {
   change = (next < 0 ? changes.length : next) - 0.5
 }
 
-// The host sets `color-scheme` on the root with the app's look.
-new MutationObserver(() => {
-  options.themeType = scheme()
+oriel.on("theme", (theme) => {
+  options.themeType = theme.dark ? "dark" : "light"
   viewer.setOptions({ ...options })
-}).observe(document.documentElement, { attributeFilter: ["style"] })
+})
 
 // One patch at a time; a change during one asks again after it.
-let asking = false
+let asking: Promise<void> | undefined
 let again = false
-async function refresh() {
+
+/** The patch again, drawn only when its text changed: Uncommitted follows the work tree. */
+export async function refresh() {
   if (asking) {
     again = true
-    return
+    return asking
   }
-  asking = true
-  do {
-    again = false
-    const reply: PatchReply | undefined = await ask({ op: "patch" }).catch(() => undefined)
-    if (reply && reply.patch !== patch) show(reply.patch)
-  } while (again)
-  asking = false
+  asking = (async () => {
+    do {
+      again = false
+      const at = `${root} ${source}`
+      const next = await oriel.git.diff(root, source).catch((error: Error) => error)
+      if (at !== `${root} ${source}`) continue
+      if (next instanceof Error) {
+        // A diff drawn keeps its patch; a first read shows why it failed.
+        if (patch === undefined) empty.textContent = next.message
+      } else if (next !== patch) draw(next)
+    } while (again)
+    asking = undefined
+  })()
+  return asking
 }
 
-receive((message) => {
-  switch (message.op) {
-    // Another change of the same Uncommitted diff picked on the home.
-    case "reveal":
-      if (files.some((file) => file.name === message.at)) reveal(message.at)
-      break
-    case "changed":
-      refresh()
-      break
-    case "layout":
-      options.diffStyle = message.split ? "split" : "unified"
-      options.overflow = message.split ? "wrap" : "scroll"
-      viewer.setOptions({ ...options })
-      keepChange()
-      break
-    case "list":
-      nav.hidden = !message.open
-      // Once the viewer has its new width: Side by Side wraps lines to it.
-      requestAnimationFrame(() => requestAnimationFrame(keepChange))
-      break
-    case "step": {
-      if (!changes.length) return
-      const step = message.by > 0 ? Math.floor(change) + 1 : Math.ceil(change) - 1
-      change = Math.min(Math.max(step, 0), changes.length - 1)
-      const place = changes[change]
-      if (item(place.id).collapsed) collapse(place.id, false)
-      viewer.scrollTo({ type: "line", ...place, align: "center" })
-    }
-  }
-})
+/** A first read failed: a change in the work tree reads again. */
+export const failed = () => patch === undefined
+
+export function layout(split: boolean) {
+  options.diffStyle = split ? "split" : "unified"
+  options.overflow = split ? "wrap" : "scroll"
+  viewer.setOptions({ ...options })
+  keepChange()
+}
+
+export function toggleList() {
+  list = !list
+  nav.hidden = !list
+  keep({ list })
+  control("diff.file-list", { title: list ? "Hide File List" : "Show File List" })
+  // Once the viewer has its new width: Side by Side wraps lines to it.
+  requestAnimationFrame(() => requestAnimationFrame(keepChange))
+}
+
+export function step(by: 1 | -1) {
+  if (!changes.length) return
+  const next = by > 0 ? Math.floor(change) + 1 : Math.ceil(change) - 1
+  change = Math.min(Math.max(next, 0), changes.length - 1)
+  const place = changes[change]
+  if (item(place.id).collapsed) collapse(place.id, false)
+  viewer.scrollTo({ type: "line", ...place, align: "center" })
+}
+
+export { reveal }
