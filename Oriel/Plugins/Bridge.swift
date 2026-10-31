@@ -189,6 +189,7 @@ final class Bridge {
     private func answer(_ name: String, _ args: [String: Any], _ plugin: Plugin) async throws -> Any? {
         switch name {
         case "run": return try await run(args, plugin)
+        case "files.info": return try await info(args)
         case "files.watch", "files.unwatch": try watch(name, args)
         case _ where PluginCalls.gitWrites.contains(name): return try await serial { try await self.calls(name, args) }
         case _ where name.hasPrefix("files.") || name.hasPrefix("git."): return try await calls(name, args)
@@ -245,7 +246,7 @@ final class Bridge {
     }
 
     /// A call on the card's machine (HerdrKit's `PluginCalls`).
-    private func calls(_ name: String, _ args: [String: Any]) async throws -> Data {
+    func calls(_ name: String, _ args: [String: Any]) async throws -> Data {
         guard let plugin, let store = plugin.web.store else { throw PluginError("closed", "Closed") }
         let data = try JSONSerialization.data(withJSONObject: args)
         let calls = await PluginCalls(permissions: plugin.manifest.permissions, exec: store.machine.exec(),
