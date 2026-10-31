@@ -112,8 +112,11 @@ extension OrielUITests {
             closeAfter("tab", opened)
             let pane = try await pane(of: opened)
             try await labelEnds(pane, " \(root)/\(name)")
-            let order = try await order(of: opened), cardOrder = try await self.order(of: tab)
-            XCTAssertEqual(order, cardOrder.map { $0 + 1 })
+            // herdr adds the tab last, then the app moves it: the move may come after the tab shows.
+            let cardOrder = try await order(of: tab)
+            _ = try await poll("\(name)'s tab right after the card's") { () async throws -> Bool? in
+                try await self.order(of: opened) == cardOrder.map { $0 + 1 } ? true : nil
+            }
             XCTAssertTrue(element("tab.\(opened)").has(\.isSelected, true, within: 5), name)
             XCTAssertTrue(element("file.\(pane).page").has(\.isHittable, true, within: 5), name)
             XCTAssertFalse(tree.isHittable)

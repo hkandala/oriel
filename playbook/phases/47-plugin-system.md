@@ -278,4 +278,5 @@ working until this track switches the default plugins to installed packages.
   (not its root) lists git's files (the API's `files.paths`); a remote Choose Folder… with a bad path does nothing
   instead of a notice; `.pem`, `.crt`, `.cer`, `.eml` and `.ps` open in File (main: Preview's info view, by `UTType`).
 - **Runs:** 41214627809 (on eb3aebed…d66509b8): 11 of 12 green; File's Overwrite asked again, because
-  `save(undefined)` took the default `over`.
+  `save(undefined)` took the default `over`. 41216469734 (e716cd99): 11 of 12; the new tab's order was read before the app moved
+  it after the card's (a race in the test, which now waits for the move).
