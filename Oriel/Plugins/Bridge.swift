@@ -75,15 +75,14 @@ final class Bridge {
     /// The card's context for the runtime, in the page before its code runs.
     func context() -> [String: Any] {
         guard let plugin, let store = plugin.web.store else { return [:] }
-        let machine = store.machine, entry = plugin.manifest.entry ?? "main.js"
+        let machine = store.machine
         var context: [String: Any] = [
             "api": plugin.manifest.api, "id": plugin.label.iid, "arg": plugin.web.arg,
             "plugin": ["id": plugin.manifest.id, "version": plugin.manifest.version],
             "machine": ["id": machine.id, "name": machine.name, "remote": machine.isRemote],
             "cwd": store.pane(plugin.paneID)?.cwd ?? "/", "visible": visible, "keyboard": keyboard,
             "controls": plugin.header.values, "theme": theme,
-            // esbuild names the entry's build after its file, in the build's top folder.
-            "entry": ((entry as NSString).lastPathComponent as NSString).deletingPathExtension + ".js",
+            "entry": plugin.manifest.entryName + ".js",
         ]
         context["at"] = plugin.web.place
         context["state"] = state
@@ -223,8 +222,11 @@ final class Bridge {
             event("keyboard", keyboard)
         case "card.setDirty": plugin.web.dirty = args["dirty"] as? Bool == true
         case "card.failed":
-            failure = ("\(plugin.manifest.name) stopped", [args["text"], args["stack"]].compactMap { $0 as? String }
-                .filter { !$0.isEmpty }.joined(separator: "\n"))
+            failure = (
+                "\(plugin.manifest.name.shown) stopped",
+                [args["text"], args["stack"]].compactMap { $0 as? String }
+                    .filter { !$0.isEmpty }.joined(separator: "\n"),
+            )
             PluginLog.add(plugin.manifest.id, "stopped: \(failure?.text ?? "")")
             plugin.web.ready = true
         case "state.set":

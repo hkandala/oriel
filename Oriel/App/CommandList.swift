@@ -10,6 +10,7 @@ struct CommandList {
     var agents: Binding<Bool>?
     var openSession: Binding<Bool>?
     var shortcuts: Binding<Bool>?
+    var plugins: Binding<Bool>?
     let settings: AppSettings
     /// A floating window's list (D50): only what applies to it.
     var floating: Floating?
@@ -36,6 +37,9 @@ struct CommandList {
         let page = pages?.current, pages = pages, workspace = page?.selectedWorkspace, tab = page?.selectedTab
         let live = page?.store.state == .live, editor = page?.editor
         let file = [
+            Command(section: .app, title: "Plugins…", symbol: Registry.missing,
+                    keywords: "install update remove packages npm git settings",
+                    enabled: plugins != nil) { plugins?.wrappedValue = true },
             Command(section: .file, title: "New Window", key: .init("n"), symbol: "macwindow.badge.plus") {
                 WindowPages.open(machine: pages?.machine ?? .thisMac)
             },
@@ -188,7 +192,8 @@ struct CommandList {
             Command(section: .palette, title: fullScreen ? "Exit Full Screen" : "Enter Full Screen",
                     key: .init("f", modifiers: [.command, .control]),
                     symbol: "arrow.up.left.and.arrow.down.right") { NSApp.keyWindow?.toggleFullScreen(nil) },
-        ] + Self.plugins
+            Self.reloadPlugins,
+        ]
     }
 
     /// The Window menu's tab, workspace and page steps, and the places on ⌘1…⌘9.

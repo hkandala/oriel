@@ -1,54 +1,57 @@
 import HerdrKit
 import SwiftUI
 
-/// Settings › Plugins (future-work/plugins, decision 5): a source to install (`npm:`, `git:` or a folder's path), and
-/// every plugin with its name, version and source, and Update, Reload and Remove.
-struct PluginSettings: View {
-    private var settings = AppSettings()
+/// Plugins (future-work/plugins, decision 5), a glass panel over the window like Open Session: a source to install
+/// (`npm:`, `git:` or a folder's path), Reload Plugins, and every plugin with its name, version and source, and
+/// Update, Reload and Remove. Esc or a click outside closes it.
+struct PluginsPanel: View {
     @State private var source = ""
     @FocusState private var focused: Bool
-    @Environment(\.colorScheme) private var colorScheme
-    @Environment(\.colorSchemeContrast) private var colorSchemeContrast
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        let look = Look(style: settings.style, dark: colorScheme == .dark, contrast: colorSchemeContrast == .increased)
-        let installs = PluginInstalls.shared
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Text("Plugins").font(.system(size: 13, weight: .semibold))
-                Spacer()
-                Button("Reload Plugins") { Task { await Plugin.reloadAll() } }
-                    .buttonStyle(.glass).controlSize(.small).accessibilityIdentifier("plugins.reload-all")
-            }
+        let installs = PluginInstalls.shared, typed = source.trimmingCharacters(in: .whitespaces)
+        VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 TextField("npm:package, git:repository or a folder", text: $source).focused($focused)
                     .focusSoon($focused).dialogField().onSubmit(install)
                     .accessibilityLabel("Source").accessibilityIdentifier("plugins.source")
-                Button("Install", action: install).buttonStyle(.glassProminent)
-                    .disabled(source.trimmingCharacters(in: .whitespaces).isEmpty || installs.busy[source] != nil)
-                    .accessibilityIdentifier("plugins.install")
+                if let busy = installs.busy[typed] {
+                    ProgressView().controlSize(.small)
+                    Text(busy).foregroundStyle(.secondary).accessibilityIdentifier("plugins.busy")
+                } else {
+                    Button("Install", action: install).buttonStyle(.glassProminent).disabled(typed.isEmpty)
+                        .accessibilityIdentifier("plugins.install")
+                }
             }
             if let failure = installs.failure {
                 NoticeCapsule(tone: .error, text: failure.text) {
-                    Button("Retry", action: failure.retry).accessibilityIdentifier("notice.retry")
+                    if let retry = failure.retry {
+                        Button("Retry", action: retry).accessibilityIdentifier("notice.retry")
+                    }
                 }
                 .accessibilityIdentifier("plugins.notice")
+                .frame(maxWidth: .infinity)
             }
             ScrollView {
                 VStack(spacing: 2) {
                     ForEach(installs.rows) { PluginRow(row: $0) }
                 }
             }
-            .frame(minHeight: 160, maxHeight: 420)
+            .scrollBounceBehavior(.basedOnSize)
+            .frame(maxHeight: 360)
+            .fixedSize(horizontal: false, vertical: true)
+            HStack {
+                Spacer()
+                Button("Reload Plugins") { Task { await Plugin.reloadAll() } }
+                    .buttonStyle(.glass).controlSize(.small).accessibilityIdentifier("plugins.reload-all")
+            }
         }
         .font(.system(size: 13))
-        .padding(20)
-        .frame(width: 540)
-        .environment(\.look, look)
-        .containerBackground(for: .window) { WindowBackground(look: look) }
-        // ⌘W closes it, as About: the menu bar's ⌘W is a main window's Close Pane.
-        .background { Button("Close") { dismiss() }.keyboardShortcut("w").opacity(0).accessibilityHidden(true) }
+        .padding(12)
+        .frame(width: 480)
+        .floatingGlass(in: .rect(cornerRadius: 14))
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Plugins")
     }
 
     private func install() {

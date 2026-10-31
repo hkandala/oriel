@@ -29,6 +29,8 @@ final class WebCard {
     var ready = false
     var toast: Toast?
     @ObservationIgnored private var loaded = false
+    /// Reloads asked for, so only the last one's page loads (`reload`).
+    @ObservationIgnored var loads = 0
     @ObservationIgnored private var css = ""
 
     init(plugin: String, page: PluginPage, arg: String, place: String?, store: HostStore) {
@@ -75,24 +77,6 @@ final class WebCard {
         }
     }
 
-    /// The page again, from its start: Reload after it stopped, Reload Plugin. A plugin's page once it is trusted and
-    /// built.
-    func reload() {
-        bridge?.reset()
-        bridge?.failure = nil
-        ready = false
-        guard let bridge else {
-            script()
-            view.load(URLRequest(url: PluginScheme.url(plugin, page)))
-            return
-        }
-        Task {
-            guard await bridge.prepare() else { return }
-            script()
-            view.load(URLRequest(url: PluginScheme.url(plugin, page)))
-        }
-    }
-
     /// Another place: the page draws it itself. The toast was the old place's, as a page loaded again drops it.
     func show(_ arg: String, at place: String?) {
         bridge?.dropToast()
@@ -103,7 +87,7 @@ final class WebCard {
     }
 
     /// The card's context and colors (`Bridge.context`), in the page before its code runs.
-    private func script() {
+    func script() {
         let card = (bridge?.context() ?? [:]).merging(["css": css]) { $1 }
         let json = (try? JSONSerialization.data(withJSONObject: card)).map {
             String(decoding: $0, as: UTF8.self)

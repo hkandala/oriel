@@ -3,7 +3,7 @@ import XCTest
 /// Plugin packages (phase 47, track F): the building page's CSV Table (Fixtures/csv-table) as a local path. Its first
 /// card asks for trust, builds and loads; an edit that imports a dependency from the package's own `node_modules`
 /// shows after Reload Plugin (⌥⌘R) with the header's values kept; a failed build keeps the page and says so, and the
-/// log has it. Then Settings › Plugins installs the same package from a local git repository at a tag.
+/// log has it. Then the Plugins panel installs the same package from a local git repository at a tag.
 extension OrielUITests {
     func testAPluginPackageAsksForTrustBuildsAndReloads() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
@@ -11,22 +11,22 @@ extension OrielUITests {
         try await waitForPrompt(shell)
         let config = "/tmp/oriel-e2e-packages", csv = "/tmp/oriel-e2e-csv", data = "/tmp/oriel-e2e-csv-data"
         let fixture = URL(filePath: #filePath).deletingLastPathComponent().appending(path: "Fixtures/csv-table").path
-        let log = "~/Library/Logs/Oriel/plugins/csv-table.log"
-        try await send("rm -rf \(config) \(csv) \(data) \(log) ~/.local/state/oriel/\(one)/csv-table && mkdir -p "
-            + "\(config) \(data) && cp -R \(fixture) \(csv) && printf 'name,count\\nb,2\\na,10\\nc,1\\n' > "
+        let log = "~/Library/Logs/Oriel/plugins/oriel-e2e-csv-table.log"
+        try await send("rm -rf \(config) \(csv) \(data) \(log) ~/.local/state/oriel/\(one)/oriel-e2e-csv-table && "
+            + "mkdir -p \(config) \(data) && cp -R \(fixture) \(csv) && printf 'name,count\\nb,2\\na,10\\nc,1\\n' > "
             + "\(data)/a.csv && echo '{\"packages\":[\"\(csv)\"]}' > \(config)/settings.json && clear && "
             + "echo made-$((6*7))\r", to: shell)
         try await waitFor(shell) { $0.contains("made-42") }
         addTeardownBlock { [one] in
             _ = try? await Self.call(one, "pane.send_text", ["pane_id": shell, "text": "rm -rf \(config) \(csv) "
-                    + "\(data) /tmp/oriel-e2e-csv-repo ~/.local/state/oriel/\(one)/csv-table\r"])
+                    + "\(data) /tmp/oriel-e2e-csv-repo ~/.local/state/oriel/\(one)/oriel-e2e-csv-table\r"])
         }
         relaunch(nil, ["-configFolder", config])
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         element("workspace.w2").click()
 
         let reply = try await Self.call(one, "layout.apply", ["workspace_id": "w2", "focus": false, "root": [
-            "type": "pane", "cwd": data, "label": "oriel:csv-table#e2ecsv \(data)/a.csv",
+            "type": "pane", "cwd": data, "label": "oriel:oriel-e2e-csv-table#e2ecsv \(data)/a.csv",
             "command": ["sh", "-c", "cat", "sh"],
         ]])
         let layout = reply["layout"] as? [String: Any]
@@ -70,7 +70,7 @@ extension OrielUITests {
             + "`CSV Table ${word}`/' \(csv)/main.ts && clear && echo edited-$((6*7))\r", to: shell)
         try await waitFor(shell) { $0.contains("edited-42") }
         try await show(cardTab)
-        element("csv-table.\(card).card").click()
+        element("oriel-e2e-csv-table.\(card).card").click()
         app.typeKey("r", modifierFlags: [.command, .option])
         XCTAssertTrue(text("CSV Table two").exists(within: 10))
         XCTAssertTrue(rows.has(\.stringValue, "4 rows", within: 5))
@@ -80,7 +80,7 @@ extension OrielUITests {
         try await send("echo 'export default {' >> \(csv)/main.ts && clear && echo broken-$((6*7))\r", to: shell)
         try await waitFor(shell) { $0.contains("broken-42") }
         try await show(cardTab)
-        element("csv-table.\(card).card").click()
+        element("oriel-e2e-csv-table.\(card).card").click()
         app.typeKey("r", modifierFlags: [.command, .option])
         let toast = element("pane.\(card).toast")
         XCTAssertTrue(toast.exists(within: 10))
@@ -88,16 +88,21 @@ extension OrielUITests {
         XCTAssertTrue(text("CSV Table two").exists)
     }
 
-    /// Settings › Plugins installs the fixture from a local git repository at its tag, after the trust prompt; the
+    /// Oriel ▸ Plugins… installs the fixture from a local git repository at its tag, after the trust prompt; the
     /// row shows the tag's version and its source.
     private func installFromGit(_ fixture: String, shell: String) async throws {
         let repo = "/tmp/oriel-e2e-csv-repo", git = "git -C \(repo) -c user.name=e2e -c user.email=e2e@e2e"
-        try await send("rm -rf \(repo) && cp -R \(fixture) \(repo) && sed -i '' 's/\"csv-table\"/\"csv-git\"/g; "
-            + "s/\"CSV Table\"/\"CSV Git\"/' \(repo)/package.json && git init -q \(repo) && \(git) add . && "
-            + "\(git) commit -qm one && \(git) tag v1 && sed -i '' 's/0.1.0/0.2.0/' \(repo)/package.json && "
-            + "\(git) commit -qam two && clear && echo repo-$((6*7))\r", to: shell)
+        try await send(
+            "rm -rf \(repo) && cp -R \(fixture) \(repo) && sed -i '' "
+                + "'s/\"oriel-e2e-csv-table\"/\"oriel-e2e-csv-git\"/; s/\"CSV Table\"/\"CSV Git\"/' "
+                + "\(repo)/package.json && git init -q \(repo) && \(git) add . && "
+                + "\(git) commit -qm one && \(git) tag v1 && sed -i '' 's/0.1.0/0.2.0/' \(repo)/package.json && "
+                + "\(git) commit -qam two && clear && echo repo-$((6*7))\r",
+            to: shell,
+        )
         try await waitFor(shell) { $0.contains("repo-42") }
-        app.typeKey(",", modifierFlags: .command)
+        app.menuBars.menuBarItems["Oriel"].click()
+        app.menuBars.menuItems["Plugins…"].click()
         let source = element("plugins.source")
         XCTAssertTrue(source.exists(within: 5))
         source.click()
@@ -105,12 +110,13 @@ extension OrielUITests {
         let allow = app.sheets.buttons["Install"]
         XCTAssertTrue(allow.exists(within: 10))
         allow.click()
-        XCTAssertTrue(element("plugins.csv-git.version").has(\.stringValue, "0.1.0", within: 10))
-        XCTAssertEqual(element("plugins.csv-git.source").stringValue, "git:\(repo)@v1")
-        XCTAssertTrue(element("plugins.csv-git.update").exists)
-        XCTAssertEqual(element("plugins.csv-table.source").stringValue, "/tmp/oriel-e2e-csv")
-        keepScreenshot("settings plugins")
-        app.typeKey("w", modifierFlags: .command)
+        XCTAssertTrue(element("plugins.oriel-e2e-csv-git.version").has(\.stringValue, "0.1.0", within: 10))
+        XCTAssertEqual(element("plugins.oriel-e2e-csv-git.source").stringValue, "git:\(repo)@v1")
+        XCTAssertTrue(element("plugins.oriel-e2e-csv-git.update").exists)
+        XCTAssertEqual(element("plugins.oriel-e2e-csv-table.source").stringValue, "/tmp/oriel-e2e-csv")
+        keepScreenshot("plugins panel")
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertFalse(source.exists)
     }
 
     /// Text the plugin's page shows.
