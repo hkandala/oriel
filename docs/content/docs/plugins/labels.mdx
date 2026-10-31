@@ -3,11 +3,11 @@ title: "Labels and instance ids"
 description: "How a plugin pane is stored in herdr: label, placeholder and instance id"
 ---
 
-The browser pane and the default plugins use this design as built ([Browser](/docs/ui/browser#the-label),
-[Default plugins](/docs/ui/plugins#the-label)). The proposed plugin design
-keeps it: the plugin id is the manifest's `id`
-([Manifest](/docs/future-work/plugins/manifest)), and a plugin has one pane
-kind, so its labels have no pane name.
+Every browser and plugin pane is stored in herdr this way
+([Browser](/docs/ui/browser#the-label),
+[File Explorer and Git](/docs/plugins/default-plugins#the-label)). The
+plugin id is the manifest's `id` ([The manifest](/docs/plugins/manifest)),
+and a plugin has one pane kind, so its labels have no pane name.
 
 ## Label format
 
@@ -24,7 +24,7 @@ Examples, as a herdr TUI user sees them in the pane border:
 ```text
 oriel:git-history#k3f9q2 main
 oriel:explorer#q2m0zd /Users/me/code/oriel/README.md
-oriel:git#a81xw0 /Users/me/code/oriel uncommitted
+oriel:git#a81xw0 /Users/me/code/oriel/ uncommitted
 oriel:kanban/board#7tt1qe
 oriel:browser#m4p8sa http://localhost:3000/dashboard
 ```
@@ -34,15 +34,15 @@ oriel:browser#m4p8sa http://localhost:3000/dashboard
 - The `oriel:` prefix keeps a user's own label (`todo: fix login`) from turning
   into a plugin.
 - The argument goes last, so the useful part is what a TUI user reads. herdr
-  trims labels, and `setArg` trims too.
+  trims labels.
 - Labels travel in every snapshot to every device, so the argument stays
   small (under ~200 characters advised). Bigger state goes to a file
-  ([State](/docs/future-work/plugins/api#state)).
+  ([State](/docs/plugins/api#state)).
 
 ## Instance id
 
 The instance id (`iid`) names the pane's state file
-([State](/docs/future-work/plugins/api#state)). `terminal_id` changes on a herdr
+([State](/docs/plugins/api#state)). `terminal_id` changes on a herdr
 cold restart, and the label survives it, so the iid lives in the label.
 - The device that creates the pane generates 6 characters of `[a-z0-9]`,
   checked against the snapshot. It never changes.

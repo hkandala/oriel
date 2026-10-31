@@ -1,0 +1,380 @@
+---
+title: "The plugin API"
+description: "The typed oriel object a plugin's page calls, its events, its state, its versions, and the Swift side behind it"
+---
+
+A plugin's entry exports one function. The app calls it with the `oriel`
+object when the page loads. Everything the page asks of the app goes through
+that object. File Explorer and Git use exactly this API.
+
+```ts
+import type { Oriel } from "@oriel/plugin-api"
+
+export default async function main(oriel: Oriel) {
+  const { text } = await oriel.files.read(oriel.card.arg)
+  document.body.textContent = text
+}
+```
+
+- The card is ready when `main` returns, or when the page calls
+  `oriel.card.ready()` first. Until then the card shows its loader, or its
+  still picture after a drop.
+- An error thrown from `main` stops the card: "‹name› stopped", the message
+  and its first stack line, with **Reload**
+  ([Errors and logs](/docs/plugins/errors)).
+- Every call works only on the card's own machine, and only within the
+  manifest's permissions ([Permissions](/docs/plugins/manifest#permissions)).
+
+## Types
+
+The API is host-provided, as pi's is for its packages. The app gives the
+`oriel` object to the page at run time, so a plugin never bundles it:
+- A plugin lists `@oriel/plugin-api` in `peerDependencies` as `"*"`, and
+  marks it `optional` in `peerDependenciesMeta`. The name is not on the npm
+  registry, and npm 7 or later installs a peer that is not
+  optional.
+- At launch the app writes the types package (`package.json` and
+  `oriel.d.ts`) to `~/.config/oriel/plugins/node_modules/@oriel/plugin-api/`
+  when its copy differs. `tsc` finds it from any package in the plugins
+  folder, so `npm run check` works there. A package elsewhere (a local path)
+  needs its own copy or link.
+- `import type` goes away in the build, so nothing of the package is
+  bundled.
+
+The types, from `web/oriel/oriel.d.ts` in the repository:
+
+```ts
+export interface Oriel {
+  /** The API version the app gives this page: the manifest's `api`. */
+  readonly api: number
+  readonly card: Card
+  readonly files: Files
+  readonly git: Git
+  readonly state: State
+  readonly controls: Controls
+  readonly theme: Theme
+  /** Needs `clipboard`. */
+  readonly clipboard: { write(text: string): Promise<void> }
+  /** The native context menu at the pointer. Resolves with the picked item's value, or undefined. */
+  readonly menu: { show(items: MenuItem[]): Promise<string | undefined> }
+  /** Choose Folder…: the Mac's folder panel, a folder field on a remote machine. Resolves with the folder's path, or
+   *  undefined. */
+  readonly pick: { folder(from?: string): Promise<string | undefined> }
+
+  /** Runs argv on the card's machine, in the pane's folder unless `cwd` says otherwise: no shell, 30 s unless
+   *  `timeout` (ms) says otherwise, 4 MiB of stdout, two at a time per card. Needs `run`. */
+  run(argv: string[], options?: { cwd?: string; stdin?: string; timeout?: number }): Promise<RunResult>
+  /** An open of a file, a folder (ends in `/`), a URL or a plugin's argument: in this card, in a new tab right after
+   *  this card's tab (the default) or in a pane to its side. No `plugin`: the file's default plugin, the browser for
+   *  a web address. `at`: the new card's landing (`card.at`). */
+  open(arg: string, options?: { plugin?: string; how?: "card" | "tab" | "side"; at?: string }): Promise<void>
+  /** One line on glass at the top of the card, with `buttons` (the second the default) or OK. Resolves with the title
+   *  picked, or undefined when another toast took its place. */
+  toast(text: string, buttons?: [other: string, main: string]): Promise<string | undefined>
+  /** An SF Symbol as a PNG data URL, `size` points tall (16 by default), black on clear: use it as a mask. */
+  symbol(name: string, size?: number): Promise<string>
+
+  /** A header control or a command, as the user changed it: a click (no value), a toggle, a segment, a menu item, a
+   *  field's text (`submit` on Return). */
+  on(event: "control", fn: (e: { id: string; value?: string | boolean; submit?: boolean }) => void): Off
+  /** The card moved to another place: after `card.go`, Back, Forward, or a rename from elsewhere. After Back, `at`
+   *  is the place it came back from: that place's landing, else its argument. */
+  on(event: "place", fn: (place: { arg: string; at?: string }) => void): Off
+  /** ⌘S, ⌘F, ⌘G, ⇧⌘G over the card, with `handles` in the manifest. */
+  on(event: "save" | "find" | "findNext" | "findPrevious", fn: () => void): Off
+  on(event: "visible" | "keyboard", fn: (yes: boolean) => void): Off
+  on(event: "theme", fn: (theme: Theme) => void): Off
+}
+
+/** Stops the handler or the watch. Every one ends with the page. */
+export type Off = () => void
+
+export interface Card {
+  /** The instance id from the label: stable for the pane's life. */
+  readonly id: string
+  readonly plugin: { id: string; version: string }
+  readonly machine: { id: string; name: string; remote: boolean }
+  /** The place: the label's argument (a path, a root, "<root> <source>", a URL, or ""). */
+  readonly arg: string
+  /** The pane's folder on its machine. */
+  readonly cwd: string
+  /** A linked open's landing, on the first load only: a 1-based line, or a file of a diff. */
+  readonly at?: string
+  readonly visible: boolean
+  readonly keyboard: boolean
+  /** Moves the card to another place: the label follows, the app keeps Back and Forward. With unsaved edits the app
+   *  asks first. The page hears `place` once it moved; it is not loaded again. */
+  go(arg: string, options?: { at?: string }): void
+  /** Ends the card's loader. Also when `main` returns. */
+  ready(): void
+  /** The Edited dot after the title. A dirty card is never dropped; a move or a close asks Discard or Keep Editing. */
+  setDirty(dirty: boolean): void
+}
+
+export interface Files {
+  /** UTF-8 text up to 16 MB. `hash` is what `write` checks. `writable` is false over 4 MiB on a remote machine. */
+  read(path: string): Promise<{ text: string; hash: string; writable: boolean }>
+  /** Bytes up to 16 MB, with the MIME type from the name. */
+  readBytes(path: string): Promise<{ data: Uint8Array; type: string; hash: string }>
+  /** The info view's facts: the size in bytes, the kind's name, the system's icon as a PNG data URL; and the hash
+   *  `read` gives (none for a folder), to tell a change without reading the file. */
+  info(path: string): Promise<{ name: string; size: number; kind: string; icon: string; folder: boolean; hash: string }>
+  /** A folder's entries but `.git`, folders first, by name as the Finder sorts; `ignored` when git ignores it. */
+  list(folder: string): Promise<{ name: string; folder: boolean; ignored: boolean }[]>
+  /** Every file under the root, from it: the files git does not ignore in a repository, else every file, up to 8 MB
+   *  of names. */
+  paths(root: string): Promise<string[]>
+  /** Writes a new file beside the old one and moves it over. With `over`, fails with `changed` if the file's hash
+   *  differs. Needs `files:write`. */
+  write(path: string, data: string | Uint8Array, options?: { over?: string }): Promise<{ hash: string }>
+  /** Calls fn after a change under path, only while the card shows, and once on showing again. */
+  watch(path: string, fn: () => void): Off
+}
+
+/** Needs `git`. Writes run one at a time per card, and never ask for a password (they fail with git's message). */
+export interface Git {
+  /** The repository's root of a folder, or null. */
+  root(folder: string): Promise<string | null>
+  /** The changed files from the root, each untracked file on its own: the work tree's letter, else the index's. */
+  status(root: string): Promise<Change[]>
+  /** The changes as the index keeps them: staged (the index against HEAD) and unstaged (untracked included). */
+  changes(root: string): Promise<{ staged: Change[]; unstaged: Change[] }>
+  /** The checkout's branch (the short hash when detached) and how far it is from its upstream; null outside a
+   *  repository. */
+  head(root: string): Promise<{ branch: string; ahead: number; behind: number } | null>
+  /** The local branches, then the remote ones with no local branch of their name. */
+  branches(root: string): Promise<{ name: string; remote: boolean; current: boolean }[]>
+  /** The last 500 commits of every branch, remote branch and tag, and HEAD, newest first, with the graph's lanes. */
+  log(root: string, options?: { limit?: number }): Promise<Commit[]>
+  /** The patch as git prints it: "uncommitted" (staged, unstaged and untracked against HEAD) or a commit against its
+   *  first parent. Up to 16 MB. */
+  diff(root: string, source: string): Promise<string>
+  /** `git add -A` of the paths (literal, not patterns), or of everything. */
+  stage(root: string, paths?: string[]): Promise<void>
+  unstage(root: string, paths?: string[]): Promise<void>
+  commit(root: string, message: string): Promise<void>
+  fetch(root: string): Promise<void>
+  /** git's own way (the user's `pull.rebase`). */
+  pull(root: string): Promise<void>
+  /** A branch with no upstream is published under its name. */
+  push(root: string): Promise<void>
+  /** A remote branch (`origin/x`) makes a local one that tracks it. */
+  switch(root: string, branch: string): Promise<void>
+}
+
+export interface Change {
+  /** M, A, D, R, C (a conflict), U (untracked); `status` also ? for untracked. */
+  letter: string
+  path: string
+  oldPath?: string
+}
+
+export interface Commit {
+  hash: string
+  subject: string
+  author: string
+  /** As git's `%D` with `--decorate=full`: `HEAD -> refs/heads/main`, `refs/remotes/origin/main`, `tag: refs/tags/v1`. */
+  refs: string[]
+  /** Milliseconds since 1970. */
+  date: number
+  lane: number
+  children: number[]
+  parents: number[]
+  through: number[]
+}
+
+export interface RunResult {
+  code: number
+  stdout: string
+  /** The last 8 KB. */
+  stderr: string
+  /** stdout went past 4 MiB: the command was stopped there. */
+  truncated: boolean
+}
+
+export interface State {
+  /** The card's state as last set: given at load, also after a drop, a reload or a relaunch. */
+  get<T>(): T | undefined
+  /** JSON, at most 256 KiB. Kept at once in the app; written to the card's machine 500 ms after the last set. */
+  set<T>(value: T): void
+}
+
+export interface Controls {
+  /** A header control's current value. */
+  get(id: string): string | boolean | string[] | undefined
+  /** Changes a header control or a command. `badge` "" or 0 clears; `busy` shows a spinner in a button or a menu and
+   *  disables the control. A field's value changes as the user types: set it only to replace or clear it (after
+   *  submit), never to echo it. */
+  set(id: string, change: {
+    value?: string | boolean | string[]
+    title?: string
+    /** An SF Symbol: a button's or a toggle's icon, or drawn before a text's last part; "" clears. */
+    symbol?: string
+    /** What VoiceOver reads, when not the title ("Push, 1 ahead"); "" clears. */
+    label?: string
+    badge?: string | number
+    items?: MenuItem[]
+    hidden?: boolean
+    enabled?: boolean
+    checked?: boolean
+    busy?: boolean
+  }): void
+}
+
+/** An item, a section heading (no value) or a divider. */
+export type MenuItem = { value: string; title: string; symbol?: string } | { title: string } | "-"
+
+export interface Theme {
+  dark: boolean
+  style: "glass" | "classic"
+  /** The app's text size in points (⌘+ ⌘− ⌘0). */
+  textSize: number
+  /** The app's tokens as CSS colors; also CSS variables on the root (`--text`, …), with `--app-text-size`. */
+  /** `card` is an opaque stand-in for the card's fill, for a band that text scrolls under. */
+  colors: Record<
+    "text" | "dim" | "divider" | "card" | "accent" | "on-accent" | "working" | "needs-you" | "finished" | "error",
+    string
+  >
+}
+
+/** What every failed call rejects with. */
+export interface OrielError extends Error {
+  code: "denied" | "notFound" | "notText" | "tooLarge" | "changed" | "timeout" | "closed" | "failed"
+}
+```
+
+## What each part does
+
+| Part | What it does | Behind it (Swift) |
+|---|---|---|
+| `card` | who the card is: its iid, plugin, machine, place, folder and landing; `go`, `ready`, `setDirty` | the label and the pane in the snapshot; `Plugin` |
+| `files` | read, list, write and watch on the card's machine | HerdrKit's `Files` (`read`, `list`, `paths`, `save` by hash, `watch`) over the machine's `Exec`, in `PluginCalls` |
+| `git` | the root, status, changes, branch, branches, history with lanes, patches, and the everyday writes | HerdrKit's `Git`, in `PluginCalls`; on This Mac only once git passed its check ([Git status](/docs/talking-to-herdr#git-status)) |
+| `run` | any command on the card's machine | `Exec.run` inside the envelope: argv only, no shell; 30 s by default; 4 MiB of stdout, then `truncated`; stderr's last 8 KB; a last line break added to stdin; two at a time per card |
+| `state` | the card's state for drops, reloads and relaunches | [State](#state) |
+| `controls` | the header row and the card's commands | the native header (`Header`, `HeaderView`) |
+| `theme` | colors, light or dark, glass or classic, the text size | the `Look` tokens |
+| `open` | an open in this card, a new tab right after this card's tab (the default) or a pane to its side | `Page.open(_:arg:at:from:how:)` |
+| `toast` | the card's toast | `Toast` and its view |
+| `menu.show` | the native context menu at the pointer | `NSMenu` |
+| `pick.folder` | Choose Folder…: the folder panel on This Mac, a "Go to Folder" field on a remote machine, which shows "No folder ‹path›" for a folder that is not there | `NSOpenPanel`, or an `NSAlert` with a field |
+| `symbol` | an SF Symbol as a PNG, to use as a mask | `NSImage(systemSymbolName:)` |
+| `clipboard.write` | text on the clipboard | `NSPasteboard`; needs `clipboard` |
+| `console` | logs | each `console` line and every uncaught error go to the Web Inspector and to the plugin's log |
+
+- **Events** go from the app to the page. `on` returns a function that stops
+  the handler. Every handler and watch ends with the page, so a reload needs
+  no cleanup code.
+- **Errors.** A failed call rejects with an `OrielError` whose `code` says
+  why: `denied` (a missing permission), `notFound`, `notText` (not UTF-8),
+  `tooLarge` (over 16 MB), `changed` (the hash given to `write` differs),
+  `timeout`, `closed` (the card went), `failed` (anything else, with git's
+  or the command's message).
+- **Keyboard and focus.** `keyboard` is true while the card has the
+  keyboard. The page focuses its own field then (an editor puts its caret
+  back). Keys that no menu item takes reach the page. A plugin cannot take
+  the app's ⌘ keys: the menu goes first (D93). Its own keys go in `commands`.
+- **Theme.** Before the first paint, the app sets the colors as CSS
+  variables on the root (`--text`, `--dim`, `--divider`, `--card`,
+  `--accent`, `--on-accent`, `--working`, `--needs-you`, `--finished`,
+  `--error`), `--app-text-size` and `color-scheme`. It sets them again on a
+  change and then sends `theme`. The app's `card.css` loads before the
+  plugin's CSS: system fonts at 13 px (`--font-size`), no margin, a clear
+  background, so the card's fill draws behind the page.
+- **Visible.** A card is visible while it is in the shown tab or in a
+  floating window. A card that is not gets `visible` false and its watches
+  stop. Its `run` calls go on. When it shows again, each watch runs once,
+  changed or not.
+
+## One plugin, many places
+
+One card can show several places: File Explorer's tree, File, Preview and
+Markdown, or Git's home and a diff. The plugin draws every place itself:
+- `oriel.card.go(arg, { at })` moves the card to a new place. The label
+  follows, so a reload or a card made again comes back there. The page is not
+  loaded again. With unsaved edits, the app asks first ("‹name› has unsaved
+  edits.", Discard and **Keep Editing**).
+- With `"history": true` in the manifest, the app keeps Back and Forward for
+  the card and draws them at the left of row 2 (`chevron.left` ⌘[,
+  `chevron.right` ⌘]).
+- `on("place")` fires on every move: the page's own `card.go`, Back,
+  Forward, or a new argument from elsewhere (an agent's `herdr pane
+  rename`). So a page draws its places in one handler. After Back, `at` is
+  the place it came back from: that place's landing, else its argument. So
+  the tree reveals the file it opened.
+- A heavy place loads with a dynamic `import()`, so a tree card does not
+  load CodeMirror or pdf.js. A bundler links no CSS for a dynamic chunk, so
+  the entry imports all the CSS, scoped per place.
+
+## State
+
+Each card has one state value, which the plugin sets. Use it for what the
+user misses after a reload: the sort, the selected row, a draft. Data that
+every device must see belongs in files on the machine.
+
+- **In the app:** `set` keeps the value at once, next to the header controls'
+  values. A reload or a move gives the page the same value in `get`.
+- **On the machine:** 500 ms after the last change of the state or of a
+  header value, the app writes both to the instance state file, as the
+  browser does: `$HOME/.local/state/oriel/<session>/<plugin-id>/<iid>.json`.
+  The app reads it once, before the card's first load. So a relaunch,
+  another device, a card made again after a drop, or a cold restart of herdr
+  starts where it was. A missing file means no state.
+- **The file's rules** are the browser's: written atomically over stdin, at
+  most 256 KiB, last writer wins. Nothing is written after the pane closed.
+  Closing a plugin pane removes its file. On connect the app removes files
+  not touched for 30 days.
+
+```json
+{ "controls": { "diff.layout": "split" }, "state": { "draft": "Fix the login", "list": false } }
+```
+
+- **An open card changes only when it is made.** Another device's write
+  does not move it.
+
+## Versions
+
+- The manifest's `api` is the version the plugin was written for, an
+  integer. This page is version 1, and the app gives version 1.
+- Each change of the API raises the number, an addition too. `oriel.d.ts`
+  marks each member added after version 1 with `@since <api>`.
+- The app runs a plugin whose `api` is at most its own. A change that breaks
+  an older plugin keeps the old behavior for plugins with the older `api`. So
+  a plugin never breaks on an app update.
+- A plugin whose `api` is newer than the app's shows "‹name› needs a newer
+  Oriel" in its card.
+- The bridge messages are the app's own and are not part of the API. Only
+  the `oriel` object is.
+
+## The Swift side
+
+| Piece | Job |
+|---|---|
+| `PluginManifest` (HerdrKit) | the `oriel` key, decoded leniently, with its rules and the file-pattern rank; unit tested |
+| `Registry` | every manifest: the browser's and each package's; the chooser, ⌘K, Open With and opens read it ([Where the registry looks](/docs/plugins/packages#where-the-registry-looks)) |
+| `PluginScheme` | serves `oriel-plugin://<id>/` from the entry's folder, with the CSP |
+| `Plugin` | one per card, made from its label and kept by terminal id: the label, the place, Back and Forward, the header and the web card. A dropped card loses it and reads its state file again |
+| `WebCard` | the card's `WKWebView`, the navigation lock, the context script at document start, the theme |
+| `Bridge` | one per card: the page's calls, the events, the state and its file, watches, two `run`s at a time, git writes one at a time |
+| `PluginCalls` (HerdrKit) | the calls on the card's machine (files, git, run) and the permission table; unit tested against real files, a repository with a bare remote and real processes |
+| `Header`, `HeaderView` | the manifest's controls with the page's changes, drawn in a pane and in a floating window |
+| `PluginInstalls`, `PluginPackages` (HerdrKit) | sources, install, update, remove and `settings.json` ([Packages and installs](/docs/plugins/packages)) |
+| `PluginBuilds` | runs a package's build script; the "not built" check; the types package; the log |
+| `DefaultPlugins` | the defaults' first-launch install, update and reset |
+| `PluginTrust` | `trust.json` and the trust prompt |
+
+- The bridge is one script message handler with replies
+  (`WKScriptMessageHandlerWithReply`), named `oriel`, behind a weak relay. A
+  message is `{ call, args }`, answered with a JSON string or rejected with
+  `<code>: <text>`. The app calls `window.oriel_receive(name, data)` for an
+  event.
+- The card is bound to its machine, session, plugin and permissions when it
+  is made. No message carries a machine or a card.
+- Calls that wait for the user (a toast) answer through an event, so no Swift
+  task hangs on a page that never hears back.
+
+## Not in version 1
+
+Network from the page (`fetch` reaches only the plugin's own files), streams
+from `run`, clipboard read, plugin settings, and the herdr snapshot as an
+event.

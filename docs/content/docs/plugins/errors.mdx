@@ -1,0 +1,72 @@
+---
+title: "Errors and logs"
+description: "Why a plugin's page does not load, in plain words with the fix as a button, and the log file that has the same words"
+---
+
+When a plugin's page cannot load, its card says why, with the fix as a
+button. The same words go to the plugin's log, where an author or an agent
+reads them.
+
+## Errors in the card
+
+The card shows the plugin's icon, a title, the details in 12 pt monospace
+(selectable, at most 12 lines), **Show Log**, and the fix:
+
+| Title | When | Details | Button |
+|---|---|---|---|
+| "‹name› needs Node.js" | no npm, pnpm or bun on the login `PATH` | "Oriel installs and builds plugins with npm, pnpm or bun, and none is on your PATH. Install Node.js from nodejs.org, then try again." | Try Again |
+| "‹name› could not install" | a default plugin's first install failed (offline, a failed `npm ci`) | the command's last 20 lines | Try Again |
+| "‹name› did not build" | the build script failed | the script's last 20 lines | Try Again (builds again) |
+| "‹name› is not built" | the entry (`dist/main.js`) is missing | "dist/main.js is missing. Build runs its build script." | Build, or none when the package has no build script ("build it with its own tools") |
+| "‹name› stopped" | `main` threw, or the page did not load | the error's message and its first stack line | Reload |
+| "‹name› needs a newer Oriel" | the manifest's `api` is above the app's | "It is written for version ‹n› of the plugin API; this Oriel has version 1." | none |
+| "‹id› did not load" | the manifest is wrong; shown on the missing-plugin card when the `oriel.id` reads | the file and the field: `…/package.json: oriel.entry is missing` | Show Placeholder, Close Pane |
+
+- **A default plugin installing** on first launch shows "Installing
+  ‹name›…" with a spinner, not an error.
+- **Trust** is not an error: an untrusted plugin's card shows the trust
+  prompt ([Security and trust](/docs/plugins/security#the-trust-prompt)).
+- **A failed Reload Plugin** keeps the running page. Its toast says the
+  title and the first line, with **Try Again**
+  ([Reload](/docs/plugins/building#reload)).
+- **A crashed page** (WebKit's process ended) loads again, once per load.
+  Unsaved edits are lost then.
+- **The Plugins panel** shows a failed install, update or remove on a red
+  notice with **Retry**: "package.json: ‹field› ‹what is wrong›", or the
+  command's last line.
+
+## The log
+
+Each plugin has a log file: `~/Library/Logs/Oriel/plugins/<id>.log`. Every
+line starts with its time (ISO 8601). A line from a page that has line breaks
+goes on indented, so it never reads as the app's own line. Past 1 MB the file
+starts over.
+
+What goes in:
+- Every build: "built in ‹n› ms" and the script's output, or the error
+  card's words.
+- Installs and updates: "installed from ‹source›" and the package manager's
+  output, or what failed.
+- Each `console` line of the page, with its level (`log`, `info`, `warn`,
+  `error`, `debug`), and every uncaught error and rejected promise.
+- Denied calls: "denied: files.write needs the permission files:write".
+- A page that stopped, and an API too new.
+- A manifest that the registry left out: its file and field, or "the id ‹id›
+  is taken by ‹folder›". It goes to the log named after the package's
+  folder, and also to the id's log when the id reads.
+
+**Show Log** opens the file in the app for `.log` files (Console). It is in
+the card's menu (also View ▸ Pane and ⌘K), on every error card and on the
+missing-plugin card of a bad manifest, and on each row of the Plugins panel.
+An agent reads the file directly:
+
+```sh
+tail -f ~/Library/Logs/Oriel/plugins/csv-table.log
+```
+
+A manifest left out is also in the unified log:
+`log show --predicate 'subsystem == "dev.hkandala.oriel"'`.
+
+## Choices
+
+The decision is D102 on the [Decisions](/docs/decisions#pane-kinds) page.

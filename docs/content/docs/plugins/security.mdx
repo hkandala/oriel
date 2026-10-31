@@ -1,0 +1,118 @@
+---
+title: "Security and trust"
+description: "Permissions in the manifest, one trust prompt, a locked page and a bridge bound to its card"
+---
+
+Oriel is a single-user app on one Mac. A plugin is code that you or an agent
+of yours installed or put in the plugins folder. Anything that can write that
+folder can already run code as you. So the rules below do not sandbox a
+plugin from you. They keep a page from doing more than its manifest says,
+they ask before a plugin's code or build script first runs, and they keep
+text from files and machines from taking over a page.
+
+## The rules
+
+- **Permissions in the manifest.** A page can only draw, keep its state and
+  open other cards, unless the manifest lists more: `files:read`,
+  `files:write`, `git`, `run`, `clipboard`
+  ([Permissions](/docs/plugins/manifest#permissions)). The bridge answers
+  any other call with `denied`, and the log names it.
+- **A bridge bound to its card.** Each card's web view has its own message
+  handler. It is bound to the card's machine, session, plugin and
+  permissions when the card is made. No message names a machine, a pane or
+  another card, so a page reaches only its own card's machine. Cards share
+  no memory or storage: WebKit gives each one its own process.
+- **The page loads only its own files.** The scheme handler serves
+  `oriel-plugin://<id>/` from the folder of that plugin's entry alone, plus
+  the app's `oriel.js` and `card.css`: one folder, no subfolders, no hidden
+  files, and `Cache-Control: no-store`, so a rebuild is never served from a
+  cache. It sends this Content Security Policy with every answer:
+
+  ```text
+  default-src 'none'; script-src oriel-plugin://<id> 'wasm-unsafe-eval';
+  style-src oriel-plugin://<id> 'unsafe-inline'; img-src oriel-plugin://<id> data: blob:;
+  media-src blob:; font-src oriel-plugin://<id> data:; connect-src oriel-plugin://<id>;
+  frame-src 'none'; form-action 'none'; base-uri 'none'
+  ```
+
+  No inline script and no `eval`, so HTML built from a file's text by
+  mistake cannot run a script. WebAssembly is allowed, for a fast parser or
+  decoder (pdf.js's). `fetch` reaches only the plugin's own files: no
+  network.
+- **The navigation lock.** The card allows only its own page,
+  `oriel-plugin://<id>/main`. A link, a `<meta>` refresh or a form in shown
+  content cannot take the page, and the bridge with it, to another site or
+  another page. A plugin opens links with `oriel.open`, which makes a browser
+  card under the browser's load rule
+  ([When a page loads by itself](/docs/ui/browser#when-a-page-loads-by-itself)).
+- **Text is text.** A plugin must insert file and command text with
+  `textContent` or its library's text API, not as HTML. The default plugins
+  do: Markdown renders with its HTML turned off in Read.
+- **`run` has no shell.** It takes argv, which goes to the machine inside the
+  envelope (D3). The label's argument is never part of a command line.
+- **Installs run no scripts of dependencies.** The app installs with
+  `--ignore-scripts` and no peer dependencies
+  ([Install](/docs/plugins/packages#install)).
+- **The build script runs only after trust.** A package's own `build` script
+  runs as you on This Mac, so the app runs it only for a plugin you trust,
+  and the trust prompt says so.
+- **Limits:** a file read 16 MB, a `run`'s stdout 4 MiB, a state value
+  256 KiB, a label argument 1024 characters.
+
+## The trust prompt
+
+The default plugins need no prompt. Any other plugin asks once before its
+code or its build script first runs, and again only when its permissions
+grow.
+
+| Where it comes from | When it asks | Where |
+|---|---|---|
+| An install from npm or git | always, for a new source, before its dependencies install. An update asks only when the permissions grew | a dialog over the window, with **Install** and **Cancel** |
+| A local path from the Plugins panel | when it is added | the same dialog |
+| New Plugin… | never: you made it | |
+| A folder put in the plugins folder by hand, or a path written in `settings.json` | in its first card | the card's middle |
+| Any plugin whose manifest gained a permission | in its next card, and on Reload Plugin | the card's middle |
+
+A change to its code does not ask again. Reload depends on that, and a
+program that can edit the code can already run as you.
+
+The prompt in the card sits under the plugin's icon:
+
+> Trust “CSV Table”?
+> `csv-table 0.1.0 in ~/.config/oriel/plugins/csv-table`
+> A CSV or TSV file as a table you can sort.
+> It can read files and folders on the machine of each card you open. Its
+> build script runs as you on this Mac when Oriel builds it.
+>
+> Don't Allow · **Allow**
+
+- The id and the folder head the prompt, because a plugin picks its own
+  name. The install dialog shows the source in place of the folder.
+- One sentence per permission, in the manifest's order
+  ([Permissions](/docs/plugins/manifest#permissions)). With none: "Its page
+  can only draw in its card." When the package has a `build` script, the
+  sentence about it comes last.
+- **Allow** keeps the id and its permissions in `trust.json` in the config
+  folder, and the plugin's waiting cards load. **Don't Allow** closes the
+  pane.
+- Text from the manifest shows with control and direction-override
+  characters removed.
+- **Remove** in the Plugins panel forgets a plugin's trust.
+- `trust.json` is a file that anything able to write the plugins folder can
+  also write. That fits the model above.
+
+## What a machine can do
+
+A machine writes labels. So any process on a machine (a script, an agent)
+can open a card of any trusted plugin on that machine. That gives it only
+what the plugin does there, on its own files. It cannot open a card on
+another machine.
+
+## Not built
+
+- ⌘K Forget Plugin Trust: Remove forgets it.
+- A card that says "‹name› is not responding" for a hung page.
+
+## Choices
+
+The decision is D101 on the [Decisions](/docs/decisions#pane-kinds) page.

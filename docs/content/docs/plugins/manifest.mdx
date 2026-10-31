@@ -1,0 +1,239 @@
+---
+title: "The manifest"
+description: "The oriel key of a plugin's package.json: who it is, what it opens, how it shows, its header row and what it can do"
+---
+
+A plugin's manifest is the `oriel` key of its `package.json`. The app reads
+it before any of the plugin's code runs. So the chooser, ⌘K, Open With, the
+card's header row and the placeholder in herdr's TUI show at once, and the
+page only fills them in. There is no separate manifest file.
+
+## An example
+
+The template's `package.json`
+([Build a plugin](/docs/plugins/building#start-from-the-template)) with a
+CSV table's manifest:
+
+```json
+{
+  "name": "csv-table",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A CSV or TSV file as a table you can sort.",
+  "keywords": ["csv", "table"],
+  "scripts": {
+    "build": "esbuild src/main.ts --bundle --splitting --format=esm --minify --sourcemap --target=safari18 --log-level=warning --outdir=dist",
+    "dev": "npm run build -- --watch",
+    "check": "tsc -p ."
+  },
+  "devDependencies": { "esbuild": "0.28.2", "typescript": "7.0.2" },
+  "peerDependencies": { "@oriel/plugin-api": "*" },
+  "peerDependenciesMeta": { "@oriel/plugin-api": { "optional": true } },
+  "oriel": {
+    "id": "csv-table",
+    "name": "CSV Table",
+    "api": 1,
+    "entry": "dist/main.js",
+    "icon": "tablecells",
+    "opens": { "files": ["*.csv", "*.tsv", "public.comma-separated-values-text"] },
+    "header": [
+      { "id": "rows", "type": "text", "style": "dim" },
+      { "type": "spacer" },
+      { "id": "first-row", "type": "toggle", "symbol": "tablecells.badge.ellipsis",
+        "title": "First Row Is Header", "value": true },
+      { "id": "reload", "type": "button", "symbol": "arrow.clockwise", "title": "Reload" }
+    ],
+    "permissions": ["files:read"]
+  }
+}
+```
+
+## Fields
+
+From the package itself:
+
+| Field | Required | Value |
+|---|---|---|
+| `version` | yes | The plugin's version, shown in the Plugins panel, the trust prompt and the log. The defaults' version decides when an app update replaces them. |
+| `description` | no | One line: the chooser row's detail, and a line of the trust prompt. |
+| `keywords` | no | More words that ⌘K finds the plugin's Open ‹chooser› Here by. |
+
+In the `oriel` key:
+
+| Field | Required | Value |
+|---|---|---|
+| `id` | yes | 1 to 64 of `a-z`, `0-9` and `-`, starting with a letter or digit. The label's plugin id (`oriel:<id>#…`). It is the plugin's own, because a package name can be scoped (`@oriel/git`). The first package of an id wins ([Where the registry looks](/docs/plugins/packages#where-the-registry-looks)). |
+| `name` | yes | What the user reads: the tab's first part ("CSV Table data.csv"), the placeholder's title, Open With, ⌘K, the Plugins panel. |
+| `api` | yes | The API version the plugin is written for, an integer, 1 or more ([Versions](/docs/plugins/api#versions)). |
+| `entry` | yes | The built entry, relative to the package: a `.js` file inside it, for example `dist/main.js`. Its chunks, its CSS (`main.css`) and its assets sit beside it in one flat folder. |
+| `icon` | yes | An SF Symbol name: the card's, the tab's and the chooser's icon, on the neutral tile. |
+| `opens` | no | What the card shows, and so what its label's argument is ([What a plugin opens](#what-a-plugin-opens)). No `opens`: the argument is empty, and the card uses the pane's folder. |
+| `chooser` | no | A row title for the [New pane](/docs/ui/new-pane) chooser and the command "Open ‹chooser› Here" ([How it shows](#how-it-shows)). |
+| `header` | no | The controls of the card's second header row ([Header](#header)). |
+| `history` | no | `true` draws Back and Forward at the left of row 2, over the places the card went to ([One plugin, many places](/docs/plugins/api#one-plugin-many-places)). |
+| `commands` | no | Menu bar and ⌘K commands of the card, with keys ([Commands](#commands)). |
+| `handles` | no | The app's own commands that the card takes: `save` (⌘S), `find` (⌘F, ⌘G, ⇧⌘G). |
+| `permissions` | no | What the page can ask the app to do ([Permissions](#permissions)). None: the page can only draw, keep state and open other cards. |
+
+- The app reads the manifest leniently. An unknown field is ignored, so a
+  manifest written for a newer app still loads.
+- A missing required field or a wrong value leaves the plugin out. The log
+  and the plugin's cards name the field: `oriel.entry must be a built .js
+  file in the package`, `oriel.header.1 has the wrong type`
+  ([Errors and logs](/docs/plugins/errors)).
+- The checks beyond the types: the `id`'s letters, a non-empty `name` and
+  `icon`, `api` of 1 or more, `entry` a `.js` path with no `/` at the start
+  and no `..`, `opens.priority`, a `chooser` only with `folders`, `git` or no
+  `opens`, known header types with unique ids, a `gap` of 0 or more, `digits`
+  only `mono`, a value on every segmented option, commands with unique ids, a
+  `file`, `edit` or `view` menu and a `cmd+` key, known `handles` and known
+  permissions.
+
+## What a plugin opens
+
+`opens` has one or more of these keys, and `priority`. The key sets what the
+label's argument holds, and the card's title.
+
+| Key | The argument | The title | Example |
+|---|---|---|---|
+| `files` | a file's absolute path | the file's name | `{ "files": ["*.csv", "public.comma-separated-values-text"] }` |
+| `folders` | a folder's path, ending in `/`: the root of its git repository, else the folder | the folder's name | `{ "folders": true }` |
+| `git` | a repository's root with its `/`, then optionally a space and `uncommitted` or a commit hash | the root's name, `Changes` or the short hash | `{ "git": true }` |
+| `urls` | a URL | not used yet | `{ "urls": ["https://github.com/*/*/pull/*"] }` |
+
+- `files` is a list of patterns. Each is a name glob (`*.csv`, `Makefile`),
+  case blind, or a uniform type identifier (`public.image`). A type matches
+  its subtypes, as `UTType.conforms(to:)` says. A name the system does not
+  know (a dynamic type, such as `.rs`) matches no type, only a glob or `*`.
+- `files` and `folders` can go together: File Explorer opens both, with
+  `{ "folders": true, "files": ["*"] }`.
+- `urls` is read and kept, but no open picks a plugin by URL yet: every web
+  address opens in the browser.
+- `priority` is `"default"` (the default) or `"option"`. An option plugin
+  opens a file only when the user picks it in Open With.
+
+### Which plugin opens a file
+
+A link in a card, a double-click in File Explorer's tree and `oriel.open`
+with no `plugin` open a file with its default plugin. The app picks it by the
+file's name alone, so a remote file is not read first:
+1. Only `default` plugins whose patterns match take part.
+2. The most specific pattern wins: an exact name (`Makefile`), then a glob
+   (`*.md`), then a type, a subtype before its supertype (`public.text`
+   before `public.data`), then `*`.
+3. On a tie, a user's plugin wins over a default plugin. Then the lower id in
+   alphabetical order wins.
+
+File Explorer's `*` is the lowest rank. So a CSV plugin with `*.csv` takes
+`.csv` files from File Explorer, and any plugin with a pattern for a file
+wins over it. A path that ends in `/` opens in the first plugin with
+`folders`. An `http` or `https` address opens in the browser.
+
+## How it shows
+
+| Place | What shows | From |
+|---|---|---|
+| [New pane](/docs/ui/new-pane) chooser | a row under Browser, with the icon, the `chooser` title and the `description`, the defaults first, then the user's plugins by id | `chooser` |
+| ⌘K, the File menu, the card's menu | "Open ‹chooser› Here" | `chooser`, `keywords` |
+| Open With (an `openWith` control in row 2) | after the Mac's apps, a divider and every other plugin whose patterns match the file, `option` ones too, each with its icon and name; a pick turns this card into that plugin's card | `opens.files` |
+| the card's first row, the tab, the floating window | "‹name› ‹title›", the icon | `name`, `icon`, `opens` |
+| the placeholder in herdr's TUI | the name and the argument | `name` |
+| the Plugins panel | the icon, the name and the version | `icon`, `name`, `version` |
+
+- Open With lists the Mac's apps only on This Mac. The plugins show on every
+  machine.
+- A pick in Open With renames the pane to the other plugin's label with the
+  same iid and argument. The card is made again as that plugin.
+
+## Header
+
+`header` lists the controls of row 2, left to right
+([The card](/docs/plugins/default-plugins#the-card)). The app draws them
+natively: the row is 32 pt tall, buttons are 22 × 22 pt in the card buttons'
+color, and the row ends where row 1 does. They show before the page loads,
+in a pane and in a floating window. The page changes them with
+`oriel.controls.set` and hears them with `oriel.on("control")`
+([Types](/docs/plugins/api#types)).
+
+| `type` | Fields | Draws | The page hears |
+|---|---|---|---|
+| `button` | `id`, `symbol`, `title`, `badge`, `busy`, `label` | an icon button; `title` is its help; `badge` a count after the symbol; `busy` a spinner in place of the symbol | `{ id }` on a click |
+| `toggle` | `id`, `symbol`, `title`, `value` (boolean) | an icon button, in the accent while on | `{ id, value }` |
+| `segmented` | `id`, `options` (`[{ "value", "title" }]`), `value` | the app's pill segments | `{ id, value }` |
+| `menu` | `id`, `title`, `symbol`, `items`, `value` | a menu button showing the picked item's title, else `title`. An item is `{ "value", "title", "symbol" }`, `{ "title" }` for a section heading ("Remote"), or `"-"` for a divider | `{ id, value }` on a pick |
+| `field` | `id`, `placeholder`, `value` | a search field ("Filter") that takes the free width | `{ id, value }` on each change, and `{ id, value, submit: true }` on Return |
+| `text` | `id`, `value`, `style` (`plain`, `dim` or `path`), `symbol`, `digits` | text cut in the middle; `path` draws a list of parts with `›` between them, the first part dim; `symbol` draws before the last part (File's `{}` before the scope) | nothing |
+| `openWith` | `id`, `value` (a file's path) | Open With: the default app's icon opens the file; its menu lists the apps with icons, then the plugins. Not drawn with no path | nothing |
+| `spacer` | none | free space | nothing |
+
+- **Every control** also takes `hidden`, `enabled`, `label` (what VoiceOver
+  reads when the title says too little: "Push, 1 ahead") and `gap`.
+- **Spacing.** Controls sit 6 pt apart. A control's `gap` sets the points
+  before it: `0` joins icon buttons into a group (Preview's zoom buttons,
+  Diff's Previous and Next), `2` sets them close (Git's Pull and Push).
+- **Width.** A `text` with `"digits": "mono"` has monospaced digits, so a
+  count (Preview's `3 of 12`) keeps its width as it changes. Free space goes
+  to a spacer or a field. With neither, it goes after the last control, so
+  the row starts at the left.
+- **Ids.** A control's `id` is unique in the plugin. It is also the end of
+  its accessibility identifier: `pane.<paneID>.<id>`. A segment adds its
+  title in lower case: `pane.<paneID>.mode.read`.
+- **Values.** A toggle's value is a boolean, a `path` text's a list of
+  strings, the others' a string. The app keeps each value in the card's
+  state file under `"controls"` ([State](/docs/plugins/api#state)). A card
+  loaded again, or shown again after it was dropped, gets the same values.
+- **A toggle, segments and a field** change their value natively, then the
+  page hears it. A menu pick only sends: an item can be an action, such as
+  Choose Folder…, and the page sets the menu's value. The same segment again,
+  or a field set to its own text, sends nothing.
+- **One header for many places.** A control that only some places use
+  starts `hidden: true` in the manifest. The page shows its place's controls
+  before it calls `card.ready()`. So a brand-new card draws only what the
+  manifest shows until its page runs.
+- **No row.** A plugin with no `header` and no `history` has one header row,
+  in a pane and floating.
+
+## Commands
+
+`commands` puts a card's commands in the menu bar and ⌘K, with their keys,
+only while that card has the keyboard. Elsewhere the item is gone, so it
+swallows no key (D93).
+
+```json
+"commands": [
+  { "id": "edit-mode", "title": "Edit Mode", "menu": "view", "key": "cmd+e", "symbol": "pencil" }
+]
+```
+
+- `menu` is `file`, `edit` or `view`. `key` is a ⌘ chord (`cmd+e`,
+  `cmd+shift+k`). A key that the app already uses is left off, and the log
+  says so once.
+- A pick sends `{ id }` to `oriel.on("control")`, as a header button does.
+  `oriel.controls.set` changes `title`, `checked` and `enabled`. A disabled
+  command has no key, so ⌘E has its key only over Markdown.
+- `handles: ["save"]` gives the card ⌘S (File ▸ Save). `handles: ["find"]`
+  gives it ⌘F, ⌘G and ⇧⌘G. The page hears `save`, `find`, `findNext` and
+  `findPrevious`.
+
+## Permissions
+
+Each permission opens a part of the API. A call outside the manifest's
+permissions fails with the error `denied`, and the log names it.
+
+| Permission | Allows | Words in the trust prompt |
+|---|---|---|
+| `files:read` | `oriel.files.read`, `readBytes`, `info`, `list`, `paths`, `watch` | "It can read files and folders on the machine of each card you open." |
+| `files:write` | `oriel.files.write` | "It can change and delete files there." |
+| `git` | `oriel.git`: reads, and stage, unstage, commit, fetch, pull, push and switch | "It can read git repositories there, stage, commit, switch branches, pull and push." |
+| `run` | `oriel.run`: any command | "It can run any command as you there, including ones that use the network or keep running." |
+| `clipboard` | `oriel.clipboard.write` | "It can write to the clipboard." |
+
+Every permission reaches only the card's machine, but any path there that
+you can reach. The first sentence says where, and the others say "there".
+When and how the prompt asks:
+[The trust prompt](/docs/plugins/security#the-trust-prompt).
+
+## Choices
+
+The decisions are D96, D99 and D103 on the
+[Decisions](/docs/decisions#pane-kinds) page.

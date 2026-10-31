@@ -1,10 +1,11 @@
 ---
 title: "New pane"
-description: "The chooser on a new pane: Terminal, Agent, Browser, File Explorer or Git, its keys and look, and the commands that change a pane's kind"
+description: "The chooser on a new pane: Terminal, Agent, Browser, File Explorer, Git or a plugin, its keys and look, and the commands that change a pane's kind"
 ---
 
 A new pane asks what it runs: **Terminal**, **Agent**, **Browser**,
-**File Explorer** or **Git**.
+**File Explorer**, **Git**, or another plugin whose manifest has a chooser
+row ([How it shows](/docs/plugins/manifest#how-it-shows)).
 Terminal is selected, so ⌘T and then Return gives a terminal with no click.
 
 ## Which panes show it
@@ -42,9 +43,13 @@ no title and no key hint. While the chooser shows, the card's header says
   rows (at most the card's height less 16 pt). Rows are 28 pt tall and 2 pt
   apart.
 - **Row**, from the leading edge, 8 pt in: the kind's symbol in a 22 pt column
-  (`terminal`, `sparkles`, `globe`, `folder`, `plusminus`, in secondary), the
-  name in 13 pt, then on the right a short description in 12 pt ("Shell",
-  "Coding agent", "Web page", "Files and folders", "Changes and history") and the row's number key in 11 pt, both tertiary. The description
+  (`terminal`, `sparkles`, then each manifest's icon: `globe`, `folder`,
+  `arrow.triangle.branch`, in secondary), the name in 13 pt (a manifest's
+  `chooser`), then on the right a short description in 12 pt ("Shell",
+  "Coding agent", then each manifest's `description`: "Web page", "Files and
+  folders", "Changes and history") and the row's number key in 11 pt, both
+  tertiary. The plugins' rows come in the registry's order: Browser, the
+  default plugins, then the user's by id. The description
   hides on a card narrower than 300 pt.
 - **Agent** has a 9 pt chevron after its name: `chevron.right` when closed,
   `chevron.down` when open, with its symbol in the accent. Open, it shows its
@@ -134,7 +139,7 @@ does not look for which agents are installed.
 
 ## Browser
 
-Browser, File Explorer and Git work the same way. A pick turns the pane into a
+Browser, File Explorer, Git and every other plugin row work the same way. A pick turns the pane into a
 browser or plugin pane with Replace Pane's steps: the labeled pane takes the
 old pane's place and size, and the old pane closes ([Create](/docs/ui/browser#create)). Meanwhile the card shows the
 kind's loader: its symbol (`globe`, `folder` or `arrow.triangle.branch`),
@@ -146,11 +151,14 @@ in the old one's place, so the old pane's shell never shows.
 - **File Explorer** shows the tree of the git repository that the pane's
   folder is in, else of the folder. **Git** shows that repository's Git home:
   its changes, Commit and the history of every branch
-  ([Default plugins](/docs/ui/plugins)).
+  ([File Explorer and Git](/docs/plugins/default-plugins)).
+- **Another plugin** opens on the pane's folder: the root of its git
+  repository, else the folder, when its manifest opens `folders` or `git`,
+  else with an empty argument.
 
 ## Commands that change a pane's kind
 
-Five commands turn the keyboard card into another kind. They are in the File
+These commands turn the keyboard card into another kind. They are in the File
 menu and the card's context menu, between Replace Pane and Close Pane, and in
 the palette. They have no shortcut.
 
@@ -161,11 +169,12 @@ the palette. They have no shortcut.
 | Open Browser Here | every pane but a browser pane | replaces the pane with a browser pane, with the loader |
 | Open File Explorer Here | every pane but a File Explorer pane | replaces the pane with a File Explorer pane on the tree, with the loader |
 | Open Git Here | every pane but a Git pane | replaces the pane with a Git pane on its home, with the loader |
+| Open ‹chooser› Here | every pane but one of that plugin, for each plugin with a `chooser` | replaces the pane with that plugin's pane, with the loader |
 
 - A pane's kind: a browser or plugin pane has its kind's label, an agent
   pane is one where herdr reports an agent, and every other pane is a terminal (also one
   that runs vim or a server).
-- All five use Replace Pane's steps: the new pane gets the old one's place,
+- All of them use Replace Pane's steps: the new pane gets the old one's place,
   size and folder, and the keyboard, and a zoomed or floated pane stays so
   ([Pane card](/docs/ui/window#pane-card)).
 - They ask first as Replace Pane does, unless the pane runs only its shell or
@@ -186,7 +195,8 @@ the palette. They have no shortcut.
 - When the chooser shows, VoiceOver moves to the selected row. The loader
   reads "Starting ‹agent›" or "Opening ‹kind›".
 - Identifiers sit on the leaf elements, after the card's `pane.‹id›`:
-  `pane.‹id›.chooser.terminal`, `.agent`, `.browser`, `.explorer`, `.git`,
+  `pane.‹id›.chooser.terminal`, `.agent`, `.browser`, `.explorer`, `.git`
+  (a plugin row's is its id),
   `.claude`, `.codex`,
   `.pi`, `.opencode`, and `pane.‹id›.loader` for the loader.
 
@@ -196,5 +206,3 @@ the palette. They have no shortcut.
   the agents installed on the machine: the `integration.list` entries with
   `available: true` (the command is on the herdr server's `PATH`), read each
   time the list opens.
-- Your plugins' kinds in the chooser
-  ([How it shows](/docs/future-work/plugins/manifest#how-it-shows)).

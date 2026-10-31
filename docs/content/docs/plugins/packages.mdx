@@ -1,0 +1,154 @@
+---
+title: "Packages and installs"
+description: "Where plugins come from: npm, git or a local path, the Plugins panel, and the default plugins as packages"
+---
+
+A plugin is a package, as a pi package is. Oriel installs it,
+lists it in `~/.config/oriel/settings.json`, and can update, reload and
+remove it. The app ships no package manager. It uses the npm, pnpm or bun on
+the user's login `PATH`.
+
+## Sources
+
+`settings.json` lists the packages the user installed, under `packages`. An
+entry is a source string, or an object with a `source` (pi's form):
+
+```json
+{
+  "packages": [
+    "npm:@acme/oriel-csv@1.2.0",
+    "git:github.com/acme/oriel-kanban@v1",
+    "~/code/my-plugin"
+  ]
+}
+```
+
+| Source | What it is | Where it goes |
+|---|---|---|
+| `npm:<spec>` | an npm package: `npm:@scope/name@1.2.0`, `npm:name`, or a tarball's path | `~/.config/oriel/plugins/<name>/`: `npm pack`, then the tarball unpacked. Needs npm |
+| `git:<repository>[@ref]` | a git repository: `git:github.com/x/y@v1`, an `https://` or `ssh://` URL, `git@host:x/y`, or a local repository's path | `~/.config/oriel/plugins/<repository name>/`: a clone at the ref |
+| a path that starts with `/`, `~` or `.` | a package on this Mac | nowhere: it loads in place. A relative path is from the folder of `settings.json` |
+
+- A versioned spec stays at its version. **Update** fetches the same source
+  again, so it gets the newest version that the spec allows.
+- A local path is never installed or changed. Its dependencies are its
+  author's: run `npm install` and `npm run build` in its folder.
+- A folder that the user or an agent puts in `~/.config/oriel/plugins/` by
+  hand also loads. It is not in `settings.json`.
+
+## Install
+
+1. The app fetches the source into a staging folder in the plugins folder.
+   No script of the package runs.
+2. It reads the manifest and shows the trust prompt: the id, the version, the
+   source, the description and what the plugin can do
+   ([Security and trust](/docs/plugins/security#the-trust-prompt)). **Cancel**
+   removes the staging folder.
+3. It installs the package's `dependencies` and `devDependencies` into the
+   package's own `node_modules`, from its lockfile when it has one, with that
+   lockfile's manager. Without a lockfile it uses the first of npm, pnpm and
+   bun on the `PATH`.
+4. If the package has a `build` script and its built entry is missing, the
+   app runs `run build`. A published package that ships its `dist/` needs no
+   build.
+5. It moves the package into place, over an older install, adds the source
+   to `settings.json`, trusts it, and loads its open cards again.
+
+The install commands:
+
+| Manager | Command |
+|---|---|
+| npm | `npm ci` (with a lockfile) or `npm install`, with `--no-audit --no-fund --ignore-scripts --legacy-peer-deps` |
+| pnpm | `pnpm install --frozen-lockfile` (or `--no-frozen-lockfile`), with `--ignore-scripts --config.auto-install-peers=false` |
+| bun | `bun install --ignore-scripts --omit=peer`, with `--frozen-lockfile` when the lockfile is bun's |
+
+- No install script of a dependency runs (`--ignore-scripts`). Only the
+  package's own `build` script runs, and only after the user trusts it.
+- No peer dependency installs. `@oriel/plugin-api` is the app's, and it is
+  not on the npm registry ([Types](/docs/plugins/api#types)).
+- A command that runs over 10 minutes stops. A failure shows its last 20
+  lines, and the plugin's log has the whole output.
+- An id that another package already has is refused: "The id ‹id› is taken
+  by ‹folder›". So is a folder name that is already in the plugins folder.
+
+## The Plugins panel
+
+**Oriel ▸ Plugins…** and ⌘K **Plugins…** open the Plugins panel: a glass
+panel over the window, like Open Session. Esc or a click outside closes it.
+
+- **The field** takes a source (`npm:package`, `git:repository` or a
+  folder's path). Return or **Install** installs it. A row shows
+  "Installing…" while it runs. A failure shows on a red notice with
+  **Retry**.
+- **A row per plugin:** its icon, its name and version, and its source under
+  it: "Comes with Oriel", the `npm:` or `git:` source, the local path, or the
+  folder. A source in `settings.json` whose folder is missing shows "Not
+  installed" with an install button.
+- **The row's buttons:**
+
+  | Button | On | Does |
+  |---|---|---|
+  | Update (`arrow.down.circle`) | npm and git installs | fetches the source again. It asks only when the permissions grew |
+  | Show Log (`doc.text.magnifyingglass`) | every plugin | opens `<id>.log` in the app for `.log` files (Console) |
+  | Reload Plugin (`arrow.clockwise`) | every plugin | runs its build script and loads its cards again ([Reload](/docs/plugins/building#reload)) |
+  | Remove (`trash`) | every plugin but the defaults | asks, then takes it off the list, forgets its trust and moves its folder to the Trash. A local path's folder stays where it is |
+  | Update to Version ‹x.y.z›, Reset to Default | the defaults, when the app offers it | [The default plugins](#the-default-plugins) |
+
+- **New Plugin…** asks for a name, then makes a plugin from the template
+  ([Build a plugin](/docs/plugins/building#start-from-the-template)).
+- **Reload Plugins** reads every package again and reloads every plugin
+  with an open card. ⌘K has it too.
+
+There is no Settings window (D62), so the panel is the one place for
+plugins.
+
+## Where the registry looks
+
+The registry reads the manifests at launch, and again after an install, an
+update, a removal and Reload Plugins. Nothing watches the folders. The first
+package of an id wins, in this order:
+1. The browser, whose manifest is written in Swift.
+2. The default plugins: their installed copies in the plugins folder, or the
+   app's own manifest while a copy is not installed yet.
+3. The local paths in `settings.json`.
+4. Every folder in `~/.config/oriel/plugins/` but hidden ones and
+   `node_modules`.
+
+A package that is left out (a bad manifest, a taken id, a listed path with no
+`package.json`) is written to the log, under the folder's name and under the
+manifest's id when it reads. The words of the kinds before the plugin system
+(`file`, `preview`, `markdown`, `files`, `diff`) are taken: they open File
+Explorer or Git.
+
+## The default plugins
+
+File Explorer (`explorer`) and Git (`git`) are packages, each with its
+`package.json`, lockfile, `src/` and build script. The app carries their
+source, without `node_modules` and `dist`, and nothing of theirs is in the
+app's own build.
+
+- **First launch.** When a default's folder is missing in the plugins
+  folder, the app copies its source there, runs `npm ci` from its lockfile,
+  then its build script (about 1 s each). Its cards show "Installing
+  ‹name›…" meanwhile. With no package manager, or offline, the card says what
+  failed, with **Try Again** ([Errors and logs](/docs/plugins/errors)).
+- **They are the user's.** The user or an agent can edit them, then press
+  Reload Plugin. They need no trust prompt.
+- **An app with a newer version** (the package's `version`) replaces an
+  unedited copy at launch. An older app never replaces a copy, so a Debug and
+  a Release build can share the folder.
+- **An edited copy**, or a copy whose source differs from the app's at the
+  same version, stays. The panel's row offers **Update to Version ‹x.y.z›**
+  (a newer version) or **Reset to Default**. For an edited copy it asks
+  first: "Replace your edited ‹name›?". The edited copy goes to the Trash.
+- `.defaults.json` in the plugins folder keeps each default's version, the
+  hash of the app's source, and the hash of the copy after its install. A
+  hash covers the files outside `node_modules` and `dist`, so a build does
+  not count as an edit.
+- A quit during an install leaves a `.install-*` staging folder. The app
+  removes it at the next launch.
+
+## Choices
+
+The decisions are D96 and D100 on the
+[Decisions](/docs/decisions#pane-kinds) page.

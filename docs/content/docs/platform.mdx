@@ -26,8 +26,8 @@ description: "The codebase, dependencies, the strip, the tab bar and tests"
 | Terminal drawing | `Lakr233/libghostty-spm`, exact pin (it brings DisplayLink) | Metal, IME, one Swift API |
 | SSH | the system `/usr/bin/ssh` | the user's SSH setup works unchanged |
 | The chat's Markdown | `swiftlang/swift-markdown` 0.9.0, exact pin (it brings cmark-gfm) | Apple's GFM parser: tables, task lists, strikethrough (D86) |
-| Plugin card content ([Default plugins](/docs/ui/plugins)) | CodeMirror 6 (editor, languages, search), `@pierre/diffs`, `@pierre/trees`, `markdown-it`, `pdfjs-dist`; exact pins in `web/package-lock.json` | recognized editors and viewers in the system's WebKit; no framework of our own |
-| Building the plugin pages | Node with npm (in the `Brewfile`, and installed on CI), `esbuild`, run by `make web` | one bundle per kind with shared chunks; the built bundle is not in git |
+| The default plugins' content ([File Explorer and Git](/docs/plugins/default-plugins)) | CodeMirror 6 (editor, languages, search), `@pierre/trees`, `markdown-it` and `pdfjs-dist` in `plugins/explorer`, `@pierre/diffs` in `plugins/git`; exact pins in each package's lockfile | recognized editors and viewers in the system's WebKit; no framework of our own |
+| Building the plugins | Node with npm (in the `Brewfile`, and installed on CI). Each package builds with its own `esbuild` and checks with its own TypeScript; `web/` builds the API's runtime and checks it against its types. `make web` runs them all | the app ships no bundler and no package manager; at run time it uses the user's own ([Build a plugin](/docs/plugins/building)); no build output is in git |
 
 Each library has its entry, with its license, in the app's `Acknowledgements.txt`, the web ones included
 ([Program icons](/docs/ui/program-icons)).
@@ -107,9 +107,14 @@ Each library has its entry, with its license, in the app's `Acknowledgements.txt
   the relay, and `Files` and `Git` (listings, reads, saves, the patch and the
   graph) run through `ProcessExec` and the relay on a real repository.
 - **Plugin tests** (`PluginTests`, `FileTests`, `MarkdownTests`,
-  `FilesTests`, `GitTests`) open each page in a throwaway session and check the page's
+  `FilesTests`, `GitTests`, `HeaderTests`, `PluginAPITests`,
+  `PackageTests`) open each page in a throwaway session and check the page's
   text and controls through accessibility, and the labels and files through
-  herdr and the disk.
+  herdr and the disk. They use their own config folder (`-configFolder`) and
+  npm's offline cache, so they install and build plugins with no network.
+  HerdrKit's `PluginManifestTests`, `PluginCallsTests` and
+  `PluginPackagesTests` cover the manifest's rules, every call on a real
+  repository and real files, and the sources and installs.
 
 What it looks like: [Main window](/docs/ui/window),
 [Theme and accessibility](/docs/ui/theme-and-accessibility).

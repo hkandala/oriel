@@ -1,0 +1,53 @@
+---
+title: "The browser"
+description: "The browser stays a native web view, and it is a kind in the same registry, with a manifest written in Swift"
+---
+
+Every plugin is a page that Oriel serves from its package. The browser
+cannot be one, because its content is any site:
+- **Framing.** A plugin page can show a site only in an `<iframe>`. Most
+  sites refuse to be framed (`X-Frame-Options`, a `frame-ancestors`
+  policy), and logins in a frame lose their cookies.
+- **Its own store and proxy.** Each machine has its own WebKit data store,
+  and a remote machine's pages go through its SOCKS proxy (D73). Those are
+  properties of a web view, not of a page.
+- **The Web Inspector** docks under the page in the card. It inspects the
+  site itself, not a frame.
+- **A site gets no bridge.** It has no `oriel` object and no message
+  handler ([Security](/docs/ui/browser#security)).
+
+So the browser stays the native card that [Browser](/docs/ui/browser)
+describes. In the registry it is a kind with native content, with a manifest
+written in Swift (`Registry.browser`):
+
+```swift
+static let browser = PluginManifest(
+    id: "browser", name: "Browser", icon: "globe", description: "Web page", keywords: ["web", "url", "localhost"],
+    opens: .init(urls: ["http://*", "https://*", "file://*"]), chooser: "Browser",
+)
+```
+
+- **The fields that apply** are a plugin's: `id` (its label is
+  `oriel:browser#<iid> <url>`), `name`, `icon`, `description`, `keywords`,
+  `opens` and `chooser`. So the chooser, ⌘K's Open Browser Here and linked
+  opens of web addresses read every kind from one registry.
+- **No `entry`** means native content. The app draws the browser's own card,
+  its toolbar in row 2 and its address field. It has no `header`,
+  `permissions` or `commands` in the manifest: they are the browser's own.
+  Its version is 1.0.0.
+- **Its id is taken first**, so no package can be named `browser`.
+- **Opens.** An `http` or `https` address from `oriel.open` with no `plugin`
+  opens in the browser. A plugin with a URL pattern is read by the registry,
+  but no open picks it yet.
+- **Memory.** Browser cards count with plugin cards: the 20 most recently
+  shown web cards stay
+  ([What stays in memory](/docs/ui/browser#what-stays-in-memory)). A
+  dropped browser card keeps its address and its back and forward list, and
+  loads them when it shows again.
+
+Terminal and Agent are not in the registry. They are herdr's own panes, with
+no label, and the chooser lists them first.
+
+## Choices
+
+The decision is D103 on the [Decisions](/docs/decisions#pane-kinds) page.
