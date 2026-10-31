@@ -10,7 +10,7 @@ extension Page {
     }
 }
 
-/// The card's content under its header, its kind's page, with the toast at its top.
+/// The card's content under its header, its plugin's page, with the toast at its top.
 struct PluginCard: View {
     let plugin: Plugin
     let page: Page
@@ -23,7 +23,7 @@ struct PluginCard: View {
             .overlay {
                 if let failure = plugin.web.bridge?.failure {
                     PluginFailure(plugin: plugin, problem: failure)
-                } else if plugin.web.bridge != nil, !PluginTrust.shared.allows(plugin.manifest) {
+                } else if !PluginTrust.shared.allows(plugin.manifest) {
                     TrustPrompt(plugin: plugin, page: page)
                 }
             }
@@ -83,17 +83,6 @@ private struct ToastView: View {
         .controlSize(.small)
         .padding(.leading, 14).padding(.trailing, 6).padding(.vertical, 6)
         .glassEffect(.regular, in: .capsule)
-    }
-}
-
-/// The card header's second row, from its plugin's manifest. It starts at the row's left edge, also in a floating
-/// window.
-struct PluginToolbar: View {
-    let plugin: Plugin
-    let page: Page
-
-    var body: some View {
-        PluginHeader(plugin: plugin, page: page)
     }
 }
 
@@ -237,7 +226,7 @@ struct FloatingPlugin: View {
         VStack(spacing: 0) {
             // A plugin with no header and no Back and Forward has no row, as in a pane.
             if plugin.manifest.hasRow {
-                PluginToolbar(plugin: plugin, page: page).padding(.horizontal, 11).frame(height: PaneCard.header)
+                PluginHeader(plugin: plugin, page: page).padding(.horizontal, 11).frame(height: PaneCard.header)
             }
             PluginCard(plugin: plugin, page: page)
         }
