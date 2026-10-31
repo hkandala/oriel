@@ -5,12 +5,6 @@ import SwiftUI
 /// beside the card's tab (⌘), or in a pane to the card's side (⌥).
 enum Opening: String {
     case here, tab, side
-
-    /// By the modifier keys held now: for a native row's click.
-    @MainActor static var now: Opening {
-        let flags = NSEvent.modifierFlags
-        return flags.contains(.command) ? .tab : flags.contains(.option) ? .side : .here
-    }
 }
 
 /// The ways a browser or plugin pane opens: the chooser's rows, Open ‹Kind› Here and linked opens.

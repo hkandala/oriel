@@ -410,3 +410,9 @@ after (Release, `sample` over tab clicks, three swipes and two overview opens).
 - **Measurement note.** The scroll meter's frame counts were 3–5 a swipe for before and after alike late at night
   (the display was likely asleep): swipe frame rates are not compared here.
 
+
+### Final review fixes
+
+- 7 (D): `Opening.now` deleted: no caller (the Git home sends `how` from its page).
+- 8 (D): `Plugin.go` opens nothing for a path that makes no label, so the next snapshot no longer pulls the card back.
+- 15 (D): Markdown's link comment says an http(s) link opens a browser pane in a new tab (⌥ to the side).

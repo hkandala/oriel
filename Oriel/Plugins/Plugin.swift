@@ -210,6 +210,8 @@ final class Plugin {
             }
             return
         }
+        // A path that makes no label (a control character, over 1024 characters) opens nothing, as a linked open.
+        guard PaneLabel(PaneLabel(plugin: kind.rawValue, iid: label.iid, arg: arg).text) != nil else { return }
         leave { plugin in
             plugin.back.append((plugin.web.arg, plugin.landing(arg, place)))
             plugin.forward = []
@@ -270,7 +272,7 @@ final class Plugin {
         web.show(arg, at: place)
         name()
         let text = PaneLabel(plugin: kind.rawValue, iid: label.iid, arg: arg).text, paneID = paneID
-        guard PaneLabel(text) != nil, let store = web.store else { return }
+        guard let store = web.store else { return }
         renamed.insert(arg)
         renaming += 1
         // Not `HostStore.rename`, which skips a label the last snapshot has: a quick Back renames to it again.

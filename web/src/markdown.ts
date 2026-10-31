@@ -199,8 +199,8 @@ function list(view: EditorView, tree = syntaxTree(view.state)) {
   outline.replaceChildren(...rows)
 }
 
-// Links in Read: `#` scrolls the page, http(s) opens the browser plugin beside, a relative path its file in the card
-// (⌘ in a new tab, ⌥ to the side).
+// Links in Read: `#` scrolls the page, http(s) opens a browser pane in a new tab (⌥ to the side), a relative path
+// its file in the card (⌘ in a new tab, ⌥ to the side).
 article.addEventListener("click", (event) => {
   const link = (event.target as Element).closest("a")
   if (!link) return
