@@ -31,7 +31,8 @@ extension OrielUITests {
         let diffLabel = try await paneLabel(diff)
         XCTAssertTrue(diffLabel.hasPrefix("oriel:git#") && diffLabel.hasSuffix(" \(root)"), diffLabel)
         XCTAssertTrue(element("git.\(diff).card").exists(within: 3))
-        XCTAssertTrue(element("pane.\(diff).title").has(\.stringValue, "Changes", within: 3))
+        // The Git home, titled by its root.
+        XCTAssertTrue(element("pane.\(diff).title").has(\.stringValue, "oriel-e2e-plugins", within: 3))
         try await waitFor(diff, in: nil) { $0.contains("Git") && $0.contains("Shown in Oriel") }
 
         element("terminal.\(left)").click()
