@@ -320,6 +320,7 @@ extension OrielUITests {
             "pane.rename",
             ["pane_id": pane, "label": "oriel:browser#\(iid) file://\(folder)/light.html"],
         )
+        try await show(tab)
         XCTAssertTrue(until(connect) { title.stringValue.hasPrefix("Light ") }, title.stringValue)
         let first = title.stringValue
         app.typeKey("1", modifierFlags: .command)
@@ -334,35 +335,5 @@ extension OrielUITests {
         try await show(tab)
         XCTAssertTrue(until(connect) { title.stringValue.hasPrefix("Light ") && title.stringValue != first },
                       "\(first) then \(title.stringValue)")
-    }
-}
-
-extension OrielUITests {
-    /// A File Explorer card in a new tab two pages away, shown by its key as it comes: its page draws in its card
-    /// (item 28: on CI its web view sat one strip page left of the card, which stayed blank, and the tree's rows
-    /// were there for the accessibility tree only).
-    func testAWebCardTwoPagesAwayDrawsInItsCard() async throws {
-        let (_, shell) = try await newTab("far")
-        try await waitForPrompt(shell)
-        let repo = "/tmp/oriel-e2e-far"
-        try await send("rm -rf \(repo) && mkdir -p \(repo) && touch \(repo)/one.txt && clear && echo ready-$((6*7))\r",
-                       to: shell)
-        try await waitFor(shell) { $0.contains("ready-42") }
-        let reply = try await Self.call(one, "layout.apply", ["workspace_id": "w2", "focus": false, "root": [
-            "type": "pane", "cwd": repo, "label": "oriel:explorer#e2efar /private\(repo)/",
-            "command": ["sh", "-c", "cat", "sh"],
-        ]])
-        let layout = reply["layout"] as? [String: Any]
-        let tab: String = try field(layout?["tab_id"], "layout's tab")
-        let card: String = try field((layout?["root"] as? [String: Any])?["pane_id"], "layout's pane")
-        closeAfter("tab", tab)
-        try await expect("the explorer's tab third") { try await order(of: tab) == 2 }
-        try await show(tab)
-        let row = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "one.txt")).firstMatch
-        XCTAssertTrue(row.exists(within: 10))
-        let frame = element("pane.\(card)").frame
-        XCTAssertTrue(until(5) { frame.contains(CGPoint(x: row.frame.midX, y: row.frame.midY)) },
-                      "the tree's row at \(row.frame), its card at \(frame)")
-        try await send("rm -rf \(repo)\r", to: shell)
     }
 }

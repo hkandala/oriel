@@ -343,6 +343,12 @@ extension OrielUITests {
         XCTAssertEqual(title.stringValue, "Dark")
         app.typeText("y")
         XCTAssertTrue(title.has(\.stringValue, "key y", within: 2))
+        // Out of view, the chat's tile is the picture it took as it left.
+        app.typeKey("1", modifierFlags: .command)
+        XCTAssertTrue(element("tab.\(tab)").has(\.isSelected, false, within: 3))
+        app.typeKey("o", modifierFlags: [.command, .control])
+        XCTAssertTrue(element("overview.card.\(chat)").has(\.stringValue, "chat", within: 3))
+        app.typeKey(.escape, modifierFlags: [])
     }
 
     /// How many times the sidebar was made (`-recordLatency`).

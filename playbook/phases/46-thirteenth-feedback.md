@@ -209,6 +209,54 @@ forward; ask track D for any change in its files.
 
 ## Findings
 
+### Track B
+
+- **Cause, item 11.** WebKit paints only what shows: a page scrolled back into the strip's view, or put back into a
+  window when the lazy strip had dropped its page, drew blank for one to six frames (60 fps recordings of the window
+  with clicks on far tabs: blank frames in two of three runs on the old code). **Fix:** a web card takes its picture
+  (`takeSnapshot`, about 8 ms in WebKit's process, also out of a window) as it leaves view, and shows it over the page
+  as it comes back, until WebKit's next presentation update after its visible rect changed (SPI, else 100 ms; 2 s at
+  most). No blank frame in the runs after. The web view also keeps its size when a new host adopts it.
+- **Cause, item 13.** The chooser's "Opening Browser…" loader went when herdr's close returned, about 150 ms before the
+  snapshot that puts the new pane in the old one's place: the old pane's shell showed (recorded). **Fix:** a
+  successful replace keeps the chooser until that snapshot.
+- **Cause, item 12, and the spike (item 14).** `sample` of a Release build: a page that came into view mid-swipe made
+  its browser's web view in that frame (WKWebView plus WebKit's process attach, about 40 ms on the main thread), and
+  pane labels were parsed with a Swift Regex at every render (87 ms while the overview opened, 198 ms over three
+  swipes). The rest of the main thread is SwiftUI's one graph for the window (update, layout, preferences). **Fix:**
+  web cards are made where the strip rests (a fingers' drag sets the strip moving: its scroll phase stays idle); the
+  label is parsed by hand. Web cards are made only in the selected tab: a neighbor page the lazy strip lays out shows
+  their last picture, and a card past the bound is not made again there (it looped: dropped, made, dropped). Options
+  B–D went to the orchestrator (B is track F).
+- **Item 14, decided part.** Overview tiles are pictures: a terminal's snapshot (one with none streams until it drew,
+  then lets go), a web card's picture, a chat's picture from the window's layers at its place as it leaves view
+  (`cacheDisplay` drew SwiftUI's content blank; rendering the window's root layer took 120 ms, the deepest layer that
+  holds the chat's rows under 1 ms, without the reply box). Taken as the overview opens for the cards in view. A tile no longer
+  takes a web view from its card. The zoom to the page stays live.
+- **Runs, item 15** (CI's 1x VM, `testKeptCardsCost` / `testManyKeptCardsCost`, before = main with the same
+  `-spareTerminals`, which kept every web card). 20 + 20 at rest: the app 221 → 211 MB, WebKit's 22 processes 615 →
+  663 MB, all 50 processes 925 → 963 MB, CPU 1.7 → 1.3 %, 184 → 182 threads, 17 → 16 wake-ups a second; in use
+  (a switch every 0.5 s) 44 → 49 % CPU, switches median 296 → 288 ms; overview open 327 → 205 ms. 40 + 40 at rest:
+  89 processes 1683–1701 → 1731–1739 MB, CPU 1.9–3.0 → 2.0–3.1 %, 327–330 → 323–325 threads, 32 wake-ups a second;
+  switches median 409–448 → 437–484 ms (a first run's 2× was the VM: a second pair gave 448 vs 437). So each kept web
+  card costs about 28 MB (its WebKit process), a kept terminal about 7 MB of herdr run plus its surface; neither costs
+  CPU at rest. A higher bound works as long as memory does: the pressure source drops to half when macOS warns.
+- **Decisions.** Pictures are at the view's pixel size (a cover must look like the page): about 2.4 MB a card on CI,
+  up to 24 MB for a full-window card on Retina, not purgeable (macOS takes volatile surfaces back within seconds);
+  dropped cards' and chats' pictures are capped at 200 MB a window. `Page.shownTerminals` now holds web cards' panes
+  too, so a switch between two browser tabs reaches the registry, and Oriel's `mark` writes cover them as floats did.
+  Web cards' views get `renewGState` 50 ms after a show, so WebKit learns where the strip put them.
+- **Item 28: not reproduced.** Track D's CI recording shows a File Explorer card and a file card beside it blank for
+  good after a jump to a new tab two pages away, the tree's accessibility frame one strip page left of its card: WebKit
+  painted where it thought the page was. Three tests of that path (a page moved along the strip while out of view, a
+  browser and an explorer two pages away, shown by key as they come) passed on the old code locally and on CI, so
+  none was kept. What changed on that path: web cards are made only in the selected tab once the strip rests, a new
+  host fits a web view at once, and a web card coming into view is told its place (`renewGState`, which WebKit uses to
+  read its frames again). None of these is proven to be the cause: watch for it.
+- **For the user.** Switch between tabs with browsers and File Explorer cards: no blank flash. Pick Browser in a new
+  pane: no shell shows. Swipe across tabs whose browsers never showed: smooth, the card fills in where it rests. The
+  overview opens with pictures, not live content; a chat's tile is its picture from its last show.
+
 ### Track C
 
 - **Fix:** the three-finger reading is gone: the `.gesture` monitor, `ThreeFingers` and its check script, and the

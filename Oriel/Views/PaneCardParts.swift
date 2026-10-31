@@ -2,11 +2,14 @@ import HerdrKit
 import SwiftUI
 
 extension Page {
-    /// The pane's browser or plugin card. Not made while the strip moves (making a web view took a frame), but where it
-    /// rests (`stripMoving`, false again also when the strip goes mid-scroll).
+    /// The pane's browser or plugin card. Made only in the selected tab (or floated) and not while the strip moves
+    /// (making a web view took a frame; `stripMoving` is false again also when the strip goes mid-scroll): a neighbor
+    /// page the lazy strip lays out shows its last picture, and a card past the kept bound is not made again there.
     func cards(_ pane: HostStore.Pane?) -> (Browser?, Plugin?) {
-        guard stripMoving else { return (pane.flatMap(browser), pane.flatMap(plugin)) }
-        return (pane?.terminalID.flatMap(terminals.built), pane?.terminalID.flatMap(terminals.builtPlugin))
+        guard let pane, stripMoving || pane.tabID != selectedTab?.id && !floats(pane) else {
+            return (pane.flatMap(browser), pane.flatMap(plugin))
+        }
+        return (pane.terminalID.flatMap(terminals.built), pane.terminalID.flatMap(terminals.builtPlugin))
     }
 
     /// A browser's, a plugin's or an agent's card has a second header row; a terminal's, a floated or a choosing one
@@ -37,7 +40,8 @@ struct CardPicture: View {
 }
 
 /// Behind a chat's view in its card: the chat's picture as it leaves view (`PaneViewRegistry.show`), from the window's
-/// layers at its place (`cacheDisplay` drew SwiftUI's content blank).
+/// layers at its place (`cacheDisplay` drew SwiftUI's content blank). ponytail: the deepest layer holding the place is
+/// the rows' (the reply box is a sibling, so it is not in the picture); find SwiftUI's card layer if that matters.
 struct ChatProbe: NSViewRepresentable {
     let terminalID: String
     let registry: PaneViewRegistry
@@ -45,7 +49,8 @@ struct ChatProbe: NSViewRepresentable {
     func makeNSView(context _: Context) -> NSView {
         let probe = NSView()
         registry.chatViews[terminalID] = { [weak probe] in
-            guard let probe, let root = probe.window?.contentView?.superview?.layer, !probe.bounds.isEmpty,
+            // Not one already out of view: a blank picture would replace a good one.
+            guard let probe, let root = probe.window?.contentView?.superview?.layer, !probe.visibleRect.isEmpty,
                   let scale = probe.window?.backingScaleFactor else { return nil }
             let rect = probe.convert(probe.bounds, to: nil)
             let size = CGSize(width: rect.width * scale, height: rect.height * scale)
@@ -54,8 +59,19 @@ struct ChatProbe: NSViewRepresentable {
                                           space: CGColorSpace(name: CGColorSpace.sRGB) ?? CGColorSpaceCreateDeviceRGB(),
                                           bitmapInfo: CGImageAlphaInfo.premultipliedFirst.rawValue) else { return nil }
             context.scaleBy(x: scale, y: scale)
-            context.translateBy(x: -rect.minX, y: -rect.minY)
-            root.render(in: context)
+            // The deepest layer that holds the chat's place (its rows, under 1 ms), not the window's (120 ms).
+            var layer = root, area = rect
+            while let next = layer.sublayers?.last(where: { !$0.isHidden && $0.frame.contains(area) }) {
+                area = next.convert(area, from: layer)
+                layer = next
+            }
+            if layer.contentsAreFlipped() {
+                context.translateBy(x: -area.minX, y: area.maxY)
+                context.scaleBy(x: 1, y: -1)
+            } else {
+                context.translateBy(x: -area.minX, y: -area.minY)
+            }
+            layer.render(in: context)
             return context.makeImage()
         }
         return probe
