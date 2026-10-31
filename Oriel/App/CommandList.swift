@@ -13,8 +13,10 @@ struct CommandList {
     let settings: AppSettings
     /// A floating window's list (D50): only what applies to it.
     var floating: Floating?
-    /// What the menu bar shows and acts on, when it was made (`menuBar`).
+    /// What the menu bar shows and acts on, when it was made (`menuBar`), and its commands then: the menu bar takes
+    /// them, not a second list of its own (each list makes every command, 2–3 ms).
     var shown: [String] = []
+    var menu: [Command] = []
 
     private var tabs = true
 

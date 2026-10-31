@@ -111,11 +111,12 @@ private struct MenuBar: ViewModifier {
         // What the actions act on too: an equal value keeps the old one, and its actions (another floating
         // window's pane, another page). The keyboard card, read here so a keyboard move redraws the menu.
         let page = commands.pages?.current
+        commands.menu = commands.menuBarList
         commands.shown = [
             [commands.floating as Any, commands.pages.map(ObjectIdentifier.init) as Any,
              page.map(ObjectIdentifier.init) as Any].map { String(describing: $0) }.joined(separator: " "),
             page?.keyboardCard(page?.selectedTab?.id)?.id ?? "",
-        ] + commands.menuBarList.map(\.shown)
+        ] + commands.menu.map(\.shown)
         return content.focusedSceneValue(\.commands, commands).background(KeyWindowList(commands: commands))
     }
 }
@@ -253,7 +254,7 @@ struct AppCommands: Commands {
         let _ = (WindowPages.openWindow = openWindow)
         // A key runs the key window's command for it, whichever window's list the menu bar holds; behind a sheet,
         // none. With no window: New Window and the settings.
-        let list = (commands ?? CommandList(settings: settings)).menuBarList.map { command in
+        let list = (commands?.menu ?? CommandList(settings: settings).menuBarList).map { command in
             var keyed = command
             if let key = command.key {
                 keyed.action = {
