@@ -22,6 +22,7 @@ let reply: PatchReply | undefined
 while (!reply) {
   reply = await ask({ op: "patch" }).catch((error: Error) => {
     empty.textContent = error.message
+    report({ op: "ready" })
     return undefined
   })
   if (!reply) await new Promise<void>((resolve) => receive(() => resolve()))
@@ -139,6 +140,7 @@ function header(diff: FileDiffMetadata, slot: string, make: () => HTMLElement) {
 const viewer = new CodeView(options)
 viewer.setup(main)
 show(reply.patch)
+report({ op: "ready" })
 if (at && files.some((file) => file.name === at)) reveal(at)
 
 /**

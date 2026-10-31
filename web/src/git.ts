@@ -2,7 +2,7 @@
 // Stage and Unstage, then the history of every branch as a graph. Row 2 (GitBar.swift) has the branch, Fetch, Pull and
 // Push; the app reads git and runs every write (GitRepo.swift).
 import "./git.css"
-import { ask, type Change, type Commit, how, type RepoState, receive, report } from "./lib/bridge"
+import { ask, type Change, type Commit, how, menu, type RepoState, receive, report } from "./lib/bridge"
 
 document.body.innerHTML = `
 <p id="failure" hidden></p>
@@ -93,8 +93,10 @@ function write(message: { op: "repo"; do: "stage" | "unstage" | "stageAll" | "un
   ask(message).catch(() => undefined)
 }
 
-/** A row that opens with a click or Return: in the card, or with ⌘ in a new tab, with ⌥ to the side. */
-function row(label: string, open: (how: ReturnType<typeof how>) => void) {
+/** A row that opens with a click or Return: in the card, or with ⌘ in a new tab, with ⌥ to the side; its menu has
+ * the three. */
+function row(label: string, target: { arg: string; at?: string }) {
+  const open = (how: ReturnType<typeof how>) => report({ op: "open", kind: "git", ...target, how })
   const node = element("div", "row")
   node.setAttribute("role", "button")
   node.tabIndex = 0
@@ -103,14 +105,13 @@ function row(label: string, open: (how: ReturnType<typeof how>) => void) {
   node.onkeydown = (event) => {
     if (event.key === "Enter") open(how(event))
   }
+  node.oncontextmenu = (event) => menu(event, { kind: "git", ...target })
   return node
 }
 
 function changeRow(change: Change, staged: boolean) {
   const name = change.path.replace(/\/$/, ""), slash = name.lastIndexOf("/") + 1
-  const node = row(`${WORDS[change.letter] ?? change.letter}: ${name}`, (how) =>
-    report({ op: "open", kind: "git", arg: `${state.root} uncommitted`, at: change.path, how }),
-  )
+  const node = row(`${WORDS[change.letter] ?? change.letter}: ${name}`, { arg: `${state.root} uncommitted`, at: change.path })
   node.id = `${staged ? "staged" : "change"}.${change.path}`
   node.title = change.oldPath ? `${change.oldPath} → ${name}` : name
   const toggle = staged ? "Unstage" : "Stage"
@@ -150,7 +151,7 @@ function commitRow(commit: Commit, width: number) {
   const dot = head
     ? `<circle cx="${x(lane)}" cy="${mid}" r="4.5" fill="var(--card)" stroke="${color(lane)}" stroke-width="2"/>`
     : `<circle cx="${x(lane)}" cy="${mid}" r="4" fill="${color(lane)}"/>`
-  const node = row(subject, (how) => report({ op: "open", kind: "git", arg: `${state.root} ${hash}`, how }))
+  const node = row(subject, { arg: `${state.root} ${hash}` })
   node.id = `commit.${hash}`
   node.classList.add("commit")
   node.title = `${subject}\n${commit.author} · ${hash.slice(0, 10)}`
@@ -228,3 +229,4 @@ const sheet = element("style")
 sheet.textContent = `:root { ${Object.entries(symbols).map(([name, url]) => `--sf-${name.replaceAll(".", "-")}: url(${url});`).join(" ")} }`
 document.head.append(sheet)
 show(repo)
+report({ op: "ready" })

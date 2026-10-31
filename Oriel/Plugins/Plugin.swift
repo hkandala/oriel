@@ -63,6 +63,7 @@ enum PluginPage: String, CaseIterable {
         case .preview: "photo"
         case .markdown: "doc.richtext"
         case .diff: "plusminus"
+        case .git: "arrow.triangle.branch"
         }
     }
 
