@@ -405,5 +405,5 @@ well for easier debugging".
 - **For the docs pass:** building.mdx (own scripts, the template, New Plugin…, Show Log, the error cards), the manifest
   page (`entry` is built `.js`, no `assets`), security.mdx (a build script runs as the user, after trust; no metafile
   rule); the Goal's and decision 5's "ships esbuild" are superseded.
-- **Decisions:** a rebuild writes `dist` in place (each build script empties it first), so a page kept over a rebuild (Keep Editing) can miss its later
+- **Decisions:** a rebuild writes `dist` in place, never emptied first (a failed build keeps the last good one), so a page kept over a rebuild (Keep Editing) can miss its later
   chunks until it reloads. The defaults' edited-copy hash leaves out `dist` and `node_modules`.

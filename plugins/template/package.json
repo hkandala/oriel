@@ -4,7 +4,7 @@
   "private": true,
   "description": "A text file with its line count.",
   "scripts": {
-    "build": "rm -rf dist && esbuild src/main.ts --bundle --splitting --format=esm --minify --sourcemap --target=safari18 --log-level=warning --outdir=dist",
+    "build": "esbuild src/main.ts --bundle --splitting --format=esm --minify --sourcemap --target=safari18 --log-level=warning --outdir=dist",
     "dev": "npm run build -- --watch",
     "check": "tsc -p ."
   },
