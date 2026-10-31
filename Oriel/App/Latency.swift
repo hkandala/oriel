@@ -90,11 +90,17 @@ final class Latency {
         FileHandle.standardError.write(Data("\(line)\n".utf8))
     }
 
-    /// A snapshot's apply on the main thread, from `start` on.
+    /// The main thread's own time, for `applied`: not the wall clock, which also counts a time the process was
+    /// stopped (the e2e helper's `heap` stops it for seconds, and once did so inside an apply: 10.8 s).
+    static var threadTime: TimeInterval {
+        TimeInterval(clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)) / 1e9
+    }
+
+    /// A snapshot's apply on the main thread, from `start` (`threadTime`) on.
     func applied(since start: TimeInterval) {
         guard Self.isOn else { return }
         snapshots += 1
-        applying += ProcessInfo.processInfo.systemUptime - start
+        applying += Self.threadTime - start
     }
 
     @ObservationIgnored private var awake: TimeInterval?

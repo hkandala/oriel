@@ -159,7 +159,7 @@ final class HostStore {
         for await update in await client.updates() {
             switch update {
             case let .snapshot(snapshot):
-                let start = ProcessInfo.processInfo.systemUptime
+                let start = Latency.threadTime
                 let changes = apply(snapshot)
                 state = .live
                 snapshotted(changes)

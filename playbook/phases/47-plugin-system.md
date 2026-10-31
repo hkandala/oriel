@@ -462,6 +462,9 @@ well for easier debugging".
   package, so a symlink out of either (`dist/k -> ~/.ssh/id_rsa`, `dist -> ~`) is not found (`PluginPackages.served`,
   unit tested).
 - **20 (A):** a manifest command takes `keywords`, which ⌘K finds it by; Edit Mode has main's "markdown read" again.
+- **Stress (A):** testHundredsOfPanesStayQuick's apply time is the main thread's own time (`Latency.threadTime`): the
+  helper's `heap` stops the app for seconds, and once did inside an apply (10.8 s of 16.1 s). Without it the apply was
+  10.7 ms a snapshot, as main's 10.8 ms.
 - **3 (B):** a manifest command's key the app already uses goes to the plugin's log, with a line in errors.mdx.
 - **12 (B):** the menus take only a plugin card already made (`builtPlugin`), never make one.
 - **13 (B):** `Plugin.landing` is gone: Back's landing is `place ?? arg` at its two places.

@@ -66,8 +66,8 @@ extension OrielUITests {
         for entry in keys {
             XCTAssertLessThanOrEqual(entry.turns, 1, entry.name)
         }
-        // A snapshot's apply on the main thread ("main … <snapshots> <their ms>"): about 6 ms on CI (75 ms when a set
-        // of every tab's focused pane was made again for each pane).
+        // A snapshot's apply on the main thread ("main … <snapshots> <their ms>", its own time): about 11 ms on CI
+        // (75 ms when a set of every tab's focused pane was made again for each pane).
         let main = element("app.latency").stringValue.split(separator: "; ").filter { $0.hasPrefix("main ") }
             .map { $0.split(separator: " ") }
         let applies = main.reduce(0) { $0 + (Int($1[3]) ?? 0) }
