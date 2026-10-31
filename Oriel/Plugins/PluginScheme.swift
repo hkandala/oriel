@@ -24,8 +24,9 @@ final class PluginScheme: NSObject, WKURLSchemeHandler {
         }
         // One folder, no subfolders: the last component is decoded, so `..%2F` would climb out of it.
         let file = url.lastPathComponent, page = file == "main"
-        // The page runs the app's runtime (`web/oriel`), which imports the entry's build; it has the entry's styles
-        // when its build wrote `<entry>.css` beside it (a bundler's CSS of the entry).
+        // The page runs the app's runtime (`web/oriel`), which imports the entry's build, fetched beside the runtime
+        // (`modulepreload`); it has the entry's styles when its build wrote `<entry>.css` beside it (a bundler's CSS of
+        // the entry).
         let css = "\(manifest.entryName).css"
         let styles = page && FileManager.default.fileExists(atPath: folder.appending(path: css).path)
         // The runtime and the card's base style are the app's, for every plugin.
@@ -33,7 +34,7 @@ final class PluginScheme: NSObject, WKURLSchemeHandler {
         let data = file.contains("/") || file.hasPrefix(".") ? nil : page ? Data("""
         <!doctype html><meta charset="utf-8"><link rel="stylesheet" href="card.css">\
         \(styles ? "<link rel=\"stylesheet\" href=\"\(css)\">" : "")\
-        <script type="module" src="oriel.js"></script>
+        <link rel="modulepreload" href="\(manifest.entryName).js"><script type="module" src="oriel.js"></script>
         """.utf8) : from.flatMap { try? Data(contentsOf: $0.appending(path: file)) }
         guard let data else {
             task.didFailWithError(URLError(.fileDoesNotExist))
