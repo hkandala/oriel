@@ -208,3 +208,38 @@ working until this track switches the default plugins to installed packages.
   text's `symbol` and menu headings (docs pass).
 - **For the user:** a plugin's row 2 in a pane and floating, light and dark: the fixture in
   `OrielUITests/HeaderTests.swift` shows every control type.
+
+### Track B (the runtime and the API)
+
+- **Decisions:** the runtime (`web/oriel/runtime.ts`, built by `make web` into `oriel.js` beside `card.css`) is the
+  page of a plugin's entry: `oriel-plugin://<id>/main` loads `card.css`, the entry's CSS and `oriel.js`, which reads the
+  card's context (`window.oriel_card`, a user script at document start) and imports the entry's built `.js`. The
+  types are `web/oriel/oriel.d.ts` with its `package.json` (`@oriel/plugin-api`); `make web` checks the runtime
+  against them with `tsc` (TypeScript 7, a dev dependency of `web/`). Until track F builds packages, a user plugin's
+  folder is served as it is, so its entry must be JavaScript.
+- **Decisions:** the bridge messages are `{ call, args }` to the app, answered with a JSON string or rejected with
+  `<code>: <text>` (the runtime makes the `OrielError`), and `oriel_receive(name, data)` to the page. Calls that wait
+  for the user (toast) answer through an event, so no Swift task hangs on a page that never hears back. A plugin page
+  gets only these; File Explorer's and Git's pages keep their old messages until tracks D and E.
+- **Decisions:** the calls on the card's machine (files, git, run) and the permission table live in HerdrKit
+  (`PluginCalls`), unit tested against real files, a real repository with a bare remote, and real processes. Their
+  arguments decode with `JSONDecoder`: `JSONSerialization` drops a byte order mark inside a string. The card's own
+  calls (place, state, header, toast, menu, Choose Folder…, symbols, clipboard, watches, commands) are the app's
+  `Bridge`, one per card, made with the `Plugin`.
+- **Decisions:** `place` fires on every move, the page's own `card.go` too (after Discard when it was dirty), so a
+  page draws its places in one handler. After Back, `at` is where the card came back from (that place's landing, else
+  its argument): the tree reveals the file it opened, Git's home the change. `open` defaults to a new tab; no
+  `plugin` picks the browser for http(s), the first folders plugin for a path ending in `/`, else the file's default.
+- **Decisions:** API additions for tracks D and E beyond decision 3: `git.changes`, `git.head`, `git.branches`, and
+  `Commit.author`/`refs`; `controls.set` also takes `symbol`, `label`, `badge`, `busy` and items' `symbol` and
+  headings (track C's header). The manifest's `commands` are in the menu bar and ⌘K while the card has the keyboard,
+  their `title`/`checked`/`enabled` set with `controls.set`; a key the app uses is left off and logged once.
+- **Decisions:** the state file holds `{"controls": …, "state": …}`, read once before the first load, written 500 ms
+  after the last change of either, not after the pane closed; closing any plugin pane (not only a browser's) removes
+  it. A drop keeps nothing in memory (the `Plugin` goes): the card made again reads the file.
+- **Decisions:** `run` keeps `Exec`'s shape: stdout as lines up to 4 MiB (then `truncated`), stderr's last 8 KB, a
+  last line break added to stdin. `files.watch` runs only while the card shows and calls each watch once on showing
+  again, changed or not. An entry whose `main` throws shows "‹name› stopped", the message, its first stack line and
+  Reload; an `api` above 1 shows "‹name› needs a newer Oriel".
+- **For the user:** nothing changes for File Explorer and Git. A plugin package with a `.js` entry in
+  `~/.config/oriel/plugins/` now loads in its card and can call the whole API.
