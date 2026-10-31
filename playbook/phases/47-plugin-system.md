@@ -485,3 +485,9 @@ well for easier debugging".
 - **21 (D):** markdown.ts names each thing once (`kept`, `present`).
 - **23 (D):** File Explorer's tsconfig is the template's (`noUncheckedSideEffectImports: false`, no `css.d.ts`).
 - **24 (D):** the tree's filter match and its refresh after a change log a failure.
+- **4 (E):** a Git home read or diff read that throws no longer keeps the next ones from running (`try`/`finally`).
+- **5 (E):** an SF Symbol the app cannot draw leaves its mask empty instead of stopping the Git card.
+- **6 (E):** a new diff draws unseen over the home and takes its place once drawn (as File Explorer's swap): no
+  blank page while git answers; the header's controls change with it.
+- **22, 24, 25 (E):** `lib.ts` cites `PaneLabel.diffSource`; a failed move or clipboard write goes to the console; a
+  root changed from elsewhere hides the old repository's rows until the new read draws.

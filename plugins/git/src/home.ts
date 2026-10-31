@@ -47,6 +47,8 @@ export async function show(next: string, at?: string) {
   if (next !== root) {
     root = next
     drawn = ""
+    // Not the old repository's rows until the new read draws.
+    content.hidden = true
   }
   page.hidden = false
   await load()
@@ -72,12 +74,16 @@ export async function load() {
     again = true
     return loading
   }
+  // A read that throws ends here too: the next change or write reads again.
   loading = (async () => {
-    do {
-      again = false
-      await read()
-    } while (again)
-    loading = undefined
+    try {
+      do {
+        again = false
+        await read()
+      } while (again)
+    } finally {
+      loading = undefined
+    }
   })()
   return loading
 }

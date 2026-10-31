@@ -6,7 +6,7 @@ export const bind = (api: Oriel) => {
   oriel = api
 }
 
-/** A place: the home is the root with the `/` of a folder, a diff `<home> <source>` (`PaneLabel.diff`). The root
+/** A place: the home is the root with the `/` of a folder, a diff `<home> <source>` (`PaneLabel.diffSource`). The root
  *  comes without its `/`, but `/` itself. */
 export function parse(arg: string) {
   const space = arg.lastIndexOf(" "), diff = space > 0 && arg.slice(0, space).endsWith("/")
@@ -56,7 +56,7 @@ export const keep = (change: { draft?: string; list?: boolean }) =>
 /** git's message in the card's toast, on one line, with Copy for the whole of it. */
 export async function failed(error: Error) {
   const text = error.message.split("\n").map((line) => line.trim()).join(" ")
-  if ((await oriel.toast(text, ["Copy", "OK"])) === "Copy") await oriel.clipboard.write(error.message)
+  if ((await oriel.toast(text, ["Copy", "OK"])) === "Copy") oriel.clipboard.write(error.message).catch(console.error)
 }
 
 /** A header control's change, sent only when it changes something. */

@@ -15,9 +15,9 @@ const DIFF = ["diff.home", "diff.layout", "diff.file-list", "diff.previous", "di
 export default async function main(oriel: Oriel) {
   bind(oriel)
   // The SF Symbols the rows draw, as masks in the text's color. While the app draws them, the first place reads and
-  // draws under the card's loader, which goes once both are done (`main` returns).
+  // draws under the card's loader, which goes once both are done (`main` returns). One the app lacks draws nothing.
   const names = ["doc", "plus", "minus", "arrow.triangle.branch", "cloud", "tag"]
-  const symbols = Promise.all(names.map((name) => oriel.symbol(name, 12))).then((urls) => {
+  const symbols = Promise.all(names.map((name) => oriel.symbol(name, 12).catch(() => ""))).then((urls) => {
     const sheet = document.createElement("style")
     sheet.textContent = `:root { ${names.map((name, index) => `--sf-${name.replaceAll(".", "-")}: url(${urls[index]});`).join(" ")} }`
     document.head.append(sheet)
@@ -27,21 +27,24 @@ export default async function main(oriel: Oriel) {
   let watched = ""
   let off: (() => void) | undefined
 
-  /** Shows a place: its header controls, then its page. */
+  /** Shows a place's page and its header controls. A diff draws first, then takes the home's place. */
   async function show(arg: string, at?: string) {
     const shown = (place = parse(arg))
-    const diff = shown.source !== undefined
-    for (const id of HOME) control(id, { hidden: diff })
-    for (const id of DIFF) control(id, { hidden: !diff })
+    const controls = (diff: boolean) => {
+      for (const id of HOME) control(id, { hidden: diff })
+      for (const id of DIFF) control(id, { hidden: !diff })
+    }
     watch(shown.root)
-    if (!diff) {
+    if (shown.source === undefined) {
+      controls(false)
       Diff?.hide()
       return Home.show(shown.root, at)
     }
-    Home.hide()
     Diff ??= await import("./diff")
     // Not after another move meanwhile.
-    if (place === shown) await Diff.show(shown.root, shown.source!, at)
+    if (place !== shown || !(await Diff.show(shown.root, shown.source, at)) || place !== shown) return
+    controls(true)
+    Home.hide()
   }
 
   /** While the card shows: the home reads again after each change under the root, Uncommitted asks for its patch
@@ -56,7 +59,7 @@ export default async function main(oriel: Oriel) {
     })
   }
 
-  oriel.on("place", ({ arg, at }) => void show(arg, at))
+  oriel.on("place", ({ arg, at }) => void show(arg, at).catch(console.error))
   oriel.on("control", ({ id, value }) => {
     switch (id) {
       case "diff.home": return oriel.card.go(home(place.root))

@@ -143,22 +143,30 @@ viewer.setup(main)
 /** Shows a source of a root, from its top, at a file (`at`) when it has it. A first read that fails (a folder not yet
  *  a repository, a machine away) shows git's error and reads again at the next change in the work tree. */
 export async function show(nextRoot: string, nextSource: string, at?: string) {
-  // The diff shown, with a landing: only a scroll to the file.
-  const again = !page.hidden && nextRoot === root && nextSource === source && patch !== undefined
-  page.hidden = false
   control("diff.file-list", { title: list ? "Hide File List" : "Show File List" })
-  if (again) return void (at && files.some((file) => file.name === at) && reveal(at))
+  // The diff shown, with a landing: only a scroll to the file.
+  if (!page.hidden && page.style.visibility === "" && nextRoot === root && nextSource === source && patch !== undefined) {
+    if (at && files.some((file) => file.name === at)) reveal(at)
+    return true
+  }
   root = nextRoot
   source = nextSource
   clear()
+  // Drawn unseen over the place before, which stays until the patch drew: no blank page while git answers.
+  page.style.visibility = "hidden"
+  page.hidden = false
   await refresh()
   // Not after another move meanwhile.
-  if (root === nextRoot && source === nextSource && at && files.some((file) => file.name === at)) reveal(at)
+  if (root !== nextRoot || source !== nextSource) return false
+  page.style.visibility = ""
+  if (at && files.some((file) => file.name === at)) reveal(at)
+  return true
 }
 
 /** The home shows: the diff lets go of its patch, as each place starts from its top. */
 export const hide = () => {
   page.hidden = true
+  page.style.visibility = ""
   root = source = ""
   clear()
 }
@@ -325,18 +333,22 @@ export async function refresh() {
     again = true
     return asking
   }
+  // A read that throws ends here too: the next change reads again.
   asking = (async () => {
-    do {
-      again = false
-      const at = `${root} ${source}`
-      const next = await oriel.git.diff(root, source).catch((error: Error) => error)
-      if (at !== `${root} ${source}`) continue
-      if (next instanceof Error) {
-        // A diff drawn keeps its patch; a first read shows why it failed.
-        if (patch === undefined) empty.textContent = next.message
-      } else if (next !== patch) draw(next)
-    } while (again)
-    asking = undefined
+    try {
+      do {
+        again = false
+        const at = `${root} ${source}`
+        const next = await oriel.git.diff(root, source).catch((error: Error) => error)
+        if (at !== `${root} ${source}`) continue
+        if (next instanceof Error) {
+          // A diff drawn keeps its patch; a first read shows why it failed.
+          if (patch === undefined) empty.textContent = next.message
+        } else if (next !== patch) draw(next)
+      } while (again)
+    } finally {
+      asking = undefined
+    }
   })()
   return asking
 }
