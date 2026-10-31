@@ -108,7 +108,10 @@ async function read() {
   const state = changes.status === "fulfilled"
     ? { ...changes.value, commits: commits.status === "fulfilled" ? commits.value : [] }
     : { failure }
-  const json = JSON.stringify(state)
+  // Keys sorted: the app's replies come in any key order, and a draw under a click loses the click.
+  const json = JSON.stringify(state, (_, value) => value && typeof value === "object" && !Array.isArray(value)
+    ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : 1)))
+    : value)
   if (json === drawn) return
   drawn = json
   draw(state)
