@@ -134,7 +134,9 @@ final class Plugin {
         web = WebCard(plugin: manifest.id, page: page, arg: label.place, place: place, store: store)
         header = Header(manifest: manifest)
         name()
-        web.bridge = Bridge(plugin: self)
+        if page == .main {
+            web.bridge = Bridge(plugin: self)
+        }
         web.view.step = { [weak self] back in
             guard let self, back ? canGoBack : canGoForward else { return false }
             if back {
@@ -151,10 +153,15 @@ final class Plugin {
         web.view.setAccessibilityIdentifier("\(web.page.rawValue).\(paneID).page")
     }
 
+    /// File and Markdown take ⌘S and ⌘F; a plugin's page what its manifest `handles` (`save`, `find`).
+    func handles(_ command: String) -> Bool {
+        web.page.edits || web.page == .main && manifest.handles.contains(command)
+    }
+
     /// A menu command for the card's page: `save`, `find`, `findNext` or `findPrevious`.
     func command(_ name: String) {
         if web.page == .main {
-            web.bridge?.command(name)
+            web.bridge?.event(name, NSNull())
         } else {
             web.send(["op": name])
         }
@@ -255,6 +262,7 @@ final class Plugin {
     /// Unsaved edits ask first: Back or a click would drop them. The toast keeps the card weakly.
     private func leave(_ then: @escaping (Plugin) -> Void) {
         guard web.dirty else { return then(self) }
+        web.bridge?.dropToast()
         let name = (web.arg as NSString).lastPathComponent
         web.toast = Toast(text: "\(name) has unsaved edits.", other: ("Discard", { [weak self] in self.map(then) }),
                           main: ("Keep Editing", {}))

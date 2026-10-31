@@ -83,12 +83,15 @@ final class WebCard {
     /// or loaded again with them, so every first paint has them.
     func theme(_ css: String, _ theme: [String: Any]) {
         self.css = css
-        bridge?.theme = theme
-        script()
         if loaded {
             view.callAsyncJavaScript("document.documentElement.style.cssText = css", arguments: ["css": css],
                                      in: nil, in: .page)
+            // The page hears `theme` after its CSS variables changed.
+            bridge?.theme = theme
+            script()
         } else {
+            bridge?.theme = theme
+            script()
             loaded = true
             guard page == .main else {
                 view.load(URLRequest(url: PluginScheme.url(plugin, page)))
@@ -106,6 +109,7 @@ final class WebCard {
 
     /// The page again, from its start: Reload after it stopped.
     func reload() {
+        bridge?.reset()
         bridge?.failure = nil
         ready = false
         script()

@@ -83,10 +83,9 @@ public struct PluginCalls: Sendable {
         } catch {
             throw PluginError(error)
         }
-        guard let data = try? JSONSerialization.data(withJSONObject: [reply ?? NSNull()], options: .fragmentsAllowed)
+        guard let data = try? JSONSerialization.data(withJSONObject: reply ?? NSNull(), options: .fragmentsAllowed)
         else { throw PluginError("failed", "The reply is not JSON") }
-        // One value, not the array around it.
-        return Data(data.dropFirst().dropLast())
+        return data
     }
 
     private func files(_ name: String, _ args: Args) async throws -> Any? {

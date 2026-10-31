@@ -216,7 +216,7 @@ working until this track switches the default plugins to installed packages.
   card's context (`window.oriel_card`, a user script at document start) and imports the entry's built `.js`. The
   types are `web/oriel/oriel.d.ts` with its `package.json` (`@oriel/plugin-api`); `make web` checks the runtime
   against them with `tsc` (TypeScript 7, a dev dependency of `web/`). Until track F builds packages, a user plugin's
-  folder is served as it is, so its entry must be JavaScript.
+  folder is served as it is, so its entry must be JavaScript in the package's root (the scheme serves no subfolders).
 - **Decisions:** the bridge messages are `{ call, args }` to the app, answered with a JSON string or rejected with
   `<code>: <text>` (the runtime makes the `OrielError`), and `oriel_receive(name, data)` to the page. Calls that wait
   for the user (toast) answer through an event, so no Swift task hangs on a page that never hears back. A plugin page
@@ -238,8 +238,10 @@ working until this track switches the default plugins to installed packages.
   after the last change of either, not after the pane closed; closing any plugin pane (not only a browser's) removes
   it. A drop keeps nothing in memory (the `Plugin` goes): the card made again reads the file.
 - **Decisions:** `run` keeps `Exec`'s shape: stdout as lines up to 4 MiB (then `truncated`), stderr's last 8 KB, a
-  last line break added to stdin. `files.watch` runs only while the card shows and calls each watch once on showing
-  again, changed or not. An entry whose `main` throws shows "‹name› stopped", the message, its first stack line and
+  last line break added to stdin. `visible` follows the cards in view (the shown tab's and the floating ones, as the
+  web card budget counts them), not the card view's `.task`, which a tab switch does not end. `files.watch` runs only
+  while the card is in view and calls each watch once when it comes into view again, changed or not. An entry whose `main` throws shows "‹name› stopped", the message, its first stack line and
   Reload; an `api` above 1 shows "‹name› needs a newer Oriel".
+- **For the docs pass:** the trust prompt's words for `git` must say it can commit, pull and push.
 - **For the user:** nothing changes for File Explorer and Git. A plugin package with a `.js` entry in
   `~/.config/oriel/plugins/` now loads in its card and can call the whole API.

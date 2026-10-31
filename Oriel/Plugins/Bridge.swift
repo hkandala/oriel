@@ -8,7 +8,7 @@ import WebKit
 /// machine or another card; each call is checked against the manifest's permissions (`PluginCalls`).
 @MainActor @Observable
 final class Bridge {
-    @ObservationIgnored private weak var plugin: Plugin?
+    @ObservationIgnored private(set) weak var plugin: Plugin?
     /// The page's changes of its commands (`controls.set` of a command's id): `title`, `checked`, `enabled`.
     private(set) var commands: [String: [String: Any]] = [:]
     /// `main` threw or the page cannot run: the card shows this (a title and the error's first lines) with Reload.
@@ -20,7 +20,8 @@ final class Bridge {
     @ObservationIgnored private var watches: [Int: String] = [:]
     @ObservationIgnored private var watching: [Int: Task<Void, Never>] = [:]
     @ObservationIgnored private(set) var visible = false
-    @ObservationIgnored private var shownBefore = false
+    /// The state file as last written: a header change that leaves it (a badge) writes nothing.
+    @ObservationIgnored private var written: Data?
     @ObservationIgnored var keyboard = false {
         didSet {
             if keyboard != oldValue {
@@ -35,7 +36,7 @@ final class Bridge {
     /// The last git write: each waits for the one before it (git takes `index.lock`).
     @ObservationIgnored private var writes: Task<Void, Never>?
     /// The toast the page waits on, by its id.
-    @ObservationIgnored private var toast: Int?
+    @ObservationIgnored var toast: Int?
     /// The app's theme as the page reads it (`oriel.theme`), from the card's view.
     @ObservationIgnored var theme: [String: Any] = [:] {
         didSet {
@@ -56,6 +57,7 @@ final class Bridge {
         plugin.header.changed = { [weak self] in self?.save() }
         plugin.web.view.keyboard = { [weak self] in self?.keyboard = $0 }
         if plugin.manifest.api > Self.api {
+            plugin.web.ready = true
             failure = (
                 "\(plugin.manifest.name) needs a newer Oriel",
                 "It is written for version \(plugin.manifest.api) of "
@@ -102,13 +104,6 @@ final class Bridge {
                                              in: nil, in: .page)
     }
 
-    /// ⌘S, or ⌘F, ⌘G and ⇧⌘G, when the manifest `handles` them.
-    func command(_ name: String) {
-        if plugin?.manifest.handles.contains(name == "save" ? "save" : "find") == true {
-            event(name, NSNull())
-        }
-    }
-
     /// The card moved: after `card.go`, Back, Forward or a rename from elsewhere.
     func place(_ arg: String, at landing: String?) {
         var place: [String: Any] = ["arg": arg]
@@ -116,24 +111,21 @@ final class Bridge {
         event("place", place)
     }
 
-    /// While the card shows (`PluginCard`): `visible`, and the watches run; showing again calls each watch once.
-    func shown() async {
-        visible = true
-        event("visible", true)
+    /// The card came into view or left it (`PaneViewRegistry.showWeb`: the shown tab's cards and the floating ones):
+    /// `visible`, and the watches run only in view; coming into view calls each watch once.
+    func shown(_ yes: Bool) {
+        guard yes != visible else { return }
+        visible = yes
+        event("visible", yes)
+        guard yes else {
+            watching.values.forEach { $0.cancel() }
+            watching = [:]
+            return
+        }
         for id in watches.keys {
             watch(id)
-            if shownBefore {
-                event("watch", id)
-            }
+            event("watch", id)
         }
-        shownBefore = true
-        while !Task.isCancelled {
-            try? await Task.sleep(for: .seconds(3600))
-        }
-        visible = false
-        event("visible", false)
-        watching.values.forEach { $0.cancel() }
-        watching = [:]
     }
 
     private func watch(_ id: Int) {
@@ -153,11 +145,16 @@ final class Bridge {
         guard let plugin, let store = plugin.web.store else { return }
         var file: [String: Any] = ["controls": plugin.header.values]
         file["state"] = state
-        guard let data = try? JSONSerialization.data(withJSONObject: file), data.count <= 256 << 10 else { return }
+        guard let data = try? JSONSerialization.data(withJSONObject: file, options: .sortedKeys),
+              data.count <= 256 << 10, data != written else { return }
+        written = data
         let path = plugin.label.statePath(session: store.session), terminalID = plugin.terminalID
         saving?.cancel()
+        let previous = saving
         saving = Task { [weak store] in
             try? await Task.sleep(for: .milliseconds(500))
+            // After a write still on its way: last writer wins on a slow machine too.
+            await previous?.value
             guard !Task.isCancelled, let store, store.panes.contains(where: { $0.terminalID == terminalID })
             else { return }
             await store.machine.exec().write(home: path, String(decoding: data, as: UTF8.self))
@@ -206,7 +203,11 @@ final class Bridge {
         case "card.go":
             guard let arg = args["arg"] as? String else { throw PluginError("failed", "arg is missing") }
             plugin.go(arg, at: args["at"] as? String)
-        case "card.ready": plugin.web.ready = true
+        case "card.ready":
+            plugin.web.ready = true
+            // A change between the context and the runtime's start had no one to hear it.
+            event("visible", visible)
+            event("keyboard", keyboard)
         case "card.setDirty": plugin.web.dirty = args["dirty"] as? Bool == true
         case "card.failed":
             failure = ("\(plugin.manifest.name) stopped", [args["text"], args["stack"]].compactMap { $0 as? String }
@@ -251,12 +252,13 @@ final class Bridge {
         let data = try JSONSerialization.data(withJSONObject: args)
         let calls = await PluginCalls(permissions: plugin.manifest.permissions, exec: store.machine.exec(),
                                       remote: store.machine.isRemote,
-                                      gitRuns: name.hasPrefix("git.") ? store.gitRuns() : false)
+                                      gitRuns: name.hasPrefix("files.") || name.hasPrefix("git.") ? store.gitRuns()
+                                          : false)
         return try await calls.call(name, data)
     }
 
     /// Two at a time per card; the rest wait in order. In the pane's folder unless the page says otherwise.
-    private func run(_ args: [String: Any], _ plugin: Plugin) async throws -> Data {
+    private func run(_ args: [String: Any], _: Plugin) async throws -> Data {
         while runs >= 2 {
             await withCheckedContinuation { waiting.append($0) }
         }
@@ -266,10 +268,6 @@ final class Bridge {
             if !waiting.isEmpty {
                 waiting.removeFirst().resume()
             }
-        }
-        var args = args
-        if args["cwd"] == nil {
-            args["cwd"] = plugin.web.store?.pane(plugin.paneID)?.cwd ?? "/"
         }
         return try await calls("run", args)
     }
@@ -289,20 +287,9 @@ final class Bridge {
         return try await write.value.get()
     }
 
-    /// The page's toast, replacing one it waits on (that one resolves with no button).
-    func show(_ text: String, buttons: [String]?, id: Int) {
-        guard let web = plugin?.web else { return }
-        if let toast {
-            event("toast", ["id": toast])
-        }
-        toast = id
-        let picked = { [weak self] (title: String) in
-            guard let self, toast == id else { return }
-            toast = nil
-            event("toast", ["id": id, "button": title])
-        }
-        let main = buttons?.last ?? "OK", other = buttons?.count == 2 ? buttons?.first : nil
-        web.toast = Toast(text: text, other: other.map { title in (title, { picked(title) }) },
-                          main: (main, { buttons == nil ? picked("") : picked(main) }))
+    /// A page loads again: the old page's watches and toast go with it.
+    func reset() {
+        watching.values.forEach { $0.cancel() }
+        (watching, watches, commands, toast) = ([:], [:], [:], nil)
     }
 }

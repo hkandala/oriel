@@ -8,9 +8,11 @@ extension PaneViewRegistry {
     func showWeb(_ shown: Set<String>) {
         for id in webInView.subtracting(shown) {
             webView(id)?.takePicture()
+            plugins[id]?.web.bridge?.shown(false)
         }
         for id in shown.subtracting(webInView) {
             webView(id)?.coverUntilDrawn()
+            plugins[id]?.web.bridge?.shown(true)
         }
         // Once the strip scrolled to them: WebKit hears of its view's place in the window only from its own frame or
         // window, so a page the lazy strip made before a jump to it painted one page off (blank, on CI).
