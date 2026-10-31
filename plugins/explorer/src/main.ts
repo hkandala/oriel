@@ -62,8 +62,11 @@ export default async function main(oriel: Oriel) {
       const keep = (off: Off) => void offs.push(off)
       const live = () => shown === now
       const again = () => live() && void show(arg, undefined, true)
+      // A text file's read starts while its place's code loads.
+      const read = place === "file" || place === "markdown" ? oriel.files.read(arg) : undefined
+      read?.catch(() => undefined)
       try {
-        now.reveal = await (await load(place)).show({ oriel, arg, at, root, keep, again, live })
+        now.reveal = await (await load(place)).show({ oriel, arg, at, root, keep, again, live, read })
       } catch (error) {
         console.error(error)
       }

@@ -16,6 +16,8 @@ export type Place = {
   again(): void
   /** The card still shows the place: work that ends after it left does nothing. */
   live(): boolean
+  /** File's and Markdown's file, read already. */
+  read?: ReturnType<Oriel["files"]["read"]>
 }
 
 /** A file's extension, lowercased; "" for none, also for a dotfile's name (as `NSString.pathExtension`). */

@@ -1,10 +1,11 @@
 // Git: a repository's home and its diffs, places of one card (plugins/default-plugins#git). The home is `<root>/`, a diff
-// `<root>/ <source>`; the card moves between them with `card.go` and the app's Back and Forward. The diff, with
-// @pierre/diffs, loads on its first use.
+// `<root>/ <source>`; the card moves between them with `card.go` and the app's Back and Forward. The home is in the
+// entry, so it opens at once; the diff, with @pierre/diffs, loads on its first use.
 import type { Oriel } from "@oriel/plugin-api"
 import "./rows.css"
 import "./home.css"
 import "./diff.css"
+import * as Home from "./home"
 import { bind, control, home, parse } from "./lib"
 
 /** Each place's own header controls; the spacer is both's. */
@@ -21,8 +22,6 @@ export default async function main(oriel: Oriel) {
     sheet.textContent = `:root { ${names.map((name, index) => `--sf-${name.replaceAll(".", "-")}: url(${urls[index]});`).join(" ")} }`
     document.head.append(sheet)
   })
-  // After `bind`: the home reads the card's state as it loads.
-  const Home = await import("./home")
   let Diff: typeof import("./diff") | undefined
   let place = parse(oriel.card.arg)
   let watched = ""

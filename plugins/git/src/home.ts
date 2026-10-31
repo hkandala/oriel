@@ -42,6 +42,8 @@ const WORDS: Record<string, string> = {
 
 /** Shows the home of `next`, landing at a change or a commit the card comes back from. */
 export async function show(next: string, at?: string) {
+  // The draft the card's state kept, on the first show: this module loads before `main` binds the API.
+  if (!root) message.value = oriel.state.get<{ draft?: string }>()?.draft ?? ""
   if (next !== root) {
     root = next
     drawn = ""
@@ -296,7 +298,6 @@ function grow() {
   message.style.height = "auto"
   message.style.height = `${message.scrollHeight}px`
 }
-message.value = oriel.state.get<{ draft?: string }>()?.draft ?? ""
 message.addEventListener("input", () => {
   grow()
   enable()

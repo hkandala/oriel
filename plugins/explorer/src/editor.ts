@@ -38,7 +38,7 @@ export type Editor = { view: EditorView; land(at: string | undefined): void } | 
  *  that becomes read only, writable, too large or not text shows the place anew (`again`). */
 export async function editor(place: Place, extensions: Extension[], parent: HTMLElement): Promise<Editor> {
   const { oriel, arg: path, keep, again, live } = place
-  const file = await oriel.files.read(path).catch((error: OrielError) => error)
+  const file = await (place.read ?? oriel.files.read(path)).catch((error: OrielError) => error)
   if (file instanceof Error) {
     if (file.code === "notText" || file.code === "tooLarge") await info(oriel, path, parent)
     else failed(file, parent)
