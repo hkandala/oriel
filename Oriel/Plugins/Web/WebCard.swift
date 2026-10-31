@@ -96,6 +96,8 @@ final class WebCard {
         toast = nil
         dirty = false
         ready = false
+        // The new page starts with none; a filter field shown with text would take the keyboard.
+        filter = ""
         refocus = view.window?.firstResponder === view
         if loaded {
             script()
