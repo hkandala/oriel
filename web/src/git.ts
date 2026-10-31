@@ -93,32 +93,28 @@ function write(message: { op: "repo"; do: "stage" | "unstage" | "stageAll" | "un
   ask(message).catch(() => undefined)
 }
 
-/** A row that opens with a click or Return: in the card, or with ⌘ in a new tab, with ⌥ to the side; its menu has
- * the three. */
+/** A row that opens with a click, Return or Space: in the card, or with ⌘ in a new tab, with ⌥ to the side; its
+ * menu has the three. Its button holds what it shows; a Stage button is the row's own, beside it: a button in a
+ * button is no button to VoiceOver. */
 function row(label: string, target: { arg: string; at?: string }) {
-  const open = (how: ReturnType<typeof how>) => report({ op: "open", kind: "git", ...target, how })
-  const node = element("div", "row")
-  node.setAttribute("role", "button")
-  node.tabIndex = 0
-  node.ariaLabel = label
-  node.onclick = (event) => open(how(event))
-  node.onkeydown = (event) => {
-    if (event.key === "Enter") open(how(event))
-  }
+  const node = element("div", "row"), open = element("button", "open")
+  open.ariaLabel = label
+  node.append(open)
+  node.onclick = (event) => report({ op: "open", kind: "git", ...target, how: how(event) })
   node.oncontextmenu = (event) => menu(event, { kind: "git", ...target })
-  return node
+  return { node, open }
 }
 
 function changeRow(change: Change, staged: boolean) {
   const name = change.path.replace(/\/$/, ""), slash = name.lastIndexOf("/") + 1
-  const node = row(`${WORDS[change.letter] ?? change.letter}: ${name}`, { arg: `${state.root} uncommitted`, at: change.path })
+  const { node, open } = row(`${WORDS[change.letter] ?? change.letter}: ${name}`,
+    { arg: `${state.root} uncommitted`, at: change.path })
   node.id = `${staged ? "staged" : "change"}.${change.path}`
   node.title = change.oldPath ? `${change.oldPath} → ${name}` : name
   const toggle = staged ? "Unstage" : "Stage"
+  open.append(symbol("doc"), element("span", "name", name.slice(slash)),
+    element("span", "folder", name.slice(0, Math.max(slash - 1, 0))))
   node.append(
-    symbol("doc"),
-    element("span", "name", name.slice(slash)),
-    element("span", "folder", name.slice(0, Math.max(slash - 1, 0))),
     button(staged ? "minus" : "plus", `${toggle} ${name}`, () =>
       write({ op: "repo", do: staged ? "unstage" : "stage", path: change.path, oldPath: change.oldPath }),
     ),
@@ -151,16 +147,16 @@ function commitRow(commit: Commit, width: number) {
   const dot = head
     ? `<circle cx="${x(lane)}" cy="${mid}" r="4.5" fill="var(--card)" stroke="${color(lane)}" stroke-width="2"/>`
     : `<circle cx="${x(lane)}" cy="${mid}" r="4" fill="${color(lane)}"/>`
-  const node = row(subject, { arg: `${state.root} ${hash}` })
+  const { node, open } = row(subject, { arg: `${state.root} ${hash}` })
   node.id = `commit.${hash}`
   node.classList.add("commit")
   node.title = `${subject}\n${commit.author} · ${hash.slice(0, 10)}`
-  node.insertAdjacentHTML("afterbegin", `<svg width="${width}" height="${HEIGHT}" fill="none" stroke-width="1.5">${[
+  open.insertAdjacentHTML("afterbegin", `<svg width="${width}" height="${HEIGHT}" fill="none" stroke-width="1.5">${[
     ...through.map((at) => line(at, 0, at, HEIGHT)),
     ...children.map((at) => line(at, 0, lane, mid)),
     ...parents.map((at) => line(lane, mid, at, HEIGHT)),
   ].join("")}${dot}</svg>`)
-  node.append(...refs.flatMap(badge), element("span", "name", subject), element("span", "hash", hash.slice(0, 7)),
+  open.append(...refs.flatMap(badge), element("span", "name", subject), element("span", "hash", hash.slice(0, 7)),
     element("span", "when", when(date)))
   return node
 }

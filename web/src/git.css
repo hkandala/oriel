@@ -25,16 +25,18 @@ header .icon { margin-left: auto; }
   white-space: nowrap; }
 .row:hover { background: color-mix(in srgb, var(--text) 5%, transparent); }
 .row:active { background: color-mix(in srgb, var(--text) 8%, transparent); }
-.row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-.row > span { overflow: hidden; text-overflow: ellipsis; flex: none; }
-.row > .name { flex: 0 1 auto; min-width: 0; }
-.row > .folder { flex: 0 1000 auto; min-width: 0; font-size: 11px; color: var(--dim); direction: rtl; text-align: left; }
-.row > .icon { margin-left: auto; visibility: hidden; }
-.row:hover > .icon, .row:focus-within > .icon { visibility: visible; }
+.open { all: unset; display: flex; align-items: center; gap: 7px; flex: 1; min-width: 0; height: 100%; }
+.open:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 7px; }
+.open > span { overflow: hidden; text-overflow: ellipsis; flex: none; }
+.open > .name { flex: 0 1 auto; min-width: 0; }
+.open > .folder { flex: 0 1000 auto; min-width: 0; font-size: 11px; color: var(--dim); direction: rtl; text-align: left; }
+/* Shown under the pointer; still there for VoiceOver and a click. */
+.row > .icon { margin-left: auto; opacity: 0; }
+.row:hover > .icon, .row:focus-within > .icon { opacity: 1; }
 .empty { margin: 0; padding: 0 10px; height: 28px; line-height: 28px; color: var(--dim); }
 .symbol { display: inline-block; flex: none; width: 13px; height: 13px; background: currentColor;
   -webkit-mask: var(--symbol) center / contain no-repeat; mask: var(--symbol) center / contain no-repeat; }
-.row > .symbol { color: var(--dim); }
+.open > .symbol { color: var(--dim); }
 .icon { all: unset; display: grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 6px;
   color: var(--dim); }
 .icon .symbol { width: 11px; height: 11px; }
@@ -45,10 +47,11 @@ header .icon { margin-left: auto; }
 .M, .T { color: var(--needs-you); }
 .A, .U, .R { color: var(--finished); }
 .D, .C { color: var(--error); }
-.commit { gap: 6px; padding-left: 4px; }
+.commit { padding-left: 4px; }
+.commit .open { gap: 6px; }
 .commit svg { flex: none; }
-.commit > .hash { margin-left: auto; font: 11px ui-monospace, monospace; color: var(--dim); }
-.commit > .when { min-width: 52px; text-align: right; font-size: 11px; color: var(--dim); }
+.commit .hash { margin-left: auto; font: 11px ui-monospace, monospace; color: var(--dim); }
+.commit .when { min-width: 52px; text-align: right; font-size: 11px; color: var(--dim); }
 .badge { display: flex; align-items: center; gap: 3px; height: 18px; padding: 0 7px; border-radius: 9px; font-size: 11px;
   color: var(--dim); background: color-mix(in srgb, var(--text) 8%, transparent); }
 .badge .symbol { width: 10px; height: 10px; }
