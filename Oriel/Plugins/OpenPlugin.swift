@@ -22,7 +22,13 @@ extension Page {
         guard chooser.starting == nil, chooser.opening == nil else { return }
         chooser.opening = kind
         Task {
-            defer { store.drop(chooser) }
+            defer {
+                // Kept while the replace waits for its snapshot (`drop(closed:)` drops it then): else the old pane's
+                // shell showed until the new pane took its place.
+                if chooser.paneID.map({ store.ahead.replacing[$0] == nil }) ?? true {
+                    store.drop(chooser)
+                }
+            }
             let clock = ContinuousClock(), begun = clock.now
             while chooser.paneID.flatMap(store.pane).flatMap({ store.workspace(of: $0.tabID) }) == nil,
                   clock.now - begun < .seconds(10), store.choosers.contains(where: { $0 === chooser })
