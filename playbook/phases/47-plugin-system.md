@@ -251,7 +251,8 @@ working until this track switches the default plugins to installed packages.
 - **Decisions:** `plugins/explorer` is a package with its own `node_modules` (CodeMirror, `@pierre/trees`,
   markdown-it, pdf.js) and lockfile; `make web` runs `npm ci` there, checks it with `tsc` against
   `@oriel/plugin-api` (a link `plugins/node_modules/@oriel/plugin-api` to `web/oriel`, as track E) and bundles
-  `main.ts` with esbuild into `.build/web/explorer`. `card.css` is the app's base for every plugin page
+  `main.ts` with esbuild into `.build/web/explorer`. The manifest's `assets` (pdf.js's files, places.json) is
+  track F's key for its build; `make web` copies the same files until then. `card.css` is the app's base for every plugin page
   (`web/oriel/card.css`); the explorer's own CSS is imported by `main.ts` (a dynamic import's CSS gets no link),
   scoped by `data-place`.
 - **Decisions:** `main.ts` routes the four places, each a module loaded with `import()`. A move draws the new place
