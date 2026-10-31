@@ -141,7 +141,6 @@ export async function show(place: Place): Promise<Reveal> {
     let entries: { name: string; folder: boolean; ignored: boolean }[]
     try {
       entries = await oriel.files.list(at ? `${base}/${at.slice(0, -1)}` : top)
-      if (rooted) repository = await rooted
     } catch {
       if (at) return
       children.clear()
@@ -151,6 +150,8 @@ export async function show(place: Place): Promise<Reveal> {
       failed = true
       show()
       return
+    } finally {
+      if (rooted) repository = await rooted
     }
     if (!at) failed = false
     // An empty folder too: a refresh lists it again.
