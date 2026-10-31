@@ -80,8 +80,6 @@ class BrowserView: WKWebView {
         }
     }
 
-    /// At 1x (6 MB for a full-window card on Retina, not 24): a cover shows a few frames and a tile is scaled down.
-    /// About 8 ms in WebKit's process, also out of a window.
     /// A picture was taken (the registry counts it under its cap).
     var pictured: (() -> Void)?
     private var loads: NSKeyValueObservation?
@@ -98,6 +96,8 @@ class BrowserView: WKWebView {
         }
     }
 
+    /// At 1x (6 MB for a full-window card on Retina, not 24): a cover shows a few frames and a tile is scaled down.
+    /// About 8 ms in WebKit's process, also out of a window.
     func takePicture(then taken: ((CGImage) -> Void)? = nil) {
         guard !bounds.isEmpty, url != nil else { return }
         let configuration = WKSnapshotConfiguration()

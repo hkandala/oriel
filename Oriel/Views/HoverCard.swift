@@ -58,7 +58,8 @@ private struct HoverPanelHost: ViewModifier {
                 PanelLayout(trigger: trigger, place: open?.place ?? .under) {
                     // In only: the panel would lose its place on the way out.
                     if let open {
-                        open.content.transition(.asymmetric(
+                        // Another trigger's panel is another view: no state carries over.
+                        open.content.id(open.owner).transition(.asymmetric(
                             insertion: .opacity.combined(with: NSWorkspace.shared
                                 .accessibilityDisplayShouldReduceMotion ? .identity
                                 : .scale(scale: 0.97, anchor: open.place.panel))

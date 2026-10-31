@@ -36,29 +36,35 @@ extension PaneViewRegistry {
         prewarm()
     }
 
-    /// The selected tab's neighbors' web cards, made 0.5 s after a show while the strip rests and the kept bound has
-    /// room, at their size in the page: a swipe or a key to them finds them made and drawn (making one took 40 ms of
-    /// a frame as the strip rested). They count as the least recently shown.
+    /// The selected tab's neighbors' web cards, made 0.5 s after a tab shows while the strip rests (not under the
+    /// overview) and the kept bound has room for the cards in view too, one a turn 0.1 s apart, at their size in the
+    /// page: a swipe or a key to them finds them made and drawn (making one took 40 ms of a frame as the strip
+    /// rested). They count as the least recently shown. Snapshots of the same tab do not start it again.
     func prewarm() {
+        let selected = pages?.current?.selectedTab?.id
+        guard selected != prewarmed else { return }
+        prewarmed = selected
         prewarming?.cancel()
         prewarming = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(500))
-            guard !Task.isCancelled, let self, let page = pages?.current, !page.stripMoving,
-                  let workspace = page.selectedWorkspace, stripSize != .zero,
+            guard let self, let page = pages?.current, let workspace = page.selectedWorkspace, stripSize != .zero,
                   let index = workspace.tabs.firstIndex(where: { $0.id == page.selectedTab?.id }) else { return }
             let area = CGRect(x: 0, y: 0, width: stripSize.width - 2 * gap, height: stripSize.height - 4 - gap)
             for tab in [index - 1, index + 1].filter(workspace.tabs.indices.contains).map({ workspace.tabs[$0] }) {
                 for card in tab.tree.map({ Parts($0, in: area, held: [:]).cards }) ?? [] {
+                    guard !Task.isCancelled, !page.stripMoving, pages?.overview != true,
+                          Self.recentWeb.count(where: { $0.registry?.droppable($0.id) == true }) + webInView.count
+                          < Self.spareWeb else { return }
                     guard let pane = page.store.pane(card.id), pane.plugin != nil, let id = pane.terminalID,
-                          webView(id) == nil, !page.floats(pane) else { continue }
-                    guard Self.recentWeb.count(where: { $0.registry?.droppable($0.id) == true }) < Self.spareWeb
-                    else { return }
-                    let made = pane.browser != nil ? page.browser(pane)?.view : page.plugin(pane)?.web.view
+                          webView(id) == nil, !page.floats(pane),
+                          let made = pane.browser != nil ? page.browser(pane)?.view : page.plugin(pane)?.web.view
+                    else { continue }
                     let inset = pane.browser != nil ? 6 : PaneCard.inset
-                    made?.frame = CGRect(x: 0, y: 0, width: max(card.rect.width - 2 * inset, 1),
-                                         height: max(card.rect.height - page.headerHeight(pane) - inset, 1))
-                    made?.pictureLoadsOutOfWindow()
+                    made.frame = CGRect(x: 0, y: 0, width: max(card.rect.width - 2 * inset, 1),
+                                        height: max(card.rect.height - page.headerHeight(pane) - inset, 1))
+                    made.pictureLoadsOutOfWindow()
                     Self.recentWeb.insert(Kept(registry: self, id: id), at: 0)
+                    try? await Task.sleep(for: .milliseconds(100))
                 }
             }
         }

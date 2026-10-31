@@ -59,12 +59,14 @@ final class PaneViewRegistry {
     /// Dropped web cards' and chats' last pictures (`pictured`), until made again.
     var pictures: [(id: String, picture: CGImage)] = []
     var prewarming: Task<Void, Never>?
+    /// The tab whose neighbors `prewarming` makes.
+    var prewarmed: String?
     /// The strip's page, for web cards made before they show (`prewarm`).
     var stripSize = CGSize.zero
     /// Chat cards' pictures from their views in the window (`ChatProbe`), by terminal id.
     var chatViews: [String: () -> CGImage?] = [:]
     /// The terminals in view at the last `show`: a chat among them that left takes its picture.
-    var shownIDs: Set<String> = []
+    private var shownIDs: Set<String> = []
 
     init() {
         _ = Self.pressure

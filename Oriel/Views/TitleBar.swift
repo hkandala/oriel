@@ -96,6 +96,8 @@ struct TitleBar: View {
             // A click takes the keyboard from the card.
             page.focusKeyboardCard()
         }
+        // Made anew per session, as the tab bar: its open panel holds the session it opened on.
+        .id(page.id)
         // ⌃⌘O is the menu's.
         IconButton(symbol: "square.grid.2x2", help: "Show Overview", key: .overview) { pages.toggleOverview() }
             .accessibilityIdentifier("titlebar.overview")
