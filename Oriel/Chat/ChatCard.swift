@@ -127,10 +127,10 @@ struct CardState: View {
 }
 
 /// A small segmented control in the app's own style, as the tab bar.
-struct Segments: View {
+struct Segments<Value: Hashable>: View {
     let id: String
-    let options: [(String, Bool)]
-    @Binding var selection: Bool
+    let options: [(String, Value)]
+    @Binding var selection: Value
     @Environment(\.look) private var look
 
     var body: some View {
