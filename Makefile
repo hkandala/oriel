@@ -23,16 +23,22 @@ lint:
 	swiftformat --lint .
 	swiftlint lint --strict --quiet
 
-# The plugin cards' pages (Oriel/Plugins/Web): one module per kind, shared chunks; the project copies .build/web
-# into the app's resources.
+# The default plugins' pages (Oriel/Plugins/Web), a folder per plugin that the scheme serves as
+# oriel-plugin://<id>/: its pages (one module each, shared chunks), card.css and its package.json, which the registry
+# reads. The project copies .build/web into the app's resources.
+ESBUILD = web/node_modules/.bin/esbuild --bundle --splitting --format=esm --minify --target=safari18 \
+	--log-level=warning --external:*.svg --external:*.gif
+
 web: web/node_modules/.package-lock.json
 	rm -rf .build/web
-	web/node_modules/.bin/esbuild web/src/*.ts web/src/*.css --bundle --splitting --format=esm --minify \
-		--target=safari18 --log-level=warning --external:*.svg --external:*.gif --outdir=.build/web
+	$(ESBUILD) web/src/{files,file,preview,markdown}.ts web/src/{card,files}.css --outdir=.build/web/explorer
+	$(ESBUILD) web/src/{git,diff}.ts web/src/{card,git,diff}.css --outdir=.build/web/git
+	for id in explorer git; do cp plugins/$$id/package.json .build/web/$$id/; done
 	@# pdf.js's worker, decoders, fonts and character maps, which it loads by name from the page's folder. Its viewer's
 	@# CSS names images of the editing tools the cards leave out.
 	cp web/node_modules/pdfjs-dist/build/pdf.worker.min.mjs web/node_modules/pdfjs-dist/wasm/{openjpeg,jbig2,qcms_bg}.wasm \
-		web/node_modules/pdfjs-dist/standard_fonts/*.{pfb,ttf} web/node_modules/pdfjs-dist/cmaps/*.bcmap .build/web
+		web/node_modules/pdfjs-dist/standard_fonts/*.{pfb,ttf} web/node_modules/pdfjs-dist/cmaps/*.bcmap \
+		.build/web/explorer
 
 web/node_modules/.package-lock.json: web/package-lock.json
 	npm ci --prefix web --no-audit --no-fund

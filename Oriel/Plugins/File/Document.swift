@@ -56,8 +56,8 @@ extension WebCard {
         // A diff of the uncommitted changes follows its work tree; a commit's never changes.
         // ponytail: on This Mac a build under an ignored folder makes the diff ask git about once a second; skip
         // events under ignored folders if that costs.
-        guard kind != .git || diff.source == "uncommitted" else { return }
-        let changes = await Files.watch(kind == .git ? diff.root : arg, exec: store.machine.exec())
+        guard page != .diff || diff.source == "uncommitted" else { return }
+        let changes = await Files.watch(page == .diff ? diff.root : arg, exec: store.machine.exec())
         if page == .files || page == .diff {
             // What changed while the card was hidden.
             send(["op": "changed"])
@@ -99,7 +99,7 @@ extension WebCard {
 
     /// A diff's repo root and source, from its argument.
     var diff: (root: String, source: String?) {
-        PaneLabel(plugin: kind.rawValue, iid: "", arg: arg).diff
+        PaneLabel(plugin: plugin, iid: "", arg: arg).diff
     }
 
     /// The reply to `read` and the file's hash, nil for the info view. Preview reads only the image types both

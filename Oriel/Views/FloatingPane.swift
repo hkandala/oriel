@@ -41,8 +41,8 @@ extension Page {
         if let label = pane.browser {
             return ("Browser", browserTitle(pane, label))
         }
-        if let label = pane.plugin, let kind = label.kind {
-            return (kind.name, label.title)
+        if let label = pane.plugin {
+            return (label.manifest?.name ?? label.plugin, label.title)
         }
         return pane.agentTitle.map { (pane.agentLabel ?? "", $0) }
     }
@@ -198,6 +198,8 @@ struct FloatingWindow: View {
                     FloatingBrowser(browser: browser, page: page)
                 } else if let plugin {
                     FloatingPlugin(plugin: plugin, page: page)
+                } else if let pane, let label = pane.plugin, label.manifest == nil, terminal == nil {
+                    MissingPlugin(label: label, pane: pane, page: page)
                 } else if let chat, chat.showsChat {
                     ChatView(chat: chat, page: page, terminal: terminal)
                 } else if let terminal {

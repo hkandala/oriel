@@ -60,7 +60,7 @@ struct BrowserCard: View {
                     if let picture = browser.view.shot.image, let pane = browser.store?.pane(browser.paneID) {
                         CardPicture(picture: picture, pane: pane)
                     } else {
-                        PluginLoader(kind: .browser)
+                        PluginLoader(plugin: Registry.browser)
                     }
                 } else if !browser.loaded {
                     Image(systemName: "globe").font(.system(size: 44, weight: .light)).foregroundStyle(.tertiary)

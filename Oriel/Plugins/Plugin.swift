@@ -2,29 +2,6 @@ import HerdrKit
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// The pane kinds Oriel draws itself over a herdr pane that runs a placeholder, named by the pane's label
-/// (future-work/plugins/labels): the browser and the default plugins.
-enum PluginKind: String, CaseIterable {
-    case browser, explorer, git
-
-    /// The tab's first part, the placeholder's title and the chooser's row.
-    var name: String {
-        self == .explorer ? "File Explorer" : rawValue.capitalized
-    }
-
-    /// Every symbol a plugin card shows: its kind's and its pages'.
-    static let symbols = Set(allCases.map(\.symbol) + PluginPage.allCases.map(\.symbol))
-
-    /// Its SF Symbol: the card's, the tab's and the chooser's icon.
-    var symbol: String {
-        switch self {
-        case .browser: "globe"
-        case .explorer: "folder"
-        case .git: "arrow.triangle.branch"
-        }
-    }
-}
-
 /// A plugin card's web page (`web/src/<page>.ts`), which its argument picks: the File Explorer's tree, File, Preview
 /// or Markdown; Git's home (`<root>`) or a diff (`<root> <source>`).
 enum PluginPage: String, CaseIterable {
@@ -33,10 +10,12 @@ enum PluginPage: String, CaseIterable {
     /// A folder's argument ends in `/`; a file opens by its name alone (a remote file is not read first): Markdown,
     /// then images, PDF, audio and video, then text. A name the system does not know (`.rs`, `Makefile`) is text;
     /// anything else previews, which shows its icon, size and Open With.
-    init(_ kind: PluginKind, _ arg: String) {
-        guard kind == .explorer else {
+    /// Nil for any other plugin: these pages are File Explorer's and Git's.
+    init?(_ plugin: String, _ arg: String) {
+        guard plugin == "explorer" else {
+            guard plugin == "git" else { return nil }
             // Git's home, or one of its diffs.
-            self = PaneLabel(plugin: kind.rawValue, iid: "", arg: arg).diff.source == nil ? .git : .diff
+            self = PaneLabel(plugin: plugin, iid: "", arg: arg).diff.source == nil ? .git : .diff
             return
         }
         let ext = (arg as NSString).pathExtension.lowercased()
@@ -74,25 +53,24 @@ enum PluginPage: String, CaseIterable {
 }
 
 extension PaneLabel {
-    /// Its program icon: the page's a File Explorer shows, else the kind's.
-    var symbol: String? {
-        kind == .explorer ? PluginPage(.explorer, place).symbol : kind?.symbol
+    /// Its program icon: the page's a File Explorer shows, else its plugin's; a missing plugin's.
+    var symbol: String {
+        manifest.map { $0.id == "explorer" ? PluginPage($0.id, place)?.symbol ?? $0.icon : $0.icon } ?? Registry.missing
     }
 
-    /// The words of the five kinds before File Explorer and Git still open.
-    var kind: PluginKind? {
-        PluginKind(rawValue: ["file": "explorer", "preview": "explorer", "markdown": "explorer", "files": "explorer",
-                              "diff": "git"][plugin] ?? plugin)
+    /// Its plugin; nil when it is not on this Mac (a missing plugin's card shows).
+    var manifest: PluginManifest? {
+        Registry.plugin(plugin)
     }
 
     /// The card's and the tab's title, from the label alone (menus ask for every tab's): the file's or the root's
     /// name, a diff's `Changes` or short hash.
     var title: String {
-        if kind == .git, let source = diff.source {
+        if manifest?.id == "git", let source = diff.source {
             return source == "uncommitted" ? "Changes" : String(source.prefix(7))
         }
         let name = (arg as NSString).lastPathComponent
-        return name.isEmpty ? kind?.name ?? plugin : name
+        return name.isEmpty ? manifest?.name ?? plugin : name
     }
 
     /// The pane's command in herdr (ui/browser#in-herdrs-tui): the kind's name, the argument and "Shown in Oriel",
@@ -119,7 +97,7 @@ extension PaneLabel {
         cat <&0 >/dev/null &
         while kill -0 $! 2>/dev/null; do wait $!; done
         """#
-        return ["sh", "-c", script, "sh", kind?.name ?? plugin, arg]
+        return ["sh", "-c", script, "sh", manifest?.name ?? plugin, arg]
     }
 }
 
@@ -134,14 +112,18 @@ final class Plugin {
 
     /// The pane's label as the last snapshot has it: the card's own renames come later. Its iid never changes.
     private(set) var label: PaneLabel
-    /// The content: `web/src/<kind>.ts`.
+    let manifest: PluginManifest
+    /// The content: `web/src/<page>.ts`.
     let web: WebCard
 
-    init(terminalID: String, paneID: String, label: PaneLabel, place: String?, store: HostStore) {
+    init(terminalID: String, paneID: String, label: PaneLabel, manifest: PluginManifest, page: PluginPage,
+         place: String?, store: HostStore)
+    {
         self.terminalID = terminalID
         self.paneID = paneID
         self.label = label
-        web = WebCard(kind: label.kind ?? .explorer, arg: label.place, place: place, store: store)
+        self.manifest = manifest
+        web = WebCard(plugin: manifest.id, page: page, arg: label.place, place: place, store: store)
         name()
         web.view.step = { [weak self] back in
             guard let self, back ? canGoBack : canGoForward else { return false }
@@ -157,10 +139,6 @@ final class Plugin {
     /// The page's identifier names the page it shows: `file.<pane>.page`.
     func name() {
         web.view.setAccessibilityIdentifier("\(web.page.rawValue).\(paneID).page")
-    }
-
-    var kind: PluginKind {
-        label.kind ?? .explorer
     }
 
     /// Unsaved edits, as the page reports them: the dot after the title.
@@ -194,7 +172,7 @@ final class Plugin {
             return
         }
         // A path that makes no label (a control character, over 1024 characters) opens nothing, as a linked open.
-        guard PaneLabel(PaneLabel(plugin: kind.rawValue, iid: label.iid, arg: arg).text) != nil else { return }
+        guard PaneLabel(PaneLabel(plugin: manifest.id, iid: label.iid, arg: arg).text) != nil else { return }
         leave { plugin in
             plugin.back.append((plugin.web.arg, plugin.landing(arg, place)))
             plugin.forward = []
@@ -228,13 +206,23 @@ final class Plugin {
         }
     }
 
+    /// Open With's pick of another plugin: the pane's label names it, with the same iid and argument, and the card is
+    /// made again as its card.
+    func reopen(as other: PluginManifest) {
+        leave { plugin in
+            let text = PaneLabel(plugin: other.id, iid: plugin.label.iid, arg: plugin.web.arg).text
+            guard let store = plugin.web.store else { return }
+            Task { [paneID = plugin.paneID] in await store.write { try await $0.rename(pane: paneID, label: text) } }
+        }
+    }
+
     /// Show in File Explorer: the tree with the file revealed, rooted at the tree it came from, else at its folder's
     /// repository's root or the folder (as Open File Explorer Here).
     func reveal() async {
         let file = web.arg
         var root = back.last { $0.arg.hasSuffix("/") && file.hasPrefix($0.arg) }?.arg
         if root == nil, let store = web.store {
-            root = await store.arg(.explorer, in: (file as NSString).deletingLastPathComponent)
+            root = await store.arg(manifest, in: (file as NSString).deletingLastPathComponent)
         }
         // Not after another move meanwhile.
         if let root, web.arg == file {
@@ -254,7 +242,7 @@ final class Plugin {
     private func show(_ arg: String, at place: String?) {
         web.show(arg, at: place)
         name()
-        let text = PaneLabel(plugin: kind.rawValue, iid: label.iid, arg: arg).text, paneID = paneID
+        let text = PaneLabel(plugin: manifest.id, iid: label.iid, arg: arg).text, paneID = paneID
         guard let store = web.store else { return }
         renamed.insert(arg)
         renaming += 1
@@ -311,16 +299,16 @@ struct Toast {
 }
 
 extension HostStore.Pane {
-    /// A browser's or a plugin's label: the pane runs only its placeholder.
+    /// A browser's or a plugin's label, also of a plugin not on this Mac: the pane runs only its placeholder.
     var plugin: PaneLabel? {
-        PaneLabel(label).flatMap { $0.kind == nil ? nil : $0 }
+        PaneLabel(label)
     }
 }
 
 extension HostStore {
     /// A new plugin pane's label, its iid unique in the session.
-    func newLabel(_ kind: PluginKind, arg: String = "") -> PaneLabel {
+    func newLabel(_ plugin: PluginManifest, arg: String = "") -> PaneLabel {
         let taken = Set(panes.compactMap { PaneLabel($0.label)?.iid })
-        return PaneLabel(plugin: kind.rawValue, iid: PaneLabel.newIID(taken: taken), arg: arg)
+        return PaneLabel(plugin: plugin.id, iid: PaneLabel.newIID(taken: taken), arg: arg)
     }
 }

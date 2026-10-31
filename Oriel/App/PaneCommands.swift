@@ -76,17 +76,16 @@ extension CommandList {
             Command(section: .close, title: "Open Terminal Here", group: .panes, symbol: "terminal",
                     keywords: "pane shell kind") { page?.replacePane(target(), Replacement(button: "Open Terminal")) },
         ]
-        // Each on every pane but one of its kind.
-        let plugins = [
-            (PluginKind.browser, "web page url localhost"), (.explorer, "files tree folder finder"),
-            (.git, "diff changes commit uncommitted history"),
-        ].filter { pane?.plugin?.kind != $0.0 }.map { kind, keywords in
-            Command(section: .close, title: "Open \(Chooser.Row.plugin(kind).labels.name) Here", group: .panes,
-                    symbol: kind.symbol, keywords: "pane kind " + keywords, enabled: pane != nil, action: {
-                        if let page, let pane = target() {
-                            page.open(kind, in: pane)
-                        }
-                    })
+        // Each kind with a chooser row, on every pane but one of its kind.
+        let plugins = Registry.all.filter { $0.chooser != nil && pane?.plugin?.manifest?.id != $0.id }.map { plugin in
+            let keywords = ["pane kind", plugin.description.lowercased()] + plugin.keywords
+            return Command(section: .close, title: "Open \(plugin.chooser ?? plugin.name) Here", group: .panes,
+                           symbol: plugin.icon, keywords: keywords.joined(separator: " "), enabled: pane != nil,
+                           action: {
+                               if let page, let pane = target() {
+                                   page.open(plugin, in: pane)
+                               }
+                           })
         }
         let agent = Command(section: .close, title: "Start Agent Here", group: .panes, symbol: "sparkles",
                             keywords: "pane kind claude code codex pi opencode", enabled: pane != nil,

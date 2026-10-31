@@ -109,22 +109,23 @@ final class PaneViewRegistry {
         return browser
     }
 
-    /// The plugin pane's card, made on first use from its label.
-    func plugin(_ pane: HostStore.Pane, _ label: PaneLabel, terminalID: String, store: HostStore) -> Plugin {
-        if let plugin = plugins[terminalID], plugin.label.iid == label.iid {
+    /// The plugin pane's card, made on first use from its label; nil for a plugin not on this Mac or with no pages.
+    func plugin(_ pane: HostStore.Pane, _ label: PaneLabel, terminalID: String, store: HostStore) -> Plugin? {
+        if let plugin = plugins[terminalID], plugin.label.iid == label.iid, plugin.manifest.id == label.manifest?.id {
             if plugin.paneID != pane.id {
                 plugin.paneID = pane.id
             }
             return plugin
         }
-        let plugin = Plugin(terminalID: terminalID, paneID: pane.id, label: label,
+        guard let manifest = label.manifest, let page = PluginPage(manifest.id, label.place) else { return nil }
+        let plugin = Plugin(terminalID: terminalID, paneID: pane.id, label: label, manifest: manifest, page: page,
                             place: landings.removeValue(forKey: terminalID), store: store)
         plugin.web.view.onKeyboard = claim(terminalID)
         plugin.web.view.pictured = { [weak self] in self?.noted(terminalID) }
         plugin.web.view.shot.image = keptPicture(terminalID)
-        plugin.web.open = { [weak self] kind, arg, place, how in
+        plugin.web.open = { [weak self] opener, arg, place, how in
             let page = self?.pages?.page(of: terminalID)
-            Task { await page?.open(kind, arg: arg, at: place, from: terminalID, how: how) }
+            Task { await page?.open(opener, arg: arg, at: place, from: terminalID, how: how) }
         }
         plugins[terminalID] = plugin
         return plugin
@@ -143,7 +144,8 @@ final class PaneViewRegistry {
         }, uniquingKeysWith: { first, _ in first })
         // Also a label of another kind with the same iid.
         func kept(_ id: String, _ label: PaneLabel) -> Bool {
-            alive.contains(id) && labels[id].map { $0.iid == label.iid && $0.kind == label.kind } == true
+            alive.contains(id) && labels[id]
+                .map { $0.iid == label.iid && $0.manifest?.id == label.manifest?.id } == true
         }
         browsers = browsers.filter { kept($0.key, $0.value.label) }
         plugins = plugins.filter { kept($0.key, $0.value.label) }

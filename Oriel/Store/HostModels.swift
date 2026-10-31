@@ -92,6 +92,8 @@ extension HostStore {
         @ObservationIgnored var titleKey: String?
         /// What runs in the foreground (the shell when nothing else does), from the last `pane.process_info`.
         var program: Program?
+        /// The card of a plugin not on this Mac shows the pane's placeholder terminal: the user asked for it.
+        var placeholder = false
         /// Relaunch with Chat restarted its agent: the user asked for the chat, so it shows first.
         @ObservationIgnored var relaunched = false
         /// herdr was asked for the program at least once.
@@ -113,14 +115,14 @@ extension HostStore {
 
         /// A browser pane's label (ui/browser): the pane's kind.
         var browser: PaneLabel? {
-            plugin.flatMap { $0.kind == .browser ? $0 : nil }
+            plugin.flatMap { $0.plugin == Registry.browser.id ? $0 : nil }
         }
 
         /// The card header's parts: the label alone, else the program and the folder, as in Rex ("zsh", "~"). A
         /// browser's address or a plugin's argument, not its label.
         var header: (name: String?, folder: String) {
             if let plugin {
-                return (nil, plugin.arg.isEmpty ? plugin.kind?.name ?? "" : plugin.arg)
+                return (nil, plugin.arg.isEmpty ? plugin.manifest?.name ?? plugin.plugin : plugin.arg)
             }
             let name = label == nil ? programName : nil
             return (name, label ?? folder ?? (name == nil ? "terminal" : ""))

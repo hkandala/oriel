@@ -2,8 +2,9 @@ import AppKit
 import HerdrKit
 import Observation
 
-/// A new pane's chooser (ui/new-pane): Terminal, Agent (which opens its agents under it), Browser, File Explorer or
-/// Git. The app's own state, kept on the session's store so every window shows it; herdr sees a plain shell. Its
+/// A new pane's chooser (ui/new-pane): Terminal, Agent (which opens its agents under it), then every kind with a
+/// chooser row in the registry: Browser, File Explorer, Git and the user's plugins. The app's own state, kept on the
+/// session's store so every window shows it; herdr sees a plain shell. Its
 /// card is a new tab's or split's stand-in until herdr made the pane, then the pane's terminal, which a move keeps.
 @MainActor @Observable
 final class Chooser {
@@ -17,12 +18,12 @@ final class Chooser {
         Agent(name: "Pi", command: "pi"), Agent(name: "OpenCode", command: "opencode"),
     ]
 
-    /// A row of the list: `start` is an agent's, by its place in `agents`; `plugin` a browser, File Explorer or Git.
+    /// A row of the list: `start` is an agent's, by its place in `agents`; `plugin` a registry kind's, by its id.
     enum Row: Hashable {
-        case terminal, agent, plugin(PluginKind), start(Int)
+        case terminal, agent, plugin(String), start(Int)
     }
 
-    static let plugins = [PluginKind.browser, .explorer, .git].map(Row.plugin)
+    static let plugins = Registry.all.filter { $0.chooser != nil }.map { Row.plugin($0.id) }
 
     @ObservationIgnored let standIn: String?
     /// herdr's pane, once it answered.
@@ -33,8 +34,8 @@ final class Chooser {
     var selected = Row.terminal
     /// The picked agent until it is ready: the card shows the loader.
     var starting: Agent?
-    /// Browser, File Explorer or Git was picked: the card shows its loader while its pane takes this one's place.
-    var opening: PluginKind?
+    /// A kind was picked: the card shows its loader while its pane takes this one's place.
+    var opening: PluginManifest?
 
     init(standIn: String? = nil) {
         self.standIn = standIn
@@ -62,20 +63,17 @@ extension Chooser.Row {
         switch self {
         case .terminal: ("Terminal", "Shell")
         case .agent: ("Agent", "Coding agent")
-        case .plugin(.browser): ("Browser", "Web page")
-        case .plugin(.explorer): ("File Explorer", "Files and folders")
-        case .plugin(.git): ("Git", "Changes and history")
-        case let .plugin(kind): (kind.name, "")
+        case let .plugin(id): Registry.plugin(id).map { ($0.chooser ?? $0.name, $0.description) } ?? (id, "")
         case let .start(index): (Chooser.agents[index].name, Chooser.agents[index].command)
         }
     }
 
-    /// Its identifier's last part: an agent's command, a plugin's kind, else its name.
+    /// Its identifier's last part: an agent's command, a plugin's id, else its name.
     var id: String {
         if case let .start(index) = self {
             Chooser.agents[index].command
-        } else if case let .plugin(kind) = self {
-            kind.rawValue
+        } else if case let .plugin(id) = self {
+            id
         } else {
             labels.name.lowercased()
         }
@@ -158,7 +156,10 @@ extension HostStore {
             chooser.open.toggle()
             chooser.selected = chooser.open ? .start(0) : .agent
         case let .start(index): start(Chooser.agents[index], chooser)
-        case let .plugin(kind): page?.open(kind, chooser)
+        case let .plugin(id):
+            if let plugin = Registry.plugin(id) {
+                page?.open(plugin, chooser)
+            }
         case .terminal: drop(chooser)
         }
     }

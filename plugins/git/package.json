@@ -1,0 +1,17 @@
+{
+  "name": "@oriel/git",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Changes and history",
+  "keywords": ["diff", "changes", "commit", "uncommitted", "history"],
+  "oriel": {
+    "id": "git",
+    "name": "Git",
+    "api": 1,
+    "entry": "main.ts",
+    "icon": "arrow.triangle.branch",
+    "opens": { "git": true },
+    "chooser": "Git",
+    "permissions": ["files:read", "git"]
+  }
+}

@@ -207,10 +207,11 @@ extension OrielUITests {
         try XCTUnwrap(ProcessInfo.processInfo.environment[name], "run through make e2e")
     }
 
-    /// Launches the app on the session (one by default) with no window state from earlier runs; `launch` ends a
-    /// running one first.
+    /// Launches the app on the session (one by default) with no window state from earlier runs and none of the user's
+    /// plugins; `launch` ends a running one first.
     func relaunch(_ session: String? = nil, _ args: [String] = []) {
-        app.launchArguments = ["-session", session ?? one, "-ApplePersistenceIgnoreState", "YES"] + args
+        let config = args.contains("-configFolder") ? [] : ["-configFolder", "/tmp/oriel-e2e-no-config"]
+        app.launchArguments = ["-session", session ?? one, "-ApplePersistenceIgnoreState", "YES"] + config + args
         app.launch()
     }
 

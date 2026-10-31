@@ -12,9 +12,9 @@ extension Page {
     /// A browser or plugin pane takes the chooser's pane's place, with Replace Pane's steps (ui/new-pane#browser). It
     /// waits for a snapshot that has the pane: herdr's split or tab answer comes before one, and a fast pick (⌘D,
     /// then 3) would find nothing to replace.
-    func open(_ kind: PluginKind, _ chooser: Chooser) {
+    func open(_ plugin: PluginManifest, _ chooser: Chooser) {
         guard chooser.starting == nil, chooser.opening == nil else { return }
-        chooser.opening = kind
+        chooser.opening = plugin
         Task {
             defer {
                 // Kept while the replace waits for its snapshot (`drop(closed:)` drops it then): else the old pane's
@@ -30,17 +30,17 @@ extension Page {
                 try? await Task.sleep(for: .milliseconds(100))
             }
             if let id = chooser.paneID {
-                await replace(id, Replacement(plugin: kind))
+                await replace(id, Replacement(plugin: plugin))
             }
         }
     }
 
-    /// Open Browser, File Explorer or Git Here: the chooser's pick on a pane that shows it, else a Replace Pane.
-    func open(_ kind: PluginKind, in pane: HostStore.Pane) {
+    /// Open ‹chooser› Here: the chooser's pick on a pane that shows it, else a Replace Pane.
+    func open(_ plugin: PluginManifest, in pane: HostStore.Pane) {
         if let chooser = store.chooser(pane.id) {
-            open(kind, chooser)
+            open(plugin, chooser)
         } else {
-            replacePane(pane, Replacement(button: "Open \(Chooser.Row.plugin(kind).labels.name)", plugin: kind))
+            replacePane(pane, Replacement(button: "Open \(plugin.chooser ?? plugin.name)", plugin: plugin))
         }
     }
 
@@ -49,14 +49,16 @@ extension Page {
     /// window), or a pane to the card's side, which the snapshot after it selects with the keyboard; after the
     /// selected tab once the card is gone. Its card lands at a line of a file or a diff's file, once (not in the
     /// label).
-    func open(_ kind: PluginKind, arg: String, at place: String? = nil, from source: String, how: Opening) async {
-        if how == .here, let plugin = terminals.builtPlugin(source), plugin.kind == kind {
-            return plugin.go(arg, at: place)
+    func open(_ plugin: PluginManifest, arg: String, at place: String? = nil, from source: String,
+              how: Opening) async
+    {
+        if how == .here, let shown = terminals.builtPlugin(source), shown.manifest.id == plugin.id {
+            return shown.go(arg, at: place)
         }
         let card = store.panes.first { $0.terminalID == source }
         guard let tabID = card?.tabID ?? selectedTab?.id, let workspace = store.workspace(of: tabID),
               let index = workspace.tabs.firstIndex(where: { $0.id == tabID }) else { return }
-        let label = store.newLabel(kind, arg: arg), cwd = card?.cwd ?? keyboardPane?.cwd ?? "~"
+        let label = store.newLabel(plugin, arg: arg), cwd = card?.cwd ?? keyboardPane?.cwd ?? "~"
         // A path with a control character or over 1024 characters makes no plugin label.
         guard PaneLabel(label.text) != nil else { return }
         await store.write { client in
@@ -89,10 +91,10 @@ extension Page {
 }
 
 extension HostStore {
-    /// The label's argument of a pane opened in this folder: for File Explorer and Git, the folder's git repository's
-    /// root, else the folder, with the `/` of a folder.
-    func arg(_ kind: PluginKind, in folder: String) async -> String {
-        guard kind != .browser else { return "" }
+    /// The label's argument of a pane opened in this folder: for a plugin that opens folders or repositories (File
+    /// Explorer, Git), the folder's git repository's root, else the folder, with the `/` of a folder; else none.
+    func arg(_ plugin: PluginManifest, in folder: String) async -> String {
+        guard plugin.opens.folders || plugin.opens.git else { return "" }
         var root = folder
         if await gitRuns(), let repo = await Git.root(folder, exec: machine.exec()) {
             root = repo

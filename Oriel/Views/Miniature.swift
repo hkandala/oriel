@@ -65,7 +65,7 @@ private struct MiniCard: View {
                     // as it went back).
                     if let picture = pane.terminalID.flatMap(page.terminals.picture) {
                         scaled(CardPicture(picture: picture, pane: pane)
-                            .miniCard(pane.id, pane.plugin?.kind?.rawValue ?? "chat"), content, under: header)
+                            .miniCard(pane.id, pane.plugin?.manifest?.id ?? "chat"), content, under: header)
                     } else {
                         Image(systemName: pane.plugin != nil ? pane.iconID : "bubble.left.and.bubble.right")
                             .foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)

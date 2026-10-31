@@ -16,7 +16,9 @@ extension Page {
     /// has one.
     func twoRows(_ pane: HostStore.Pane?) -> Bool {
         guard let pane, !floats(pane), store.chooser(pane.id) == nil else { return false }
-        return pane.plugin != nil || pane.agent != nil || ChatAdapters.recognize(pane.program) != nil
+        // Not a missing plugin's: its card has no controls.
+        guard let label = pane.plugin else { return pane.agent != nil || ChatAdapters.recognize(pane.program) != nil }
+        return label.manifest != nil
     }
 
     /// The card's header: one row or two.
