@@ -232,13 +232,21 @@ struct PluginLoader: View {
 }
 
 /// The card of a label naming a plugin not on this Mac (removed, or from another Mac): the plugin id and the
-/// argument. The label stays, so the card comes back with the plugin.
+/// argument. The label stays, so the card comes back with the plugin. A plugin with no page yet shows its loader.
 struct MissingPlugin: View {
     let label: PaneLabel
     let pane: HostStore.Pane
     let page: Page
 
     var body: some View {
+        if let plugin = label.manifest {
+            PluginLoader(plugin: plugin)
+        } else {
+            missing
+        }
+    }
+
+    private var missing: some View {
         VStack(spacing: 12) {
             Image(systemName: Registry.missing).font(.system(size: 28)).foregroundStyle(.secondary)
             VStack(spacing: 4) {

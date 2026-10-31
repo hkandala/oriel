@@ -12,11 +12,13 @@ enum PluginPage: String, CaseIterable {
     /// anything else previews, which shows its icon, size and Open With.
     /// Nil for any other plugin: these pages are File Explorer's and Git's.
     init?(_ plugin: String, _ arg: String) {
-        guard plugin == "explorer" else {
-            guard plugin == "git" else { return nil }
+        switch plugin {
+        case "git":
             // Git's home, or one of its diffs.
             self = PaneLabel(plugin: plugin, iid: "", arg: arg).diff.source == nil ? .git : .diff
             return
+        case "explorer": break
+        default: return nil
         }
         let ext = (arg as NSString).pathExtension.lowercased()
         if arg.hasSuffix("/") {
