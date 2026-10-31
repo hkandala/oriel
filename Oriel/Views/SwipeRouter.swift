@@ -268,15 +268,6 @@ final class Paging {
         }
     }
 
-    /// To the page at once, by its offset at the page width as laid out; false before the first layout.
-    func show(_ index: Int, _ position: Binding<ScrollPosition>) -> Bool {
-        guard width > 1 else { return false }
-        landing = nil
-        offset = Double(index) * width
-        withTransaction(\.animation, nil) { position.wrappedValue.scrollTo(x: offset) }
-        return true
-    }
-
     /// The router's moves, in points toward later pages, within the first and last of `count` pages.
     func drag(_ delta: Double, count: Int, _ position: Binding<ScrollPosition>) {
         landing = nil

@@ -15,6 +15,8 @@ struct Strip: View {
     @State private var between = 0
     /// The tabs' order changed while the strip moved: it follows the selected tab when it comes to rest (`follow`).
     @State private var reordered = false
+    /// Counts the times the selected tab moved: each makes the scroll view anew on its page (`follow`).
+    @State private var moves = 0
     private static let record = UserDefaults.standard.bool(forKey: "recordStrip")
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -43,6 +45,7 @@ struct Strip: View {
                 .scrollTargetLayout()
                 .background(ScrollAnchor(step: turn, drag: drag, lift: lift))
             }
+            .id(moves)
         }
         .onGeometryChange(for: CGSize.self, of: \.size) { pages.terminals.stripSize = $0 }
         // No `.paging`: it snapped the swipe's first move to the next page (on CI).
@@ -88,25 +91,32 @@ struct Strip: View {
         }
         .onChange(of: workspace.tabs.map(\.id)) { old, new in
             let selected = page.selectedTabIDs[workspace.id]
-            if old.firstIndex(where: { $0 == selected }) != new.firstIndex(where: { $0 == selected }) {
+            // A move, not a tab made or closed (the selection and the stack take those).
+            if Set(old) == Set(new),
+               old.firstIndex(where: { $0 == selected }) != new.firstIndex(where: { $0 == selected })
+            {
                 follow()
             }
         }
     }
 
-    /// The selected tab moved (an open's new tab is made last, then moved beside its card) or tabs came before it: the
-    /// strip kept its offset, so it showed another tab's page than the selected one (item 28). It goes to the selected
-    /// tab's place by its offset, then by its id once laid out (its id alone was the position already: a scroll to it
-    /// moved nothing); while the strip moves, once it rests.
+    /// The selected tab moved (an open's new tab is made last, then moved beside its card; a drag): the strip kept its
+    /// offset and showed another tab's page than the selected one, and a scroll to the selected tab's
+    /// place found no page there (the lazy stack made none for the tab that came to it, CI): item 28. The scroll view
+    /// is
+    /// made anew, laid out on the selected tab's page from its first frame (`defaultScrollAnchor`), as for a workspace
+    /// shown; while the strip moves, once it rests.
     private func follow() {
         guard !page.stripMoving else {
             reordered = true
             return
         }
         reordered = false
-        guard let target = page.selectedTabIDs[workspace.id] else { return }
-        _ = paging.show(page.selectedIndex(in: workspace), $position)
-        Task { position.scrollTo(id: target, anchor: .leading) }
+        position = ScrollPosition(idType: String.self)
+        moves += 1
+        if let target = page.selectedTabIDs[workspace.id] {
+            Task { position.scrollTo(id: target, anchor: .leading) }
+        }
     }
 
     /// A page's cards inside its page: room for the cards' outer stroke and shadow, the scroll view clips.
@@ -269,115 +279,6 @@ private struct SplitLayout: View {
             views[new] = old.view
         }
         return views
-    }
-}
-
-/// A split's 8 pt gap: a 16 pt hit area with the resize pointer, a grip on hover (gorex's 36 × 3 pt, in
-/// `Look.grip`), a drag that moves the split live and sends on release, a double-click for 0.5, and an adjustable
-/// accessibility element (5 % steps).
-private struct SplitDivider: View {
-    let divider: Parts.Divider
-    /// The app's ratio while dragged or sent, until herdr's snapshot shows its own.
-    @Binding var held: Double?
-    let page: Page
-    let tabID: String
-    let label: String
-    @State private var hovering = false
-    @Environment(\.look) private var look
-    /// The ratio when the drag began.
-    @State private var start: Double?
-    /// The last change asked for, and the last one sent: only the latest goes, and `held` stays until its snapshot.
-    @State private var asked = 0
-    @State private var sent = 0
-
-    private var right: Bool {
-        divider.right
-    }
-
-    private var ratio: Double {
-        held ?? divider.ratio
-    }
-
-    var body: some View {
-        Color.clear
-            .frame(width: right ? gap : nil, height: right ? nil : gap)
-            .overlay {
-                Capsule().fill(look.grip)
-                    .frame(width: right ? 3 : 36, height: right ? 36 : 3)
-                    .opacity(hovering || start != nil ? 1 : 0)
-                    .animation(.easeOut(duration: 0.2), value: hovering || start != nil)
-            }
-            .overlay {
-                Color.clear.contentShape(.rect)
-                    .frame(width: right ? 16 : nil, height: right ? nil : 16)
-                    .pointerStyle(right ? .columnResize : .rowResize)
-                    .onHover { hovering = $0 }
-                    // Global: the divider moves under the pointer, so its own space would move too.
-                    .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .global).onChanged { drag in
-                        hold(dragged(drag))
-                    }.onEnded { drag in
-                        // From the gesture: a snapshot during the drag may have dropped `held`.
-                        send(hold(dragged(drag)))
-                        start = nil
-                    })
-                    .onTapGesture(count: 2) { send(hold(0.5)) }
-                    .accessibilityElement()
-                    .accessibilityLabel(label)
-                    // As the cards: a plain element shows XCUITest no value.
-                    .accessibilityAddTraits(.isStaticText)
-                    .accessibilityValue("\(Int((ratio * 100).rounded()))%")
-                    .accessibilityIdentifier("divider.\(tabID).\(divider.id)")
-                    .accessibilityAdjustableAction { direction in
-                        send(hold(ratio + (direction == .increment ? 0.05 : -0.05)))
-                    }
-            }
-            .onChange(of: divider.ratio) {
-                if sent == asked {
-                    held = nil
-                }
-            }
-            // Its split closed: a later split at the same path must not take its ratio.
-            .onDisappear { held = nil }
-    }
-
-    /// The ratio to herdr (D10). Held until the snapshot shows it; dropped when herdr refused it, or when herdr
-    /// already has it (no snapshot change would drop it then).
-    private func send(_ value: Double) {
-        // herdr has it already, and no other change is on its way.
-        guard sent != asked || abs(value - divider.ratio) > 0.0005 else {
-            held = nil
-            return
-        }
-        asked += 1
-        let change = asked
-        Task {
-            // After a write in flight (a quick second change), not refused as busy.
-            while page.store.writing {
-                try? await Task.sleep(for: .milliseconds(50))
-            }
-            // A newer change replaced it while it waited.
-            guard change == asked else { return }
-            let done = await page.store.setRatio(tab: tabID, path: divider.path, ratio: value)
-            sent = change
-            if !done {
-                held = nil
-            }
-        }
-    }
-
-    /// The ratio the drag points at, from the ratio when it began.
-    private func dragged(_ drag: DragGesture.Value) -> Double {
-        let from = start ?? ratio
-        start = from
-        return from + (right ? drag.translation.width : drag.translation.height) / max(divider.total, 1)
-    }
-
-    /// In herdr's 0.1–0.9, so the view shows what herdr keeps.
-    @discardableResult
-    private func hold(_ value: Double) -> Double {
-        let clamped = min(max(value, 0.1), 0.9)
-        held = clamped
-        return clamped
     }
 }
 

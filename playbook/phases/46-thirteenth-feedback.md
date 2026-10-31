@@ -453,3 +453,7 @@ after (Release, `sample` over tab clicks, three swipes and two overview opens).
   the strip's page number there could not be trusted. The strip now follows whenever the selected tab's place in the
   order changes, by offset and then by id once laid out, and a move during motion waits for the strip to rest (its
   scroll phase or a swipe's landing) instead of selecting the page that shows then. The five-open test is green on CI.
+- Full run (B, item 28, third look): GitTests' new tab was selected and in place, the strip at its offset, but the
+  lazy stack had made no page there (the window's hierarchy at the failure: the next tab's page one page right, none
+  for the selected one). When the selected tab moves (not when tabs are made or closed), the strip's scroll view is
+  made anew on its page, as for a workspace shown; SplitDivider moved to its own file (Strip.swift's length).
