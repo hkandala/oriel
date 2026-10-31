@@ -273,16 +273,20 @@ One path is [Future work](/docs/future-work).
 
 - The panes of the shown tab of the page in view, in each window. Other
   pages stream nothing, except in the overview (below).
-- On the Mac, the 16 most recently shown other terminals, over all pages of
+- On the Mac, the 20 most recently shown other terminals (`spareTerminals`), over all pages of
   all windows, keep their streams and their libghostty surfaces (each window
   has its own `PaneViewRegistry`; they share one count), least recently shown
   first out (D46). So coming back to a tab visited before is at once: no new
   surface, no fade, no wait for herdr's frames, and no resize. A pane shown in
   two windows has two surfaces and two streams, and counts twice. While the
-  overview is open, the cards of the page in view's tiles in view stream and
-  draw, at most 16 cards (6 on a remote machine); every terminal that stops
-  drawing also leaves a small snapshot for the overview's other tiles; its miniatures are no visit: a terminal it alone showed goes back to
-  how it was when the overview closes.
+  overview is open, the tiles show pictures: the terminals in view take a
+  snapshot as it opens, and only the cards of the page in view's tiles in
+  view that have no snapshot yet stream and draw until they drew, at most 16
+  cards (6 on a remote machine); its miniatures are no visit: a terminal it
+  alone showed goes back to how it was when the overview closes.
+- On a memory-pressure warning from macOS, the kept terminals out of view go
+  down to half (10), with the kept web cards
+  ([What stays in memory](/docs/ui/browser#what-stays-in-memory)).
 - Only the shown tab's terminals (and floating panes) draw. The others still
   read their stream into their surface, so they show what came meanwhile the
   moment they are shown. As Ghostty does for hidden tabs and covered windows,
@@ -298,7 +302,7 @@ One path is [Future work](/docs/future-work).
   marks a view visible again whenever it moves to or from a window
   (`viewDidMoveToWindow` calls `setWindowVisible(true)`), so left to it,
   hidden cards would draw every output.
-- A terminal past those 16 lets go of its stream (its herdr run ends) and of
+- A terminal past those 20 lets go of its stream (its herdr run ends) and of
   its surface. Its copy stays as a still, purgeable while no window shows it,
   so it costs no memory then (the system takes such pictures back within
   seconds). When it is shown again, a new surface is made under the
@@ -459,8 +463,8 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 - **No developer tools.** At launch the app checks once where `git` is. When
   it is only `/usr/bin/git` and `xcode-select -p` fails, the app runs no git
   on This Mac, so macOS never offers to install the developer tools. Rows on
-  every machine then have one line. This Mac's Files cards show no git and
-  its Diff cards say "git is not installed". Plugin cards on a remote machine
+  every machine then have one line. This Mac's File Explorer cards show no
+  git letters and its Git cards say "git is not installed". Plugin cards on a remote machine
   still run that machine's git.
 - **Worktrees.** herdr's `worktree.is_linked_worktree` and `repo_key` place a
   linked worktree under its repository's workspace. No git run is needed for
@@ -510,9 +514,10 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 | Browser in the chooser, Open Browser Here | `layout.apply {workspace_id, focus:false, root:{type:"pane", cwd, label:"oriel:browser#<iid>", command}}` (a new tab with the labeled placeholder pane, never a `tab_id`), then `pane.move` beside the old pane and `pane.close` of the old one; a failed move closes the new pane ([Create](/docs/ui/browser#create)) |
 | An address typed in a browser card | `pane.rename {pane_id, label:"oriel:browser#<iid> <url>"}` |
 | A link opened in a new tab (⌘-click, `target=_blank`, Open Link in New Tab) | `layout.apply {workspace_id, focus:false, root:{type:"pane", cwd, label:"oriel:browser#<iid> <url>", command}}`: a new tab after the workspace's others, with the link in the label ([Popups, links and dialogs](/docs/ui/browser#popups-links-and-dialogs)) |
-| Files or Changes in the chooser, Open Files Here, Open Changes Here | `git rev-parse --show-toplevel` on the machine for the root (none when git cannot run), then the browser's calls with the label `oriel:files#<iid> <root>` or `oriel:diff#<iid> <root> uncommitted` |
-| A linked open from a plugin card | `layout.apply {workspace_id, focus:false, root:{type:"pane", cwd, label, command}}` (a new tab, in its card's folder), `pane.get` of the new pane, then `tab.move {tab_id, insert_index}` to right after the card's tab (herdr adds the tab last); the snapshot after it selects the tab ([Ways in](/docs/ui/plugins#ways-in)) |
-| A diff's source picked in its row 2 | `pane.rename {pane_id, label:"oriel:diff#<iid> <root> <source>"}` |
+| File Explorer or Git in the chooser, Open File Explorer Here, Open Git Here | `git rev-parse --show-toplevel` on the machine for the root (none when git cannot run), then the browser's calls with the label `oriel:explorer#<iid> <root>/` or `oriel:git#<iid> <root>` |
+| An open from a plugin card in a new tab (⌘-click) | `layout.apply {workspace_id, focus:false, root:{type:"pane", cwd, label, command}}` (a new tab, in its card's folder), `pane.get` of the new pane, then `tab.move {tab_id, insert_index}` to right after the card's tab (herdr adds the tab last); the snapshot after it selects the tab ([Opening](/docs/ui/plugins#opening)) |
+| An open from a plugin card to the side (⌥-click) | the same `layout.apply` and `pane.get`, then `pane.move` of the new pane beside the card (no `tab.move`); a failed move closes the new pane |
+| A move inside a plugin card (a click, Back, Forward) | `pane.rename {pane_id, label:"oriel:<kind>#<iid> <place>"}`, also to a label the last snapshot already has |
 | Close a tab | `tab.close`; asks first only when a pane of it runs more than its shell (`pane.process_info` of each pane, at once), naming what runs, with the pane count |
 | Close a workspace | `workspace.close {workspace_id, close_group}`; asks as for a tab, with the tab and pane count. `close_group: true` for a repository's workspace with linked worktree workspaces: herdr refuses the close without it (`workspace_group_close_required`), and with it closes all of them, also ones not next to it. The git worktrees stay on disk. A worktree's own workspace closes alone |
 | Close Other Tabs, Close Tabs to the Right | one `tab.close` per tab, all at once; asks once as for a tab, with the total pane count |

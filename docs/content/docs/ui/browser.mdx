@@ -50,8 +50,9 @@ A browser pane comes from the chooser's Browser
    pane, as Replace Pane does. If the move fails, the new pane closes. The new
    pane stays hidden by its label in every tab until the old one is gone, so
    the temporary tab never shows.
-3. The card shows "Opening Browser…", then an empty address field that has
-   the keyboard.
+3. The card shows "Opening Browser…" until the snapshot that puts the new
+   pane in the old one's place, so the old pane's shell never shows. Then
+   it shows an empty address field that has the keyboard.
 4. The user types an address. Return loads it, approves its origin
    ([When a page loads by itself](#when-a-page-loads-by-itself)), removes the
    saved state, and sets the label with
@@ -106,7 +107,9 @@ server's terminal.
 - **Loader.** Only while a card first opens or reads its saved state: the
   `globe` at 28 pt, and under it a spinner left of "Opening Browser…" in
   13 pt secondary. It fades out over 0.15 s (at once with Reduce Motion). A
-  typed address shows the progress line alone.
+  typed address shows the progress line alone. A card made again after it
+  was dropped ([What stays in memory](#what-stays-in-memory)) shows its last
+  picture in place of the loader, with no fade, until its page draws.
 - **Error.** A page that fails shows, in the middle of the card, a warning
   symbol, the app's words in 14 pt, a line in secondary text for a refused
   local port, and **Reload**:
@@ -131,13 +134,63 @@ server's terminal.
 - The tab's title is "Browser", then the page's title (else its host) in
   secondary text, as a terminal tab's "zsh oriel" ("Browser | Hacker News"
   where a title is plain text: [Tab bar](/docs/ui/window#tab-bar)). Its
-  program icon shows `globe`. Its overview tile shows the page, live
-  ([Overview](/docs/ui/window#overview)).
+  program icon shows `globe`. Its overview tile shows the page's last
+  picture ([Overview](/docs/ui/window#overview)).
 - The window's `PaneViewRegistry` keeps each web view by terminal id, so a
-  card scrolled away or moved keeps its page.
+  card scrolled away or moved keeps its page, up to the budget in
+  [What stays in memory](#what-stays-in-memory).
 - A floated browser pane ([Floating pane](/docs/ui/window#floating-pane))
   keeps the toolbar under the floating window's title row. The title row
   shows "Browser" and the page's title in secondary text, with no place.
+
+## Pictures and switches
+
+WebKit paints only what shows. A page scrolled back into the strip's view,
+or put back into a window, drew blank for one to six frames. So each web
+card (a browser's or a plugin's) keeps a picture of its page:
+
+- **Taken** as the card leaves view, and for the cards in view as the
+  overview opens (`takeSnapshot`, about 8 ms in WebKit's process, also out
+  of a window). Every picture is taken at 1x: 6 MB for a full-window card
+  on a Retina screen, not 24. A cover shows for a few frames, and a tile is
+  scaled down.
+- **The cover.** As the card comes back into view, its picture sits over
+  the page until WebKit's next presentation update after its visible rect
+  changed (WebKit's SPI, else 100 ms), 2 s at most, also while a page
+  loads. It does not cover a page that shows already (a swipe's landing),
+  nor a picture of other proportions (the card resized meanwhile). A card
+  made again takes it at any size.
+- **The cap.** One cap over every picture in the app (web cards' and
+  chats'): 200 MB, the least recently taken out first. A card with no
+  picture shows its loader. Pictures are not purgeable: macOS takes
+  volatile surfaces back within seconds.
+- **Where the strip rests.** A web card is made only in the selected tab
+  (and in a floating window), and not while the strip moves: making a web
+  view took about 40 ms of the main thread, a dropped frame mid-swipe. A
+  neighbor page that the lazy strip lays out shows the card's last picture,
+  else the loader. 50 ms after a card comes into view, its web view gets
+  `renewGState`, so WebKit learns where the strip put it.
+- When a new host adopts a web view, the view keeps its size: one set to the
+  host's zero size laid the page out again and drew it blank.
+
+## What stays in memory
+
+- The web cards of the shown tab and of every floating window stay, plus
+  the 20 most recently shown other web cards, browsers and plugins together,
+  over all windows (`spareWebCards`, D46). Each kept card costs about 28 MB,
+  mostly its WebKit process, and no CPU at rest.
+- An older one is dropped: its web view and its process go, and its last
+  picture stays for its tile and its next card. When it shows again, the
+  card is made from its label, under that picture. A browser comes back
+  with its saved history ([State on the machine](#state-on-the-machine)).
+  A plugin card comes back at the place in its label, with no Back and
+  Forward.
+- A floated card and a plugin card with unsaved edits are never dropped.
+- On a memory-pressure warning from macOS
+  (`DispatchSource.makeMemoryPressureSource`), the kept cards out of view go
+  down to half the bound, and so do the kept terminals.
+- `spareWebCards` and `spareTerminals` (defaults, or `-spareWebCards N` at
+  launch) set the two bounds.
 
 ## Popups, links and dialogs
 
@@ -356,7 +409,7 @@ Open.
 | The SOCKS port is open to other accounts on the Mac | another account can reach the machine's network | accepted for a single-user Mac; a random port, open only while a card needs it |
 | A server with `AllowTcpForwarding no` | remote pages cannot load | the card says "cannot reach"; Tailscale or LAN addresses still load; a bigger server helper later |
 | `_WKInspector` is private | the Web Inspector button can break on a macOS update | Safari's Develop menu still reaches every card |
-| Web view memory | memory grows with many browser cards | no cap yet; the proposed budget of 20 kept web cards ([Memory budget](/docs/future-work/plugins#memory-budget)) |
+| Web view memory | memory grows with many browser cards | at most 20 web cards kept out of view, half on a memory-pressure warning ([What stays in memory](#what-stays-in-memory)) |
 
 ## Choices
 

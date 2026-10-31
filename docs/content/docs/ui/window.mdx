@@ -140,7 +140,7 @@ One capsule per herdr tab of the selected workspace (D42).
   title is the keyboard card's program and its folder's name, for example
   "zsh ~" or "pi oriel" (D65). An agent's tab shows the agent's name and its
   pane's name in secondary text ("Claude Code Fix login"), a browser's
-  "Browser" and its page, and a plugin's kind and title ("Files oriel"). Until the program is known (a new tab's first
+  "Browser" and its page, and a plugin's kind and title ("File Explorer oriel"). Until the program is known (a new tab's first
   second), the title is "New Tab", never the number.
 - **Plain-text titles.** Where a title is plain text, with no dimmed part, a
   ` | ` separates its two parts: "zsh | oriel", "Claude Code | Fix login",
@@ -446,7 +446,7 @@ tabs.
 - One page per tab, full width, paged. Each workspace of each session has its
   own strip, so a switch never starts from another workspace's scroll.
 - A pane the app creates shows the [New pane](/docs/ui/new-pane) chooser
-  first: Terminal, Agent, Browser, Files or Changes.
+  first: Terminal, Agent, Browser, File Explorer or Git.
 - Inside a page, pane cards follow herdr's split tree, with an 8 pt gap
   between them. The gap is the divider: drag it to resize (a grip shows on
   hover and while dragged), double-click it to reset it to 0.5, and ⌥⌘=
@@ -455,6 +455,10 @@ tabs.
 - Layout changes animate over 0.13 s: a new card slides in from its side, a
   closed one fades away, a zoom grows the card to the page and back. A
   divider drag follows the pointer.
+- Browser and plugin cards are made only in the selected tab, once the strip
+  rests. A neighbor page shows their last pictures while the strip moves,
+  and a card coming back into view shows its picture until its page drew
+  ([Pictures and switches](/docs/ui/browser#pictures-and-switches)).
 
 How it works: [Layout and sizing](/docs/layout).
 
@@ -476,19 +480,21 @@ How it works: [Layout and sizing](/docs/layout).
 - **Two rows.** A browser card, a plugin card and an agent card (herdr
   reports an agent, or the pane has a chat's launch marker) add a second row,
   32 pt, for their
-  kind's controls (D80). Row 1 keeps the title, a state capsule and the card
-  buttons, so it lines up with a terminal card's header beside it. Row 2 ends
-  where row 1 does.
+  kind's controls (D80). Row 1 keeps the title and the card buttons, so it
+  lines up with a terminal card's header beside it. Row 2 ends where row 1
+  does.
   - Browser: row 1 has the page's icon and title, row 2 the toolbar
     ([Browser](/docs/ui/browser#the-card)).
-  - Plugin: row 1 has the kind's symbol, the title and a dirty dot for
-    unsaved edits, row 2 the kind's controls
+  - Plugin: row 1 has the page's symbol, the title and the Edited dot for
+    unsaved edits, row 2 Back, Forward and the page's controls
     ([Default plugins](/docs/ui/plugins#the-card)).
   - Agent: row 1 has the pane's name: its label, else its session's title
-    ([Session titles](/docs/ui/chat-view#session-titles)), and herdr's state
-    capsule (the chat's own capsule on a chat card). Row 2 has the program
-    glyph, the agent's name and the folder in secondary text ("Claude Code
-    ~/code/oriel"), then on the right `Show: Replies ⌄` and Chat | TUI
+    ([Session titles](/docs/ui/chat-view#session-titles)). Row 2 has the
+    program glyph, the agent's name and the folder in secondary text
+    ("Claude Code ~/code/oriel"), then the agent's state as a 6 pt dot and
+    its word in the status color (herdr's, or the chat's own on a chat
+    card; none while idle), then on the right the level pill
+    (`Replies only ⌄`) and Chat | TUI
     ([Chat view](/docs/ui/chat-view#what-it-looks-like)), or Relaunch with
     Chat ([Relaunch with Chat](/docs/ui/chat-view#relaunch-with-chat)).
   - A card at the chooser and a floated card's placeholder keep one row. An
@@ -511,7 +517,7 @@ How it works: [Layout and sizing](/docs/layout).
     workspace's name as a section header, in the sidebar's order), Rename
     Pane…, Reset Pane Name.
   - Replace Pane (⇧⌘R), Open Terminal Here, Start Agent Here ▸, Open Browser
-    Here, Open Files Here, Open Changes Here
+    Here, Open File Explorer Here, Open Git Here
     ([New pane](/docs/ui/new-pane#commands-that-change-a-panes-kind)),
     Close Pane (⌘W).
 - The same items are in View ▸ Pane in the menu bar, for the keyboard card
@@ -552,8 +558,9 @@ How it works: [Layout and sizing](/docs/layout).
 ## Find bar
 
 ⌘F (Edit ▸ Find…) opens the find bar on the keyboard card; ⌘F again focuses
-its field. It is disabled on a browser card and on Preview, Diff and Files
-cards. On File and Markdown cards ⌘F, ⌘G and ⇧⌘G use the editor's own search
+its field. It is disabled on a browser card and on a plugin card that shows
+the tree, Preview, the Git home or a diff. On File and Markdown ⌘F, ⌘G and
+⇧⌘G use the editor's own search
 ([Default plugins](/docs/ui/plugins#keys)).
 - A glass capsule 320 pt wide and 32 pt tall at the card's top right, 8 pt in
   from its edge and 8 pt under the header: the field ("Find"), the match count
@@ -593,8 +600,8 @@ How it works: [Scrolling, queries and links](/docs/talking-to-herdr#scrolling-qu
 
 ## Overview
 
-Every tab of the session at a glance, live (D70): for watching many agents at
-once.
+Every tab of the session at a glance, as pictures (D70): for watching many
+agents at once.
 - **Open and close.** The title-row button (`square.grid.2x2`, between the
   Agents button and ⌘), View ▸ Show Overview, the palette, and ⌃⌘O toggle it;
   Esc and the title row's × leave it. Each window has its own; it does not come
@@ -620,17 +627,19 @@ once.
   capsule), and under it, 8 pt in, a miniature of the page: the tab's cards in
   herdr's layout, at the page's real proportions (the strip's page as it
   shows when the overview closes), each card its fill and edge with its
-  content drawn live inside, at the place and size it has in the card (no
-  header content: the tile's title row names the tab). The content is the
-  terminal, or the card's own view for any other card: a browser's page, a
-  plugin's content, a chat (its kind's symbol until the strip has shown that card). A zoomed tab shows its
+  content's picture inside, at the place and size it has in the card (no
+  header content: the tile's title row names the tab). The picture is the
+  terminal's snapshot, or the card's last picture for any other card: a
+  browser's page, a plugin's content, a chat (its kind's symbol until the
+  card has a picture). A zoomed tab shows its
   zoomed card. A floated pane's card shows the float icon. The selected tab
   of each workspace has the keyboard card's look. On hover the title row
   shows × at its end (Close Tab, as the tab bar's ×: it asks only when a
   program runs).
 - **Click.** A click on a tile selects its workspace and tab and leaves the
   overview: the tile's miniature grows to the strip's page over 0.18 s
-  (ease out), its terminals scaling up live, then the strip shows. The sidebar
+  (ease out), its terminals scaling up live (the other cards as their
+  pictures), then the strip shows. The sidebar
   and the title row stay laid out under the overview, hidden, and fade in
   together over 0.12 s from the zoom's start. The tab bar's marker
   sits on the selected tab under the overview and fades in with the title row,
@@ -652,23 +661,24 @@ once.
 
 ### How the miniatures draw
 
-- Each tile hosts the pane's own terminal view, scaled by AppKit (a layer transform): libghostty keeps its
-  size and grid, and herdr's PTY keeps the card's size. No second surface, stream or copy; the strip's
-  cards take their views back when the overview closes.
-- Any other card shows its own view in the tile, live, at the card's size and scaled to the tile: the
-  `BrowserCard` (its web view moves into the tile, then into the zoom, then back to the strip, as a
-  terminal view does) and the `ChatView`. It is disabled and takes no hit tests, so the tile keeps the
-  clicks, the wheel and the keyboard; a web view in a tile refuses the keyboard. A tile shows only a view
-  the strip already made (a browser shown before, a chat whose transcript is loaded); any other shows its
-  kind's symbol (`globe`, `bubble.left.and.bubble.right`). So the overview starts no web view, proxy or
-  transcript read, and these cards need no cap. A web view's `takeSnapshot` was not used: out of a window
-  it answers once, sometimes blank, and then not again until the page paints.
-- Only the page in view's tiles in view stream and draw, once a scroll ends: at most 16 cards (6 on a
-  remote machine) and 400 MB of surfaces. Nothing turns live or lets go while the grid scrolls or a swipe
-  moves the pages. These are not visits (D46).
-- Every other tile shows a snapshot of its terminal's last picture at the tile's pixel size, the latest
-  kept up to 100 MB; a tile with no picture yet shows a spinner and goes live first.
-- A tile turning live keeps its snapshot over the new surface until it drew, so there is no fade.
+- The tiles draw pictures, not live views, so the overview costs the window almost nothing: it opened in
+  205 ms with 20 + 20 cards kept, 327 ms before.
+- **Taken as the overview opens** for the cards in view: each terminal's snapshot and each web card's
+  picture ([Pictures and switches](/docs/ui/browser#pictures-and-switches)). The other cards keep the
+  picture from their last show. A chat's picture is taken as its card leaves view, from the window's
+  layers at its place: the deepest layer that holds the chat's rows, under 1 ms, without the reply box
+  (`cacheDisplay` drew SwiftUI's content blank, and the window's root layer took 120 ms).
+- A terminal tile with no snapshot yet shows a spinner and streams until its terminal drew, then lets go
+  and keeps its snapshot. At most 16 such cards (6 on a remote machine) and 400 MB of surfaces stream at
+  once, only the page in view's tiles in view, once a scroll ends. Nothing turns live or lets go while
+  the grid scrolls or a swipe moves the pages. These are not visits (D46). The terminals' snapshots are
+  kept up to 100 MB.
+- A web card's or a chat's tile shows its last picture, else its kind's symbol (`globe`,
+  `bubble.left.and.bubble.right`). A tile makes no web view, proxy or transcript read, and takes no web
+  view from its card (one that did drew blank as it went back).
+- **The zoom** to the page after a click shows the tab's terminals live, scaled by AppKit (a layer
+  transform): libghostty keeps its size and grid, and herdr's PTY keeps the card's size. A terminal
+  turning live keeps its snapshot over the new surface until it drew, so there is no fade.
 - Cost: a live card keeps its surface at full card size (its swap chain:
   [What streams](/docs/talking-to-herdr#what-streams)), which is why the cap is in megabytes. Tiles cannot
   get smaller surfaces: libghostty-spm takes its content scale only from the window.
@@ -690,13 +700,13 @@ clients see it there.
   quieter than the pane's folder, on one line (the
   session as the sidebar names it, so `default` shows the machine's name; a
   long one gives way first, in its middle). The quick info is the pane's
-  icon, its title and its agent's state capsule. The title is the program and
-  folder or the label, an agent's name and its pane's name, "Browser" and
-  the page, a plugin's kind and title with its dirty dot, or "New Pane" while
+  icon, its title and its agent's state (a dot and its word). The title is
+  the program and folder or the label, an agent's name and its pane's name,
+  "Browser" and the page, a plugin's kind and title with its Edited dot, or "New Pane" while
   the chooser shows, with the second part in
   secondary text (the window's title has ` | ` there). A plugin pane (any
   `oriel:` label, such as a browser) shows no line and no place. A chat pane
-  shows `Show: Replies ⌄` (only while the chat shows) and Chat | TUI after
+  shows the level pill (only while the chat shows) and Chat | TUI after
   the place. Then on the right the title
   row's 28 pt buttons: **Stay on Top** (a pin), **Close** (closes
   the pane, and asks first as any close does, in the floating window, also
@@ -728,8 +738,8 @@ clients see it there.
 - **Keys and ⌘K.** In the floating window the menu bar and the palette offer
   only what applies to it: Detach Pane (⌘W, as the red light: a window's
   close puts the pane back, nothing stops), Replace Pane (⇧⌘R), Open Terminal
-  Here, Start Agent Here, Open Browser Here, Open Files Here, Open Changes
-  Here, Close Pane (⇧⌘W), Stay on Top, Find, Find Next and Find Previous, the
+  Here, Start Agent Here, Open Browser Here, Open File Explorer Here, Open
+  Git Here, Close Pane (⇧⌘W), Stay on Top, Find, Find Next and Find Previous, the
   font size items, Copy and Paste, on a browser pane Reload Page (⌘R), Open
   Location (⌘L) and Show Web Inspector (⌥⌘I), and on a File or Markdown pane
   Save (⌘S) and on a Markdown pane Edit Mode (⌘E). The palette lists no tabs, workspaces or sessions.

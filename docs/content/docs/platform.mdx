@@ -46,9 +46,9 @@ Each library has its entry, with its license, in the app's `Acknowledgements.txt
    view, and a container removes it only if it still owns it. Stream lifetime
    follows the HostStore, never whether a view is in a window. Off-screen
    surfaces stop drawing but keep reading their stream (herdr drops a watcher
-   that reads nothing for 30 s). At most 16 streaming terminals out of view
-   (D46), least recently used first out; an evicted card frees its surface
-   and keeps its last image.
+   that reads nothing for 30 s). At most 20 streaming terminals and 20 web
+   cards out of view (D46), least recently used first out; an evicted card
+   frees its surface or its web view and keeps its last image.
    A lazy stack whose pages change under it can lay
    out none: one strip shared by every workspace drew no page after it drew
    again on a middle tab and the next workspace had fewer tabs. So each
@@ -104,8 +104,8 @@ Each library has its entry, with its license, in the app's `Acknowledgements.txt
   matching, the terminal stream's frames, the remote command envelope and
   the relay, and `Files` and `Git` (listings, reads, saves, the patch and the
   graph) run through `ProcessExec` and the relay on a real repository.
-- **Plugin tests** (`PluginTests`, `FileTests`, `MarkdownTests`, `DiffTests`,
-  `FilesTests`) open each kind in a throwaway session and check the page's
+- **Plugin tests** (`PluginTests`, `FileTests`, `MarkdownTests`,
+  `FilesTests`, `GitTests`) open each page in a throwaway session and check the page's
   text and controls through accessibility, and the labels and files through
   herdr and the disk.
 
