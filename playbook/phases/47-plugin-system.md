@@ -495,7 +495,9 @@ well for easier debugging".
 - **2 (F):** with `-configFolder` set, plugin logs go to `<config>/logs/plugins`, so the UI tests never write the
   user's `~/Library/Logs/Oriel/plugins`; PackageTests reads its log there.
 - **11 (F):** a card's first page waits for a build under way; after a failed one it shows the failure's toast, so a
-  card a failed Reload Plugin made again from a changed manifest says so (PackageTests bumps the version too).
+  card a failed Reload Plugin made again from a changed manifest says so (PackageTests bumps the version too). Such a
+  card never loaded before: its `WebCardContent` kept the old card's view identity, so the old web view stayed and
+  the new one's theme (which starts its page) never ran; it now has the card's own identity.
 - **16 (F):** DefaultPlugins' comment names Try Again (landed with 27).
 - **Flake (F):** PluginPackagesTests' npm source test hit the default 10 s bound of its own `npm pack` at a load of
   400+ (node's start); it has the app's 300 s, and the app's install gives its `tar` and `git checkout` the same.

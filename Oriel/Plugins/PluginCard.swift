@@ -19,6 +19,9 @@ struct PluginCard: View {
 
     var body: some View {
         WebCardContent(card: plugin.web)
+            // A card made again (Reload Plugin over a changed manifest) hosts its own web view and themes it, which
+            // starts its page: the old view's host and `onChange` would keep the old one.
+            .id(ObjectIdentifier(plugin))
             // Over the page alone, as the page is.
             .overlay {
                 if let failure = plugin.web.bridge?.failure {
