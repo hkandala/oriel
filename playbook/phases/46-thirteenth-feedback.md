@@ -207,6 +207,18 @@ forward; ask track D for any change in its files.
 31. **One look, also floating.** As in track D, for the Git home and the diff view, in a pane and floating, light
     and dark. Send the orchestrator rough dark screenshots of the home before polish.
 
+## Track F: the window's graph (item 14 follow-up)
+
+Files: `Oriel/Views/HoverCard.swift`, `Oriel/App/Commands.swift`, `Oriel/App/CommandList.swift`, the registry and
+`Oriel/Terminal/WebCards.swift`. Option B of track B's spike, each change measured with the same sample before and
+after (Release, `sample` over tab clicks, three swipes and two overview opens).
+
+32. **The hover panel's preference.** Replace `OpenPanelKey`, which every trigger wrote, with observed state.
+33. **The menu bar's lists.** Stop making every command twice per change.
+34. **Neighbors made ahead.** Make the selected tab's neighbors' web cards when idle, within the 20 bound.
+35. **The chooser test on this Mac.** `testSplitShowsTheChooserArrowsMoveAndEscGivesATerminal` fails only locally
+    (the pane not hittable after the tab click): find why.
+
 ## Findings
 
 ### Track B
@@ -366,3 +378,30 @@ forward; ask track D for any change in its files.
 - **For the user.** Open a long chat: the loader, then the newest messages at the bottom, while the window stays
   smooth. Split beside it and close the split: no blank, at most one short hitch at the end. Scroll up to Show Earlier
   and click it: the messages in view stay.
+
+### Track F
+
+- **Runs** (Release, `sample` of the same pass on this Mac; before → after, main-thread ms): the hover panel's
+  preference reduction 99–155 → 0; `CommandList.all` 81–94 → 19–24 and `MenuBar.body` 78–94 → 24–28; making browser
+  cards on the pass (`Browser.init`) 61–77 → 8–23. SwiftUI's update and layout of the window's one graph stays most
+  of the main thread (2.5 s in the 16 s pass, with `sample` attached): the rest is option C's to win.
+- **Cause, item 32.** Each trigger (tab capsules, the Agents button and rows) wrote an anchor preference; SwiftUI
+  combined them at every update. **Fix:** the trigger sets the window's `HoverPanels` as it opens and its frame while
+  open; only the host observes it. Its frame is kept unobserved: a first version stored it as state and redrew every
+  trigger while the tab bar moved.
+- **Cause, item 33.** The fingerprint that tells SwiftUI to rebuild the menu bar and the menu itself each made every
+  command. **Fix:** the menu bar takes the fingerprint's list.
+- **Decisions, item 34.** 0.5 s after a show, while the strip rests and the kept bound has room, the neighbors' web
+  cards are made at their size in the page; they count as the least recently shown. A browser loads out of a window
+  and takes its picture as it ends, which covers its first frames in a window. A File Explorer or Git card's page
+  loads only once shown (its theme starts it), so only its web view is made ahead.
+- **Cause, item 35.** On this Mac the window's empty compact toolbar has an accessibility frame over the title row
+  (y 33–72, the capsules 39–73): an accessibility hit test at a capsule's center finds the toolbar, and only the
+  capsule's bottom point finds the capsule. XCUITest then clicks that bottom point, which misses the button, so the
+  tab never selects. CI's screen (no notch) has a lower toolbar. VoiceOver's hit test meets the same toolbar. Hiding
+  the toolbar's view from accessibility made the hit test find the window instead, not the capsule (tried, dropped).
+  **Open:** the fix is to drop the empty toolbar (the title bar's height then needs another way) or to keep the tab
+  row below the toolbar's frame; that is a chrome change for the orchestrator.
+- **Measurement note.** The scroll meter's frame counts were 3–5 a swipe for before and after alike late at night
+  (the display was likely asleep): swipe frame rates are not compared here.
+
