@@ -51,6 +51,11 @@ export async function show(place: Place): Promise<Reveal> {
     // The viewer reads the library from here.
     Object.assign(globalThis, { pdfjsLib: pdfjs })
     const { EventBus, PDFViewer } = await import("pdfjs-dist/web/pdf_viewer.mjs")
+    // pdf.js's viewer styles (124 KB, the build copies them) only in a card that shows a PDF.
+    if (!document.querySelector("link[href='pdf_viewer.css']")) {
+      const link = Object.assign(document.createElement("link"), { rel: "stylesheet", href: "pdf_viewer.css" })
+      await new Promise((done) => document.head.append(Object.assign(link, { onload: done, onerror: done })))
+    }
     if (!live()) return
     const container = Object.assign(document.createElement("div"), { className: "pdf" })
     container.append(Object.assign(document.createElement("div"), { className: "pdfViewer" }))
