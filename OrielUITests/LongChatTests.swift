@@ -85,7 +85,7 @@ extension OrielUITests {
             }
         }
         var clicks = 0
-        while !first.exists, clicks < 10 {
+        while !first.exists, clicks < 20 {
             up()
             clicks += 1
             guard clicks <= 2 else {

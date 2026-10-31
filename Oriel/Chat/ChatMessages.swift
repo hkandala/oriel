@@ -30,9 +30,9 @@ struct ChatMessages: View, Equatable {
     @Environment(\.look) private var look
     private var settings = AppSettings()
     private static let end = "end"
-    /// The rows a long chat shows at a time, and Show Earlier adds: about 25 turns, laid out in 0.3–0.4 s on a
-    /// very busy Mac.
-    private static let block = 100
+    /// The rows a long chat shows at a time, and Show Earlier adds: about 10 turns. A split lays them out once, at its
+    /// end: 40 rows of long replies took one frame of 40–50 ms, 100 rows one of 110–160 ms.
+    private static let block = 40
 
     init(chat: Chat, page: Page, floats: Bool, composing: FocusState<Bool>.Binding) {
         self.chat = chat
