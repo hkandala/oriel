@@ -85,7 +85,6 @@ extension Character {
 }
 
 public extension Exec {
-    /// A file under the home folder, or nil when it is missing or unreadable.
     func read(home path: String) async -> String? {
         let text = try? await output(["sh", "-c", #"cat "$HOME/$1" 2>/dev/null"#, "sh", path], timeout: .seconds(5))
         return text?.isEmpty == false ? text : nil
