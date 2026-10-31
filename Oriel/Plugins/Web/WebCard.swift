@@ -52,6 +52,9 @@ final class WebCard {
     /// A save is writing: its own change on disk is no reload.
     @ObservationIgnored var saving = false
     @ObservationIgnored private var loaded = false
+    /// The card had the keyboard when it moved to another place: the new page takes it as it finishes, as WebKit
+    /// drops it with the page that had it.
+    @ObservationIgnored fileprivate var refocus = false
     @ObservationIgnored private var css = ""
 
     init(kind: PluginKind, arg: String, place: String?, store: HostStore) {
@@ -93,6 +96,7 @@ final class WebCard {
         toast = nil
         dirty = false
         ready = false
+        refocus = view.window?.firstResponder === view
         if loaded {
             script()
             view.load(URLRequest(url: PluginScheme.url(page)))
@@ -235,6 +239,10 @@ private final class Relay: NSObject, WKScriptMessageHandlerWithReply, WKNavigati
 
     func webView(_: WKWebView, didFinish _: WKNavigation!) {
         reloaded = false
+        if card?.refocus == true {
+            card?.refocus = false
+            card?.view.takeKeyboard()
+        }
     }
 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
