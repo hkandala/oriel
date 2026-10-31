@@ -273,5 +273,8 @@ forward; ask track D for any change in its files.
   digits); Stage passed paths as pathspecs, so `a*` staged `ab` too (`--literal-pathspecs`); `--all` drew the stash
   and notes (now `--branches --remotes --tags HEAD`); the page lost a typed message at each move (the app keeps the
   draft); Back came to the home's top (it lands at the change or commit it opened).
+- **Runs:** the Git UI test (stage, unstage, commit, push, every branch, back and forward, the diff's controls, a
+  refused switch's toast, the switch) is green in a chosen-tests CI run; its first runs found the push count that
+  XCUITest cannot read as a button's value (now in the label) and the diff checks on a diff with no far change.
 - **For the user:** try Pull and Push on a real remote with SSH keys (a key with a passphrase and no agent fails
   with ssh's message, since nothing can prompt), commit hooks and signing, and the branch menu with many branches.
