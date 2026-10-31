@@ -2,7 +2,7 @@ import Foundation
 import HerdrKit
 import SwiftUI
 
-/// The plugins the user trusts, each with the permissions they allowed (future-work/plugins/security#the-trust-prompt),
+/// The plugins the user trusts, each with the permissions they allowed (plugins/security#the-trust-prompt),
 /// in `trust.json` in the config folder. A plugin asks once before its code first runs, and again only when its
 /// permissions grow; the default plugins never ask.
 @MainActor @Observable
@@ -47,7 +47,7 @@ final class PluginTrust {
             defer { place = "there" }
             return switch permission {
             case "files:read": "It can read files and folders \(place)."
-            case "files:write": "It can change and delete files \(place)."
+            case "files:write": "It can change files \(place)."
             case "git": "It can read git repositories \(place), stage, commit, switch branches, pull and push."
             case "run": "It can run any command as you \(place), including ones that use the network or keep running."
             default: "It can write to the clipboard."
