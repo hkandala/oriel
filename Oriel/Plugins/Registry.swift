@@ -35,6 +35,11 @@ enum Registry {
         current.loaded = load()
     }
 
+    /// File Explorer's extensions by place, read again with every package.
+    static var places: [String: Set<String>] {
+        current.loaded.places
+    }
+
     /// The folder `oriel-plugin://<id>/` serves: the built entry's (`dist`), with its chunks, CSS and assets.
     static func files(_ id: String) -> URL? {
         guard let entry = plugin(id)?.entry else { return nil }
@@ -89,9 +94,14 @@ enum Registry {
     struct Loaded {
         let all: [PluginManifest], defaults: Set<String>, folders: [String: URL]
         let byID: [String: PluginManifest], symbols: Set<String>, problems: [String: String]
+        /// File Explorer's places.json (`ExplorerPlace`): the installed copy's, else the app's (first launch).
+        let places: [String: Set<String>]
 
         init(all: [PluginManifest], defaults: Set<String>, folders: [String: URL], problems: [String: String]) {
             (self.all, self.defaults, self.folders, self.problems) = (all, defaults, folders, problems)
+            places = [folders["explorer"], Registry.folder?.appending(path: "defaults/explorer")]
+                .lazy.compactMap { $0.flatMap { try? Data(contentsOf: $0.appending(path: "places.json")) } }.first
+                .flatMap { try? JSONDecoder().decode([String: Set<String>].self, from: $0) } ?? [:]
             byID = Dictionary(uniqueKeysWithValues: all.map { ($0.id, $0) })
             symbols = Set(all.map(\.icon) + ExplorerPlace.allCases.map(\.symbol)
                 + [missing])

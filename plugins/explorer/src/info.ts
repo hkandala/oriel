@@ -1,8 +1,9 @@
 // The info view of a file not shown (File and Preview): its icon, name, size and kind, in place of `parent`'s content.
 import type { Oriel } from "@oriel/plugin-api"
 
-/** A size as the Finder writes it (`ByteCountFormatter`'s file style): 950 bytes, 3 kB, 1.2 MB, 1.23 GB. */
-export function size(bytes: number) {
+/** A size as the Finder writes it (`ByteCountFormatter`'s file style): 950 bytes, 3 kB, 1.2 MB, 1.23 GB, half to
+ *  even, in the user's locale. */
+function size(bytes: number) {
   if (bytes === 0) return "Zero kB"
   if (bytes < 999) return bytes === 1 ? "1 byte" : `${bytes} bytes`
   let value = bytes / 1000, unit = 0
@@ -10,7 +11,13 @@ export function size(bytes: number) {
     value /= 1000
     unit++
   }
-  return `${Number(value.toFixed([0, 1, 2, 2][unit]))} ${["kB", "MB", "GB", "TB"][unit]}`
+  return new Intl.NumberFormat(undefined, {
+    style: "unit",
+    unit: ["kilobyte", "megabyte", "gigabyte", "terabyte"][unit],
+    unitDisplay: "short",
+    maximumFractionDigits: [0, 1, 2, 2][unit],
+    roundingMode: "halfEven",
+  }).format(value)
 }
 
 /** The file's facts from the app; its error text when there is no file to tell of. */

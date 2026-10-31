@@ -474,3 +474,14 @@ well for easier debugging".
 - **29 (G):** security.mdx: web storage is per plugin.
 - **30 (G):** labels.mdx's id rule and the pick's argument; index.mdx's entry module script; one memory figure (28–45 MB).
 - **31 (G):** no history in D91 and default-plugins.mdx; the unsaved-edits bullet and table include a close.
+- **7 (D):** ⌘S after Discard writes nothing: the old editor's save gives up once its place left (`live()`).
+- **8 (D):** the tree asks again with each listing of its root whether the root is a repository's, so git's letters
+  and dimmed ignored files show after a `git init` in an open tree.
+- **15 (D):** `ExplorerPlace` reads places.json with every package (`Registry.places`), so a Reset to Default, an
+  update or an edit follows Reload Plugins, not a relaunch.
+- **17 (D):** a place the card already left is never drawn, also a `fresh` one.
+- **18 (D):** the info view's size formats as main's `ByteCountFormatter`: half to even, in the user's locale.
+- **19 (D):** Show in File Explorer's list of trees keeps each tree once.
+- **21 (D):** markdown.ts names each thing once (`kept`, `present`).
+- **23 (D):** File Explorer's tsconfig is the template's (`noUncheckedSideEffectImports: false`, no `css.d.ts`).
+- **24 (D):** the tree's filter match and its refresh after a change log a failure.

@@ -9,7 +9,7 @@ enum ExplorerPlace: String, CaseIterable {
     case files, file, preview, markdown
 
     init(_ arg: String) {
-        let ext = (arg as NSString).pathExtension.lowercased(), places = Self.places
+        let ext = (arg as NSString).pathExtension.lowercased(), places = Registry.places
         if arg.hasSuffix("/") {
             self = .files
         } else if places["markdown", default: []].contains(ext) {
@@ -21,11 +21,6 @@ enum ExplorerPlace: String, CaseIterable {
                 ? .preview : .file
         }
     }
-
-    /// The page's places.json, read once: the installed copy's, else the app's (first launch).
-    private static let places = [Registry.package("explorer"), Registry.folder?.appending(path: "defaults/explorer")]
-        .lazy.compactMap { $0.flatMap { try? Data(contentsOf: $0.appending(path: "places.json")) } }.first
-        .flatMap { try? JSONDecoder().decode([String: Set<String>].self, from: $0) } ?? [:]
 
     var symbol: String {
         switch self {

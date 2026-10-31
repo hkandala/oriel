@@ -47,8 +47,8 @@ md.renderer.rules.image = (tokens, i) => {
 const marks = new Set([
   "HeaderMark", "EmphasisMark", "StrikethroughMark", "LinkMark", "URL", "LinkTitle", "CodeMark", "TaskMarker",
 ])
-// A setext heading's underline stays: hidden, it would leave an empty line.
-const shown = new Set(["FencedCode", "Autolink", "LinkReference", "SetextHeading1", "SetextHeading2"])
+// The elements whose marks stay. A setext heading's underline stays: hidden, it would leave an empty line.
+const kept = new Set(["FencedCode", "Autolink", "LinkReference", "SetextHeading1", "SetextHeading2"])
 
 // Front matter in Edit: plain secondary monospace, as the native variant draws it.
 const frontmatter = Decoration.mark({ class: "cm-frontmatter" })
@@ -63,7 +63,7 @@ function hidden(view: EditorView): DecorationSet {
       enter(node) {
         if (node.name === "Frontmatter") ranges.push(frontmatter.range(node.from, node.to))
         const parent = node.node.parent
-        if (!marks.has(node.name) || !parent || shown.has(parent.name)) return
+        if (!marks.has(node.name) || !parent || kept.has(parent.name)) return
         // A bare address (GFM) is the text itself.
         if (node.name === "URL" && parent.name !== "Link" && parent.name !== "Image") return
         if (state.selection.ranges.some((range) => range.from <= parent.to && range.to >= parent.from)) return
@@ -133,7 +133,7 @@ export async function show(place: Place): Promise<Reveal> {
   let outlined = false
 
   /** Shows Read or Edit and the outline or not, and sets row 2 and Edit Mode to match. */
-  function show(view: EditorView, nowEdit: boolean, nowOutlined: boolean) {
+  function present(view: EditorView, nowEdit: boolean, nowOutlined: boolean) {
     if (!nowEdit && (edit || !article.innerHTML)) render(article, view.state.doc.toString())
     edit = nowEdit
     outlined = nowOutlined
@@ -185,7 +185,7 @@ export async function show(place: Place): Promise<Reveal> {
   oriel.controls.set("edit-mode", { enabled: true, checked: false })
   let shown: Editor
   // Before the editor's own: ⌘F in Read shows Edit, where the search panel is.
-  keep(oriel.on("find", () => shown && !edit && show(shown.view, true, outlined)))
+  keep(oriel.on("find", () => shown && !edit && present(shown.view, true, outlined)))
   shown = await editor(place, [
     // Front matter as YAML, not as a rule and a heading.
     yamlFrontmatter({ content: markdown({ base: markdownLanguage }) }),
@@ -235,18 +235,18 @@ export async function show(place: Place): Promise<Reveal> {
   }
   const { view, land } = shown
   keep(oriel.on("control", ({ id, value }) => {
-    if (id === "mode") show(view, value === "edit", outlined)
-    else if (id === "outline") show(view, edit, value === true)
-    else if (id === "edit-mode") show(view, !edit, outlined)
+    if (id === "mode") present(view, value === "edit", outlined)
+    else if (id === "outline") present(view, edit, value === true)
+    else if (id === "edit-mode") present(view, !edit, outlined)
   }))
   // A linked open at a line (a diff's): Edit, with the caret there (`editor`). Back's landing is a path.
-  show(view, Number(place.at) >= 1, false)
+  present(view, Number(place.at) >= 1, false)
   // The app gives the card the keyboard: Read's page takes it; Edit's editor has it (`editor`).
   const focus = () => edit || article.focus()
   addEventListener("focus", focus)
   keep(() => removeEventListener("focus", focus))
   return (at) => {
-    if (Number(at) >= 1 && !edit) show(view, true, outlined)
+    if (Number(at) >= 1 && !edit) present(view, true, outlined)
     land(at)
   }
 }

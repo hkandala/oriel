@@ -87,8 +87,10 @@ export async function show(place: Place): Promise<Reveal> {
   /** The root's last listing failed. */
   let failed = false
 
-  /** Whether git's state shows: the root is a repository's root, and git runs. */
+  /** Whether git's state shows: the root is a repository's root, and git runs. Asked with each listing of the root,
+   *  so a `git init` in the tree shows git's letters. */
   let repository = false
+  const rooted = () => oriel.git.root(top).then((found) => found === top, () => false)
 
   root.innerHTML = `<p id="message" hidden></p><div id="tree"></div><div id="matches" hidden></div>`
   const tree = new FileTree({ paths: [], ...look })
@@ -214,7 +216,7 @@ export async function show(place: Place): Promise<Reveal> {
 
   /** git's letters and the open folders again, after a change on the machine. A closed folder lists when it opens. */
   async function refresh() {
-    await list("")
+    await list("", rooted())
     await git()
     for (const at of [...children.keys()]) {
       if (!at || unlisted.has(at) || !children.has(at)) continue
@@ -260,7 +262,7 @@ export async function show(place: Place): Promise<Reveal> {
     if (id === "filter") {
       filter = String(value ?? "")
       paths ??= filter ? run(loadPaths).catch(() => {}) : undefined
-      void (paths ?? queue).then(match)
+      void (paths ?? queue).then(match).catch(console.error)
     } else if (id === "collapse") {
       for (const at of children.keys()) if (at) folder(at)?.collapse()
     } else if (id === "root") {
@@ -278,7 +280,7 @@ export async function show(place: Place): Promise<Reveal> {
       due = false
       await refresh()
       if (filter) match()
-    })
+    }).catch(console.error)
   }))
 
   /** Every file of the root, for the filter: added under the folders no listing filled yet. */
@@ -325,7 +327,7 @@ export async function show(place: Place): Promise<Reveal> {
 
   // Whether the root is a repository's with the first listing, so it dims what git ignores (one wait for both, as
   // each starts a process); the rows, then git's letters.
-  await run(() => list("", oriel.git.root(top).then((found) => found === top, () => false)))
+  await run(() => list("", rooted()))
   run(async () => {
     if (place.at) await reveal(place.at)
     await git()

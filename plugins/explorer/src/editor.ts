@@ -136,7 +136,8 @@ export async function editor(place: Place, extensions: Extension[], parent: HTML
   /** Only edits: a save of the text on disk would still wake every watcher of the file. One at a time: a second
    *  would check the first's old hash; its edits keep the dot for the next ⌘S. `over` null overwrites. */
   const save = async (over: string | null = hash) => {
-    if (view.state.readOnly || !dirty || saving) return
+    // Not after the place left: after Discard its handlers live until the next place drew.
+    if (!live() || view.state.readOnly || !dirty || saving) return
     saves++
     const sent = (saving = view.state.doc)
     let failure: OrielError | undefined

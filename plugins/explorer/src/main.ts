@@ -38,13 +38,14 @@ export default async function main(oriel: Oriel) {
    *  same place again only lands, unless `fresh`. A place the card already left is not drawn. */
   const show = (arg: string, at?: string, fresh = false) => {
     const work = async () => {
-      if (!fresh && arg !== oriel.card.arg) return
+      if (arg !== oriel.card.arg) return
       if (shown?.arg === arg && !fresh) {
         if (at) shown.reveal?.(at)
         return
       }
       const place = kind(arg), old = shown
-      if (place === "files") trees.push(arg)
+      // Once each, last last.
+      if (place === "files") trees.splice(0, trees.length, ...trees.filter((tree) => tree !== arg), arg)
       // The filter shows empty: a field shown with text takes the keyboard (FilterField), and the tree starts with
       // none. In the same change, so it never shows with the last tree's text, nor a saved one.
       for (const id of ALL) {
