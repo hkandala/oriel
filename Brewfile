@@ -2,4 +2,4 @@
 brew "swiftformat" # 0.63.1 (.swiftformat sets --min-version)
 brew "swiftlint"   # 0.65.1
 brew "xcbeautify"  # 3.2.1
-brew "node"        # 24.2.0: make web (the plugin pages)
+brew "node"        # 24.2.0: make web (the plugin API runtime, the default plugins' checks)
