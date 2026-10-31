@@ -120,7 +120,7 @@ extension CommandList {
                 }
             }
         }
-        return [
+        let list = [
             Command(section: .close, title: "Detach Pane", key: .closePane, symbol: "pip.exit") {
                 page.floating[terminalID] = nil
             },
@@ -138,5 +138,6 @@ extension CommandList {
                 command.key = command.key == .closePane ? .closeTab : command.key
                 return command
             } + sizes + Self.browser(pane.flatMap(page.browser))
+        return list + Self.plugin(pane.flatMap(page.plugin), besides: list)
     }
 }

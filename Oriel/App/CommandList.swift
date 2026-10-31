@@ -98,10 +98,11 @@ struct CommandList {
                     symbol: "text.insert", keywords: "file folder path",
                     enabled: terminal) { Task { await page?.choosePath(directory: false) } },
         ] + Self.editorCommands(page: page, pane: nil, terminal: live && terminal) { [page] in page?.editor }
-        return file + Self.pane(page, tabs: tabs) { [page] in page?.keyboardPane } + close + edit + Self
+        let list = file + Self.pane(page, tabs: tabs) { [page] in page?.keyboardPane } + close + edit + Self
             .browser(browser)
             + view + paneKeys
             + palette(page) + window(page, pages)
+        return list + Self.plugin(page?.keyboardPane.flatMap { page?.plugin($0) }, besides: list)
     }
 
     private var view: [Command] {

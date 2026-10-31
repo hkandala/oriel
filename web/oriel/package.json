@@ -1,0 +1,6 @@
+{
+  "name": "@oriel/plugin-api",
+  "version": "1.0.0",
+  "description": "The types of the oriel object a plugin's entry gets (API version 1).",
+  "types": "oriel.d.ts"
+}

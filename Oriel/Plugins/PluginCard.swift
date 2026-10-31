@@ -32,10 +32,18 @@ struct PluginCard: View {
                         .transition(.move(edge: .top).combined(with: .opacity))
                 }
             }
+            .overlay {
+                if let failure = plugin.web.bridge?.failure {
+                    PluginFailure(plugin: plugin, title: failure.title, text: failure.text)
+                }
+            }
             .animation(.easeOut(duration: 0.15), value: plugin.web.toast == nil)
-            // Not in an overview tile: the card's own watch catches up when it shows again.
-            .task(id: "\(isEnabled) \(plugin.web.arg)") {
-                if isEnabled {
+            // Not in an overview tile: the card's own watch catches up when it shows again. A plugin's page stays
+            // through its moves.
+            .task(id: "\(isEnabled) \(plugin.web.page == .main ? "" : plugin.web.arg)") {
+                if isEnabled, plugin.web.page == .main {
+                    await plugin.web.bridge?.shown()
+                } else if isEnabled {
                     await plugin.web.watch()
                 }
             }
@@ -59,12 +67,14 @@ private struct ToastView: View {
         let id = "pane.\(plugin.paneID).toast"
         HStack(spacing: 10) {
             Text(toast.text).lineLimit(1).accessibilityIdentifier(id)
-            Button(toast.other.title) {
-                plugin.web.toast = nil
-                toast.other.action()
+            if let other = toast.other {
+                Button(other.title) {
+                    plugin.web.toast = nil
+                    other.action()
+                }
+                .buttonStyle(.glass)
+                .accessibilityIdentifier("\(id).other")
             }
-            .buttonStyle(.glass)
-            .accessibilityIdentifier("\(id).other")
             Button(toast.main.title) {
                 plugin.web.toast = nil
                 toast.main.action()
@@ -120,6 +130,31 @@ struct PluginToolbar: View {
                 }
             }
         }
+    }
+}
+
+/// A plugin page that stopped (its `main` threw) or cannot run (its API is too new): the title, the error's first
+/// lines, and Reload.
+private struct PluginFailure: View {
+    let plugin: Plugin
+    let title: String
+    let text: String
+
+    var body: some View {
+        VStack(spacing: 10) {
+            Image(systemName: plugin.manifest.icon).font(.system(size: 28)).foregroundStyle(.secondary)
+            Text(title).font(.system(size: 13, weight: .semibold))
+                .accessibilityIdentifier("pane.\(plugin.paneID).failure")
+            Text(text).font(.system(size: 12).monospaced()).foregroundStyle(.secondary).lineLimit(6)
+                .multilineTextAlignment(.center).textSelection(.enabled)
+            if plugin.manifest.api <= Bridge.api {
+                Button("Reload") { plugin.web.reload() }
+                    .buttonStyle(.glass).controlSize(.small).padding(.top, 4)
+                    .accessibilityIdentifier("pane.\(plugin.paneID).reload")
+            }
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
