@@ -42,6 +42,15 @@ private func error(_ oriel: String, package: String = #""version": "0.1.0""#) ->
     #expect(tree.history && tree.header[0].type == "openWith" && tree.header[1].value == .list(["src", "main.ts"]))
     #expect(tree.header[2].items?.first?.value == nil && tree.header[2].items?.first?.title == "Remote")
     #expect(tree.header[2].items?.last?.symbol == "folder")
+    #expect(error(base + #", "header": [{"type": "segmented", "id": "a", "options": [{"title": "A"}]}]"#) != nil)
+}
+
+@Test func `a control's value from the page's JSON: a boolean, a list, a string, nothing else`() {
+    #expect(PluginManifest.Value(json: true) == .bool(true))
+    #expect(PluginManifest.Value(json: 1) == nil)
+    #expect(PluginManifest.Value(json: ["a"]) == .list(["a"]))
+    #expect(PluginManifest.Value(json: "a") == .text("a"))
+    #expect(PluginManifest.Item(json: "-").value == nil && PluginManifest.Item(json: "-").title == nil)
 }
 
 @Test func `a bad manifest names its field and what is wrong`() {

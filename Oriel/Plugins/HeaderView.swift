@@ -9,22 +9,23 @@ struct PluginHeader: View {
     let page: Page
 
     var body: some View {
-        let controls = plugin.header.controls, history = plugin.header.history
-        let shown = controls.indices.filter { controls[$0].hidden != true }
+        let controls = plugin.header.controls, history = plugin.manifest.history
         HStack(spacing: 0) {
             if history {
                 BackForward(plugin: plugin)
             }
             // By index, not by place among the shown: hiding one keeps a typing field's identity, and its keyboard.
             ForEach(controls.indices, id: \.self) { index in
-                if let place = shown.firstIndex(of: index) {
-                    let after = place > 0 ? controls[shown[place - 1]] : nil
-                    HeaderItem(control: controls[index], plugin: plugin, page: page)
-                        .padding(.leading, after == nil && !history ? 0 : Self.gap(after, controls[index]))
+                let control = controls[index]
+                if control.hidden != true {
+                    let before = controls[..<index].last { $0.hidden != true }
+                    HeaderItem(control: control, plugin: plugin, page: page)
+                        .disabled(control.enabled == false || control.busy == true)
+                        .padding(.leading, before == nil && !history ? 0 : Self.gap(before, control))
                 }
             }
             // Free space goes after the controls unless a spacer or a field takes it.
-            if !shown.contains(where: { ["spacer", "field"].contains(controls[$0].type) }) {
+            if !controls.contains(where: { $0.hidden != true && ["spacer", "field"].contains($0.type) }) {
                 Spacer(minLength: 0)
             }
         }
@@ -48,57 +49,47 @@ private struct HeaderItem: View {
         let id = control.id ?? "", identifier = "pane.\(plugin.paneID).\(id)"
         // Each control its own identifier: one on the group would cover the segments' and the field's.
         switch control.type {
-        case "button": button(id).accessibilityIdentifier(identifier).disabled(control.enabled == false)
-        case "toggle": toggle(id).accessibilityIdentifier(identifier).disabled(control.enabled == false)
+        case "button": button(id).accessibilityIdentifier(identifier)
+        case "toggle": toggle(id).accessibilityIdentifier(identifier)
         case "segmented":
             Segments(id: identifier, options: (control.options ?? []).map { ($0.title ?? "", $0.value ?? "") },
                      selection: Binding { control.value?.text ?? "" } set: { plugin.header.pick(id, .text($0)) })
-                .fixedSize().disabled(control.enabled == false)
-        case "menu":
-            HeaderMenu(control: control, header: plugin.header).accessibilityIdentifier(identifier)
-                .disabled(control.enabled == false || control.busy == true)
+                .fixedSize()
+        case "menu": HeaderMenu(control: control, header: plugin.header).accessibilityIdentifier(identifier)
         case "field":
             FilterField(prompt: control.placeholder ?? "Filter",
                         text: Binding { control.value?.text ?? "" } set: { plugin.header.pick(id, .text($0)) },
                         identifier: identifier)
-                .onSubmit { plugin.header.pick(id, control.value ?? .text(""), submit: true) }
-                .disabled(control.enabled == false)
+                .onSubmit { plugin.header.pick(id, nil, submit: true) }
         case "text": text.accessibilityIdentifier(identifier)
         case "openWith": openWith.accessibilityIdentifier(identifier)
         default: Spacer(minLength: 0)
         }
     }
 
-    /// An icon button; with a badge or busy, its count after the symbol or a spinner in its place (Git's Pull and
-    /// Push).
-    @ViewBuilder
+    /// A 22 pt icon button, as `IconButton` draws one; with a badge, its count after the symbol; busy, a spinner in its
+    /// place (Git's Pull and Push). One view either way, so a click under way keeps its pressed state.
     private func button(_ id: String) -> some View {
-        let title = control.title ?? "", symbol = control.symbol ?? "questionmark"
-        if control.badge == nil, control.busy != true {
-            IconButton(symbol: symbol, help: title, size: 22) { plugin.header.pick(id, nil) }
-                .foregroundStyle(look.paneButton)
-                .accessibilityLabel(control.label ?? title)
-        } else {
-            Button { plugin.header.pick(id, nil) } label: {
-                HStack(spacing: 2) {
-                    if control.busy == true {
-                        ProgressView().controlSize(.mini).frame(width: 14)
-                    } else {
-                        Image(systemName: symbol).font(.system(size: 11)).frame(width: 14)
-                    }
-                    if let badge = control.badge {
-                        Text(badge).font(.system(size: 11).monospacedDigit())
-                    }
+        let title = control.title ?? ""
+        return Button { plugin.header.pick(id, nil) } label: {
+            HStack(spacing: 2) {
+                if control.busy == true {
+                    ProgressView().controlSize(.mini).frame(width: 14)
+                } else {
+                    Image(systemName: control.symbol ?? "questionmark").font(.system(size: 11)).frame(width: 14)
                 }
-                .padding(.horizontal, 4)
-                .frame(minWidth: 22, minHeight: 22)
+                if let badge = control.badge {
+                    Text(badge).font(.system(size: 11).monospacedDigit())
+                }
             }
-            .buttonStyle(ChromeStyle(radius: 5.5))
-            .foregroundStyle(look.paneButton)
-            .help(title)
-            // In the label: XCUITest reads no button's value.
-            .accessibilityLabel(control.label ?? control.badge.map { "\(title), \($0)" } ?? title)
+            .padding(.horizontal, 4)
+            .frame(minWidth: 22, minHeight: 22)
         }
+        .buttonStyle(ChromeStyle(radius: 5.5))
+        .foregroundStyle(look.paneButton)
+        .help(title)
+        // In the label: XCUITest reads no button's value.
+        .accessibilityLabel(control.label ?? control.badge.map { "\(title), \($0)" } ?? title)
     }
 
     /// An icon button in the accent while on.
@@ -159,9 +150,10 @@ private struct HeaderMenu: View {
     var body: some View {
         let items = control.items ?? [], value = control.value?.text
         let shown = items.first { $0.value != nil && $0.value == value }?.title ?? control.title ?? ""
+        let sections = sections(items)
         Menu {
-            ForEach(sections(items).indices, id: \.self) { index in
-                let (heading, items) = sections(items)[index]
+            ForEach(sections.indices, id: \.self) { index in
+                let (heading, items) = sections[index]
                 if let heading {
                     Section(heading) { rows(items, value) }
                 } else {

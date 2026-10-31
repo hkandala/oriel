@@ -7,8 +7,6 @@ import SwiftUI
 @MainActor @Observable
 final class Header {
     private(set) var controls: [PluginManifest.Control]
-    /// Back and Forward at the row's left.
-    let history: Bool
     /// A control event for the page: `["id": id, "value": value?, "submit": true?]` (`oriel.on("control")`).
     @ObservationIgnored var send: (([String: Any]) -> Void)?
     /// After any change of a control, the page's or the user's: the state file keeps the values.
@@ -16,7 +14,6 @@ final class Header {
 
     init(manifest: PluginManifest) {
         controls = manifest.header
-        history = manifest.history
     }
 
     /// Every control's value by id, as JSON: `oriel.controls.get`'s and the state file's `"controls"`.
@@ -31,7 +28,7 @@ final class Header {
     /// The values a card had (the state file's `"controls"`): a card made again shows them.
     func restore(_ values: [String: Any]) {
         for (index, control) in controls.enumerated() {
-            if let id = control.id, let value = values[id].flatMap(PluginManifest.Value.init) {
+            if let id = control.id, let value = values[id].flatMap(PluginManifest.Value.init(json:)) {
                 controls[index].value = value
             }
         }
@@ -42,7 +39,7 @@ final class Header {
     func set(_ id: String, _ change: [String: Any]) {
         guard let index = controls.firstIndex(where: { $0.id == id }) else { return }
         var control = controls[index]
-        if let value = change["value"].flatMap(PluginManifest.Value.init) {
+        if let value = change["value"].flatMap(PluginManifest.Value.init(json:)) {
             control.value = value
         }
         if let title = change["title"] as? String {
@@ -60,7 +57,7 @@ final class Header {
             control.badge = text.isEmpty || text == "0" ? nil : text
         }
         if let items = change["items"] as? [Any] {
-            control.items = items.map(PluginManifest.Item.init)
+            control.items = items.map { PluginManifest.Item(json: $0) }
         }
         for (key, path) in [("hidden", \PluginManifest.Control.hidden), ("enabled", \.enabled), ("busy", \.busy)] {
             if let flag = change[key] as? Bool {
@@ -73,12 +70,16 @@ final class Header {
 
     /// A pick, a toggle or a typed character: the control's value changes here first, then the page hears it. A menu's
     /// item may be an action (Choose Folder…): the page sets its value.
+    /// Return in a field sends the field's value as it is then.
     func pick(_ id: String, _ value: PluginManifest.Value?, submit: Bool = false) {
-        if let value, let index = controls.firstIndex(where: { $0.id == id }), controls[index].type != "menu",
-           controls[index].value != value
-        {
+        guard let index = controls.firstIndex(where: { $0.id == id }) else { return }
+        let control = controls[index], value = submit ? control.value : value
+        if let value, control.type != "menu", value != control.value {
             controls[index].value = value
             changed?()
+        } else if ["segmented", "field"].contains(control.type), !submit {
+            // The same segment again, or a field writing back its text as it loses focus: nothing new for the page.
+            return
         }
         var event: [String: Any] = ["id": id]
         event["value"] = value?.json
@@ -89,42 +90,9 @@ final class Header {
     }
 }
 
-extension PluginManifest.Value {
-    /// From the page's JSON: a boolean, a list of strings or a string.
-    init?(_ json: Any) {
-        // A JSON number is an NSNumber too: only a real boolean is one.
-        if let number = json as? NSNumber, CFGetTypeID(number) == CFBooleanGetTypeID() {
-            self = .bool(number.boolValue)
-        } else if let list = json as? [String] {
-            self = .list(list)
-        } else if let text = json as? String {
-            self = .text(text)
-        } else {
-            return nil
-        }
-    }
-
-    var json: Any {
-        switch self {
-        case let .bool(bool): bool
-        case let .text(text): text
-        case let .list(list): list
-        }
-    }
-
-    var text: String? {
-        if case let .text(text) = self {
-            text
-        } else {
-            nil
-        }
-    }
-}
-
-extension PluginManifest.Item {
-    /// From the page's JSON: `{ value, title, symbol }`, `{ title }` (a section heading) or `"-"` (a divider).
-    init(_ json: Any) {
-        let item = json as? [String: Any] ?? [:]
-        self.init(value: item["value"] as? String, title: item["title"] as? String, symbol: item["symbol"] as? String)
+extension PluginManifest {
+    /// A card's row 2: File Explorer's and Git's pages, else a header or Back and Forward.
+    func hasRow(_ page: PluginPage) -> Bool {
+        page != .main || history || !header.isEmpty
     }
 }

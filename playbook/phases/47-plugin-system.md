@@ -184,7 +184,9 @@ working until this track switches the default plugins to installed packages.
   controls with the page's changes over them. `controls.set` takes value, title, label, symbol, badge, items, hidden,
   enabled and busy; `""` or `0` clears a badge, `""` a symbol or label. A toggle, segments and a field change their
   value natively, then the page hears `{ id, value, submit? }`; a menu pick only sends (an item may be an action such
-  as Choose Folder…), and the page sets the menu's value. `values` is `controls.get`'s and the state file's
+  as Choose Folder…), and the page sets the menu's value. A field's value changes as the user types: the page sets it
+  only to replace or clear it (after Return), never to echo it, or a late echo puts back text the user typed past. The
+  same segment again, or a field writing back its text, sends nothing. `values` is `controls.get`'s and the state file's
   `"controls"`; `restore` puts saved values back; `changed` fires on every change for track B's 500 ms write.
 - **Decisions:** the manifest grew what the two plugins need: `history: true` draws Back and Forward first
   (`pane.<id>.go-back` / `go-forward`, the card's own history); the type `openWith`, whose value is the path the page
@@ -198,7 +200,8 @@ working until this track switches the default plugins to installed packages.
   stay. A user plugin with neither header nor history has one header row, in a pane and floating.
 - **For D and E:** a place's controls that other places lack default to `hidden: true` in the manifest, and the page
   shows them in `main` before `card.ready()`: a brand-new card draws the manifest's row until then (a card made again
-  draws its saved values). Two small parity changes to list: Git's Fetch, Pull and Push touched 2 pt apart and now
+  draws its saved values). `OpenWith` moved to `HeaderView.swift`; the built bars' row uses it until D deletes that
+  row. Two small parity changes to list: Git's Fetch, Pull and Push touched 2 pt apart and now
   touch; a PDF's `3 of 12` loses its monospaced digits.
 - **For the user:** a plugin's row 2 in a pane and floating, light and dark: the fixture in
   `OrielUITests/HeaderTests.swift` shows every control type.
