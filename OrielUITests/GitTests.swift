@@ -52,6 +52,13 @@ extension OrielUITests {
         element("pane.\(card).diff.home").click()
         let branch = element("pane.\(card).git.branch")
         XCTAssertTrue(branch.has(\.isHittable, true, within: 5))
+        // a.txt's change would be lost: git refuses, and its words show in the toast.
+        branch.click()
+        branch.menuItems["side"].click()
+        let toast = element("pane.\(card).toast")
+        XCTAssertTrue(until(10) { toast.stringValue.contains("overwritten") })
+        element("pane.\(card).toast.main").click()
+        try await send("git -C \(repo) checkout -- a.txt\r", to: left)
         branch.click()
         branch.menuItems["side"].click()
         try await expectGit("branch --show-current", "side", in: left, repo: repo)
