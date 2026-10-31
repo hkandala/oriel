@@ -6,6 +6,8 @@ import UniformTypeIdentifiers
 /// or Markdown; Git's home (`<root>`) or a diff (`<root> <source>`).
 enum PluginPage: String, CaseIterable {
     case files, file, preview, markdown, diff, git
+    /// Any other plugin's entry page.
+    case main
 
     /// A folder's argument ends in `/`; a file opens by its name alone (a remote file is not read first): Markdown,
     /// then images, PDF, audio and video, then text. A name the system does not know (`.rs`, `Makefile`) is text;
@@ -18,7 +20,10 @@ enum PluginPage: String, CaseIterable {
             self = PaneLabel(plugin: plugin, iid: "", arg: arg).diff.source == nil ? .git : .diff
             return
         case "explorer": break
-        default: return nil
+        default:
+            guard Registry.plugin(plugin)?.entry != nil else { return nil }
+            self = .main
+            return
         }
         let ext = (arg as NSString).pathExtension.lowercased()
         if arg.hasSuffix("/") {
@@ -45,6 +50,7 @@ enum PluginPage: String, CaseIterable {
         case .markdown: "doc.richtext"
         case .diff: "plusminus"
         case .git: "arrow.triangle.branch"
+        case .main: "puzzlepiece.extension"
         }
     }
 
