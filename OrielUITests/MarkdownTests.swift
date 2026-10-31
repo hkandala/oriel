@@ -1,6 +1,6 @@
 import XCTest
 
-/// The Markdown plugin (phase 44): Read renders the file, Edit (⌘E) is its own text with each mark hidden unless
+/// File Explorer's Markdown place: Read renders the file, Edit (⌘E) is its own text with each mark hidden unless
 /// the caret is in its element, the outline lists the headings, ⌘S saves, Read follows the file on disk, the
 /// overview's tile shows the page and a relative link shows its file in the card, or a new tab with ⌘.
 extension OrielUITests {

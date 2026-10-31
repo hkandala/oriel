@@ -1,10 +1,10 @@
 import XCTest
 
-/// Plugin panes (phase 42): a herdr pane labeled `oriel:<kind>#<iid> <arg>` with a placeholder, shown as the kind's
-/// card with two header rows.
+/// Plugin panes: a herdr pane labeled `oriel:<plugin>#<iid> <arg>` with a placeholder, shown as its plugin's card
+/// with two header rows.
 extension OrielUITests {
     /// The chooser's Git and ⌘K Open File Explorer Here make labeled panes in the pane's place, rooted at its git
-    /// repository (a linked open's new tab: DiffTests). File Explorer cards of a file from their labels (also an old
+    /// repository (a linked open's new tab: GitTests). File Explorer cards of a file from their labels (also an old
     /// `preview` one), their tabs titled by kind and file (the dirty dot: FileTests). The cards come back after a
     /// relaunch.
     func testPluginPanesOpenFromTheChooserThePaletteAndLinks() async throws {
