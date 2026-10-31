@@ -15,14 +15,24 @@ public struct PaneLabel: Equatable, Sendable {
     }
 
     /// Nil for a user's own label (`todo: fix login`) or one that breaks the grammar.
+    /// By hand, not a `Regex`: matching one took about 0.1 ms, and every card asks at every render (a fifth of the main
+    /// thread's time in a swipe across tabs).
     public init?(_ label: String?) {
-        // Most labels are a user's: no regex for them (every card asks at every render).
         guard let label, label.hasPrefix("oriel:") else { return nil }
-        let grammar = /oriel:([a-z0-9][a-z0-9._-]{0,63})(?:\/[a-z0-9][a-z0-9-]{0,31})?#([a-z0-9]{6})(?: +(.*))?/
-        guard let match = try? grammar.wholeMatch(in: label) else { return nil }
-        let arg = match.3.map(String.init) ?? ""
+        let body = label.dropFirst(6), head = body.prefix { $0 != " " }
+        guard let hash = head.firstIndex(of: "#") else { return nil }
+        let name = head[..<hash], iid = head[head.index(after: hash)...]
+        let parts = name.split(separator: "/", maxSplits: 1, omittingEmptySubsequences: false)
+        func word(_ text: Substring, _ most: Int, _ also: String) -> Bool {
+            let low = { (char: Character) in char.isASCII && (char.isLowercase || char.isNumber) }
+            return (1 ... most).contains(text.count) && text.first.map(low) == true
+                && text.allSatisfy { low($0) || also.contains($0) }
+        }
+        guard word(parts[0], 64, "._-"), parts.count == 1 || word(parts[1], 32, "-"), iid.count == 6,
+              word(iid, 6, "") else { return nil }
+        let arg = String(body[head.endIndex...].drop { $0 == " " })
         guard arg.count <= 1024, !arg.contains(where: \.isControl) else { return nil }
-        self.init(plugin: String(match.1), iid: String(match.2), arg: arg)
+        self.init(plugin: String(parts[0]), iid: String(iid), arg: arg)
     }
 
     public var text: String {

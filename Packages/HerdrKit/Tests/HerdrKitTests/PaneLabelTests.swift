@@ -7,6 +7,8 @@ import Testing
     #expect(PaneLabel("oriel:browser#m4p8sa") == PaneLabel(plugin: "browser", iid: "m4p8sa"))
     #expect(PaneLabel("oriel:kanban/board#7tt1qe")?.plugin == "kanban")
     #expect(PaneLabel("oriel:browser#m4p8sa a b")?.arg == "a b")
+    #expect(PaneLabel("oriel:browser#m4p8sa   a ")?.arg == "a ")
+    #expect(PaneLabel("oriel:my.plug_in-2/pane-1#m4p8sa ")?.arg == "")
     #expect(PaneLabel("oriel:browser#m4p8sa http://x")?.text == "oriel:browser#m4p8sa http://x")
     #expect(PaneLabel(plugin: "browser", iid: "m4p8sa").text == "oriel:browser#m4p8sa")
 }
@@ -14,7 +16,8 @@ import Testing
 @Test func `a user's own label or a broken one is no plugin label`() {
     for label in [nil, "todo: fix login", "oriel:browser", "oriel:browser#ABCDEF", "oriel:browser#abc12",
                   "oriel:browser#abc1234", "oriel:Browser#abc123", "oriel:#abc123", "oriel:a/b/c#abc123",
-                  "oriel:kanban/Board#abc123",
+                  "oriel:kanban/Board#abc123", "oriel:kanban/#abc123", "oriel:-a#abc123", "oriel:a#abc123\tx",
+                  "oriel:a b#abc123", "oriel:browser#abc123\nx",
                   "oriel:browser#abc123 \u{1b}[2J", "oriel:browser#abc123 " + String(repeating: "x", count: 1025)]
     {
         #expect(PaneLabel(label) == nil, "\(label ?? "nil")")
