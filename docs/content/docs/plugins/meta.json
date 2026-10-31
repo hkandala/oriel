@@ -1,0 +1,4 @@
+{
+  "title": "Plugins",
+  "pages": ["index", "default-plugins", "packages", "building", "manifest", "api", "errors", "security", "browser", "labels"]
+}

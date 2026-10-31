@@ -53,7 +53,7 @@ over SSH.
   reads the snapshot again on return.
 - Cards still in memory keep their state; only cards the system discarded
   are built again
-  ([State](/docs/future-work/plugins/api#state)).
+  ([State](/docs/plugins/api#state)).
 
 ## Connections
 
@@ -121,7 +121,7 @@ A small test build checks Citadel with the relay before any iOS work:
 ## Plugins
 
 - Plugins are web pages, and WebKit is on iOS, so the same plugin runs on the
-  iPhone and iPad ([Pane kinds and plugins](/docs/future-work/plugins)). It
+  iPhone and iPad ([Plugins](/docs/plugins)). It
   draws on the device. Its files, git and `run` calls go to the pane's
   machine, as on the Mac.
 - The first version ships only the built-in pane kinds and the core plugins
@@ -132,14 +132,15 @@ A small test build checks Citadel with the relay before any iOS work:
   §3.3.1(B)) allow plugins as web pages under conditions; the evidence is in
   [`plugins.md`](https://github.com/hkandala/oriel/blob/main/resources/research/plugins/plugins.md#plugins-on-ios).
 - The later path: a setting "Load plugins from my Mac", off by default. The
-  phone reads the Mac's built plugins (`~/Library/Caches/oriel/plugins/`)
-  over the SSH connection it already has, with one `tar` run and a safe tar
-  reader (no `..`, no links, a size cap), and asks to trust each again. iOS
-  cannot run esbuild. There is
+  phone reads each plugin's built folder on the Mac (the entry's folder in
+  `~/.config/oriel/plugins/<id>/`, for example `dist/`) over the SSH
+  connection it already has, with one `tar` run and a safe tar reader (no
+  `..`, no links, a size cap), and asks to trust each again. iOS cannot run
+  a package's build script. There is
   never an in-app plugin catalog on iOS.
 - A label for any other plugin shows the missing-plugin card with **Show
   placeholder** (switch the card to the pane's terminal)
-  ([A missing plugin](/docs/future-work/plugins#a-missing-plugin)).
+  ([A missing plugin](/docs/plugins#a-missing-plugin)).
 - At most 2 live web views on iPhone, and 6 on iPad.
 - A browser card reaches a remote `localhost` through an in-app listener
   ([Remote localhost](/docs/ui/browser#remote-localhost)).

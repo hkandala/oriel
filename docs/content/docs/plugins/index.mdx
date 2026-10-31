@@ -1,0 +1,154 @@
+---
+title: "Plugins"
+description: "Every pane kind but the terminal, the agent and the browser is a plugin: a package that Oriel installs, loads in a web view and connects to the card's machine"
+---
+
+A pane kind is what a pane shows: a terminal, an agent, a browser or a
+plugin. Terminal and Agent are herdr's own panes. Every other kind is a
+plugin: a herdr pane that runs a placeholder, with a label that names the
+plugin ([Labels and instance ids](/docs/plugins/labels)). The app draws the
+plugin's card over that pane.
+
+Every plugin is made the same way, as a pi package is:
+- A plugin is a package: a folder with a `package.json` whose `oriel` key is
+  the manifest, its TypeScript and its own `node_modules`
+  ([The manifest](/docs/plugins/manifest)).
+- The package builds itself with its own `build` script, for example
+  esbuild from `src/main.ts` into `dist/main.js`. Oriel ships no bundler. It
+  runs the script with the npm, pnpm or bun on the user's login `PATH`
+  ([Build a plugin](/docs/plugins/building)).
+- Oriel installs packages from npm, from git or from a local path
+  ([Packages and installs](/docs/plugins/packages)).
+- Each card is a web view of its own. Its page calls the app through one
+  typed object, `oriel` ([The plugin API](/docs/plugins/api)).
+- The two default plugins, File Explorer and Git, are packages too. The app
+  installs them on first launch, and they use only the public API
+  ([File Explorer and Git](/docs/plugins/default-plugins)).
+- The browser is a native web view. It is a kind in the same registry, with a
+  manifest written in Swift ([The browser](/docs/plugins/browser)).
+
+| Pane kind | Content | Its code | How herdr marks the pane |
+|---|---|---|---|
+| Terminal | native terminal (libghostty) | the app | none (the default) |
+| Agent | native terminal and chat view | the app | none (herdr sets `pane.agent`) |
+| Browser | native web view of any site | the app | label `oriel:browser#<iid> <url>` |
+| File Explorer, Git | a plugin page in a web view | packages that the app installs in `~/.config/oriel/plugins/` | label `oriel:<id>#<iid> <arg>` |
+| your plugins | a plugin page in a web view | packages on This Mac | label `oriel:<id>#<iid> <arg>` |
+
+## How the pieces connect
+
+```text
+~/.config/oriel/plugins/csv-table/     package.json (the oriel key), src/main.ts, node_modules/
+        │  npm run build: the package's own script, at install and on Reload Plugin
+        ▼
+~/.config/oriel/plugins/csv-table/dist/     main.js, main.css, chunks
+        │  served as oriel-plugin://csv-table/
+        ▼
+WKWebView, one per card ── the app's runtime makes `oriel` and imports dist/main.js
+        │  oriel.files.read(path) as a bridge message
+        ▼
+the bridge (Swift) ── checks the manifest's permissions
+        │  Exec of the card's machine
+        ▼
+This Mac, or a remote machine over the relay
+```
+
+1. The registry (`Registry`) reads the `oriel` key of every package
+   ([Where the registry looks](/docs/plugins/packages#where-the-registry-looks)).
+   A bad manifest is left out, and the plugin's log says why.
+2. The package's build script writes the entry that the manifest names
+   (`dist/main.js`), with its chunks and CSS beside it. The app runs the
+   script at install when there is no built entry, on Reload Plugin, and on
+   the card's **Build**.
+3. The scheme handler serves the entry's folder as `oriel-plugin://<id>/`,
+   under a strict Content Security Policy
+   ([Security and trust](/docs/plugins/security)). The card loads
+   `oriel-plugin://<id>/main`, a page that the app writes: it links the app's
+   `card.css`, the entry's CSS when the build wrote one (`dist/main.css`),
+   and the app's runtime, `oriel.js`.
+4. The runtime reads the card's context, which the app puts in the page
+   before any script runs. It makes the `oriel` object, imports the entry
+   and calls its default export with the object.
+5. Each call of the page is a bridge message. Swift checks it against the
+   manifest's permissions and runs it with the `Exec` of the card's machine.
+
+## Where things live
+
+| What | Where |
+|---|---|
+| Installed plugins (from npm or git, the defaults, New Plugin…) | `~/.config/oriel/plugins/<folder>/` |
+| Plugins from a local path | where they are, listed in `~/.config/oriel/settings.json` under `packages` |
+| The list of packages | `~/.config/oriel/settings.json`, `packages` |
+| A plugin's build | its own folder, for example `dist/` |
+| The API's types | `~/.config/oriel/plugins/node_modules/@oriel/plugin-api/`, written at launch when the app's copy differs |
+| Trust answers | `~/.config/oriel/trust.json` |
+| The defaults' install records | `~/.config/oriel/plugins/.defaults.json` |
+| Build output, console lines, errors | `~/Library/Logs/Oriel/plugins/<id>.log` ([Errors and logs](/docs/plugins/errors)) |
+| A card's state | in the app while it runs, and in the instance state file on the card's machine ([State](/docs/plugins/api#state)) |
+| What the app carries | `Oriel.app/Contents/Resources/web/`: the runtime (`oriel.js`), `card.css`, the types package (`plugin-api/`), the defaults' source (`defaults/<id>/`) and the template (`template/`) |
+
+- The folder is `~/.config/oriel/` and not `~/Library/Application
+  Support/`, because people and agents type the path. It has no space, and
+  agents know `~/.config`.
+- The launch argument `-configFolder <path>` puts the whole folder
+  somewhere else. The UI tests use it, so they never touch the user's
+  plugins.
+- In the repository, the defaults are `plugins/explorer` and `plugins/git`,
+  and the template is `plugins/template`. The runtime and the types are in
+  `web/oriel/`. `make web` installs, checks and builds the three packages as
+  a user would, then copies their source without `node_modules` and `dist`
+  into `.build/web`, which the project copies into the app.
+
+## Remote machines
+
+A plugin lives and builds on the Mac. Its page runs in a web view on the
+Mac. Only its data comes from the card's machine:
+- `oriel.files`, `oriel.git` and `oriel.run` go through the card's `Exec`. On
+  a remote machine that is the relay's one SSH session
+  ([Running commands](/docs/talking-to-herdr#running-commands)). The page
+  cannot pick another machine.
+- Paths in the API are the machine's paths. A watch on a remote machine is a
+  check every 2 s while the card shows
+  ([Remote machines](/docs/plugins/default-plugins#remote-machines)).
+- Nothing is installed on the machine. One plugin on the Mac works for cards
+  on every machine.
+- A plugin folder on a remote machine is not loaded.
+
+## Memory
+
+Each card has its own WebContent process, about 28 to 45 MB. Out of view,
+the 20 most recently shown web cards stay, browser and plugin cards
+together. An older one is dropped and made again from its label and its
+state when it shows
+([What stays in memory](/docs/ui/browser#what-stays-in-memory)). A card with
+unsaved edits and a floated card are never dropped.
+
+## A missing plugin
+
+A label can name a plugin that is not on this Mac: one that was removed, or
+one from another Mac. Its card shows "‹id› is not on this Mac" and the
+argument, with **Show Placeholder** (the pane's terminal) and **Close Pane**.
+When a package with that id exists but its manifest is wrong, the card says
+"‹id› did not load" and the field that is wrong, with **Show Log**. The app
+never changes the label, so the card comes back when the plugin does.
+
+## Not built
+
+- Network from a plugin page. A plugin with `run` can use `curl` on the
+  machine.
+- Plugins from a project folder (`<repo>/.oriel/plugins/`), also on a remote
+  machine.
+- Plugin settings drawn by the app from the manifest. A plugin keeps what it
+  needs in its state.
+- Install, update and listing from an agent: they come with
+  [Agent control](/docs/future-work/agent-control).
+- A plugin store, and plugins outside panes (a sidebar section, a status
+  item, a pill).
+- Plugins on iPhone and iPad ([iPhone and iPad](/docs/future-work/iphone-and-ipad#plugins)).
+
+## Choices
+
+The decisions are D89 to D94 and D96 to D103 on the
+[Decisions](/docs/decisions#pane-kinds) page. Research:
+[`plugins.md`](https://github.com/hkandala/oriel/blob/main/resources/research/plugins/plugins.md),
+[`plugin-systems.md`](https://github.com/hkandala/oriel/blob/main/resources/research/plugins/plugin-systems.md).

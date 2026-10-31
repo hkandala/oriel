@@ -19,16 +19,21 @@ description: "The words these docs use"
 | tab capsule | one tab in the tab bar |
 | lit tab | a tab whose page is visible in the strip |
 | pane card | how the app draws one herdr pane: a header plus content. A browser's, a plugin's or an agent's header has a second row for its kind's controls |
-| chooser | the list a new pane shows first: Terminal, Agent, Browser, File Explorer or Git |
+| chooser | the list a new pane shows first: Terminal, Agent, Browser, File Explorer, Git and every other plugin with a chooser row |
 | browser pane | a herdr pane labeled `oriel:browser#<iid> <url>`, which the app draws as a web page |
-| plugin pane / default plugins | a herdr pane labeled `oriel:<kind>#<iid> <arg>` that the app draws / the two kinds that come with the app: File Explorer and Git |
-| web card | a browser or plugin card, whose content is a web view of its own; a plugin's page comes from the app's `web/` bundle |
+| plugin pane / default plugins | a herdr pane labeled `oriel:<id>#<iid> <arg>` that the app draws with a plugin's page / the two plugins that come with the app: File Explorer and Git |
+| plugin (package) | a folder with a `package.json` whose `oriel` key is the manifest, its source and its own `node_modules`, built by its own `build` script ([Plugins](/docs/plugins)) |
+| manifest | the `oriel` key of a plugin's `package.json`: its id, name, entry, icon, what it opens, its header, commands and permissions |
+| registry | the app's list of every pane kind it draws over a placeholder: the browser and each plugin package |
+| plugins folder | `~/.config/oriel/plugins/`, where Oriel installs plugin packages |
+| trust prompt | the question a plugin asks once before its code or build script first runs, showing what it can do |
+| web card | a browser or plugin card, whose content is a web view of its own; a plugin's page comes from its package's build |
 | picture (card) | a card's last image at 1x, shown over a web card as it comes back, in place of a dropped one, and in its overview tile |
-| bridge (plugin) | the fixed messages between a web card's page and the app: asks with a JSON answer, reports, and messages from the app |
+| plugin API / `oriel` | the typed object a plugin's page calls: files, git, run, state, the header, opens, toasts; behind it, the bridge's messages to the app |
 | linked open | an open from a plugin card in a new herdr tab right after its card's tab (⌘-click), or in a pane to its side (⌥-click) |
 | landing | the line, diff file or row an open scrolls to, once, on the page's first load |
 | Back and Forward (plugin) | a plugin card's own list of the places it showed, walked from row 2 or with ⌘[ ⌘] |
-| Edited dot | the dot after a plugin card's title while File or Markdown has unsaved edits |
+| Edited dot | the dot after a plugin card's title while it has unsaved edits (`card.setDirty`) |
 | Git home | a Git card's first page: the branch, Fetch, Pull, Push, Commit, the changes and the history of every branch |
 | toast | a one-line glass capsule at the top of a plugin card with two buttons, for example Reload or Keep Mine |
 | info view | a plugin card's view of a file it does not show: the type's icon, the name, the kind and the size |
@@ -42,7 +47,7 @@ description: "The words these docs use"
 | pi-oriel | the small pi extension that ships inside Oriel and reports pi's session, tree moves, dialogs and phase |
 | detail level | how much of a turn the chat shows: Replies only, Activity or Everything, picked in the header's level pill |
 | live terminal (drawer) | the pane's terminal at the bottom of a chat card while the agent asks something the chat cannot answer |
-| iid | a browser or plugin pane's instance id: 6 characters of `[a-z0-9]` in its label; a browser's names its state file |
+| iid | a browser or plugin pane's instance id: 6 characters of `[a-z0-9]` in its label, which names its state file |
 | placeholder | the small script a browser or plugin pane runs in herdr, so herdr's TUI shows what the pane is |
 | keyboard card | the card that gets typed keys, one per tab; the app's own choice, never herdr's focus |
 | program icon | the icon of the program that runs in a pane, from Oriel's own catalog; a tab shows a stack of them |

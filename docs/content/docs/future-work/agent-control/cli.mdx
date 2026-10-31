@@ -78,9 +78,10 @@ $ oriel info --json
 
 ## plugins
 
-The kinds an agent can open: the browser and every plugin, from their
-manifests ([Manifest](/docs/future-work/plugins/manifest)). Terminal and agent
-panes are herdr's and not in the list.
+The kinds an agent can open: the browser and every plugin, from the app's
+plugin registry ([Where the registry looks](/docs/plugins/packages#where-the-registry-looks),
+[The manifest](/docs/plugins/manifest)). Terminal and agent panes are
+herdr's and not in the list.
 
 ```sh
 $ oriel plugins
@@ -95,29 +96,32 @@ explorer   File Explorer  files     app
 
 ```json
 [
-  { "id": "browser", "name": "Browser", "icon": "globe", "description": null,
-    "opens": { "urls": ["http", "https", "file"] }, "chooser": "Browser", "source": "app", "version": "0.47.0" },
+  { "id": "browser", "name": "Browser", "icon": "globe", "description": "Web page",
+    "opens": { "urls": ["http://*", "https://*", "file://*"] }, "chooser": "Browser", "source": "app",
+    "version": "1.0.0" },
   { "id": "csv-table", "name": "CSV Table", "icon": "tablecells",
     "description": "A CSV or TSV file as a table you can sort.",
     "opens": { "files": ["*.csv", "*.tsv", "public.comma-separated-values-text"] },
     "chooser": null, "source": "user", "version": "0.1.0" },
-  { "id": "broken-one", "source": "user", "error": "manifest.json: the field main is missing" }
+  { "id": "broken-one", "source": "user", "error": "package.json: oriel.entry is missing" }
 ]
 ```
 
-- `id`, `name`, `icon`, `description`, `opens`, `chooser` and `version` are
-  the manifest's fields, as written. `source` is `app` (inside the app) or
-  `user` (`~/.config/oriel/plugins/`).
+- `id`, `name`, `icon`, `opens` and `chooser` are the manifest's fields, as
+  written. `description` and `version` are the package's. `source` is `app`
+  (the browser, File Explorer and Git) or `user` (any other package: an npm
+  or git install, a local path in `settings.json`, or a folder in
+  `~/.config/oriel/plugins/`).
 - A plugin whose manifest does not load shows only `id`, `source` and
   `error`.
 - With `--for`, each entry gets `"default": true` or `false`, in the order of
-  [Which plugin opens a file](/docs/future-work/plugins/manifest#which-plugin-opens-a-file).
+  [Which plugin opens a file](/docs/plugins/manifest#which-plugin-opens-a-file).
 
 ## open
 
 Makes a browser or plugin card: a herdr pane with the label
 `oriel:<kind>#<iid> <arg>` and its placeholder, as the app's own commands do
-([Labels and instance ids](/docs/future-work/plugins/labels)).
+([Labels and instance ids](/docs/plugins/labels)).
 
 ```text
 oriel open <kind> [<arg>] [<place>] [--new]
@@ -216,7 +220,7 @@ oriel card w1:p3 --json
 
 - `kind` is a browser or plugin id, `terminal` or `agent`. An agent card adds
   `"agent": "claude"` and `"chat": true` when it shows the chat view.
-- `title` is the card's title ([How it shows](/docs/future-work/plugins/manifest#how-it-shows)),
+- `title` is the card's title ([How it shows](/docs/plugins/manifest#how-it-shows)),
   `dirty` is the unsaved-edits dot. A plugin's own state is not in the
   answer.
 

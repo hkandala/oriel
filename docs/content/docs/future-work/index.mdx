@@ -16,7 +16,6 @@ never calls herdr's focus methods. A design gets decision numbers on the
 [Decisions](/docs/decisions) page when it is built.
 
 <Cards>
-  <Card title="Pane kinds and plugins" href="/docs/future-work/plugins" description="Proposed: plugins as folders of TypeScript that Oriel builds, with a manifest, a typed API and a memory budget" />
   <Card title="Agent control" href="/docs/future-work/agent-control" description="Proposed: agents float panes, open plugin cards, list plugins and learn whether Oriel shows them, through an oriel command" />
   <Card title="Changes panel" href="/docs/future-work/changes-panel" description="What the agents changed: git diffs in a drawer, a git chip, the last turn" />
   <Card title="Floating pills" href="/docs/future-work/pills" description="Agent status on the Mac screen edge while you work in another app" />
@@ -89,10 +88,14 @@ never calls herdr's focus methods. A design gets decision numbers on the
     where the user can edit them.
   - "‹machine› does not allow port forwarding": an `ssh -W` probe after a
     refusal tells it from a closed port.
-- **The rest of the default plugins** ([Not built](/docs/ui/plugins#not-built)):
+- **The rest of the default plugins** ([Not built](/docs/plugins/default-plugins#not-built)):
   Go to File in ⌘K, project search, Discard, stash, merge and rebase in Git,
   Quick Look for more file types, expandable unmodified lines in a diff, and
   Back and Forward kept over a relaunch.
+- **The rest of the plugin system** ([Not built](/docs/plugins#not-built)):
+  network from a plugin page, plugins from a project folder, settings drawn
+  from the manifest, plugins chosen by URL, install and reload from an agent,
+  and ⌘K Forget Plugin Trust.
 - **The rest of the chat view** ([Chat view](/docs/ui/chat-view)):
   - A host for the pill card: the chat at 360 pt at the Replies only level, built
     when the [floating pills](/docs/future-work/pills) land.
@@ -155,7 +158,7 @@ never calls herdr's focus methods. A design gets decision numbers on the
   shells, with their label. The ask: restore them with their `launch_argv`,
   opt-in ([discussion #1367](https://github.com/herdrdev/herdr/discussions/1367)).
   Web and plugin panes work anyway, because the label is the truth
-  ([Labels and instance ids](/docs/future-work/plugins/labels)).
+  ([Labels and instance ids](/docs/plugins/labels)).
 - **Clipboard writes on the terminal stream.** herdr 0.9.5 gives a pane's
   OSC 52 write (`ServerMessage::Clipboard`) only to its foreground TUI
   client, and `terminal session control` prints only frames and the close.

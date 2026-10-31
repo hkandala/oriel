@@ -4,9 +4,9 @@ description: "A browser pane: a web view with Web Inspector in a placeholder her
 ---
 
 herdr cannot draw a web page. So a herdr pane holds the place in the layout,
-and the app draws a web view in its rectangle. The browser is the first pane
-kind built on the [plugin foundation](/docs/future-work/plugins#what-stays-as-built),
-and it is built into the app. What is not built yet is in
+and the app draws a web view in its rectangle. The browser is a pane kind in
+the plugin registry, built into the app with a manifest written in Swift
+([The browser](/docs/plugins/browser)). What is not built yet is in
 [Future work](/docs/future-work#smaller-items). Research:
 [`browser.md`](https://github.com/hkandala/oriel/blob/main/resources/research/plugins/browser.md).
 
@@ -14,7 +14,7 @@ and it is built into the app. What is not built yet is in
 
 A pane is a browser pane when its herdr label is `oriel:browser#<iid> <url>`,
 for example `oriel:browser#m4p8sa http://localhost:3000/dashboard`
-([Labels and instance ids](/docs/future-work/plugins/labels)). The app knows
+([Labels and instance ids](/docs/plugins/labels)). The app knows
 the pane from the label alone: a pane made by the app, by an agent or in
 herdr's TUI is the same.
 
@@ -45,7 +45,7 @@ A browser pane comes from the chooser's Browser
    `layout.apply {workspace_id, focus:false, root:{type:"pane", cwd, label,
    command}}` in a new tab, with the old pane's live folder, the label
    `oriel:browser#<iid>` and the placeholder as its command
-   ([Create](/docs/future-work/plugins/labels#create)).
+   ([Create](/docs/plugins/labels#create)).
 2. `pane.move` puts it beside the old pane, and `pane.close` closes the old
    pane, as Replace Pane does. If the move fails, the new pane closes. The new
    pane stays hidden by its label in every tab until the old one is gone, so
@@ -66,7 +66,7 @@ Oriel" in the middle of the pane. It draws them again when the pane is resized
 (`SIGWINCH`). Keys typed into the pane do nothing. The TUI's border shows the
 current label. After a cold restart herdr brings the pane back as a plain shell
 with its label, and the card works the same
-([Labels and instance ids](/docs/future-work/plugins/labels#create)).
+([Labels and instance ids](/docs/plugins/labels#create)).
 
 ## The card
 
@@ -190,7 +190,8 @@ card (a browser's or a plugin's) keeps a picture of its page:
   picture stays for its tile and its next card. When it shows again, the
   card is made from its label, under that picture. A browser comes back
   with its saved history ([State on the machine](#state-on-the-machine)).
-  A plugin card comes back at the place in its label, with no Back and
+  A plugin card comes back at the place in its label, with its state from
+  its state file ([State](/docs/plugins/api#state)), and with no Back and
   Forward.
 - A floated card and a plugin card with unsaved edits are never dropped.
 - On a memory-pressure warning from macOS
@@ -240,7 +241,7 @@ docked at the bottom of the card. Its own control moves it to a window.
 
 The page and its back and forward list are saved on the pane's machine, in
 the instance state file
-([State](/docs/future-work/plugins/api#state)):
+([State](/docs/plugins/api#state)):
 `$HOME/.local/state/oriel/<session>/browser/<iid>.json`.
 - It holds `{"url": …, "history": …}`. `url` is as the machine sees it.
   `history` is WebKit's `interactionState` (the back and forward list) in
@@ -393,10 +394,8 @@ Open.
   so a page cannot run commands.
 - A page that a machine puts in a label or state file loads only by the
   rules in [When a page loads by itself](#when-a-page-loads-by-itself).
-- The default plugins' pages get a small fixed bridge
-  ([How the web cards work](/docs/ui/plugins#how-the-web-cards-work)).
-  Installed plugins will get one with the rules in
-  [Plugin security](/docs/future-work/plugins/security).
+- Plugin pages get the `oriel` object, under the rules in
+  [Security and trust](/docs/plugins/security).
 
 ## Other rules
 

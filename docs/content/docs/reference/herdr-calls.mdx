@@ -16,7 +16,7 @@ description: "Every herdr call and command the app uses, and the ones it never u
 | `pane.swap` | drag onto a card in the same tab; the last step of a drop on a left or top edge; split left and up; with `direction`, ⌥⇧⌘ and an arrow | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
 | `pane.resize` | Resize Pane (View ▸ Pane, the palette), 5 % each | [Dividers](/docs/layout#dividers) |
 | `pane.rename` | Rename Pane, Reset Pane Name; a browser card's typed address goes into its label; each move inside a plugin card (a click, Back, Forward) goes into its label | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls), [Browser](/docs/ui/browser#create) |
-| `layout.apply` | a browser or plugin pane: a new tab with one pane, its label and its placeholder command, never with a `tab_id`; also a link opened in a new tab, and a plugin card's open in a new tab or to the side | [Create](/docs/ui/browser#create), [Popups, links and dialogs](/docs/ui/browser#popups-links-and-dialogs), [Opening](/docs/ui/plugins#opening) |
+| `layout.apply` | a browser or plugin pane: a new tab with one pane, its label and its placeholder command, never with a `tab_id`; also a link opened in a new tab, and a plugin card's open in a new tab or to the side | [Create](/docs/ui/browser#create), [Popups, links and dialogs](/docs/ui/browser#popups-links-and-dialogs), [Opening](/docs/plugins/default-plugins#opening) |
 | `pane.send_input` | Go to Directory and Insert Path; an agent's launch line (or its bare command) from the chooser or Start Agent Here; Relaunch with Chat's quit command and its launch line; chat text that starts with `/`, with no Return | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
 | `pane.send_keys` | special keys and Ctrl chords typed in a terminal card; a chat's Stop (Esc, OpenCode Esc twice); Relaunch with Chat's Stop keys while the agent works or waits, then ⌃C | [Terminal plane](/docs/talking-to-herdr#terminal-plane) |
 | `pane.read` | `visible`: the hover card's lines for a pane that needs you; `recent`: find in a pane, and a Codex chat's last 8 lines every 0.5 s ([Codex's screen check](/docs/ui/chat-view#codexs-screen-check)); `visible` again after a find scroll, for the highlights | [Find bar](/docs/ui/window#find-bar) |
@@ -62,11 +62,11 @@ git --no-optional-locks -C <root> status --porcelain=v2 --branch --untracked-fil
 sh -c 'f=/tmp/oriel-copy-$1; base64 <"$f" && rm -f "$f"' sh <id>   # each machine: a copy request (talking-to-herdr#copy-requests)
 ```
 
-A browser card's ([Browser](/docs/ui/browser)):
+A browser or plugin card's ([Browser](/docs/ui/browser), [State](/docs/plugins/api#state)):
 
 ```sh
-sh -c 'cat "$HOME/$1"' sh .local/state/oriel/<S>/browser/<iid>.json   # each machine: read the state file when the card is built
-sh -c 'umask 077; f="$HOME/$1"; mkdir -p "${f%/*}" && cat >"$f.$$" && mv "$f.$$" "$f"' sh <path>   # write it, 500 ms after a navigation
+sh -c 'cat "$HOME/$1"' sh .local/state/oriel/<S>/<browser or plugin id>/<iid>.json   # each machine: read the state file when the card is built
+sh -c 'umask 077; f="$HOME/$1"; mkdir -p "${f%/*}" && cat >"$f.$$" && mv "$f.$$" "$f"' sh <path>   # write it, 500 ms after a navigation or a plugin's last change
 sh -c 'rm -f "$HOME/$1"' sh <path>                  # a typed address, a close
 find "$HOME/.local/state/oriel/<S>" -type f -mtime +30 -delete      # once on connect
 ssh -F /dev/null -S <ctl> -O forward -D 127.0.0.1:<P> <target>   # a remote machine: its first browser card's proxy
@@ -74,7 +74,7 @@ ssh -F /dev/null -S <ctl> -O cancel -D 127.0.0.1:<P> <target>    # its last card
 ```
 
 A plugin card's, on the pane's machine, with `-z` and NUL-separated names so a
-name can hold a line break ([Default plugins](/docs/ui/plugins)):
+name can hold a line break ([File Explorer and Git](/docs/plugins/default-plugins)):
 
 ```sh
 sh -c 'cd "$1" || exit; for f in * .[!.]* ..?*; do … printf "%s/\0" …; done' sh <folder>   # a folder's entries (the File Explorer's tree)
@@ -95,7 +95,20 @@ sh -c 'cd "$1"; h=$(git rev-parse -q --verify HEAD || git hash-object -t tree /d
 git -C <root> show --no-color --no-ext-diff -M -m --first-parent --format= <hash>   # a diff: one commit
 ```
 
+A plugin's `oriel.run` runs its argv on the card's machine, inside the envelope.
 This Mac watches files and folders with FSEvents, with no command.
+
+Plugin packages, on This Mac only ([Packages and installs](/docs/plugins/packages)):
+
+```sh
+sh -c 'command -v "$1"' sh npm|pnpm|bun            # the package manager: the lockfile's, else the first found
+npm pack <spec> --pack-destination <staging> --json --ignore-scripts   # an npm: source
+tar -xzf <tarball> -C <staging>
+env GIT_TERMINAL_PROMPT=0 git clone --quiet -- <url> <folder>          # a git: source
+env GIT_TERMINAL_PROMPT=0 git -C <folder> checkout --quiet <ref> --
+sh -c 'cd "$1" && shift && exec "$@" 2>&1' sh <package> npm ci --no-audit --no-fund --ignore-scripts --legacy-peer-deps   # its dependencies (pnpm, bun: their flags)
+sh -c 'cd "$1" && shift && exec "$@" 2>&1' sh <package> npm run --silent build   # its build script: at install, Reload Plugin, Build
+```
 
 A chat's, on the pane's machine ([Chat view](/docs/ui/chat-view)):
 

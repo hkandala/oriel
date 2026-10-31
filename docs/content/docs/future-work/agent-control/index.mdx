@@ -265,7 +265,7 @@ Details: [Protocol](/docs/future-work/agent-control/protocol#security).
 |---|---|---|
 | 1. The bus | HerdrKit: decode `oriel-req`, the take and answer runs, `oriel-open` marks, the script as a resource written on connect; the dispatcher with `info`, `help`, `float`, `unfloat`, `copy` | M (3 h) |
 | 2. Cards | `open` (all four places, reuse, default plugin), `card`, `shown`, `reveal` and its notice | M (3 h) |
-| 3. Plugins | `plugins` from the plugin registry; until it exists, the two default kinds and the browser | S (1 h), after the registry |
+| 3. Plugins | `plugins` from the plugin registry (`Registry`), with a bad manifest's error from the registry's problems | S (1 h) |
 | 4. Agents and notices | `agent`, `chat`, `notify` and its switch | M (2 h) |
 | 5. pi-hkandala | pi-herd's float and pi-copy through the command; the oriel-panes skill rewritten | S (1 h), after track 1 merges |
 | 6. Removal | `oriel-float` and `oriel-copy` out of HerdrKit and the docs | S, one release later |

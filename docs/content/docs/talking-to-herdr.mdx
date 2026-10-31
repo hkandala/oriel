@@ -18,7 +18,7 @@ installed on the machine: `sshd`, POSIX tools and herdr do the work. The chat
 view writes small helper files under `~/.cache/oriel` before an agent launch
 ([Side files](/docs/ui/chat-view#side-files)). Plugin cards read, save, list
 and watch files and run git the same way
-([Default plugins](/docs/ui/plugins#remote-machines),
+([File Explorer and Git](/docs/plugins/default-plugins#remote-machines),
 [Commands](/docs/reference/herdr-calls#commands)).
 
 - **This Mac:** `Process`. A GUI app does not get the shell's environment. So
@@ -515,9 +515,9 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 | An address typed in a browser card | `pane.rename {pane_id, label:"oriel:browser#<iid> <url>"}` |
 | A link opened in a new tab (⌘-click, `target=_blank`, Open Link in New Tab) | `layout.apply {workspace_id, focus:false, root:{type:"pane", cwd, label:"oriel:browser#<iid> <url>", command}}`: a new tab after the workspace's others, with the link in the label ([Popups, links and dialogs](/docs/ui/browser#popups-links-and-dialogs)) |
 | File Explorer or Git in the chooser, Open File Explorer Here, Open Git Here | `git rev-parse --show-toplevel` on the machine for the root (none when git cannot run), then the browser's calls with the label `oriel:explorer#<iid> <root>/` or `oriel:git#<iid> <root>` |
-| An open from a plugin card in a new tab (⌘-click) | `layout.apply {workspace_id, focus:false, root:{type:"pane", cwd, label, command}}` (a new tab, in its card's folder), `pane.get` of the new pane, then `tab.move {tab_id, insert_index}` to right after the card's tab (herdr adds the tab last); the snapshot after it selects the tab ([Opening](/docs/ui/plugins#opening)) |
+| An open from a plugin card in a new tab (⌘-click) | `layout.apply {workspace_id, focus:false, root:{type:"pane", cwd, label, command}}` (a new tab, in its card's folder), `pane.get` of the new pane, then `tab.move {tab_id, insert_index}` to right after the card's tab (herdr adds the tab last); the snapshot after it selects the tab ([Opening](/docs/plugins/default-plugins#opening)) |
 | An open from a plugin card to the side (⌥-click) | the same `layout.apply` and `pane.get`, then `pane.move` of the new pane beside the card (no `tab.move`); a failed move closes the new pane |
-| A move inside a plugin card (a click, Back, Forward) | `pane.rename {pane_id, label:"oriel:<kind>#<iid> <place>"}`, also to a label the last snapshot already has |
+| A move inside a plugin card (a click, Back, Forward) | `pane.rename {pane_id, label:"oriel:<plugin>#<iid> <place>"}`, also to a label the last snapshot already has |
 | Close a tab | `tab.close`; asks first only when a pane of it runs more than its shell (`pane.process_info` of each pane, at once), naming what runs, with the pane count |
 | Close a workspace | `workspace.close {workspace_id, close_group}`; asks as for a tab, with the tab and pane count. `close_group: true` for a repository's workspace with linked worktree workspaces: herdr refuses the close without it (`workspace_group_close_required`), and with it closes all of them, also ones not next to it. The git worktrees stay on disk. A worktree's own workspace closes alone |
 | Close Other Tabs, Close Tabs to the Right | one `tab.close` per tab, all at once; asks once as for a tab, with the total pane count |

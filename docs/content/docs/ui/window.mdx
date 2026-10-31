@@ -141,7 +141,7 @@ One capsule per herdr tab of the selected workspace (D42).
   title is the keyboard card's program and its folder's name, for example
   "zsh ~" or "pi oriel" (D65). An agent's tab shows the agent's name and its
   pane's name in secondary text ("Claude Code Fix login"), a browser's
-  "Browser" and its page, and a plugin's kind and title ("File Explorer oriel"). Until the program is known (a new tab's first
+  "Browser" and its page, and a plugin's name and title ("File Explorer oriel"). Until the program is known (a new tab's first
   second), the title is "New Tab", never the number.
 - **Plain-text titles.** Where a title is plain text, with no dimmed part, a
   ` | ` separates its two parts: "zsh | oriel", "Claude Code | Fix login",
@@ -490,7 +490,7 @@ How it works: [Layout and sizing](/docs/layout).
     ([Browser](/docs/ui/browser#the-card)).
   - Plugin: row 1 has the page's symbol, the title and the Edited dot for
     unsaved edits, row 2 Back, Forward and the page's controls
-    ([Default plugins](/docs/ui/plugins#the-card)).
+    ([File Explorer and Git](/docs/plugins/default-plugins#the-card)).
   - Agent: row 1 has the pane's name: its label, else its session's title
     ([Session titles](/docs/ui/chat-view#session-titles)). Row 2 has the
     program glyph, the agent's name and the folder in secondary text
@@ -564,7 +564,7 @@ How it works: [Layout and sizing](/docs/layout).
 its field. It is disabled on a browser card and on a plugin card that shows
 the tree, Preview, the Git home or a diff. On File and Markdown ⌘F, ⌘G and
 ⇧⌘G use the editor's own search
-([Default plugins](/docs/ui/plugins#keys)).
+([File Explorer and Git](/docs/plugins/default-plugins#keys)).
 - A glass capsule 320 pt wide and 32 pt tall at the card's top right, 8 pt in
   from its edge and 8 pt under the header: the field ("Find"), the match count
   ("3 of 12", in a fixed slot so the bar never changes width), ↑ (Find
@@ -705,7 +705,7 @@ clients see it there.
   long one gives way first, in its middle). The quick info is the pane's
   icon, its title and its agent's state (a dot and its word). The title is
   the program and folder or the label, an agent's name and its pane's name,
-  "Browser" and the page, a plugin's kind and title with its Edited dot, or "New Pane" while
+  "Browser" and the page, a plugin's name and title with its Edited dot, or "New Pane" while
   the chooser shows, with the second part in
   secondary text (the window's title has ` | ` there). A plugin pane (any
   `oriel:` label, such as a browser) shows no line and no place. A chat pane
@@ -721,7 +721,7 @@ clients see it there.
   card. A chat pane's card shows its chat or its terminal
   ([Chat view](/docs/ui/chat-view#switching-views)), a browser pane's card
   its toolbar and page ([Browser](/docs/ui/browser#the-card)), a plugin
-  pane's card its row 2 and page ([Default plugins](/docs/ui/plugins#the-card)),
+  pane's card its row 2 and page ([File Explorer and Git](/docs/plugins/default-plugins#the-card)),
   and a pane at
   the chooser the chooser. The window is at least 320 pt wide, and never
   narrower than its title row needs (a chat pane's switch makes it wider).
