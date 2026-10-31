@@ -223,3 +223,23 @@ forward; ask track D for any change in its files.
 - **Runs:** the restored UI test (sessions both ways, workspaces both ways, a ⌥ wheel, the hidden sidebar) passes
   locally; on the old code its first ⌥ swipe pages the strip and the header stays on session one.
 - **For the user:** with natural scrolling off, check that ⌥ + fingers up still goes to the row above.
+
+### Track D
+
+- **Decisions:** the File Explorer's label is the place it shows: a folder's argument ends in `/` (the tree, rooted
+  there), a file's picks File, Preview or Markdown by its name (`PluginPage`). Old labels (`file`, `preview`,
+  `markdown`, `files`, `diff`) still open. Back and Forward are a stack per card in `Plugin` (not WebKit's history),
+  so Git's native rows share it; each move renames the label, and a rename from elsewhere (an agent) is a new place
+  in the stack. The tree comes back on Back with the file it opened revealed.
+- **Decisions:** ⌘[ ⌘] go Back and Forward over a plugin card only while the card has a place that way; else they
+  select a pane as before (a card made from a label has no history). Leaving a file with unsaved edits shows the
+  toast "‹name› has unsaved edits." with Discard and **Keep Editing**.
+- **Decisions:** ⌥-click (Open to the Side) makes the pane in a new tab and moves it beside the card, as Replace Pane
+  does (herdr's split runs no command): the new tab can show for one snapshot. The row menu is a native `NSMenu`
+  the page asks for (`menu` report): Open (Open as Root on a folder), Open in New Tab, Open to the Side.
+- **Cause (item 19):** the tree waited for git (status, the last 100 commits and their graph) before its first
+  listing. **Fix:** the listing first, git's letters after; the Git section is gone (Git has it). Measured on this
+  Mac: 0.5 s from the page's load to the first rows (most of it WebKit's process and the module), then the app's
+  spinner shows past 150 ms.
+- **For the user:** Open With is the default app's icon (a click opens the file in it, its menu lists every app with
+  its icon); check it on a file whose default app has no icon.
