@@ -282,16 +282,20 @@ forward; ask track D for any change in its files.
 ### Track A
 
 - **Measured** on the biggest transcript on this Mac (a 108 MB pi session, 3,850 entries, 936 rows at Replies only),
-  opened in a dev build with a scroll-geometry log and screenshots, on a Mac at a load of 40–120: the history arrives
-  1.1–4.5 s after the open, parsed on the main actor (JSONSerialization, half the main thread's samples meanwhile).
+  opened in a dev build with a scroll-geometry log, a display-link frame log (120 Hz) and screenshots, on a Mac at a
+  load of 30–120: the history arrives 1.1–4.5 s after the open.
+- **Cause, a loading chat slowed the window (item 14's words).** The backlog was parsed on the main actor
+  (JSONSerialization, half the main thread's samples while it loaded). **Fix:** the backlog is read in a detached
+  task, a run of lines at a time, the parser's state handed over and back (pi's `/tree` waits for it); OpenCode's
+  first load and per-event rebuild too. While the 108 MB session loads, frames stay at 8.3 ms (p95 8.4); one frame of
+  150 ms when the rows first lay out.
 - **Cause, blank after a split (items 8, 9).** The lazy stack guessed the height of the rows it had not built: on a
   split its content height swung between 14,000 and 59,000 pt within 150 ms, and the chat stayed blank (5 s and on)
-  until something else changed. **Fix:** the rows are a plain `VStack` of the newest 100 (about 25 turns), so every
-  height is real: open, split and Scroll to Bottom land exactly. A plain stack's scroll keeps its offset when rows
-  above change height, so after a new width (or Show Earlier) the row at the top is scrolled back to the top. 100 rows of that
-  session (22,000 pt of long replies) lay out in 0.25–0.4 s on that busy Mac, Release and Debug alike (SwiftUI's
-  text layout); the lazy stack took 0.35 s on the same split, with its swings. At Everything an open run counts its
-  steps toward the 100: 23 rows (8,500 pt), 0.15–0.2 s.
+  until something else changed. **Fix:** the rows are a plain `VStack` of the newest 40 (about 10 turns), so every
+  height is real: open, split and Scroll to Bottom land exactly. After a new width (or Show Earlier) the row at the top
+  is scrolled back to the top. The width already holds during a split's motion, so the rows lay out once at its end:
+  split and close p95 8.4 ms (phase 45's lazy stack: 2–11 ms), worst frame 40–50 ms; with 100 rows it was 110–160 ms
+  (and 680 ms at the open), so the block is 40. At Everything an open run counts its steps toward it.
 - **Cause, blank above the messages and drift (item 8).** The scroll view was made while the history was empty; its
   bottom anchor held the empty content down with an 841 pt top inset, and the inset stayed after the long history
   came, until the next change. **Fix:** the empty chat (its glyph, or a loader while a history loads) has no scroll
@@ -301,13 +305,13 @@ forward; ask track D for any change in its files.
   32 pt), in a stack with real heights.
 - **Decisions.** Show Earlier is a glass pill over the messages' top, shown at the very top, as Scroll to Bottom is
   at the bottom; a block starts at a user's message near its cut. Once the chat leaves the bottom the block stays put
-  (new rows do not take rows from its top); back at the bottom, or on a level change, it is the newest 100 again.
+  (new rows do not take rows from its top); back at the bottom, or on a level change, it is the newest 40 again.
   Restoring the place snaps the top row's top to the top, so the stack has no top padding while earlier rows exist.
-- **Cause, Not sent after a burst.** A message on its way was confirmed only by the history's last entry; a burst that
-  brought the user's message with the reply after it left it Not sent, and that line moved the newest row up. It
-  is now confirmed by any new entry.
-- **Cause, review.** The loader turned on when the follow started, but Claude Code and pi write their transcript only
-  with the first message: a new chat showed a spinner, not its glyph. It now turns on when the file opens. The dark gray bubble is #3B3B3D (ChatKit's catalog has only the light gray, #E5E5EA).
-- **For the user.** Open a long chat: the loader, then the newest messages at the bottom. Split beside it and close
-  the split: no blank. Scroll up to Show Earlier and click it: the messages in view stay. While a 100 MB session
-  loads the window is slower (the parse is on the main actor; moving it off is a change to all four adapters).
+  The dark gray bubble is #3B3B3D (ChatKit's catalog has only the light gray, #E5E5EA).
+- **Cause, review and CI.** The loader turned on when the follow started, but Claude Code and pi write their
+  transcript only with the first message: a new chat showed a spinner, not its glyph; it now turns on when the file
+  opens. And a message on its way was confirmed only by the history's last entry: a burst that brought the user's
+  message with the reply after it left it Not sent; any new entry confirms it now.
+- **For the user.** Open a long chat: the loader, then the newest messages at the bottom, while the window stays
+  smooth. Split beside it and close the split: no blank, at most one short hitch at the end. Scroll up to Show Earlier
+  and click it: the messages in view stay.
