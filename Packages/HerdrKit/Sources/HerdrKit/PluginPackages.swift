@@ -207,7 +207,7 @@ public enum PluginPackages {
             lines = try await withTimeout(.seconds(600), onTimeout: channel.terminate) {
                 await channel.lines.reduce(into: []) { $0.append($1) }
             }
-        } catch {
+        } catch HerdrError.timeout {
             throw HerdrError.failed("\(argv.joined(separator: " ")) took over 10 minutes")
         }
         guard await channel.exit().status == 0 else {

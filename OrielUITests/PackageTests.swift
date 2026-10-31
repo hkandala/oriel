@@ -14,8 +14,8 @@ extension OrielUITests {
         try await waitForPrompt(shell)
         let config = "/tmp/oriel-e2e-packages", csv = "/tmp/oriel-e2e-csv", data = "/tmp/oriel-e2e-csv-data"
         let fixture = URL(filePath: #filePath).deletingLastPathComponent().appending(path: "Fixtures/csv-table").path
-        let log = "~/Library/Logs/Oriel/plugins/oriel-e2e-csv-table.log"
-        try await send("rm -rf \(config) \(csv) \(data) \(log) ~/.local/state/oriel/\(one)/oriel-e2e-csv-table && "
+        let logs = "~/Library/Logs/Oriel/plugins/oriel-e2e-", log = logs + "csv-table.log"
+        try await send("rm -rf \(config) \(csv) \(data) \(logs)* ~/.local/state/oriel/\(one)/oriel-e2e-csv-table && "
             + "mkdir -p \(config) \(data) && cp -R \(fixture) \(csv) && (cd \(csv) && npm_config_offline=true npm ci "
             + "--no-audit --no-fund --silent) && printf 'name,count\\nb,2\\na,10\\nc,1\\n' > "
             + "\(data)/a.csv && echo '{\"packages\":[\"\(csv)\"]}' > \(config)/settings.json && clear && "

@@ -55,7 +55,7 @@ final class PluginTrust {
         }
         let build = folder.map(PluginPackages.builds) == true
             ? ["Its build script runs as you on this Mac when Oriel builds it."] : []
-        return (words.isEmpty ? ["It can only draw in its card."] : words) + build
+        return (words.isEmpty ? ["Its page can only draw in its card."] : words) + build
     }
 }
 
