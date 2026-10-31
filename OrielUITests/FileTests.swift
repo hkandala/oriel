@@ -112,9 +112,9 @@ extension OrielUITests {
         element("find.close").click()
     }
 
-    /// Show in File Explorer while dirty asks first. A change on disk while dirty: the toast; Keep Mine keeps the edit
-    /// and the next ⌘S writes it over the change;
-    /// a ⌘S over it offers Overwrite; Reload takes the disk's text and clears the dot.
+    /// Show in File Explorer and Close Pane while dirty ask first. A change on disk while dirty: the toast; Keep Mine
+    /// keeps the edit and the next ⌘S writes it over the change; a ⌘S over it offers Overwrite; Reload takes the disk's
+    /// text and clears the dot.
     private func diskChangesWhileDirty(_ card: String, file: String, shell: String) async throws {
         let editor = element("file.\(card).page").textViews.firstMatch, dirty = element("pane.\(card).dirty")
         let toast = element("pane.\(card).toast")
@@ -127,6 +127,14 @@ extension OrielUITests {
         XCTAssertTrue(toast.has(\.stringValue, "main.swift has unsaved edits.", within: 3))
         element("pane.\(card).toast.main").click()
         XCTAssertTrue(toast.vanishes(within: 2) && dirty.exists)
+        // Closing it asks too (⌘W over the card); Keep Editing keeps the pane.
+        editor.click()
+        app.typeKey("w", modifierFlags: .command)
+        XCTAssertTrue(toast.has(\.stringValue, "main.swift has unsaved edits.", within: 3))
+        element("pane.\(card).toast.main").click()
+        XCTAssertTrue(toast.vanishes(within: 2) && dirty.exists)
+        let panes = try await Self.ids("pane", in: one)
+        XCTAssertTrue(panes.contains(card))
         try await send("printf 'let z = 3\\n' >\(file)\r", to: shell)
         XCTAssertTrue(toast.has(\.stringValue, "main.swift changed on disk.", within: 5))
         element("pane.\(card).toast.main").click()
