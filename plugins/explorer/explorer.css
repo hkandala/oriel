@@ -1,0 +1,26 @@
+/* Every place draws in a root of its own over the whole page (main.ts). */
+.place {
+  position: absolute;
+  inset: 0;
+}
+/* The info view of a file not shown (info.ts). */
+.info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 100%;
+  color: var(--dim);
+  text-align: center;
+}
+.info img {
+  width: 96px;
+  height: 96px;
+}
+.info .name {
+  color: var(--text);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  padding: 0 16px;
+}

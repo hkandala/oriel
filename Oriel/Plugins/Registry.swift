@@ -41,7 +41,8 @@ enum Registry {
 
     /// Every SF Symbol a plugin card shows: the plugins' and the File Explorer's pages', and a missing plugin's. Not a
     /// program icon's id (`terminal`, `swift`): those tiles stay the catalog's.
-    static let symbols = Set(all.map(\.icon) + PluginPage.allCases.map(\.symbol) + [missing])
+    static let symbols = Set(all.map(\.icon) + PluginPage.allCases.map(\.symbol) + ExplorerPlace.allCases.map(\.symbol)
+        + [missing])
         .subtracting(programIcons.map(\.id))
 
     static let missing = "puzzlepiece.extension"

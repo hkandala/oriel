@@ -1,0 +1,13 @@
+/* Every plugin page's base (PluginScheme.swift): the app sets the colors on the root element (WebCard.swift); the
+   card's fill draws behind the page. Cards keep one text size, as native ones do. */
+:root {
+  --font-size: 13px;
+}
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: transparent;
+  color: var(--text);
+  font: var(--font-size) system-ui;
+}
