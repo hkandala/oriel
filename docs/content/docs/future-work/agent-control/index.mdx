@@ -57,7 +57,7 @@ token in Swift.
 | Is my pane shown in Oriel? Does an Oriel follow my session? | herdr tokens that Oriel writes | `oriel status` (local, no Oriel needed) |
 | Oriel's version, protocol, features, appearance | Oriel | `oriel info` |
 | List the kinds an agent can open (the browser and every plugin) | Oriel (the manifests live on the Mac) | `oriel plugins` |
-| Open a browser or plugin card, beside a pane, in a new tab, floating, or in place of a card | Oriel | `oriel open diff /repo uncommitted` |
+| Open a browser or plugin card, beside a pane, in a new tab, floating, or in place of a card | Oriel | `oriel open git /repo uncommitted` |
 | Open a file or URL with its default plugin | Oriel | `oriel open /repo/README.md` |
 | Float and unfloat a pane, Stay on Top | Oriel | `oriel float w1:p3 --on-top`, `oriel unfloat w1:p3` |
 | Point the user at a pane, without moving their view | Oriel | `oriel reveal w1:p3` |
@@ -265,7 +265,7 @@ Details: [Protocol](/docs/future-work/agent-control/protocol#security).
 |---|---|---|
 | 1. The bus | HerdrKit: decode `oriel-req`, the take and answer runs, `oriel-open` marks, the script as a resource written on connect; the dispatcher with `info`, `help`, `float`, `unfloat`, `copy` | M (3 h) |
 | 2. Cards | `open` (all four places, reuse, default plugin), `card`, `shown`, `reveal` and its notice | M (3 h) |
-| 3. Plugins | `plugins` from the plugin registry; until it exists, the five default kinds and the browser | S (1 h), after the registry |
+| 3. Plugins | `plugins` from the plugin registry; until it exists, the two default kinds and the browser | S (1 h), after the registry |
 | 4. Agents and notices | `agent`, `chat`, `notify` and its switch | M (2 h) |
 | 5. pi-hkandala | pi-herd's float and pi-copy through the command; the oriel-panes skill rewritten | S (1 h), after track 1 merges |
 | 6. Removal | `oriel-float` and `oriel-copy` out of HerdrKit and the docs | S, one release later |

@@ -141,9 +141,9 @@ What the code shows:
 
 1. Save the folder in `~/.config/oriel/plugins/csv-table/`. The app sees the
    new folder and reads the manifest.
-2. Double-click a `.csv` file in a Files card. CSV Table is now its default
-   plugin, so the card opens in a new tab. On any other file card of a CSV,
-   Open With ▾ lists CSV Table.
+2. Double-click a `.csv` file in a File Explorer's tree. CSV Table is now its
+   default plugin, so the card opens in a new tab. On any other file page of
+   a CSV, Open With lists CSV Table.
 3. The new card asks to trust the plugin, once
    ([The trust prompt](/docs/future-work/plugins/security#the-trust-prompt)).
    Click **Allow**.
@@ -230,7 +230,14 @@ make a plugin there.
 
 ## The default plugins in the new format
 
-The five default plugins move to `web/plugins/<id>/` in the repository, each
+This section was written for the five kinds before phase 46. Since then the
+app has two: File Explorer, whose card shows the tree, File, Preview and
+Markdown as pages with Back and Forward, and Git, whose card shows its home
+and the diff, which has no source menu. The rows below are those pages. How
+one plugin shows several pages in one card is an
+[open question](/docs/future-work/plugins#open-questions).
+
+The default plugins move to `web/plugins/<id>/` in the repository, each
 with a `manifest.json` and a `main.ts`. `make web` builds them together, as
 today (one esbuild run with shared chunks), into the app's
 `Resources/plugins/`. They are served from `oriel-plugin://app/<id>`, so they

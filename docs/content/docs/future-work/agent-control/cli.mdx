@@ -84,16 +84,13 @@ panes are herdr's and not in the list.
 
 ```sh
 $ oriel plugins
-browser    Browser    urls      app
-diff       Diff       git       app
-file       File       files     app
-files      Files      folders   app
-markdown   Markdown   files     app
-preview    Preview    files     app
-csv-table  CSV Table  files     user
+browser    Browser        urls      app
+explorer   File Explorer  files     app
+git        Git            git       app
+csv-table  CSV Table      files     user
 $ oriel plugins --for data.csv      # the plugins that open this file or URL, the default first
-csv-table  CSV Table  files     user   default
-file       File       files     app
+csv-table  CSV Table      files     user   default
+explorer   File Explorer  files     app
 ```
 
 ```json
@@ -133,18 +130,18 @@ oriel open <path-or-url> [<place>] [--new]
 ```
 
 ```sh
-oriel open diff /repo uncommitted                 # Diff beside me
-oriel open diff /repo 4f2a91c --tab               # a commit, in a new tab
+oriel open git /repo uncommitted                  # the Uncommitted diff beside me
+oriel open git /repo 4f2a91c --tab                # a commit, in a new tab
 oriel open browser http://localhost:3000 --down   # a browser card below me
-oriel open ./docs/report.md                       # the default plugin: Markdown
+oriel open ./docs/report.md                       # the default plugin: File Explorer, its Markdown page
 oriel open https://github.com/o/r/pull/7          # a plugin for that URL, else the browser
 oriel open browser http://localhost:3000/settings --replace w1:p7   # navigate, Back returns
-oriel open files . --float                        # a file tree in a floating window
+oriel open explorer . --float                     # a file tree in a floating window
 ```
 
 ```json
-{ "pane": "w1:p7", "kind": "diff", "arg": "/repo uncommitted",
-  "label": "oriel:diff#k3x9q2 /repo uncommitted", "reused": false, "shown": true }
+{ "pane": "w1:p7", "kind": "git", "arg": "/repo uncommitted",
+  "label": "oriel:git#k3x9q2 /repo uncommitted", "reused": false, "shown": true }
 ```
 
 - **Kind or path.** A first argument that is a kind's id is the kind. A path
@@ -152,7 +149,7 @@ oriel open files . --float                        # a file tree in a floating wi
   command's working folder, and the card gets the absolute path.
 - **The argument** follows the kind's `opens`: a file's path, a folder, a
   repository and `uncommitted` or a commit, a URL. A missing or wrong one is
-  `bad_argument`. A folder is turned into its git root, as Open Files Here
+  `bad_argument`. A folder is turned into its git root, as Open File Explorer Here
   does.
 - **Reuse.** Without `--new`, a card of the same kind and argument already in
   the session is the answer (`"reused": true`), and nothing new opens. When

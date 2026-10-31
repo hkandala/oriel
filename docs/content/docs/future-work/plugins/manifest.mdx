@@ -76,7 +76,7 @@ An option plugin opens a file only when the user picks it in Open With.
 
 ### Which plugin opens a file
 
-A link in a card, a double-click in Files and the agent's open
+A link in a card, a double-click in the File Explorer's tree and the agent's open
 ([Agent control](/docs/future-work/agent-control)) open a file with its
 default plugin. The app picks it by the file's name alone, so a remote file
 is not read first:
@@ -87,8 +87,8 @@ is not read first:
 3. On a tie, a user plugin wins over a plugin inside the app. Then the
    lower id in alphabetical order wins.
 
-The default plugins declare today's rule
-([Ways in](/docs/ui/plugins#ways-in)) as patterns:
+The File Explorer's three file pages, as plugins, declare today's rule
+([Opening](/docs/ui/plugins#opening)) as patterns:
 
 | Plugin | `files` |
 |---|---|
@@ -106,7 +106,7 @@ Preview's type (`.ts` is also an MPEG-2 stream).
 |---|---|---|
 | [New pane](/docs/ui/new-pane) chooser | a row under Browser, with the icon and the `chooser` title, user plugins after the ones inside the app | `chooser`; only for `folders`, `git` or no `opens`, because a file needs a path |
 | ⌘K, the File menu, the card's menu | "Open ‹chooser› Here" | `chooser` |
-| Open With ▾ (second row of a file card) | after the Mac's apps, a divider and every plugin whose patterns match the file, defaults first, each with its icon and name; a pick turns this card into that plugin's card | `opens.files` |
+| Open With (second row of a file page, its menu) | after the Mac's apps, a divider and every plugin whose patterns match the file, defaults first, each with its icon and name; a pick turns this card into that plugin's card | `opens.files` |
 | the card's first row, the tab, the floating window | "‹name› ‹title›", the icon | `name`, `icon`, `opens` |
 | the placeholder in herdr's TUI | the name and the argument | `name` |
 
@@ -114,7 +114,7 @@ Preview's type (`.ts` is also an MPEG-2 stream).
   machine.
 - A pick in Open With renames the pane to the other plugin's label with the
   same iid. The card is built again as that plugin.
-- The Files card's file context menu gets the same Open With submenu.
+- The File Explorer tree's row menu gets the same Open With submenu.
 - What an agent can list and open is in
   [Agent control](/docs/future-work/agent-control): the manifest's `id`,
   `name`, `opens` and `chooser`.
@@ -209,7 +209,7 @@ when the code does not build.
 | Both: declared controls plus a page-drawn area | covers every case | two ways to do one thing; more code in the app and in plugins |
 
 Recommended: declared in the manifest. The user asked for the native second
-row, and the six control types cover the five default plugins.
+row, and the six control types cover the default plugins' pages.
 
 ### Which plugin opens a file
 

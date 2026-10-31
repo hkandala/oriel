@@ -4,8 +4,10 @@ description: "Proposed: every plugin is a folder of TypeScript that Oriel builds
 ---
 
 <Callout title="Proposed design" type="warn">
-This section is a proposal, not yet approved. The five default plugins work
-today as [Default plugins](/docs/ui/plugins) describes, with a fixed bridge.
+This section is a proposal, not yet approved. The two default plugins, File
+Explorer and Git, work today as [Default plugins](/docs/ui/plugins)
+describes, with a fixed bridge. The memory budget below is built
+([What stays in memory](/docs/ui/browser#what-stays-in-memory)).
 Nothing on these pages is built until the user approves it. Then each part
 moves to the pages of the built app.
 </Callout>
@@ -26,7 +28,7 @@ In this design every plugin is written the same way:
 - Each card is a web view of its own. Its page calls the app through one
   typed object, `oriel`
   ([Plugin API](/docs/future-work/plugins/api)).
-- The five default plugins (File, Preview, Markdown, Diff and Files) become
+- The two default plugins (File Explorer and Git) become
   plugins in this format that ship inside the app. They use the same API as
   any other plugin.
 - The browser stays a native web view, and it is a kind in the same model
@@ -37,7 +39,7 @@ In this design every plugin is written the same way:
 | Terminal | native terminal (libghostty) | the app | none (the default) |
 | Agent | native terminal and chat view | the app | none (herdr sets `pane.agent`) |
 | Browser | native web view of any site | the app | label `oriel:browser#<iid> <url>` |
-| File, Preview, Markdown, Diff, Files | a plugin page in a web view | plugin folders inside the app | label `oriel:<id>#<iid> <arg>` |
+| File Explorer, Git | a plugin page in a web view | plugin folders inside the app | label `oriel:<id>#<iid> <arg>` |
 | your plugins | a plugin page in a web view | plugin folders on This Mac | label `oriel:<id>#<iid> <arg>` |
 
 ## How the pieces connect
@@ -105,34 +107,35 @@ Mac. Only its data comes from the card's machine:
 
 ## Memory budget
 
-Every card that is not on screen costs memory. Today the app keeps the
-shown tabs' terminals plus the 16 most recently shown other terminals (D46),
-and it keeps every browser and plugin card it ever built. In this design web
-cards get a budget too:
+Every card that is not on screen costs memory. This budget is built (phase
+46, D46). Before it, the app kept the shown tabs' terminals plus the 16 most
+recently shown other terminals, and every browser and plugin card it ever
+built. Now web cards have a budget too:
 - The cards of the shown tab of each window always live.
 - The 20 most recently shown other terminals keep their stream and surface
-  (16 today).
+  (16 before).
 - The 20 most recently shown other web cards (browser and plugin cards
   together) keep their web view.
 - Cards in floating windows and cards with unsaved edits are never dropped.
   They do not count toward the 20.
-- Both counts are settings in app storage, as `spareTerminals` is today:
+- Both counts are settings in app storage:
   `spareTerminals` and `spareWebCards`. A test sets them with launch
   arguments (`-spareWebCards 2`).
 - Least recently shown goes first, over all windows, as for terminals.
 
 A dropped web card lets go of its web view, so its WebContent process ends.
 It keeps:
-- a still picture of its last frame, taken when it stops showing, while the
-  view is still in its window (out of a window `takeSnapshot` can come back
-  blank). The still is purgeable while no window shows it, as a terminal's
-  is. A card with no still shows its kind's symbol.
+- a still picture of its last frame at 1x, taken when it stops showing
+  (`takeSnapshot` works out of a window too, about 8 ms). Stills are not
+  purgeable (macOS took purgeable ones back within seconds): one cap of
+  200 MB covers every picture in the app, the least recently taken out
+  first. A card with no still shows its loader.
 - its native state: the label, the header controls' values, the plugin's
   state and the browser's address and back and forward list.
 
-When it shows again, the app builds a new web view under the still. The
-plugin's `main` gets the kept state. The still goes when `main` returns, or
-after 2 s. A browser card loads its page with its back and forward list. It
+When it shows again, the app builds a new web view under the still. In this
+design the plugin's `main` gets the kept state. Today the still goes when
+WebKit drew the page, or after 2 s. A browser card loads its page with its back and forward list. It
 loses only what lived in the page: the scroll, form input not sent, a
 running script.
 
@@ -149,9 +152,13 @@ browser card with a heavy site costs more: 120 to 200 MB.
 | 16 + 16 | 190 MB | 480 MB | 656 MB | 284 MB | about 1.6 GB |
 | 20 + 20 (proposed) | 190 MB | 600 MB | 820 MB | 284 MB | about 1.9 GB |
 | 25 + 25 | 190 MB | 750 MB | 1,025 MB | 284 MB | about 2.3 GB |
-| today: 16 terminals, every web card kept | 190 MB | 480 MB | 41 MB × every card shown since launch | 284 MB | no limit |
+| before phase 46: 16 terminals, every web card kept | 190 MB | 480 MB | 41 MB × every card shown since launch | 284 MB | no limit |
 
-- Dropped cards add nothing in the worst case: their stills are purgeable.
+- Dropped cards add at most 200 MB of stills in all.
+- Measured in phase 46 on CI's VM: each kept web card costs about 28 MB (its
+  WebKit process), a kept terminal about 7 MB of herdr run plus its surface,
+  and neither costs CPU at rest. 40 + 40 worked too: 1.7 GB for all 89
+  processes.
 - A second window adds its own shown tab. The kept counts are shared by all
   windows.
 - 20 is a judgment call, as 16 was: D46 rejected 4 (coming back was slow too
@@ -160,11 +167,9 @@ browser card with a heavy site costs more: 120 to 200 MB.
 
 ### The overview
 
-Since phase 41 an overview tile draws live when its card's view exists. With
-this budget that can be 40 live tiles, plus the shown tabs. The build plan
-measures the overview with every kept card open, before and after the change.
-If it is slow, tiles outside the shown tab and the floating windows show
-their stills instead.
+Since phase 46 every overview tile shows pictures: a terminal's snapshot, a
+web card's or a chat's still. With 20 + 20 kept it opened in 205 ms, 327 ms
+before ([Overview](/docs/ui/window#overview)).
 
 ## A missing plugin
 
@@ -177,8 +182,9 @@ changes the label, so the card comes back when the plugin does.
 
 - The label grammar, the placeholder pane and its one-call create
   ([Labels and instance ids](/docs/future-work/plugins/labels)).
-- Linked opens: a card opens another card in a new tab right after its own
-  ([Ways in](/docs/ui/plugins#ways-in)).
+- Opens from a card: in the card with Back and Forward, in a new tab right
+  after its own (⌘-click), or to its side (⌥-click)
+  ([Opening](/docs/ui/plugins#opening)).
 - The scheme, the Content Security Policy and the navigation lock
   ([How the web cards work](/docs/ui/plugins#how-the-web-cards-work)), now
   per plugin.
@@ -197,9 +203,9 @@ changes the label, so the card comes back when the plugin does.
 
 ## Open questions
 
-- Browser cards count in the same 20 as plugin cards. A heavy site costs
-  120 to 200 MB. Should the app also drop half of the kept web cards on a
-  memory-pressure warning? Recommendation: yes, one handler.
+- One plugin with several pages in one card, as the File Explorer (the tree,
+  File, Preview, Markdown) and Git (its home and the diff) are today, with
+  Back and Forward. Recommendation: open.
 - Network from a plugin page (an allow list of origins in the manifest, as
   Figma does). Recommendation: not now. A plugin with `run` can use `curl`
   on the machine.
