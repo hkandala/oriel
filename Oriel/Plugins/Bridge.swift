@@ -179,7 +179,7 @@ final class Bridge {
             if let data = reply as? Data {
                 return (String(decoding: data, as: UTF8.self), nil)
             }
-            let data = try JSONSerialization.data(withJSONObject: reply, options: .fragmentsAllowed)
+            let data = try JSONSerialization.data(withJSONObject: reply, options: [.fragmentsAllowed, .sortedKeys])
             return (String(decoding: data, as: UTF8.self), nil)
         } catch let error as PluginError {
             return (nil, "\(error.code): \(error.text)")

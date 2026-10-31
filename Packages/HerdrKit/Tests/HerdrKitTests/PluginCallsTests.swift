@@ -111,6 +111,9 @@ private func failure(_ name: String, _ args: [String: Any], _ calls: PluginCalls
     #expect(changes["unstaged"]?.contains { $0["path"] as? String == "sub/a.txt" } == true)
     let head = try #require(await call("git.head", ["root": repo.path]) as? [String: Any])
     #expect(head["branch"] as? String == "main")
+    // Sorted keys: the same reply is the same text every time.
+    let raw = try await all.call("git.head", JSONSerialization.data(withJSONObject: ["root": repo.path]))
+    #expect(String(decoding: raw, as: UTF8.self) == #"{"ahead":0,"behind":0,"branch":"main"}"#)
     let branches = try #require(await call("git.branches", ["root": repo.path]) as? [[String: Any]])
     #expect(branches.compactMap { $0["name"] as? String } == ["main", "side"])
     let log = try #require(await call("git.log", ["root": repo.path, "limit": 2]) as? [[String: Any]])

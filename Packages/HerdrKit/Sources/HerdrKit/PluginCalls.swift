@@ -83,7 +83,9 @@ public struct PluginCalls: Sendable {
         } catch {
             throw PluginError(error)
         }
-        guard let data = try? JSONSerialization.data(withJSONObject: reply ?? NSNull(), options: .fragmentsAllowed)
+        // Keys in one order: a page that compares replies as text sees no change where there is none.
+        guard let data = try? JSONSerialization.data(withJSONObject: reply ?? NSNull(),
+                                                     options: [.fragmentsAllowed, .sortedKeys])
         else { throw PluginError("failed", "The reply is not JSON") }
         return data
     }
