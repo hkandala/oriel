@@ -274,6 +274,11 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
             return pattern.contains(where: { "*?[".contains($0) }) ? 900 : 1000
         }.max()
     }
+
+    /// Whether a web address matches one of `opens.urls`, globs where `*` spans `/` too, case blind.
+    public func opens(url: String) -> Bool {
+        opens.urls.contains { fnmatch($0, url, FNM_CASEFOLD) == 0 }
+    }
 }
 
 private enum OpensKeys: String, CodingKey {

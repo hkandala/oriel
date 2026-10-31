@@ -78,11 +78,12 @@ extension Bridge {
                           main: (main, { picked(main) }))
     }
 
-    /// The plugin an open names, else the browser for a web address, the first plugin that opens folders for a
-    /// folder, or a file's default plugin.
+    /// The plugin an open names, else for a web address the first plugin whose `urls` match it or the browser, the
+    /// first plugin that opens folders for a folder, or a file's default plugin.
     private func opener(_ arg: String, _ id: String?) throws -> PluginManifest {
         let scheme = URL(string: arg)?.scheme?.lowercased()
-        let found = id.map(Registry.plugin) ?? (scheme == "http" || scheme == "https" ? Registry.browser
+        let web = { Registry.all.first { $0 != Registry.browser && $0.opens(url: arg) } ?? Registry.browser }
+        let found = id.map(Registry.plugin) ?? (scheme == "http" || scheme == "https" ? web()
             : arg.hasSuffix("/") ? Registry.all.first { $0.opens.folders } : Registry.openers(arg).first)
         guard let found else { throw PluginError("notFound", "No plugin opens \(arg)") }
         return found

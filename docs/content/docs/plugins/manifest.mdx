@@ -99,7 +99,7 @@ label's argument holds, and the card's title.
 | `files` | a file's absolute path | the file's name | `{ "files": ["*.csv", "public.comma-separated-values-text"] }` |
 | `folders` | a folder's path, ending in `/`: the root of its git repository, else the folder | the folder's name | `{ "folders": true }` |
 | `git` | a repository's root with its `/`, then optionally a space and `uncommitted` or a commit hash | the root's name, `Changes` or the short hash | `{ "git": true }` |
-| `urls` | a URL | not used yet | `{ "urls": ["https://github.com/*/*/pull/*"] }` |
+| `urls` | a URL | its last part | `{ "urls": ["https://github.com/*/*/pull/*"] }` |
 
 - `files` is a list of patterns. Each is a name glob (`*.csv`, `Makefile`),
   case blind, or a uniform type identifier (`public.image`). A type matches
@@ -107,8 +107,9 @@ label's argument holds, and the card's title.
   know (a dynamic type, such as `.rs`) matches no type, only a glob or `*`.
 - `files` and `folders` can go together: File Explorer opens both, with
   `{ "folders": true, "files": ["*"] }`.
-- `urls` is read and kept, but no open picks a plugin by URL yet: every web
-  address opens in the browser.
+- `urls` is a list of globs for web addresses, case blind, where `*` also
+  spans `/`. An `oriel.open` of an `http` or `https` address with no `plugin`
+  opens in the first plugin whose `urls` match it, else in the browser.
 - `priority` is `"default"` (the default) or `"option"`. An option plugin
   opens a file only when the user picks it in Open With.
 
@@ -127,7 +128,8 @@ file's name alone, so a remote file is not read first:
 File Explorer's `*` is the lowest rank. So a CSV plugin with `*.csv` takes
 `.csv` files from File Explorer, and any plugin with a pattern for a file
 wins over it. A path that ends in `/` opens in the first plugin with
-`folders`. An `http` or `https` address opens in the browser.
+`folders`. An `http` or `https` address opens in the first plugin whose
+`urls` match it, else in the browser.
 
 ## How it shows
 
