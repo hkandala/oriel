@@ -151,15 +151,19 @@ export async function editor(place: Place, extensions: Extension[], parent: HTML
    *  changed: the hash first (the card shown again reads no file). */
   const check = async () => {
     const before = hash
-    if ((await oriel.files.info(path).catch(() => undefined))?.hash === before) return
-    const now = await read()
-    if (!now || now.hash === before || saving || hash !== before) return
-    if (!dirty) return load(now.text, now.hash)
+    const onDisk = await oriel.files.info(path).catch(() => undefined)
+    if (!live() || !onDisk || onDisk.hash === before || saving || hash !== before) return
+    if (!dirty) {
+      const now = await read()
+      if (now && !saving && hash === before) load(now.text, now.hash)
+      return
+    }
+    // Edits are never dropped without the question, also for a file now too large or read only.
     const picked = await oriel.toast(`${name(path)} changed on disk.`, ["Reload", "Keep Mine"])
     if (!live()) return
     if (picked === "Reload") void reload()
     // The next ⌘S writes over the disk's new version.
-    if (picked === "Keep Mine") hash = now.hash
+    if (picked === "Keep Mine") hash = onDisk.hash
   }
 
   /** The caret on a 1-based line, in the middle of the card. */
