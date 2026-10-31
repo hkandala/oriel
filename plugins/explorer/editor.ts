@@ -48,6 +48,8 @@ export async function editor(place: Place, extensions: Extension[], parent: HTML
   let disk: Text
   let hash = file.hash
   let saving: Text | undefined
+  /** Saves begun, so a check that read the disk before one does not answer after it. */
+  let saves = 0
   let dirty = false
 
   const update = (state: EditorState) => {
@@ -120,10 +122,22 @@ export async function editor(place: Place, extensions: Extension[], parent: HTML
     if (now) load(now.text, now.hash)
   }
 
+  /** A toast of this file is up: a change on disk meanwhile asks nothing more, so it never takes a save's place. */
+  let asking = 0
+  const ask = async (text: string, buttons: [string, string]) => {
+    asking++
+    try {
+      return await oriel.toast(text, buttons)
+    } finally {
+      asking--
+    }
+  }
+
   /** Only edits: a save of the text on disk would still wake every watcher of the file. One at a time: a second
    *  would check the first's old hash; its edits keep the dot for the next ⌘S. `over` null overwrites. */
   const save = async (over: string | null = hash) => {
     if (view.state.readOnly || !dirty || saving) return
+    saves++
     const sent = (saving = view.state.doc)
     let failure: OrielError | undefined
     try {
@@ -138,28 +152,31 @@ export async function editor(place: Place, extensions: Extension[], parent: HTML
     }
     if (!live()) return
     if (failure?.code === "changed") {
-      const picked = await oriel.toast(`${name(path)} changed on disk since you opened it.`, ["Overwrite", "Reload"])
+      const picked = await ask(`${name(path)} changed on disk since you opened it.`, ["Overwrite", "Reload"])
       if (picked === "Overwrite") await save(null)
       if (picked === "Reload") await reload()
     } else if (failure) {
       const text = `${name(path)} was not saved: ${failure.message}`
-      if ((await oriel.toast(text, ["Cancel", "Try Again"])) === "Try Again") await save(over)
+      if ((await ask(text, ["Cancel", "Try Again"])) === "Try Again") await save(over)
     }
   }
 
   /** After a change on disk: a clean file reloads; a dirty one asks. Not for the card's own save, nor before the file
    *  changed: the hash first (the card shown again reads no file). */
   const check = async () => {
-    const before = hash
+    const before = hash, started = saves
+    // Not after a save began meanwhile: its own answer (saved, or its toast) is the newer one.
+    const stale = () => !live() || saving || saves !== started || hash !== before
     const onDisk = await oriel.files.info(path).catch(() => undefined)
-    if (!live() || !onDisk || onDisk.hash === before || saving || hash !== before) return
+    if (!onDisk || onDisk.hash === before || stale()) return
     if (!dirty) {
       const now = await read()
-      if (now && !saving && hash === before) load(now.text, now.hash)
+      if (now && !stale()) load(now.text, now.hash)
       return
     }
+    if (asking) return
     // Edits are never dropped without the question, also for a file now too large or read only.
-    const picked = await oriel.toast(`${name(path)} changed on disk.`, ["Reload", "Keep Mine"])
+    const picked = await ask(`${name(path)} changed on disk.`, ["Reload", "Keep Mine"])
     if (!live()) return
     if (picked === "Reload") void reload()
     // The next ⌘S writes over the disk's new version.
