@@ -44,6 +44,7 @@ struct Strip: View {
                 .background(ScrollAnchor(step: turn, drag: drag, lift: lift))
             }
         }
+        .onGeometryChange(for: CGSize.self, of: \.size) { pages.terminals.stripSize = $0 }
         // No `.paging`: it snapped the swipe's first move to the next page (on CI).
         // A new strip (a workspace or session shown, the overview closed) is laid out on the selected tab's page
         // from its first frame: the scroll below finds a lazy page only once it is laid out, so the strip drew its

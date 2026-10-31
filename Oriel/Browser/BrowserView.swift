@@ -82,6 +82,22 @@ class BrowserView: WKWebView {
 
     /// At 1x (6 MB for a full-window card on Retina, not 24): a cover shows a few frames and a tile is scaled down.
     /// About 8 ms in WebKit's process, also out of a window.
+    /// A picture was taken (the registry counts it under its cap).
+    var pictured: (() -> Void)?
+    private var loads: NSKeyValueObservation?
+
+    /// A page that loads out of a window (a card made ahead, `PaneViewRegistry.prewarm`) takes its picture as it
+    /// ends: it covers the page's first frames in a window.
+    func pictureLoadsOutOfWindow() {
+        loads = observe(\.isLoading) { view, _ in
+            MainActor.assumeIsolated {
+                if !view.isLoading, view.window == nil {
+                    view.takePicture()
+                }
+            }
+        }
+    }
+
     func takePicture(then taken: ((CGImage) -> Void)? = nil) {
         guard !bounds.isEmpty, url != nil else { return }
         let configuration = WKSnapshotConfiguration()
@@ -91,6 +107,7 @@ class BrowserView: WKWebView {
         takeSnapshot(with: configuration) { [weak self] image, _ in
             if let image = image?.cgImage(forProposedRect: nil, context: nil, hints: nil) {
                 self?.shot.image = image
+                self?.pictured?()
                 taken?(image)
             }
         }
