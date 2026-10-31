@@ -12,6 +12,8 @@ extension OrielUITests {
         XCTAssertTrue(until(10) { last.exists && last.isHittable })
         let bottom = element("chat.\(pane).bottom")
         XCTAssertFalse(bottom.exists)
+        // Where the newest row sits at the bottom: Scroll to Bottom lands there too.
+        let composer = element("chat.\(pane).composer"), gap = composer.frame.minY - last.frame.maxY
 
         // Up into the older messages, by natural scrolling either way.
         let chat = element("chat.\(pane)")
@@ -46,7 +48,8 @@ extension OrielUITests {
         XCTAssertFalse(last.exists && last.isHittable)
 
         bottom.click()
-        XCTAssertTrue(until(3) { last.exists && last.isHittable })
+        XCTAssertTrue(until(3) { abs(composer.frame.minY - last.frame.maxY - gap) < 2 },
+                      "\(gap) \(composer.frame.minY - last.frame.maxY)")
         XCTAssertTrue(bottom.vanishes(within: 2))
         // At the bottom, it stays there as the card widens again.
         _ = try await Self.call(one, "pane.close", ["pane_id": other])
@@ -62,6 +65,47 @@ extension OrielUITests {
         XCTAssertTrue(element("pane.\(pane).view.tui").has(\.isSelected, true, within: 10))
         element("pane.\(pane).view.chat").click()
         XCTAssertTrue(until(10) { last.exists && last.isHittable })
+    }
+
+    /// A long chat shows its newest rows under Show Earlier, which adds the rows before them without moving what is in
+    /// view, until the first message.
+    func testALongChatShowsEarlierRowsInPlace() async throws {
+        let pane = try await startChat().pane
+        app.typeText("many\r")
+        let last = row(pane, "reply", "Last.")
+        XCTAssertTrue(until(10) { last.exists && last.isHittable })
+        let chat = element("chat.\(pane)"), earlier = element("chat.\(pane).earlier")
+        let first = row(pane, "user", "Question 1")
+        XCTAssertFalse(first.exists)
+        var clicks = 0
+        // Up to the oldest row shown, where the button shows.
+        func up() {
+            for _ in 0 ..< 20 where !earlier.exists {
+                chat.scroll(byDeltaX: 0, deltaY: 5000)
+            }
+        }
+        while !first.exists, clicks < 10 {
+            up()
+            // The message at the top stays where it is.
+            let users = app.descendants(matching: .any).matching(identifier: "chat.\(pane).user")
+                .allElementsBoundByIndex
+            let top = try XCTUnwrap(users.filter { $0.frame.minY >= chat.frame.minY - 1 }
+                .min { $0.frame.minY < $1.frame.minY })
+            let (text, place) = (top.stringValue, top.frame.minY)
+            earlier.click()
+            clicks += 1
+            let same = row(pane, "user", text)
+            XCTAssertTrue(
+                until(3) { abs(same.frame.minY - place) < 2 && users.count < self.app.descendants(matching: .any)
+                    .matching(identifier: "chat.\(pane).user").count
+                },
+                "\(text) \(place) \(same.frame)",
+            )
+        }
+        XCTAssertGreaterThan(clicks, 1)
+        up()
+        XCTAssertTrue(first.isHittable)
+        XCTAssertFalse(earlier.exists)
     }
 
     /// The values of the replies' blocks and the user's messages along the top 100 pt of the chat, from one snapshot.

@@ -12,14 +12,28 @@ struct ChatMessages: View, Equatable {
     @State private var top: String?
     /// The newest message is in view.
     @State private var atBottom = true
+    /// The oldest row shown is in view: Show Earlier shows over it.
+    @State private var atTop = false
     /// A row holds the place: the scroll view named one since the chat left the bottom. Until then the bottom does,
     /// also scrolled up inside a newest reply taller than the view.
     @State private var held = false
     /// The card's width the messages lay out at, and the wait for its next one.
     @State private var width: CGFloat?
     @State private var settling: Task<Void, Never>?
+    /// The oldest row shown, once Show Earlier was clicked; nil: the newest `block` rows.
+    @State private var first: String?
     @Environment(\.look) private var look
+    private var settings = AppSettings()
     private static let end = "end"
+    /// The rows a long chat shows at a time, and Show Earlier adds: about 25 turns, laid out in 0.3–0.4 s on a
+    /// very busy Mac.
+    static let block = 100
+
+    init(chat: Chat, page: Page, composing: FocusState<Bool>.Binding) {
+        self.chat = chat
+        self.page = page
+        self.composing = composing
+    }
 
     /// The focus binding stays the same for a card.
     nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
@@ -27,11 +41,68 @@ struct ChatMessages: View, Equatable {
     }
 
     var body: some View {
+        Group {
+            // No scroll view until there is something to show: one made empty keeps the top inset that held its empty
+            // content at the bottom after a long history loads, a blank above the messages.
+            if chat.history.entries.isEmpty, chat.outgoing.isEmpty, chat.problem == nil {
+                empty
+            } else {
+                messages
+            }
+        }
+        // The reply box is glass over the messages' bottom, which scroll under it and clear of it.
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if !chat.drawer {
+                VStack(spacing: 8) {
+                    if let question = chat.question, chat.phase == .waiting {
+                        QuestionCard(question: question, paneID: chat.paneID) { chat.answer($0) }
+                            .disabled(question.answered)
+                            .id(question.raw)
+                    }
+                    Composer(chat: chat, composing: composing)
+                }
+                // The box's text on the messages' edges: the box reaches past them by its own padding.
+                .padding(.horizontal, 32 - Composer.inset).padding(.bottom, 14).padding(.top, 4)
+                .frame(maxWidth: ChatView.column).frame(maxWidth: .infinity)
+            }
+        }
+        // The messages fade in under the header instead of being cut by it.
+        .fadeEdges(.vertical, start: 12, end: 0)
+    }
+
+    /// A new chat: the agent's program icon, gray, in the middle; the loader while a history loads.
+    private var empty: some View {
+        ZStack {
+            if chat.loading {
+                ProgressView().controlSize(.small).accessibilityIdentifier("chat.\(chat.paneID).loading")
+            } else if let pane = page.store.pane(chat.paneID) {
+                ProgramGlyph(icon: pane.iconID, letter: pane.letter, size: 64).opacity(0.5)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityAddTraits(.isImage)
+                    .accessibilityLabel(chat.adapter.name)
+                    .accessibilityIdentifier("chat.\(chat.paneID).empty")
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // The next scroll view starts at the bottom, with the newest rows (a new session too).
+        .onAppear {
+            hold(nil)
+            atBottom = true
+            first = nil
+        }
+    }
+
+    private var messages: some View {
         let floats = page.store.pane(chat.paneID).map(page.floats) == true
-        ScrollViewReader { proxy in
+        let level = settings.chatLevel
+        let rows = chat.history.rows(level, working: chat.phase == .working)
+        let start = first.flatMap { id in rows.firstIndex { $0.id == id } } ?? Self.start(rows[...])
+        return ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 10) {
-                    Rows(chat: chat)
+                // Not lazy: a lazy stack guessed the height of the rows it had not built, by up to four times, and
+                // after a split showed a blank where it guessed wrong. `block` keeps the layout short.
+                VStack(alignment: .leading, spacing: 10) {
+                    Rows(chat: chat, rows: rows[start...], level: level)
                     ForEach(chat.outgoing) { message in
                         outgoing(message)
                     }
@@ -42,11 +113,15 @@ struct ChatMessages: View, Equatable {
                     if let problem = chat.problem {
                         problemCard(problem)
                     }
+                    // The end, with the room above the reply box (with the stack's spacing): Scroll to Bottom lands
+                    // where a chat opens.
+                    Color.clear.frame(height: 22).id(Self.end)
                 }
                 .scrollTargetLayout()
-                .overlay(alignment: .bottom) { Color.clear.frame(height: 1).id(Self.end) }
-                // A floating window's card starts right under its title row, with no header of its own above.
-                .padding(.horizontal, 32).padding(.top, floats ? 28 : 16).padding(.bottom, 16)
+                // A floating window's card starts right under its title row, with no header of its own above. None
+                // above a long chat's oldest row shown: the scroll keeps the row at the top in place, its top at the
+                // top, so earlier rows come above it without moving what is in view.
+                .padding(.horizontal, 32).padding(.top, start > 0 ? 0 : floats ? 28 : 16)
                 .frame(maxWidth: ChatView.column)
                 .frame(maxWidth: .infinity)
             }
@@ -55,6 +130,7 @@ struct ChatMessages: View, Equatable {
             .scrollPosition(id: Binding(get: { top }, set: { hold(atBottom ? nil : $0) }), anchor: .top)
             .defaultScrollAnchor(.bottom)
             .defaultScrollAnchor(held ? nil : .bottom, for: .sizeChanges)
+            .onScrollGeometryChange(for: Bool.self) { $0.visibleRect.minY < 40 } action: { atTop = $1 }
             .onScrollGeometryChange(for: Bool.self) { geometry in
                 geometry.contentSize.height + geometry.contentInsets.bottom - geometry.visibleRect.maxY < 40
             } action: {
@@ -90,37 +166,25 @@ struct ChatMessages: View, Equatable {
                     bottomButton { proxy.scrollTo(Self.end, anchor: .bottom) }
                 }
             }
-        }
-        // A new chat: the agent's program icon, gray, in the middle.
-        .background {
-            if chat.history.entries.isEmpty, chat.outgoing.isEmpty, chat.problem == nil,
-               let pane = page.store.pane(chat.paneID)
-            {
-                ProgramGlyph(icon: pane.iconID, letter: pane.letter, size: 64).opacity(0.5)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityAddTraits(.isImage)
-                    .accessibilityLabel(chat.adapter.name)
-                    .accessibilityIdentifier("chat.\(chat.paneID).empty")
-            }
-        }
-        // The reply box is glass over the messages' bottom, which scroll under it and clear of it.
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            if !chat.drawer {
-                VStack(spacing: 8) {
-                    if let question = chat.question, chat.phase == .waiting {
-                        QuestionCard(question: question, paneID: chat.paneID) { chat.answer($0) }
-                            .disabled(question.answered)
-                            .id(question.raw)
-                    }
-                    Composer(chat: chat, composing: composing)
+            .overlay(alignment: .top) {
+                if start > 0, atTop {
+                    earlierButton { first = rows[Self.start(rows[..<start])].id }.padding(.top, floats ? 28 : 16)
                 }
-                // The box's text on the messages' edges: the box reaches past them by its own padding.
-                .padding(.horizontal, 32 - Composer.inset).padding(.bottom, 14).padding(.top, 4)
-                .frame(maxWidth: ChatView.column).frame(maxWidth: .infinity)
             }
         }
-        // The messages fade in under the header instead of being cut by it.
-        .fadeEdges(.vertical, start: 12, end: 0)
+    }
+
+    /// The first of the newest `block` rows, at a user's message so its turn shows whole.
+    static func start(_ rows: ArraySlice<ChatRow>) -> Int {
+        guard rows.count > block else { return rows.startIndex }
+        let cut = rows.endIndex - block
+        return rows[cut...].firstIndex {
+            if case .user = $0 {
+                true
+            } else {
+                false
+            }
+        } ?? cut
     }
 
     /// The row at the top while scrolled up; `held` changes only when that starts or ends, so the body is not built
@@ -143,6 +207,16 @@ struct ChatMessages: View, Equatable {
         .accessibilityLabel("Scroll to Bottom")
         .accessibilityIdentifier("chat.\(chat.paneID).bottom")
         .padding(.bottom, 10)
+    }
+
+    /// The next block of rows above, over the messages' top.
+    private func earlierButton(_ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text("Show Earlier").font(.system(size: 12, weight: .medium)).padding(.horizontal, 12).frame(height: 28)
+                .glassEffect(.regular.interactive(), in: .capsule)
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("chat.\(chat.paneID).earlier")
     }
 
     /// Sending, dimmed; or "Not sent" with Show TUI.
@@ -176,23 +250,18 @@ struct ChatMessages: View, Equatable {
     }
 }
 
-/// The history's rows at the level: their own view, built again only when the history, the phase, the level or an
-/// open row changes.
+/// The history's rows shown at the level, with the stacks and tool calls clicked open.
 private struct Rows: View {
     let chat: Chat
+    let rows: ArraySlice<ChatRow>
+    let level: ChatLevel
     /// Stacks clicked open or closed: they stay so at every level (else open at Everything only).
     @State private var opened: [String: Bool] = [:]
     /// Tool calls opened to their input and output.
     @State private var openTools: Set<String> = []
-    private var settings = AppSettings()
-
-    init(chat: Chat) {
-        self.chat = chat
-    }
 
     var body: some View {
-        let level = settings.chatLevel
-        ForEach(chat.history.rows(level, working: chat.phase == .working)) { row in
+        ForEach(rows) { row in
             let open = opened[row.id] ?? (level == .everything)
             ChatRowView(row: row, paneID: chat.paneID, open: open, toggle: { opened[row.id] = !open },
                         opened: openTools, toggleTool: { openTools.formSymmetricDifference([$0]) })
