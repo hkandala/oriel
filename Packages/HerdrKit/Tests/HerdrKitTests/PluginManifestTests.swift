@@ -31,6 +31,17 @@ private func error(_ oriel: String, package: String = #""version": "0.1.0""#) ->
     #expect(csv.keywords == ["sheet"] && csv.permissions == ["files:read"] && csv.chooser == nil)
     #expect(csv.header.map(\.type) == ["text", "spacer", "toggle", "menu"])
     #expect(csv.header[2].value == .bool(true) && csv.header[3].items?.last?.value == nil)
+    #expect(!csv.history)
+}
+
+@Test func `the header's app controls, path parts, section headings and item symbols`() throws {
+    let tree = try manifest(base + #", "history": true, "header": [{"type": "openWith", "id": "open-with"},"#
+        + #"{"id": "jump", "type": "text", "style": "path", "value": ["src", "main.ts"]},"#
+        + #"{"id": "root", "type": "menu", "items": [{"title": "Remote"},"#
+        + #"{"value": "/", "title": "/", "symbol": "folder"}]}]"#)
+    #expect(tree.history && tree.header[0].type == "openWith" && tree.header[1].value == .list(["src", "main.ts"]))
+    #expect(tree.header[2].items?.first?.value == nil && tree.header[2].items?.first?.title == "Remote")
+    #expect(tree.header[2].items?.last?.symbol == "folder")
 }
 
 @Test func `a bad manifest names its field and what is wrong`() {

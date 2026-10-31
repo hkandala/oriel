@@ -23,6 +23,8 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
     /// The chooser row's title, and the command Open ‹chooser› Here.
     public let chooser: String?
     public let header: [Control]
+    /// Back and Forward at the left of the header, over the places the card went to (`card.go`).
+    public let history: Bool
     public let commands: [Command]
     /// The app's commands the card takes: `save`, `find`.
     public let handles: [String]
@@ -56,47 +58,65 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
         }
     }
 
-    /// A control of the card's second header row.
+    /// A control of the card's second header row. Its fields are vars: the page changes them (`controls.set`).
     public struct Control: Decodable, Sendable, Equatable {
         public let type: String
         public let id: String?
-        public let symbol: String?
-        public let title: String?
-        public let value: Value?
+        public var symbol: String?
+        public var title: String?
+        /// An `openWith`'s is the file's path.
+        public var value: Value?
         /// A segmented control's.
-        public let options: [Item]?
+        public var options: [Item]?
         /// A menu's; `"-"` is a divider.
-        public let items: [Item]?
-        public let placeholder: String?
+        public var items: [Item]?
+        public var placeholder: String?
         /// A text's: `plain`, `dim` or `path`.
-        public let style: String?
-        public let hidden: Bool?
-        public let enabled: Bool?
+        public var style: String?
+        public var hidden: Bool?
+        public var enabled: Bool?
+        /// A button's count after its symbol (Git's commits ahead).
+        public var badge: String?
+        /// A spinner in place of a button's or a menu's symbol while its work runs.
+        public var busy: Bool?
     }
 
-    /// A toggle's value is a boolean, the others' a string.
+    /// A toggle's value is a boolean, a path text's a list of parts, the others' a string.
     public enum Value: Decodable, Sendable, Equatable {
-        case bool(Bool), text(String)
+        case bool(Bool), text(String), list([String])
 
         public init(from decoder: any Decoder) throws {
             let value = try decoder.singleValueContainer()
-            self = try (try? value.decode(Bool.self)).map(Value.bool) ?? .text(value.decode(String.self))
+            if let bool = try? value.decode(Bool.self) {
+                self = .bool(bool)
+            } else if let list = try? value.decode([String].self) {
+                self = .list(list)
+            } else {
+                self = try .text(value.decode(String.self))
+            }
         }
     }
 
-    /// A segmented control's option or a menu's item; a divider has no value.
+    /// A segmented control's option or a menu's item; a divider has neither value nor title, a menu's section heading
+    /// only a title.
     public struct Item: Decodable, Sendable, Equatable {
         public let value: String?
         public let title: String?
+        public let symbol: String?
+
+        public init(value: String?, title: String?, symbol: String? = nil) {
+            (self.value, self.title, self.symbol) = (value, title, symbol)
+        }
 
         public init(from decoder: any Decoder) throws {
             if let divider = try? decoder.singleValueContainer().decode(String.self), divider == "-" {
-                (value, title) = (nil, nil)
+                (value, title, symbol) = (nil, nil, nil)
                 return
             }
             let values = try decoder.container(keyedBy: ItemKeys.self)
-            value = try values.decode(String.self, forKey: .value)
+            value = try values.decodeIfPresent(String.self, forKey: .value)
             title = try values.decode(String.self, forKey: .title)
+            symbol = try values.decodeIfPresent(String.self, forKey: .symbol)
         }
     }
 
@@ -118,7 +138,7 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
     {
         (self.id, self.name, version, api, entry, self.icon) = (id, name, "1.0.0", 1, nil, icon)
         (self.description, self.keywords, self.opens, self.chooser) = (description, keywords, opens, chooser)
-        (header, commands, handles, permissions) = ([], [], [], [])
+        (header, history, commands, handles, permissions) = ([], false, [], [], [])
     }
 
     /// A package's `package.json`; a missing field or a wrong value throws the field's name and what is wrong.
@@ -152,6 +172,7 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
         opens = try values.decodeIfPresent(Opens.self, forKey: .opens) ?? Opens()
         chooser = try values.decodeIfPresent(String.self, forKey: .chooser)
         header = try values.decodeIfPresent([Control].self, forKey: .header) ?? []
+        history = try values.decodeIfPresent(Bool.self, forKey: .history) ?? false
         commands = try values.decodeIfPresent([Command].self, forKey: .commands) ?? []
         handles = try values.decodeIfPresent([String].self, forKey: .handles) ?? []
         permissions = try values.decodeIfPresent([String].self, forKey: .permissions) ?? []
@@ -163,7 +184,7 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
     }
 
     private enum Keys: String, CodingKey {
-        case id, name, api, entry, icon, opens, chooser, header, commands, handles, permissions
+        case id, name, api, entry, icon, opens, chooser, header, history, commands, handles, permissions
     }
 
     /// The manifest page's rules the types do not carry.
@@ -191,7 +212,7 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
     }
 
     private func checkControls(_ bad: (String, String) -> ManifestError) throws {
-        let controls = ["button", "toggle", "segmented", "menu", "field", "text", "spacer"]
+        let controls = ["button", "toggle", "segmented", "menu", "field", "text", "spacer", "openWith"]
         var ids = Set<String>()
         for control in header {
             guard controls.contains(control.type) else { throw bad("header", "has an unknown type \(control.type)") }
@@ -243,7 +264,7 @@ private enum OpensKeys: String, CodingKey {
 }
 
 private enum ItemKeys: String, CodingKey {
-    case value, title
+    case value, title, symbol
 }
 
 /// A bad manifest: the field and what is wrong (`oriel.id is missing`).
