@@ -185,27 +185,34 @@ extension Chat {
     {
         guard !run.isEmpty else { return torn }
         let read = parser.read
-        var state = parser.take(), torn = torn, five = false
+        var state = parser.take(), torn = torn, done = (five: false, count: 0)
         if loading {
             var backlog = backlog
             self.backlog = ChatHistory()
             reading = true
-            (state, backlog, torn, five) = await Task.detached { [state, backlog, torn] in
+            // Stopped with the follow (the card went, another session): the lines it read count.
+            let task = Task.detached { [state, backlog, torn] in
                 var (state, backlog, torn) = (state, backlog, torn)
-                let five = Self.lines(run, read, &state, &backlog, &torn)
-                return (state, backlog, torn, five)
-            }.value
+                let done = Self.lines(run, read, &state, &backlog, &torn)
+                return (state, backlog, torn, done)
+            }
+            (state, backlog, torn, done) = await withTaskCancellationHandler { await task.value } onCancel: {
+                task.cancel()
+            }
             reading = false
             if self.source == source {
                 self.backlog = backlog
             }
         } else {
-            five = Self.lines(run, read, &state, &history, &torn)
+            done = Self.lines(run, read, &state, &history, &torn)
         }
+        let five = done.five
         // Not into another session's parser (a session line started it again meanwhile).
         if self.source == source {
             parser.put(state)
-            marks[source] = run.last?.mark
+            if done.count > 0 {
+                marks[source] = run[done.count - 1].mark
+            }
             if five {
                 problem = Self.unknownFormat
             }
@@ -219,18 +226,21 @@ extension Chat {
         return torn
     }
 
-    /// Reads the lines into the history; true when five torn lines came in a row.
+    /// Reads the lines into the history, until cancelled: whether five torn lines came in a row, and how many it read.
     private nonisolated static func lines<State>(_ run: [(text: String, mark: FileMark)],
                                                  _ read: (inout State, String, Int, inout ChatHistory) -> Bool,
                                                  _ state: inout State, _ history: inout ChatHistory,
-                                                 _ torn: inout Int) -> Bool
+                                                 _ torn: inout Int) -> (five: Bool, count: Int)
     {
         var five = false
-        for (text, mark) in run {
+        for (index, (text, mark)) in run.enumerated() {
+            if index.isMultiple(of: 500), Task.isCancelled {
+                return (five, index)
+            }
             torn = read(&state, text, mark.offset, &history) ? 0 : torn + 1
             five = five || torn == 5
         }
-        return five
+        return (five, run.count)
     }
 
     private func check(torn: Int) {

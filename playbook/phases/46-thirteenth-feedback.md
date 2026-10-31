@@ -416,3 +416,7 @@ after (Release, `sample` over tab clicks, three swipes and two overview opens).
 - 7 (D): `Opening.now` deleted: no caller (the Git home sends `how` from its page).
 - 8 (D): `Plugin.go` opens nothing for a path that makes no label, so the next snapshot no longer pulls the card back.
 - 15 (D): Markdown's link comment says an http(s) link opens a browser pane in a new tab (⌥ to the side).
+- 2 (A): OpenCode's first load shows the loader in the empty chat, as a history file does.
+- 10 (A): a backlog read off the main actor stops with its follow (checked every 500 lines); its marks end at the last
+  line it read.
+- 18 (A): OpenCode reads each event once off the main actor, and again on it only for the events the waits read.
