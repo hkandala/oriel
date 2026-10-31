@@ -278,3 +278,36 @@ forward; ask track D for any change in its files.
   XCUITest cannot read as a button's value (now in the label) and the diff checks on a diff with no far change.
 - **For the user:** try Pull and Push on a real remote with SSH keys (a key with a passphrase and no agent fails
   with ssh's message, since nothing can prompt), commit hooks and signing, and the branch menu with many branches.
+
+### Track A
+
+- **Measured** on the biggest transcript on this Mac (a 108 MB pi session, 3,850 entries, 936 rows at Replies only),
+  opened in a dev build with a scroll-geometry log and screenshots, on a Mac at a load of 40–120: the history arrives
+  1.1–4.5 s after the open, parsed on the main actor (JSONSerialization, half the main thread's samples meanwhile).
+- **Cause, blank after a split (items 8, 9).** The lazy stack guessed the height of the rows it had not built: on a
+  split its content height swung between 14,000 and 59,000 pt within 150 ms, and the chat stayed blank (5 s and on)
+  until something else changed. **Fix:** the rows are a plain `VStack` of the newest 100 (about 25 turns), so every
+  height is real: open, split and Scroll to Bottom land exactly. A plain stack's scroll keeps its offset when rows
+  above change height, so after a new width (or Show Earlier) the row at the top is scrolled back to the top. 100 rows of that
+  session (22,000 pt of long replies) lay out in 0.25–0.4 s on that busy Mac, Release and Debug alike (SwiftUI's
+  text layout); the lazy stack took 0.35 s on the same split, with its swings. At Everything an open run counts its
+  steps toward the 100: 23 rows (8,500 pt), 0.15–0.2 s.
+- **Cause, blank above the messages and drift (item 8).** The scroll view was made while the history was empty; its
+  bottom anchor held the empty content down with an 841 pt top inset, and the inset stayed after the long history
+  came, until the next change. **Fix:** the empty chat (its glyph, or a loader while a history loads) has no scroll
+  view; the scroll view is made with the rows, at the bottom.
+- **Cause, Scroll to Bottom short (item 2).** It scrolled to a marker above the bottom padding, through the lazy
+  stack's guessed heights. **Fix:** the end is the stack's last row, holding the room above the reply box (item 7,
+  32 pt), in a stack with real heights.
+- **Decisions.** Show Earlier is a glass pill over the messages' top, shown at the very top, as Scroll to Bottom is
+  at the bottom; a block starts at a user's message near its cut. Once the chat leaves the bottom the block stays put
+  (new rows do not take rows from its top); back at the bottom, or on a level change, it is the newest 100 again.
+  Restoring the place snaps the top row's top to the top, so the stack has no top padding while earlier rows exist.
+- **Cause, Not sent after a burst.** A message on its way was confirmed only by the history's last entry; a burst that
+  brought the user's message with the reply after it left it Not sent, and that line moved the newest row up. It
+  is now confirmed by any new entry.
+- **Cause, review.** The loader turned on when the follow started, but Claude Code and pi write their transcript only
+  with the first message: a new chat showed a spinner, not its glyph. It now turns on when the file opens. The dark gray bubble is #3B3B3D (ChatKit's catalog has only the light gray, #E5E5EA).
+- **For the user.** Open a long chat: the loader, then the newest messages at the bottom. Split beside it and close
+  the split: no blank. Scroll up to Show Earlier and click it: the messages in view stay. While a 100 MB session
+  loads the window is slower (the parse is on the main actor; moving it off is a change to all four adapters).
