@@ -250,7 +250,7 @@ extension Bridge {
         if Registry.defaults.contains(plugin.manifest.id),
            let error = await DefaultPlugins.shared.installed(plugin.manifest.id)
         {
-            failure = ("\(plugin.manifest.name) could not install", error)
+            failure = ("\(plugin.manifest.name.shown) could not install", error)
             plugin.web.ready = true
             return false
         }

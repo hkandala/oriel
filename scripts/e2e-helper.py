@@ -161,7 +161,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         elif action == "open-folder":
             folder = tempfile.mkdtemp(prefix="oriel-e2e-drop-", dir="/tmp")
             folders.append(folder)
-            run = subprocess.run(["open", "-a", body.decode(), folder, "--args", "-session", session,
+            run = subprocess.run(["open", "--env", "npm_config_offline=true", "-a", body.decode(), folder, "--args",
+                                  "-session", session,
                                   "-ApplePersistenceIgnoreState", "YES", "-configFolder", NO_CONFIG],
                                  capture_output=True, timeout=10)
             status, reply = (200, folder.encode()) if run.returncode == 0 else (500, run.stderr)
@@ -170,7 +171,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         elif action == "open-url":
             # As pi-herd opens it, to that app: LaunchServices may know other builds of the app.
             app, url = body.decode().split("\n")
-            run = subprocess.run(["open", "-g", "-a", app, url, "--args", "-configFolder", NO_CONFIG],
+            run = subprocess.run(["open", "--env", "npm_config_offline=true", "-g", "-a", app, url, "--args",
+                                  "-configFolder", NO_CONFIG],
                                  capture_output=True, timeout=10)
             status, reply = (200, b"") if run.returncode == 0 else (500, run.stderr)
         elif action == "file-drag":
