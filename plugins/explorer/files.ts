@@ -52,13 +52,12 @@ const look = {
   [data-item-type="folder"] > [data-item-section="icon"]::after { background: var(--accent); -webkit-mask-image: ${FOLDER}; }
   [data-item-selected="true"] > [data-item-section="icon"] { color: var(--dim); }`,
 }
-/** Row 2: the root's name, whose menu lists the folders above it, nearest first, then Choose Folder…; no filter. */
+/** Row 2: the root's name, whose menu lists the folders above it, nearest first, then Choose Folder…. */
 function header({ oriel }: Place, top: string) {
   const parents: string[] = []
   for (let at = top; at !== "/"; parents.push(at)) at = at.slice(0, at.lastIndexOf("/")) || "/"
   const items = parents.map((at) => ({ value: at === "/" ? "/" : `${at}/`, title: name(at), symbol: "folder" }))
   oriel.controls.set("root", { title: name(top), value: "", items: [...items, "-", { value: "choose", title: "Choose Folder…" }] })
-  oriel.controls.set("filter", { value: "" })
 }
 
 /** The root's tree in `place.root`, its rows listed; git's letters and a landing's row come after. */
