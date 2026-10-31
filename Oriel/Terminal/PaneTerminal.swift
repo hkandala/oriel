@@ -24,6 +24,9 @@ final class PaneTerminal {
     /// The surface's last grid; nil until the first stream opens. Read by the host, which fits the view at once
     /// until then.
     @ObservationIgnored private(set) var grid: InMemoryTerminalViewport?
+    /// The surface's latest grid, at once: `grid` takes it in `resized`'s task, which must not be replaced by one for
+    /// an older grid.
+    @ObservationIgnored private var latest: InMemoryTerminalViewport?
     @ObservationIgnored let view = PaneSurfaceView(frame: .zero)
     @ObservationIgnored var paneID: String
     @ObservationIgnored private let terminalID: String
@@ -138,10 +141,6 @@ final class PaneTerminal {
         open(observe: !controls, takeover: controls)
     }
 
-    func keys(_ keys: [String]) {
-        enqueue(.keys(keys))
-    }
-
     func mouse(_ action: TerminalStream.MouseAction, _ button: TerminalStream.MouseButton,
                column: Int, row: Int, modifiers: Int)
     {
@@ -206,9 +205,10 @@ final class PaneTerminal {
     /// The first frame of a stream.
     private func started(_ frame: TerminalStream.Frame) {
         state = observing ? .watching : .live
-        // The card may have changed size while the stream opened.
-        if let grid, frame.width != grid.columns || frame.height != grid.rows {
-            resized(grid)
+        // The card may have changed size while the stream opened. Its latest size: a new surface's first guess (100×40
+        // at 1x) may be `grid` while the real size waits in `resized`, and that one would be cancelled.
+        if let latest, frame.width != latest.columns || frame.height != latest.rows {
+            resized(latest)
         }
         drain()
     }
@@ -265,6 +265,7 @@ final class PaneTerminal {
     /// layout (50×17), which made an agent redraw twice. Later ones go at once: the host already waited for the
     /// card's size to settle.
     private func resized(_ size: InMemoryTerminalViewport) {
+        latest = size
         resizing?.cancel()
         resizing = Task {
             let first = grid == nil
@@ -343,6 +344,10 @@ final class PaneTerminal {
 }
 
 extension PaneTerminal {
+    func keys(_ keys: [String]) {
+        enqueue(.keys(keys))
+    }
+
     func scroll(lines: Int, column: Int, row: Int, modifiers: Int) {
         if state == .live {
             stream?.scroll(lines: lines, column: column, row: row, modifiers: modifiers)
