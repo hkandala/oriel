@@ -1,3 +1,4 @@
+import Foundation
 @testable import HerdrKit
 import Testing
 
@@ -29,6 +30,21 @@ import Testing
     #expect(iid.count == 6 && iid != "aaaaaa" && iid.allSatisfy { $0.isLowercase || $0.isNumber })
     #expect(PaneLabel(plugin: "browser", iid: "m4p8sa").statePath(session: "default")
         == ".local/state/oriel/default/browser/m4p8sa.json")
+}
+
+/// This Mac reads a state file itself, as a remote machine's shell reads it: trimmed, nil when missing or empty.
+@Test func `a state file reads the same on This Mac and through a shell`() async throws {
+    let path = ".local/state/oriel/oriel-e2e-read-\(UUID().uuidString).json"
+    let file = URL(filePath: NSHomeDirectory()).appending(path: path)
+    defer { try? FileManager.default.removeItem(at: file) }
+    let shell = try await RelayExec.start()
+    #expect(await localExec.read(home: path) == nil)
+    #expect(await shell.read(home: path) == nil)
+    try Data("{\"a\":\"é\"}\n".utf8).write(to: file)
+    #expect(await localExec.read(home: path) == #"{"a":"é"}"#)
+    #expect(await shell.read(home: path) == #"{"a":"é"}"#)
+    try Data().write(to: file)
+    #expect(await localExec.read(home: path) == nil)
 }
 
 @Test func `a Git place ends its root in a slash, so a root's last word is no source`() {

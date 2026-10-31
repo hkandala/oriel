@@ -8,6 +8,8 @@ public protocol Exec: Sendable {
     /// 30 s while missing or gone, so a herdr installed or moved since is found
     /// (talking-to-herdr#herdr-on-each-machine). Throws when the machine cannot be reached.
     func herdr() async throws -> String?
+    /// A file under the home folder, trimmed, or nil when it is missing, unreadable or empty.
+    func read(home path: String) async -> String?
 }
 
 extension Exec {
@@ -133,6 +135,14 @@ public final class ProcessExec: Exec {
 
     public func run(_ argv: [String]) async throws -> Channel {
         try Self.spawn(argv, environment)
+    }
+
+    /// Read here, not by `cat`: on a busy Mac a process takes as long to start as a plugin's page takes to load, and
+    /// the page waits for its state file.
+    public func read(home path: String) async -> String? {
+        let file = URL(filePath: environment["HOME"] ?? NSHomeDirectory()).appending(path: path)
+        let text = (try? String(contentsOf: file, encoding: .utf8))?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return text?.isEmpty == false ? text : nil
     }
 
     public func herdr() async -> String? {
