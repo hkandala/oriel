@@ -37,8 +37,8 @@ static let browser = PluginManifest(
   Its version is 1.0.0.
 - **Its id is taken first**, so no package can be named `browser`.
 - **Opens.** An `http` or `https` address from `oriel.open` with no `plugin`
-  opens in the browser. A plugin with a URL pattern is read by the registry,
-  but no open picks it yet.
+  opens in a `default` plugin whose `urls` match it, else in the browser
+  ([What a plugin opens](/docs/plugins/manifest#what-a-plugin-opens)).
 - **Memory.** Browser cards count with plugin cards: the 20 most recently
   shown web cards stay
   ([What stays in memory](/docs/ui/browser#what-stays-in-memory)). A

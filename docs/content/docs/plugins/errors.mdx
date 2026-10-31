@@ -16,6 +16,7 @@ The card shows the plugin's icon, a title, the details in 12 pt monospace
 |---|---|---|---|
 | "‹name› needs Node.js" | no npm, pnpm or bun on the login `PATH` | "Oriel installs and builds plugins with npm, pnpm or bun, and none is on your PATH. Install Node.js from nodejs.org, then try again." | Try Again |
 | "‹name› could not install" | a default plugin's first install failed (offline, a failed `npm ci`) | the command's last 20 lines | Try Again |
+| "‹name› is not installed" | a default plugin's copy is missing and no install failed | none | Try Again |
 | "‹name› did not build" | the build script failed | the script's last 20 lines | Try Again (builds again) |
 | "‹name› is not built" | the entry (`dist/main.js`) is missing | "dist/main.js is missing. Build runs its build script." | Build, or none when the package has no build script ("build it with its own tools") |
 | "‹name› stopped" | `main` threw, or the page did not load | the error's message and its first stack line | Reload |
@@ -32,8 +33,8 @@ The card shows the plugin's icon, a title, the details in 12 pt monospace
 - **A crashed page** (WebKit's process ended) loads again, once per load.
   Unsaved edits are lost then.
 - **The Plugins panel** shows a failed install, update or remove on a red
-  notice with **Retry**: "package.json: ‹field› ‹what is wrong›", or the
-  command's last line.
+  notice: "package.json: ‹field› ‹what is wrong›", or the first of the
+  command's last lines, with **Retry** when running it again can help.
 
 ## The log
 
@@ -55,7 +56,7 @@ What goes in:
 - A page that stopped, and an API too new.
 - A manifest that the registry left out: its file and field, or "the id ‹id›
   is taken by ‹folder›". It goes to the log named after the package's
-  folder, and also to the id's log when the id reads.
+  folder. A bad manifest also goes to the id's log when the id reads.
 
 **Show Log** opens the file in the app for `.log` files (Console). It is in
 the card's menu (also View ▸ Pane and ⌘K), on every error card and on the

@@ -77,9 +77,9 @@ The install commands:
 panel over the window, like Open Session. Esc or a click outside closes it.
 
 - **The field** takes a source (`npm:package`, `git:repository` or a
-  folder's path). Return or **Install** installs it. A row shows
-  "Installing…" while it runs. A failure shows on a red notice with
-  **Retry**.
+  folder's path). Return or **Install** installs it. The spinner and
+  "Installing…" take the Install button's place while it runs. A failure
+  shows on a red notice, with **Retry** when running it again can help.
 - **A row per plugin:** its icon, its name and version, and its source under
   it: "Comes with Oriel", the `npm:` or `git:` source, the local path, or the
   folder. A source in `settings.json` whose folder is missing shows "Not
@@ -115,8 +115,8 @@ package of an id wins, in this order:
    `node_modules`.
 
 A package that is left out (a bad manifest, a taken id, a listed path with no
-`package.json`) is written to the log, under the folder's name and under the
-manifest's id when it reads. The words of the kinds before the plugin system
+`package.json`) is written to the log under the folder's name. A bad manifest
+also goes under the manifest's id when the id reads. The words of the kinds before the plugin system
 (`file`, `preview`, `markdown`, `files`, `diff`) are taken: they open File
 Explorer or Git.
 

@@ -21,7 +21,8 @@ text from files and machines from taking over a page.
   handler. It is bound to the card's machine, session, plugin and
   permissions when the card is made. No message names a machine, a pane or
   another card, so a page reaches only its own card's machine. Cards share
-  no memory or storage: WebKit gives each one its own process.
+  no memory: WebKit gives each one its own process. Web storage is per
+  plugin (`oriel-plugin://<id>`), so one plugin never reads another's.
 - **The page loads only its own files.** The scheme handler serves
   `oriel-plugin://<id>/` from the folder of that plugin's entry alone, plus
   the app's `oriel.js` and `card.css`: one folder, no subfolders, no hidden

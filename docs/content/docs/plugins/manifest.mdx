@@ -85,7 +85,8 @@ In the `oriel` key:
   `icon`, `api` of 1 or more, `entry` a `.js` path with no `/` at the start
   and no `..`, `opens.priority`, a `chooser` only with `folders`, `git` or no
   `opens`, known header types with unique ids, a `gap` of 0 or more, `digits`
-  only `mono`, a value on every segmented option, commands with unique ids, a
+  only `mono`, a value on every segmented option, commands with ids unique
+  among the commands and the header's controls, a
   `file`, `edit` or `view` menu and a `cmd+` key, known `handles` and known
   permissions.
 
@@ -163,7 +164,7 @@ in a pane and in a floating window. The page changes them with
 | `button` | `id`, `symbol`, `title`, `badge`, `busy`, `label` | an icon button; `title` is its help; `badge` a count after the symbol; `busy` a spinner in place of the symbol | `{ id }` on a click |
 | `toggle` | `id`, `symbol`, `title`, `value` (boolean) | an icon button, in the accent while on | `{ id, value }` |
 | `segmented` | `id`, `options` (`[{ "value", "title" }]`), `value` | the app's pill segments | `{ id, value }` |
-| `menu` | `id`, `title`, `symbol`, `items`, `value` | a menu button showing the picked item's title, else `title`. An item is `{ "value", "title", "symbol" }`, `{ "title" }` for a section heading ("Remote"), or `"-"` for a divider | `{ id, value }` on a pick |
+| `menu` | `id`, `title`, `symbol`, `items`, `value`, `busy` | a menu button showing the picked item's title, else `title`; `busy` a spinner in place of its symbol. An item is `{ "value", "title", "symbol" }`, `{ "title" }` for a section heading ("Remote"), or `"-"` for a divider | `{ id, value }` on a pick |
 | `field` | `id`, `placeholder`, `value` | a search field ("Filter") that takes the free width | `{ id, value }` on each change, and `{ id, value, submit: true }` on Return |
 | `text` | `id`, `value`, `style` (`plain`, `dim` or `path`), `symbol`, `digits` | text cut in the middle; `path` draws a list of parts with `›` between them, the first part dim; `symbol` draws before the last part (File's `{}` before the scope) | nothing |
 | `openWith` | `id`, `value` (a file's path) | Open With: the default app's icon opens the file; its menu lists the apps with icons, then the plugins. Not drawn with no path | nothing |

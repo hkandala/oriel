@@ -351,12 +351,12 @@ import type { Oriel } from "@oriel/plugin-api"
 import "./rows.css"
 import "./home.css"
 import "./diff.css"
+import * as Home from "./home"
 
 const HOME = ["git.branch", "git.fetch", "git.pull", "git.push"]
 const DIFF = ["diff.home", "diff.layout", "diff.file-list", "diff.previous", "diff.next"]
 
 export default async function main(oriel: Oriel) {
-  const Home = await import("./home")
   let Diff: typeof import("./diff") | undefined
 
   async function show(arg: string, at?: string) {

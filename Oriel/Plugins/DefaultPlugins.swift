@@ -12,7 +12,7 @@ final class DefaultPlugins {
     static let shared = DefaultPlugins()
 
     /// The installs under way (their cards show it), and why the last one of a plugin failed (its card shows it, with
-    /// Reload to try again).
+    /// Try Again).
     private(set) var installing: Set<String> = []
     private(set) var failures: [String: PluginProblem] = [:]
     /// What the panel offers per default: the app's newer version (Update to Version), or nil for its other source

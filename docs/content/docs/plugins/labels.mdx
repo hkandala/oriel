@@ -7,7 +7,9 @@ Every browser and plugin pane is stored in herdr this way
 ([Browser](/docs/ui/browser#the-label),
 [File Explorer and Git](/docs/plugins/default-plugins#the-label)). The
 plugin id is the manifest's `id` ([The manifest](/docs/plugins/manifest)),
-and a plugin has one pane kind, so its labels have no pane name.
+and a plugin has one pane kind, so its labels have no pane name. A
+manifest's `id` uses no `.` or `_`, so a label with one shows the missing
+card.
 
 ## Label format
 
@@ -54,8 +56,8 @@ cold restart, and the label survives it, so the iid lives in the label.
 
 Browser and plugin panes are created the same way.
 
-1. A pick ([New pane](/docs/ui/new-pane), the palette) → argument prompt if
-   required → generate the iid.
+1. A pick ([New pane](/docs/ui/new-pane), the palette) → the argument from
+   the pane's folder → generate the iid.
 2. `layout.apply` without a `tab_id` makes a new tab with one pane. herdr
    starts the pane with its label and its placeholder command in one call:
    ```text

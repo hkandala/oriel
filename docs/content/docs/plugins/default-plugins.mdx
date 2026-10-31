@@ -143,10 +143,11 @@ apply:
   they select the pane to the left or right, as elsewhere. A card made from
   its label (after a relaunch, or a dropped card shown again) has no list
   yet.
-- **Unsaved edits ask first.** Back, Forward or an open in the card from a
-  file with unsaved edits shows the toast "‹name› has unsaved edits." with
+- **Unsaved edits ask first.** Back, Forward, an open in the card or a close
+  (of the pane, its tab or its workspace) from a file with unsaved edits
+  shows its tab and the toast "‹name› has unsaved edits." with
   Discard and **Keep Editing**. A new place from elsewhere drops the edits
-  without a question, as a rename always did.
+  without a question.
 
 ## The card
 
@@ -210,7 +211,7 @@ File and Markdown edit the file. Both use the same editor and the same rules.
   | the file changed on disk and the card is dirty | "‹name› changed on disk." | Reload, **Keep Mine** |
   | ⌘S, and the file changed on disk since the last read | "‹name› changed on disk since you opened it." | Overwrite, **Reload** |
   | the save failed | "‹name› was not saved: ‹reason›" | Cancel, **Try Again** |
-  | Back, Forward or an open in the card with unsaved edits | "‹name› has unsaved edits." | Discard, **Keep Editing** |
+  | Back, Forward, an open in the card or a close with unsaved edits | "‹name› has unsaved edits." | Discard, **Keep Editing** |
   | a Git write failed | git's message, on one line | Copy, **OK** |
 
   Keep Mine takes the disk's new hash, so the next ⌘S writes over that
@@ -509,13 +510,14 @@ the machine. The limits:
 - **One web view per card.** Each card is a `WKWebView` of its own, and
   WebKit gives each one its own WebContent process. A shared process pool
   does not help: `WKProcessPool` is deprecated and does nothing. A card's
-  process uses about 45 MB (`footprint`).
+  process uses about 28 to 45 MB (`footprint`).
 - **One page, many places.** The card loads its plugin's page once. A move
   is `card.go`: the page draws the new place itself, in a hidden root over
   the old one, and swaps them once it drew, so the old frame stays until
-  then. Each place is a module loaded with `import()` on first use, so a
-  tree card loads no CodeMirror or pdf.js, and a Git home loads no
-  `@pierre/diffs`. A place ends its handlers, watches and views when the card
+  then. Each heavy place (File Explorer's four, Git's diff) is a module
+  loaded with `import()` on first use, so a tree card loads no CodeMirror or
+  pdf.js, and a Git home loads no `@pierre/diffs`. Git's home is in the
+  entry, so it opens at once. A place ends its handlers, watches and views when the card
   leaves it. The card keeps the keyboard if it had it.
 - **CSS.** The entry imports every place's CSS, because a bundler links no
   CSS of a dynamic chunk. File Explorer scopes it by the place

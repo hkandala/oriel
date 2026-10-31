@@ -465,3 +465,12 @@ well for easier debugging".
 - **12 (B):** the menus take only a plugin card already made (`builtPlugin`), never make one.
 - **13 (B):** `Plugin.landing` is gone: Back's landing is `place ?? arg` at its two places.
 - **14 (B):** a call on the card's machine asks whether git runs unless it is `run`.
+- **26 (G):** scripts/e2e.sh's state-file comment points at `plugins/api#state`.
+- **9 (G):** browser.mdx and future-work say a `default` plugin whose `urls` match an address opens it.
+- **10 (G):** building.mdx's sample and default-plugins.mdx have Git's home in the entry, the diff a chunk.
+- **27 (G):** errors.mdx gets "‹name› is not installed", the panel notice's first line and Retry only when it helps, a taken
+  id logged under the folder alone; packages.mdx's Installing… by the field; DefaultPlugins' comment says Try Again.
+- **28 (G):** manifest.mdx: command ids unique with the header's, `busy` on a menu.
+- **29 (G):** security.mdx: web storage is per plugin.
+- **30 (G):** labels.mdx's id rule and the pick's argument; index.mdx's entry module script; one memory figure (28–45 MB).
+- **31 (G):** no history in D91 and default-plugins.mdx; the unsaved-edits bullet and table include a close.

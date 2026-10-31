@@ -65,7 +65,8 @@ This Mac, or a remote machine over the relay
    ([Security and trust](/docs/plugins/security)). The card loads
    `oriel-plugin://<id>/main`, a page that the app writes: it links the app's
    `card.css`, the entry's CSS when the build wrote one (`dist/main.css`),
-   and the app's runtime, `oriel.js`.
+   and the app's runtime, `oriel.js`, with a module script for the entry so
+   that both load at once.
 4. The runtime reads the card's context, which the app puts in the page
    before any script runs. It makes the `oriel` object, imports the entry
    and calls its default export with the object.
