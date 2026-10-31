@@ -261,13 +261,10 @@ after (Release, `sample` over tab clicks, three swipes and two overview opens).
 - **Decisions.** Pictures are not purgeable (macOS takes volatile surfaces back within seconds). `Page.shownTerminals` now holds web cards' panes
   too, so a switch between two browser tabs reaches the registry, and Oriel's `mark` writes cover them as floats did.
   Web cards' views get `renewGState` 50 ms after a show, so WebKit learns where the strip put them.
-- **Item 28: not reproduced.** Track D's CI recording shows a File Explorer card and a file card beside it blank for
-  good after a jump to a new tab two pages away, the tree's accessibility frame one strip page left of its card: WebKit
-  painted where it thought the page was. Three tests of that path (a page moved along the strip while out of view, a
-  browser and an explorer two pages away, shown by key as they come) passed on the old code locally and on CI, so
-  none was kept. What changed on that path: web cards are made only in the selected tab once the strip rests, a new
-  host fits a web view at once, and a web card coming into view is told its place (`renewGState`, which WebKit uses to
-  read its frames again). None of these is proven to be the cause: watch for it.
+- **Cause, item 28** (found in the final full runs). An open's new tab is made last and selected, then moved
+  beside its card. The strip kept its scroll offset, so the selected tab showed the page of the tab that now sat where
+  the new one had been: "the tab I selected and the content shown are different". **Fix:** the strip follows the
+  selected tab when the tabs' order changes; a UI test of five ⌘-click opens in a row fails on the old code.
 - **For the user.** Switch between tabs with browsers and File Explorer cards: no blank flash. Pick Browser in a new
   pane: no shell shows. Swipe across tabs whose browsers never showed: smooth, the card fills in where it rests. The
   overview opens with pictures, not live content; a chat's tile is its picture from its last show.
@@ -446,3 +443,9 @@ after (Release, `sample` over tab clicks, three swipes and two overview opens).
   frame once it showed, and SwiftUI's default size could come after. SwiftUI now places each new floating window at
   the frame asked for with it (`defaultWindowPlacement`): a replaced pane's old window's (read from that window, with
   the old one ordered out first, else it was cascaded 29 pt), else its saved frame, else over its main window.
+- Full run (B, item 28 found): an open's new tab is made last and selected, then moved beside its card; the strip kept
+  its offset, so the selected tab showed the page of the tab now at its old place (recorded on CI and here). The strip
+  now follows the selected tab when the tabs' order changes. A UI test of five ⌘-click opens in a row fails on the old
+  code (at the fifth) and passes.
+- Full run (B): testOverviewCostsAndLetsGoAfter checks what the overview does with pictures: each tile in view gets a
+  snapshot, and its cards' streams end with the overview still open.

@@ -337,3 +337,36 @@ extension OrielUITests {
                       "\(first) then \(title.stringValue)")
     }
 }
+
+extension OrielUITests {
+    /// Files ⌘-clicked in a File Explorer card open tabs right after the card's tab, one after the other: each new
+    /// tab is selected and the strip shows its page. The strip scrolled to a page the lazy stack laid out in the same
+    /// update by its id, missed it, and its retry with the same id moved nothing: the selected tab showed another
+    /// tab's page (item 28).
+    func testEachOpenInANewTabShowsItsOwnPage() async throws {
+        let (_, shell) = try await newTab("opens")
+        try await waitForPrompt(shell)
+        let repo = "/tmp/oriel-e2e-opens", names = ["one.txt", "two.txt", "three.txt", "four.txt", "five.txt"]
+        try await send("rm -rf \(repo) && mkdir -p \(repo) && cd \(repo) && touch \(names.joined(separator: " ")) "
+            + "&& clear && echo ready-$((6*7))\r", to: shell)
+        try await waitFor(shell) { $0.contains("ready-42") }
+        let reply = try await Self.call(one, "layout.apply", ["workspace_id": "w2", "focus": false, "root": [
+            "type": "pane", "cwd": repo, "label": "oriel:explorer#e2eops /private\(repo)/",
+            "command": ["sh", "-c", "cat", "sh"],
+        ]])
+        let tab: String = try field((reply["layout"] as? [String: Any])?["tab_id"], "layout's tab")
+        closeAfter("tab", tab)
+        for name in names {
+            try await show(tab)
+            let row = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", name)).firstMatch
+            XCTAssertTrue(row.exists(within: 10), name)
+            let before = try await tabIDs()
+            XCUIElement.perform(withKeyModifiers: .command) { row.click() }
+            let opened = try await newTabID(after: before)
+            closeAfter("tab", opened)
+            XCTAssertTrue(element("tab.\(opened)").has(\.isSelected, true, within: 5), name)
+            XCTAssertTrue(element("page.\(opened)").has(\.isHittable, true, within: 5), name)
+        }
+        try await send("rm -rf \(repo)\r", to: shell)
+    }
+}

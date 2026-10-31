@@ -82,6 +82,15 @@ struct Strip: View {
             // can miss the scroll: again once it has.
             Task { position.scrollTo(id: target, anchor: .leading) }
         }
+        // The selected tab moved (an open's new tab is made last, then moved beside its card) or tabs came before it:
+        // the strip kept its offset, so it showed another tab's page than the selected one (item 28). It follows the
+        // selected tab to its place, by its offset (its id is the position already: a scroll to it moved nothing).
+        .onChange(of: workspace.tabs.map(\.id)) {
+            let index = page.selectedIndex(in: workspace)
+            if !page.stripMoving, Int(page.stripPage.rounded()) != index {
+                _ = paging.show(index, $position)
+            }
+        }
     }
 
     /// A page's cards inside its page: room for the cards' outer stroke and shadow, the scroll view clips.
