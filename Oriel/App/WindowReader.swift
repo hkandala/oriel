@@ -82,15 +82,15 @@ struct WindowReader: NSViewRepresentable {
 }
 
 extension View {
-    /// The title row takes the hidden title bar's line, over an empty compact toolbar (the traffic lights' row), in
-    /// the main window and the floating ones.
+    /// The title row takes the hidden title bar's line, in the main window and the floating ones; `TrafficLights`
+    /// centers the buttons on it. No toolbar: an empty one's accessibility frame covered the title row on a notched
+    /// Mac, so a hit test at a tab capsule found the toolbar (VoiceOver, and XCUITest clicked a capsule's edge).
     func windowChrome(_ look: Look) -> some View {
         ignoresSafeArea(edges: .top)
             .containerBackground(for: .window) { WindowBackground(look: look) }
-            .toolbar { ToolbarSpacer(.flexible) }
             .toolbar(removing: .title)
             .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
-            // In full screen the empty toolbar would cover the title row; it shows on hover only.
+            // In full screen the title bar would cover the title row; it shows on hover only.
             .windowToolbarFullScreenVisibility(.onHover)
     }
 }
