@@ -136,6 +136,8 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
         public let key: String?
         public let symbol: String?
         public let checked: Bool?
+        /// More words ⌘K finds it by.
+        public let keywords: [String]?
     }
 
     /// A kind the app writes itself (the browser): no entry, header, commands or permissions.

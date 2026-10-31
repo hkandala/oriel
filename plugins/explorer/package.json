@@ -80,7 +80,8 @@
       { "type": "openWith", "id": "open-with", "hidden": true }
     ],
     "commands": [
-      { "id": "edit-mode", "title": "Edit Mode", "menu": "view", "key": "cmd+e", "symbol": "pencil" }
+      { "id": "edit-mode", "title": "Edit Mode", "menu": "view", "key": "cmd+e", "symbol": "pencil",
+        "keywords": ["markdown", "read"] }
     ]
   }
 }

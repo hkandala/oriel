@@ -38,9 +38,12 @@ extension OrielUITests {
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(element("overview").vanishes(within: 2))
 
-        // Back in Read, clean: a change on disk shows; a relative link shows its file in the card, ⌘-click in a new
-        // tab after this one.
-        app.typeKey("e", modifierFlags: .command)
+        // Back in Read through ⌘K, which finds Edit Mode by its manifest keywords; clean: a change on disk shows; a
+        // relative link shows its file in the card, ⌘-click in a new tab after this one.
+        openPalette()
+        app.typeText("markdown read")
+        XCTAssertTrue(element("palette.command.Edit Mode").has(\.isSelected, true, within: 2))
+        app.typeKey(.return, modifierFlags: [])
         XCTAssertTrue(element("pane.\(card).mode.read").has(\.isSelected, true, within: 3))
         try await send("printf '## Third\\n' >>notes.md\r", to: shell)
         XCTAssertTrue(page.staticTexts.matching(NSPredicate(format: "value == 'Third'")).firstMatch.exists(within: 5))

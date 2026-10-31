@@ -25,13 +25,13 @@ private func error(_ oriel: String, package: String = #""version": "0.1.0""#) ->
         + #""header": [{"id": "rows", "type": "text", "style": "dim"}, {"type": "spacer"},"#
         + #"{"id": "first-row", "type": "toggle", "symbol": "tablecells", "title": "First Row", "value": true},"#
         + #"{"id": "mode", "type": "menu", "title": "Mode", "items": [{"value": "a", "title": "A"}, "-"]}],"#
-        + #""future": {"ignored": true}"#,
+        + #""commands": [{"id": "sort", "title": "Sort", "keywords": ["order"]}], "future": {"ignored": true}"#,
         package: #""name": "@me/csv", "version": "0.1.0", "description": "A table.", "keywords": ["sheet"]"#)
     #expect(csv.id == "csv-table" && csv.version == "0.1.0" && csv.description == "A table." && csv.api == 1)
     #expect(csv.keywords == ["sheet"] && csv.permissions == ["files:read"] && csv.chooser == nil)
     #expect(csv.header.map(\.type) == ["text", "spacer", "toggle", "menu"])
     #expect(csv.header[2].value == .bool(true) && csv.header[3].items?.last?.value == nil)
-    #expect(!csv.history)
+    #expect(!csv.history && csv.commands.first?.keywords == ["order"])
 }
 
 @Test func `the header's app controls, path parts, section headings and item symbols`() throws {

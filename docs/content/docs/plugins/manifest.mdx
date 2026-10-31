@@ -205,11 +205,13 @@ swallows no key (D93).
 
 ```json
 "commands": [
-  { "id": "edit-mode", "title": "Edit Mode", "menu": "view", "key": "cmd+e", "symbol": "pencil" }
+  { "id": "edit-mode", "title": "Edit Mode", "menu": "view", "key": "cmd+e", "symbol": "pencil",
+    "keywords": ["markdown", "read"] }
 ]
 ```
 
-- `menu` is `file`, `edit` or `view`. `key` is a ⌘ chord (`cmd+e`,
+- `menu` is `file`, `edit` or `view`. `keywords` are more words that ⌘K finds
+  the command by. `key` is a ⌘ chord (`cmd+e`,
   `cmd+shift+k`). A key that the app already uses is left off, and the log
   says so once.
 - A pick sends `{ id }` to `oriel.on("control")`, as a header button does.
