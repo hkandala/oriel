@@ -237,12 +237,18 @@ private final class Relay: NSObject, WKScriptMessageHandlerWithReply, WKNavigati
         return url == PluginScheme.url(card.page) ? .allow : .cancel
     }
 
+    /// The keyboard back to a card that moved to another place, unless another view took it meanwhile.
     func webView(_: WKWebView, didFinish _: WKNavigation!) {
         reloaded = false
-        if card?.refocus == true {
-            card?.refocus = false
-            card?.view.takeKeyboard()
+        guard let card, card.refocus else { return }
+        card.refocus = false
+        if let window = card.view.window, window.firstResponder === window || window.firstResponder === card.view {
+            card.view.takeKeyboard()
         }
+    }
+
+    func webView(_: WKWebView, didFail _: WKNavigation!, withError _: any Error) {
+        card?.refocus = false
     }
 
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {

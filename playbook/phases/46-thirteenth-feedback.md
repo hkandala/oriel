@@ -243,3 +243,9 @@ forward; ask track D for any change in its files.
   spinner shows past 150 ms.
 - **For the user:** Open With is the default app's icon (a click opens the file in it, its menu lists every app with
   its icon); check it on a file whose default app has no icon.
+- **Cause (item 28): not found.** No repro on the new-tab path: the second FilesTests test ⌘-clicks three files one
+  at a time from the tree (a burst is no longer possible: each open selects its tab, so the tree leaves the screen)
+  and checks after each that the new tab sits right after the card's, is selected and shows its own card. One CI
+  run showed a File Explorer page whose web view sat exactly one strip page left of its card (its accessibility
+  frame) after a jump to a tab two pages away, its card blank: handed to track B (the strip and `WebHost` are
+  theirs) as the likely root of "the content shown is another tab's".

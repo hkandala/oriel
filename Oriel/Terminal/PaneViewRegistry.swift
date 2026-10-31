@@ -99,7 +99,7 @@ final class PaneViewRegistry {
         browsers = browsers.filter { kept($0.key, $0.value.label) }
         plugins = plugins.filter { kept($0.key, $0.value.label) }
         for (terminalID, plugin) in plugins {
-            if let label = labels[terminalID] {
+            if let label = labels[terminalID], label != plugin.label {
                 plugin.follow(label)
             }
         }

@@ -186,9 +186,10 @@ final class Plugin {
     /// The places shown before and after this one, as a browser's history: an argument and its landing each.
     private(set) var back: [(arg: String, at: String?)] = []
     private(set) var forward: [(arg: String, at: String?)] = []
-    /// The arguments the card renamed its label to that no snapshot showed yet: a snapshot read before a rename is no
-    /// rename from elsewhere.
+    /// The arguments the card renamed its label to while its renames are under way: a snapshot read before one is no
+    /// rename from elsewhere. Cleared once the last one returned (a write waits for the snapshot after it).
     @ObservationIgnored private var renamed: Set<String> = []
+    @ObservationIgnored private var renaming = 0
 
     var canGoBack: Bool {
         !back.isEmpty
@@ -259,21 +260,24 @@ final class Plugin {
         let text = PaneLabel(plugin: kind.rawValue, iid: label.iid, arg: arg).text, paneID = paneID
         guard PaneLabel(text) != nil, let store = web.store else { return }
         renamed.insert(arg)
+        renaming += 1
         // Not `HostStore.rename`, which skips a label the last snapshot has: a quick Back renames to it again.
-        Task { await store.write { try await $0.rename(pane: paneID, label: text) } }
+        Task {
+            await store.write { try await $0.rename(pane: paneID, label: text) }
+            renaming -= 1
+            if renaming == 0 {
+                renamed = []
+            }
+        }
     }
 
-    /// Each snapshot's label: the card's own rename, or a new place from elsewhere (an agent's `herdr pane rename`),
-    /// shown after the one the card shows, as a browser's. Once a snapshot shows the place shown, no older one comes.
+    /// A snapshot's new label: the card's own rename, or a new place from elsewhere (an agent's `herdr pane rename`),
+    /// shown after the one the card shows, as a browser's.
     /// ponytail: a place from elsewhere drops unsaved edits without asking, as a rename always did.
     func follow(_ label: PaneLabel) {
-        let changed = label != self.label, arg = label.place
-        if changed {
-            self.label = label
-        }
-        if arg == web.arg {
-            renamed = []
-        } else if changed, !renamed.contains(arg) {
+        self.label = label
+        let arg = label.place
+        if arg != web.arg, !renamed.contains(arg) {
             back.append((web.arg, nil))
             forward = []
             web.show(arg, at: nil)
