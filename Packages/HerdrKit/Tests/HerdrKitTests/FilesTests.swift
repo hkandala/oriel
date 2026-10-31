@@ -141,7 +141,6 @@ private func execs() async throws -> [any Exec] {
     try FileHandle(forWritingTo: file).truncate(atOffset: UInt64(Files.viewLimit + 1))
     for exec in try await execs() {
         await #expect(throws: FileError.tooLarge(Files.viewLimit + 1)) { try await Files.read(file.path, exec: exec) }
-        #expect(try await Files.size(file.path, exec: exec) == Files.viewLimit + 1)
         await #expect(throws: HerdrError.failed("Not a file")) { try await Files.read(folder.path, exec: exec) }
     }
 }

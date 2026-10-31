@@ -104,9 +104,12 @@ export async function show(place: Place): Promise<Reveal> {
     results.cleanUp()
   })
 
-  /** One at a time: two listings of a folder at once would add its entries twice. */
+  /** One at a time: two listings of a folder at once would add its entries twice. None once the place left. */
   let queue = Promise.resolve()
-  const run = (work: () => Promise<void>) => (queue = queue.then(work, work))
+  const run = (work: () => Promise<void>) => {
+    const live = async () => (place.live() ? work() : undefined)
+    return (queue = queue.then(live, live))
+  }
   /** A change while a refresh waits joins it: a build writes many times a second. */
   let due = false
 

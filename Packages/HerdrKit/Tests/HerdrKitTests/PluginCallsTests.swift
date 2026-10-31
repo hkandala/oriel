@@ -80,6 +80,8 @@ private func failure(_ name: String, _ args: [String: Any], _ calls: PluginCalls
     let info = try #require(await call("files.info", ["path": repo.appending(path: "two.txt").path]) as? [String: Any])
     #expect(info["name"] as? String == "two.txt")
     #expect(info["size"] as? Int == 4)
+    let read = try #require(await call("files.read", ["path": repo.appending(path: "two.txt").path]) as? [String: Any])
+    #expect(info["hash"] as? String == read["hash"] as? String)
     #expect(info["folder"] as? Bool == false)
     #expect(info["type"] as? String == "public.plain-text")
     let folder = try #require(await call("files.info", ["path": repo.appending(path: "sub").path]) as? [String: Any])

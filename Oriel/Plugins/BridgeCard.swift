@@ -182,8 +182,10 @@ extension CommandList {
             default: .view
             }
             let pick = { bridge.event("control", ["id": command.id]) }
-            return Command(section: section, title: change["title"] as? String ?? command.title, key: key,
-                           symbol: command.symbol, enabled: change["enabled"] as? Bool ?? true,
+            // A disabled item would swallow its key.
+            let enabled = change["enabled"] as? Bool ?? true
+            return Command(section: section, title: change["title"] as? String ?? command.title,
+                           key: enabled ? key : nil, symbol: command.symbol, enabled: enabled,
                            checked: change["checked"] as? Bool ?? command.checked, action: pick)
         }
     }

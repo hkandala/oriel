@@ -1,6 +1,5 @@
 import HerdrKit
 import SwiftUI
-import UniformTypeIdentifiers
 
 /// A plugin card's web page (`web/src/<page>.ts`), which its argument picks: Git's home (`<root>`) or a diff
 /// (`<root> <source>`); any other plugin's entry (`main`), which draws every place of its card itself through the
@@ -30,30 +29,31 @@ enum PluginPage: String, CaseIterable {
     }
 }
 
-/// The place a File Explorer card shows, which its page (plugins/explorer/main.ts) picks the same way: its card's and
-/// tab's icon, its page's identifier, and whether it takes ⌘S and ⌘F. A folder's argument ends in `/`; a file goes
-/// by its name alone (a remote file is not read first): Markdown, then images, PDF, audio and video, then text. A name
-/// the system does not know (`.rs`, `Makefile`) is text; anything else previews, which shows its icon, size and Open
-/// With.
+/// The place a File Explorer card shows: its card's and tab's icon, its page's identifier, and whether it takes ⌘S
+/// and ⌘F. By the rule and the extensions its page picks it by (`kind` in plugins/explorer/place.ts, places.json): a
+/// folder's tree; Markdown; text (no extension too); Preview for the kinds it draws and the known kinds that are not
+/// text; else File.
 enum ExplorerPlace: String, CaseIterable {
     case files, file, preview, markdown
 
     init(_ arg: String) {
-        let ext = (arg as NSString).pathExtension.lowercased()
+        let ext = (arg as NSString).pathExtension.lowercased(), places = Self.places
         if arg.hasSuffix("/") {
             self = .files
-        } else if ["md", "markdown", "mdx"].contains(ext) {
+        } else if places["markdown", default: []].contains(ext) {
             self = .markdown
-        } else if ext.isEmpty || ["ts", "mts", "cts", "plist"].contains(ext) {
-            // `.ts` is TypeScript, not an MPEG-2 stream; a repository's `.plist` is XML.
+        } else if ext.isEmpty || places["text", default: []].contains(ext) {
             self = .file
-        } else if let type = UTType(filenameExtension: ext), !type.isDynamic {
-            self = [.image, .pdf, .audiovisualContent].contains(where: type.conforms) || !type.conforms(to: .text)
-                ? .preview : .file
         } else {
-            self = .file
+            self = ["image", "pdf", "audio", "video", "binary"].contains { places[$0, default: []].contains(ext) }
+                ? .preview : .file
         }
     }
+
+    /// The page's places.json, read once.
+    private static let places = Registry.files("explorer")
+        .flatMap { try? Data(contentsOf: $0.appending(path: "places.json")) }
+        .flatMap { try? JSONDecoder().decode([String: Set<String>].self, from: $0) } ?? [:]
 
     var symbol: String {
         switch self {

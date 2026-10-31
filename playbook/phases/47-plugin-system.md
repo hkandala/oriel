@@ -258,10 +258,14 @@ working until this track switches the default plugins to installed packages.
   in a hidden root over the old one and swaps them once it drew, so the old frame stays until then; the same place
   with a landing only lands. Each place ends its handlers, watches and views on leaving (`keep`). Row 2 is the
   manifest's (every place control `hidden` until the page shows its own); Edit Mode is a manifest command (⌘E).
-- **Decisions:** the app still classifies an explorer's place from the label (`ExplorerPlace`, with `UTType`) for the
-  tab icon, the page id (`files/file/preview/markdown.<pane>.page`, so no test id changed) and which places take ⌘S
-  and ⌘F. The page has no file types: it routes by extension lists, and File shows the info view for anything that
-  is not UTF-8. Show in File Explorer's "tree it came from" is the page's own list of trees shown.
+- **Decisions:** one rule picks an explorer's place, in the page (`kind`) and the app (`ExplorerPlace`, for the tab
+  icon, the page id `files/file/preview/markdown.<pane>.page`, so no test id changed, and which places take ⌘S and
+  ⌘F), from one list of extensions (`plugins/explorer/places.json`, which the app reads from the plugin's folder): a
+  page has no file types. File shows the info view for any other file that is not UTF-8. Show in File Explorer's
+  "tree it came from" is the page's own list of trees shown.
+- **Decisions:** `files.info` also gives the file's hash (track B agreed), so File and Preview check it before a full
+  read when the file may have changed, as main's `Files.hash` did; a command disabled with `controls.set` drops its
+  key, so ⌘E has its key only over Markdown.
 - **Fix:** a header text takes its whole width before a spacer (`layoutPriority`): the jump bar and Preview's path
   were cut at half the row. A card's move drops the old place's toast, as a page load did.
 - **Fix:** a PDF changed on disk redraws: the old page called `PDFDocumentProxy.destroy`, which pdf.js 6 lacks, and
@@ -269,6 +273,8 @@ working until this track switches the default plugins to installed packages.
 - **Changes for approval** (parity screenshots in `/tmp/oriel-shots/47d`, everything else pixel-equal): a Markdown
   card no longer takes the keyboard as it loads (main's `article.focus()` made it the keyboard card); Collapse All is
   in the card buttons' color, as the design says (main drew it in the text color); Edit Mode is in the View menu only
-  while a File Explorer card has the keyboard, disabled outside Markdown; a root inside a repository (not its root)
-  dims ignored files and its filter lists git's files (the API's `files.list` and `files.paths`); a remote Choose
-  Folder… with a bad path does nothing instead of a notice.
+  while a File Explorer card has the keyboard, disabled outside Markdown; the filter of a root inside a repository
+  (not its root) lists git's files (the API's `files.paths`); a remote Choose Folder… with a bad path does nothing
+  instead of a notice; `.pem`, `.crt`, `.cer`, `.eml` and `.ps` open in File (main: Preview's info view, by `UTType`).
+- **Runs:** 41214627809 (on eb3aebed…d66509b8): 11 of 12 green; File's Overwrite asked again, because
+  `save(undefined)` took the default `over`.

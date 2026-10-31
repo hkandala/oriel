@@ -1,7 +1,5 @@
-import AppKit
 import HerdrKit
 import SwiftUI
-import UniformTypeIdentifiers
 
 /// Git's pages follow their work tree while the card shows (`PluginCard`), so a remote machine is asked every 2 s
 /// only then. A change while the card was hidden shows when it comes back.

@@ -111,18 +111,6 @@ public enum Files {
         return FileContents(data: data, hash: String(lines[1]))
     }
 
-    /// The file's `cksum`, as `read` gives it: a check whether it changed that reads no bytes back.
-    public static func hash(_ path: String, exec: any Exec) async throws -> String {
-        try await exec.checkedOutput(["sh", "-c", #"cksum <"$1""#, "sh", path])
-    }
-
-    /// The file's size in bytes, for the info view of a file not read.
-    public static func size(_ path: String, exec: any Exec) async throws -> Int {
-        let text = try await exec.checkedOutput(["sh", "-c", #"wc -c <"$1""#, "sh", path])
-        guard let size = Int(text.trimmingCharacters(in: .whitespaces)) else { throw HerdrError.failed(text) }
-        return size
-    }
-
     /// Writes `data` over the file at once (a new file beside it, then `mv`) if its disk hash is still `hash`; nil
     /// overwrites whatever is there. A link is written through, so it stays a link. Gives the new hash; throws
     /// `changed` and writes nothing otherwise.

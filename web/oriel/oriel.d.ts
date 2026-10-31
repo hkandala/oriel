@@ -78,8 +78,9 @@ export interface Files {
   read(path: string): Promise<{ text: string; hash: string; writable: boolean }>
   /** Bytes up to 16 MB, with the MIME type from the name. */
   readBytes(path: string): Promise<{ data: Uint8Array; type: string; hash: string }>
-  /** The info view's facts: the size in bytes, the kind's name, the system's icon as a PNG data URL. */
-  info(path: string): Promise<{ name: string; size: number; kind: string; icon: string; folder: boolean }>
+  /** The info view's facts: the size in bytes, the kind's name, the system's icon as a PNG data URL; and the hash
+   *  `read` gives (none for a folder), to tell a change without reading the file. */
+  info(path: string): Promise<{ name: string; size: number; kind: string; icon: string; folder: boolean; hash: string }>
   /** A folder's entries but `.git`, folders first, by name as the Finder sorts; `ignored` when git ignores it. */
   list(folder: string): Promise<{ name: string; folder: boolean; ignored: boolean }[]>
   /** Every file under the root, from it: the files git does not ignore in a repository, else every file, up to 8 MB
