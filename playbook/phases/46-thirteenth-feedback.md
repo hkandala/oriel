@@ -395,13 +395,13 @@ after (Release, `sample` over tab clicks, three swipes and two overview opens).
   cards are made at their size in the page; they count as the least recently shown. A browser loads out of a window
   and takes its picture as it ends, which covers its first frames in a window. A File Explorer or Git card's page
   loads only once shown (its theme starts it), so only its web view is made ahead.
-- **Cause, item 35.** On this Mac the window's empty compact toolbar has an accessibility frame over the title row
-  (y 33–72, the capsules 39–73): an accessibility hit test at a capsule's center finds the toolbar, and only the
-  capsule's bottom point finds the capsule. XCUITest then clicks that bottom point, which misses the button, so the
-  tab never selects. CI's screen (no notch) has a lower toolbar. VoiceOver's hit test meets the same toolbar. Hiding
-  the toolbar's view from accessibility made the hit test find the window instead, not the capsule (tried, dropped).
-  **Open:** the fix is to drop the empty toolbar (the title bar's height then needs another way) or to keep the tab
-  row below the toolbar's frame; that is a chrome change for the orchestrator.
+- **Cause, item 35.** On this Mac the window's empty compact toolbar had an accessibility frame over the title row
+  (y 33–72, the capsules 39–73): an accessibility hit test at a capsule's center found the toolbar, and only the
+  capsule's bottom point found the capsule. XCUITest clicked that point, which missed the button, so the tab never
+  selected; CI's screen (no notch) has a lower toolbar. VoiceOver's hit test met the same toolbar. **Fix:** no toolbar
+  (`TrafficLights` already places the buttons). The hit test at a capsule's center now finds the capsule; a dark
+  screenshot's title row matches pixel for pixel; the chooser test passes on this Mac. Hiding only the toolbar's view
+  from accessibility gave the window instead of the capsule (tried, dropped).
 - **Review.** One code review, no blocker: neighbors are now made one a turn 0.1 s apart, once per selected tab (a
   herdr snapshot restarted the wait, so with busy agents it never ran), not under the overview, and only with room
   for the cards in view too (else the next switch dropped one never shown); the Agents button is made per session, as
