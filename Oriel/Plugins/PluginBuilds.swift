@@ -222,7 +222,6 @@ extension WebCard {
     /// The page again, from its start: Reload after it stopped, Reload Plugin. A plugin's page once it is trusted and
     /// built.
     func reload() {
-        bridge?.failure = nil
         ready = false
         guard let bridge else {
             script()
@@ -234,6 +233,7 @@ extension WebCard {
         Task { [weak self] in
             // Only the last reload loads: Allow and a Reload Plugin may overlap.
             guard await bridge.prepare(), let self, load == loads else { return }
+            bridge.failure = nil
             bridge.reset()
             script()
             view.load(URLRequest(url: PluginScheme.url(plugin, page)))
@@ -299,10 +299,14 @@ extension Plugin {
 
     /// Reload Plugins: every package read again (new, removed and changed manifests), then each plugin with an open
     /// card built and loaded again.
-    static func reloadAll() async {
+    static func reloadAll(asked: Bool = false) async {
+        if !asked, let dirty = cards.first(where: \.dirty) {
+            dirty.leave { _ in Task { await reloadAll(asked: true) } }
+            return
+        }
         Registry.reload()
         for id in Set(cards.map(\.manifest.id)) {
-            await reload(id)
+            await reload(id, asked: true)
         }
     }
 }
