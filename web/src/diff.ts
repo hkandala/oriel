@@ -1,4 +1,4 @@
-// The Diff card: the pane's patch in @pierre/diffs' CodeView, one scroll with a sticky header per file, and the file
+// A Git card's diff: the pane's patch in @pierre/diffs' CodeView, one scroll with a sticky header per file, and the file
 // list beside it. Row 2 (DiffToolbar.swift) sends the layout, the list and previous / next change.
 import {
   CodeView,
@@ -7,7 +7,7 @@ import {
   type FileDiffMetadata,
   parsePatchFiles,
 } from "@pierre/diffs"
-import { ask, at, type PatchReply, receive, report } from "./lib/bridge"
+import { ask, at, type How, how, type PatchReply, receive, report } from "./lib/bridge"
 import "./diff.css"
 
 
@@ -110,16 +110,16 @@ const options: CodeViewOptions<undefined, undefined> = {
     if (diff.type !== "deleted") {
       const open = element("button", "open", "Open File")
       open.ariaLabel = `Open ${diff.name}`
-      open.onclick = () => openFile(diff.name)
+      open.onclick = (event) => openFile(diff.name, undefined, how(event))
       box.append(open)
     }
     return box
   }),
-  // ⌘-click: the file at the line, or for a removed line at the one after it.
+  // ⌘-click: the file at the line in a new tab (⌥-click: to the side), or for a removed line at the one after it.
   onLineClick: ({ event, lineNumber, annotationSide }, context) => {
     const file = files.find((file) => file.name === context.item.id)
-    if (event.metaKey && file && file.type !== "deleted") {
-      openFile(file.name, annotationSide === "additions" ? lineNumber : newLine(file, lineNumber))
+    if ((event.metaKey || event.altKey) && file && file.type !== "deleted") {
+      openFile(file.name, annotationSide === "additions" ? lineNumber : newLine(file, lineNumber), how(event))
     }
   },
 }
@@ -247,8 +247,8 @@ function element<K extends keyof HTMLElementTagNameMap>(tag: K, className: strin
   return node
 }
 
-function openFile(name: string, line?: number) {
-  report({ op: "open", arg: `${root}/${name}`, at: line ? String(line) : undefined })
+function openFile(name: string, line: number | undefined, how: How) {
+  report({ op: "open", arg: `${root}/${name}`, at: line ? String(line) : undefined, how })
 }
 
 /** Another layout or width gives the lines other heights: back to the change last stepped to, not wherever the old
@@ -307,6 +307,10 @@ async function refresh() {
 
 receive((message) => {
   switch (message.op) {
+    // Another change of the same Uncommitted diff picked on the home.
+    case "reveal":
+      if (files.some((file) => file.name === message.at)) reveal(message.at)
+      break
     case "changed":
       refresh()
       break

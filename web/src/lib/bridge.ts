@@ -8,16 +8,28 @@ export type PreviewReply = { type: string; data: string; fallback: Info } | { in
 /** A folder's entry (`list`). */
 export type Entry = { name: string; folder: boolean; ignored: boolean }
 /** A changed file from the repository's root (`git`, the tree's letters), its letter as `Git.Change`'s. */
-export type Change = { letter: string; path: string }
+export type Change = { letter: string; path: string; oldPath?: string | null }
 /** A commit with its row of the history graph (`git`): lanes as `Git.GraphRow`'s, `date` in ms. */
 export type Commit = {
   hash: string
   subject: string
+  author: string
+  /** As git's `%D` with `--decorate=full`: `HEAD -> refs/heads/main`, `refs/remotes/origin/main`, `tag: refs/tags/v1`. */
+  refs: string[]
   date: number
   lane: number
   children: number[]
   parents: number[]
   through: number[]
+}
+
+/** The Git home's part (Oriel/Plugins/Git/GitRepo.swift); `failure` when the root is no repository. */
+export type RepoState = {
+  root: string
+  staged?: Change[]
+  unstaged?: Change[]
+  commits?: Commit[]
+  failure?: string
 }
 
 /** `patch`: a diff's patch as git prints it, its repo's root, and row 2's state. */
@@ -30,6 +42,9 @@ type Ask =
   | { op: "list"; path: string }
   | { op: "paths" }
   | { op: "git" }
+  /** The Git home: its state and SF Symbols (`read`), or a write, answered once done. */
+  | { op: "repo"; do: "read" | "stage" | "unstage" | "stageAll" | "unstageAll" | "commit"; path?: string
+      oldPath?: string | null; message?: string }
 /**
  * `open`: `arg` in the card, a new tab or a pane to its side (`how`, the card by default); with no kind, in a File
  * Explorer; `at` its landing (`at` below). `save`: the editor's text, to disk. `filter`: the tree ended its filter.
@@ -62,6 +77,8 @@ export type In =
   | { op: "markdown"; edit: boolean; outline: boolean }
   /** The place shown again with another landing: a line, or a path to show in the tree. */
   | { op: "reveal"; at: string }
+  /** The Git home's new state, after a change in the work tree or a write. */
+  | { op: "repo"; repo: RepoState }
 
 declare global {
   interface Window {

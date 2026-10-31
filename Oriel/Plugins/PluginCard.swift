@@ -87,7 +87,7 @@ struct PluginToolbar: View {
 
     var body: some View {
         switch plugin.web.page {
-        case .diff: DiffToolbar(plugin: plugin, page: page)
+        case .diff, .git: GitBar(plugin: plugin, page: page)
         case let shown:
             HStack(spacing: 6) {
                 BackForward(plugin: plugin)

@@ -14,8 +14,9 @@ body { display: flex; --diffs-font-family: ui-monospace, monospace; --diffs-font
 .added, .removed, .letter { flex: none; font: 11px ui-monospace, monospace }
 .actions .added, .actions .removed { font-size: inherit }
 .added { color: var(--finished) } .removed { color: var(--error) }
-.letter { width: 1.5ch; text-align: right; font-weight: 600; color: var(--working) }
-.letter.A { color: var(--finished) } .letter.D { color: var(--error) } .letter.R { color: var(--needs-you) }
+/* As the Git home's and the File Explorer's letters. */
+.letter { width: 1.5ch; text-align: right; font-weight: 600; color: var(--needs-you) }
+.letter.A, .letter.R { color: var(--finished) } .letter.D { color: var(--error) }
 .diff { flex: 1; min-width: 0; overflow: auto }
 .empty { position: fixed; inset: 0; margin: auto; height: fit-content; text-align: center; color: var(--dim) }
 .disclosure, .open { all: unset; color: var(--dim); border-radius: 5px; padding: 1px 6px }

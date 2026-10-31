@@ -41,12 +41,13 @@ public extension Git {
     }
 
     /// `git <arguments>` in the repository, for a button: git never asks for a password (it fails instead), and
-    /// git's own message is the error.
+    /// git's own message is the error. Its output.
+    @discardableResult
     static func run(_ root: String, _ arguments: [String], timeout: Duration = .seconds(120),
-                    exec: any Exec) async throws
+                    exec: any Exec) async throws -> String
     {
-        _ = try await exec.checkedOutput(["env", "GIT_TERMINAL_PROMPT=0", "git", "-C", root] + arguments,
-                                         timeout: timeout)
+        try await exec.checkedOutput(["env", "GIT_TERMINAL_PROMPT=0", "git", "-C", root] + arguments,
+                                     timeout: timeout)
     }
 }
 

@@ -55,6 +55,8 @@ final class WebCard {
     /// The card had the keyboard when it moved to another place: the new page takes it as it finishes, as WebKit
     /// drops it with the page that had it.
     @ObservationIgnored fileprivate var refocus = false
+    /// Git's home: its data and writes, also for row 2.
+    @ObservationIgnored private(set) lazy var git = GitRepo(card: self)
     @ObservationIgnored private var css = ""
 
     init(kind: PluginKind, arg: String, place: String?, store: HostStore) {
@@ -145,6 +147,8 @@ final class WebCard {
             shows(message)
         case "menu":
             menu(message)
+        case "repo":
+            return await git.answer(message)
         case "patch":
             defer { ready = true }
             return await patch()

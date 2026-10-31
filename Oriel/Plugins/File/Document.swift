@@ -50,6 +50,9 @@ extension WebCard {
     /// was hidden shows when it comes back.
     func watch() async {
         guard let store else { return }
+        if page == .git {
+            return await git.watch()
+        }
         // A diff of the uncommitted changes follows its work tree; a commit's never changes.
         // ponytail: on This Mac a build under an ignored folder makes the diff ask git about once a second; skip
         // events under ignored folders if that costs.
@@ -95,7 +98,7 @@ extension WebCard {
     }
 
     /// A diff's repo root and source, from its argument.
-    var diff: (root: String, source: String) {
+    var diff: (root: String, source: String?) {
         PaneLabel(plugin: kind.rawValue, iid: "", arg: arg).diff
     }
 

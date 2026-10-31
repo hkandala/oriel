@@ -26,16 +26,17 @@ enum PluginKind: String, CaseIterable {
 }
 
 /// A plugin card's web page (`web/src/<page>.ts`), which its argument picks: the File Explorer's tree, File, Preview
-/// or Markdown; Git's diff.
+/// or Markdown; Git's home (`<root>`) or a diff (`<root> <source>`).
 enum PluginPage: String, CaseIterable {
-    case files, file, preview, markdown, diff
+    case files, file, preview, markdown, diff, git
 
     /// A folder's argument ends in `/`; a file opens by its name alone (a remote file is not read first): Markdown,
     /// then images, PDF, audio and video, then text. A name the system does not know (`.rs`, `Makefile`) is text;
     /// anything else previews, which shows its icon, size and Open With.
     init(_ kind: PluginKind, _ arg: String) {
         guard kind == .explorer else {
-            self = .diff
+            // Git's home, or one of its diffs.
+            self = PaneLabel(plugin: kind.rawValue, iid: "", arg: arg).diff.source == nil ? .git : .diff
             return
         }
         let ext = (arg as NSString).pathExtension.lowercased()
@@ -88,22 +89,22 @@ extension PaneLabel {
                               "diff": "git"][plugin] ?? plugin)
     }
 
-    /// A diff's repo root and source: the last word when it is `uncommitted` or a commit hash, else Uncommitted.
-    var diff: (root: String, source: String) {
+    /// A Git card's repo root and its diff's source: the last word when it is `uncommitted` or a commit hash; nil for
+    /// the home.
+    var diff: (root: String, source: String?) {
         if let space = arg.lastIndex(of: " ") {
             let source = arg[arg.index(after: space)...]
             if source == "uncommitted" || !source.isEmpty && source.allSatisfy(\.isHexDigit) {
                 return (String(arg[..<space]), String(source))
             }
         }
-        return (arg, "uncommitted")
+        return (arg, nil)
     }
 
     /// The card's and the tab's title, from the label alone (menus ask for every tab's): the file's or the root's
     /// name, a diff's `Changes` or short hash.
     var title: String {
-        if kind == .git {
-            let source = diff.source
+        if kind == .git, let source = diff.source {
             return source == "uncommitted" ? "Changes" : String(source.prefix(7))
         }
         let name = (arg as NSString).lastPathComponent
