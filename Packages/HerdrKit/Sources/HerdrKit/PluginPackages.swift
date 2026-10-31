@@ -183,7 +183,9 @@ public enum PluginPackages {
             }
         }
         let root = (real(package) ?? package.path) + "/"
-        if let outside = paths.first(where: { real(package.appending(path: $0))?.hasPrefix(root) != true }) {
+        // esbuild's modules that are no file: `(disabled):fs`, `<data:…>`.
+        let files = paths.filter { !$0.hasPrefix("(") && !$0.hasPrefix("<") }
+        if let outside = files.first(where: { real(package.appending(path: $0))?.hasPrefix(root) != true }) {
             throw PluginError("outside", "\(outside): imports from outside the package")
         }
     }

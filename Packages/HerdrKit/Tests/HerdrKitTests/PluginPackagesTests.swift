@@ -122,7 +122,7 @@ private func package(_ folder: URL, version: String, extra: [String: Any] = [:])
     for file in ["main.ts", "node_modules/.pnpm/dep/index.js", "../secret.json"] {
         try Data().write(to: package.appending(path: file))
     }
-    try PluginPackages.inside(package, ["main.ts", "node_modules/dep/index.js"])
+    try PluginPackages.inside(package, ["main.ts", "node_modules/dep/index.js", "(disabled):fs", "<data:text/plain,a>"])
     for outside in ["../secret.json", "keys/secret.json", "../missing.js"] {
         #expect(throws: PluginError.self, "\(outside)") { try PluginPackages.inside(package, [outside]) }
     }

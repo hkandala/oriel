@@ -97,6 +97,7 @@ final class PluginInstalls {
             }
             PluginTrust.shared.forget(row.id)
             try? FileManager.default.removeItem(at: PluginBuilds.cache.appending(path: row.id))
+            Registry.reload()
         }
     }
 
@@ -164,7 +165,6 @@ final class PluginInstalls {
         defer { busy[id] = nil }
         do {
             try await body()
-            Registry.reload()
         } catch {
             let text = (error as? ManifestError).map { "package.json: \($0.text)" } ?? error.localizedDescription
             failure = (text.firstLine, { Task { await self.run(id, doing, body) } })
