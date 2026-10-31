@@ -104,8 +104,10 @@ final class WebCard {
 
     /// Another place: its page loads with it.
     func show(_ arg: String, at place: String?) {
-        // A plugin's page draws its places itself.
+        // A plugin's page draws its places itself. The toast was the old place's, as a page loaded again drops it.
         guard page != .main else {
+            bridge?.dropToast()
+            toast = nil
             self.arg = arg
             self.place = place
             bridge?.place(arg, at: place)
