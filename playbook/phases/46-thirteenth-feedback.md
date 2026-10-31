@@ -457,3 +457,8 @@ after (Release, `sample` over tab clicks, three swipes and two overview opens).
   lazy stack had made no page there (the window's hierarchy at the failure: the next tab's page one page right, none
   for the selected one). When the selected tab moves (not when tabs are made or closed), the strip's scroll view is
   made anew on its page, as for a workspace shown; SplitDivider moved to its own file (Strip.swift's length).
+- Full run (B): testOverviewShowsEveryTabLiveAndOpensOne failed once on CI waiting for `stty size` to match the card;
+  the recording shows the shell answering `40 100` while the card's grid never matched. Not reproduced: green 2 of 2
+  here and 3 of 3 on CI on the same commit, and the strip's move code does not run on that path (no tab moves).
+  `expectPTYSize` now says both values when it fails, so a next failure tells whether the PTY lags or the 1x rounding
+  (one column) is at work.

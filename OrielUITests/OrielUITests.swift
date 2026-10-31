@@ -143,11 +143,19 @@ extension OrielUITests {
     func expectPTYSize(_ pane: String, in window: XCUIElement? = nil) async throws {
         let terminal = element("terminal.\(pane)", in: window)
         try await waitForPrompt(pane)
-        try await poll("stty size in \(pane) to match its card", times: 30) { () async throws -> String? in
-            guard terminal.exists, let grid = terminal.value as? String, !grid.isEmpty else { return nil }
-            try await send("clear; stty size\r", to: pane)
-            try await Task.sleep(for: .milliseconds(200))
-            return try await read(pane).split(separator: "\n").contains { $0 == grid } ? grid : nil
+        // What it saw last, for the failure: the card's grid and the pane's screen.
+        var seen = "no grid"
+        do {
+            try await poll("stty size in \(pane) to match its card", times: 30) { () async throws -> String? in
+                guard terminal.exists, let grid = terminal.value as? String, !grid.isEmpty else { return nil }
+                try await send("clear; stty size\r", to: pane)
+                try await Task.sleep(for: .milliseconds(200))
+                let screen = try await read(pane)
+                seen = "card \(grid), screen \(screen.split(separator: "\n").suffix(3).joined(separator: " | "))"
+                return screen.split(separator: "\n").contains { $0 == grid } ? grid : nil
+            }
+        } catch {
+            throw Waited(description: "waited for stty size in \(pane) to match its card: \(seen)")
         }
     }
 
