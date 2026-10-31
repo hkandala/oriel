@@ -299,7 +299,7 @@ struct AgentsList: View {
     }
 
     /// Goes to the agent row above (-1) or below (1) the lit one, round the ends, as a click on it does (a
-    /// three-finger swipe). A folded group's rows are skipped, and floated panes: a click on one brings
+    /// ⌥ + swipe). A folded group's rows are skipped, and floated panes: a click on one brings
     /// its window forward, and the lit row would stay.
     static func step(_ offset: Int, _ page: Page, filter: String, sort: AgentSort) {
         let folded = keys(UserDefaults.standard.string(forKey: foldedKey) ?? "")

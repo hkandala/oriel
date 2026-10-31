@@ -16,8 +16,8 @@ How CI runs, how to run part of it, and how to keep it green and fast.
   card's grid, and a 1 pt font step can leave the column count the same, so grid tests allow one column. A
   second ⌃⌘F during the full-screen animation is lost.
 - **Checks** (a push or a pull request): one job, `checks`, runs `make lint`, `make build`,
-  `make build-tests` (the UI tests compile), `make test` (HerdrKit, the three-finger check, the
-  acknowledgements check) and `make strip-check`. It takes about 3 minutes.
+  `make build-tests` (the UI tests compile), `make test` (HerdrKit, the acknowledgements
+  check) and `make strip-check`. It takes about 3 minutes.
 - **Full run** (a dispatch): five jobs (`test (0)` to `test (4)`), each a shard of the UI tests. Every job
   starts CI's sshd on localhost for the remote-host tests (`scripts/ci-sshd.sh`).
 - **Shards by time.** `make e2e SHARD=i/5` runs the tests that `scripts/shard.py` gives shard i: the slowest

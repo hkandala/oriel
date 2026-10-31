@@ -37,8 +37,8 @@ Each library has its entry, with its license, in the app's `Acknowledgements.txt
 1. **Terminals swallow the swipe.** One `NSEvent`
    monitor locks the axis at the start of each scroll gesture: a horizontal
    gesture that starts in the strip pages the
-   strip; anything else goes to the view under the pointer. A
-   three-finger swipe comes from the trackpad's touches
+   strip; anything else goes to the view under the pointer. A gesture begun
+   with ⌥ held goes to the window's sessions or the sidebar's rows
    ([Swiping](/docs/ui/swiping)).
 2. **Lazy SwiftUI containers destroy views that scroll off screen.** The
    PaneViewRegistry owns every terminal view. Each

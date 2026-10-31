@@ -184,9 +184,9 @@ extension OrielUITests {
         app.typeKey(.escape, modifierFlags: [])
     }
 
-    /// Keys go to the page shown by Open Session, a sidebar swipe and ⌥⌘] (the three-finger swipe's path,
-    /// `WindowPages.step`), not to the page shown before: a page shown again gives its keyboard card the keys,
-    /// though its tab did not change.
+    /// Keys go to the page shown by Open Session, a sidebar swipe and ⌥⌘] (the path of a ⌥ + swipe with
+    /// no sidebar, `WindowPages.step`), not to the page shown before: a page shown again gives its keyboard card
+    /// the keys, though its tab did not change.
     func testKeysGoToTheSessionShown() async throws {
         let mine = try await shown(Self.snapshot(one)).pane, theirs = try await shown(Self.snapshot(two)).pane
         XCTAssertTrue(element("workspace.w2").exists(within: connect))

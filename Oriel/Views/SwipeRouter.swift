@@ -4,8 +4,8 @@ import SwiftUI
 /// The app's one scroll monitor (design D35). A gesture picks its axis once it moved 4 pt: a sideways one goes to
 /// the sidebar's pages when over them, else to the pages of the scroll view under the pointer (the strip's, over a
 /// card), or that scroll view, so a terminal never sees it; any other goes to the view under the pointer as usual.
-/// Pages take its moves and lift, not its momentum. A wheel picks per event; Shift makes it sideways. Three-finger
-/// swipes: see docs/ui/swiping.mdx.
+/// Pages take its moves and lift, not its momentum. A wheel picks per event; Shift makes it sideways. ⌥ + swipe: see
+/// docs/ui/swiping.mdx.
 @MainActor
 enum SwipeRouter {
     /// Once, at launch.
@@ -13,32 +13,16 @@ enum SwipeRouter {
         NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { event in
             MainActor.assumeIsolated { route(event) } ? nil : event
         }
-        // The trackpad's touches, which a window gets once a view in it takes them (`WindowReader`).
-        NSEvent.addLocalMonitorForEvents(matching: .gesture) { event in
-            MainActor.assumeIsolated { touched(event) }
-            return event
-        }
     }
 
-    private static var fingers = ThreeFingers()
-
-    private static func touched(_ event: NSEvent) {
-        let touches = event.allTouches()
-        let down = touches.filter { !$0.isResting && !$0.phase.isDisjoint(with: .touching) }
-        let points = down.map { touch in
-            CGPoint(x: touch.normalizedPosition.x * touch.deviceSize.width,
-                    y: touch.normalizedPosition.y * touch.deviceSize.height)
-        }
-        if let step = fingers.feed(points, at: event.timestamp,
-                                   cancelled: touches.contains { $0.phase == .cancelled })
-        {
-            take(step, event)
-        }
+    /// `row`: the sidebar's next (1) or previous (-1) workspace, or agent in the Agents view.
+    private enum Step {
+        case session(Int), row(Int)
     }
 
     /// The event's window shows its next (1) or previous (-1) session, as ⌥⌘[ ]; or the sidebar's row: the
     /// Agents view's agent, else the workspace (⌃⌘[ ]). Not under a panel, as the sidebar's pages.
-    private static func take(_ step: ThreeFingers.Step, _ event: NSEvent) {
+    private static func take(_ step: Step, _ event: NSEvent) {
         guard let pages = WindowPages.windows.first(where: { $0.window === event.window }), !pages.panelOpen
         else { return }
         switch step {
@@ -61,6 +45,8 @@ enum SwipeRouter {
     private weak static var pager: ScrollAnchor.Anchor?
     private static var lifted = false
     private static var picked = false
+    /// ⌥ was held as the current gesture began.
+    private static var option = false
     private static var moved = 0.0, sideways = 0.0
     private static var wheeled = Date.distantPast
     /// The gesture's sideways speed in the content's points a second, from its last moves.
@@ -71,6 +57,9 @@ enum SwipeRouter {
         let deltaX = event.scrollingDeltaX, deltaY = event.scrollingDeltaY
         if event.phase.isEmpty, event.momentumPhase.isEmpty {
             return wheel(event)
+        }
+        if event.phase == .mayBegin || event.phase == .began {
+            option = event.modifierFlags.contains(.option)
         }
         if event.phase == .began {
             picked = false
@@ -109,14 +98,21 @@ enum SwipeRouter {
             }
         }
         target?.scrollWheel(with: event)
-        return target != nil || pager != nil
+        return target != nil || pager != nil || option
     }
 
     /// Where the gesture goes, by its axis: see `SwipeRouter`.
     private static func pick(_ event: NSEvent) {
         if abs(event.scrollingDeltaX) > abs(event.scrollingDeltaY) {
-            pager = anchors.allObjects.first { $0.contains(event) }
-            if pager == nil {
+            // With ⌥, the window's sidebar pages wherever the pointer is; with no sidebar (hidden, the overview's,
+            // a floating pane's window), one session step.
+            pager = anchors.allObjects.first { anchor in
+                anchor.contains(event) || option && anchor.marks.drag != nil && anchor.marks.area.width > 0
+                    && anchor.window === event.window
+            }
+            if pager == nil, option {
+                take(.session(sideways > 0 ? 1 : -1), event)
+            } else if pager == nil {
                 target = scrollView(event)
                 // The strip's and the overview's pages take it as the sidebar's do.
                 if let paged = anchor(target), paged.marks.drag != nil {
@@ -124,7 +120,15 @@ enum SwipeRouter {
                 }
             }
             pager?.marks.drag?(sideways, true)
+        } else if option {
+            take(.row(up(event) > 0 ? -1 : 1), event)
         }
+    }
+
+    /// The vertical delta toward the top of the pad (or a wheel turned away), whatever the scroll direction: up goes
+    /// to the row above.
+    private static func up(_ event: NSEvent) -> CGFloat {
+        event.isDirectionInvertedFromDevice ? -event.scrollingDeltaY : event.scrollingDeltaY
     }
 
     private static func give(_ event: NSEvent, to pager: ScrollAnchor.Anchor) {
@@ -139,9 +143,14 @@ enum SwipeRouter {
 
     /// A sideways wheel step: over the sidebar's pages, or over the strip's or the overview's as a burst (they have
     /// no paging of their own; a mouse's line steps would only nudge them), it turns one page; else it goes to the
-    /// scroll view under the pointer.
+    /// scroll view under the pointer. With ⌥, a burst steps the session or the sidebar's row.
     private static func wheel(_ event: NSEvent) -> Bool {
         let deltaX = event.scrollingDeltaX, deltaY = event.scrollingDeltaY
+        if event.modifierFlags.contains(.option) {
+            let across = abs(deltaX) > abs(deltaY)
+            turn({ take(across ? .session($0) : .row($0), event) }, across ? deltaX : up(event))
+            return true
+        }
         guard abs(deltaX) > abs(deltaY) else { return false }
         if let pages = anchors.allObjects.first(where: { $0.contains(event) }) {
             turn(pages.marks.step, deltaX)
@@ -191,7 +200,7 @@ struct ScrollAnchor: NSViewRepresentable {
     var step: ((Int) -> Void)?
     var drag: ((Double, Bool) -> Void)?
     var lift: ((Double) -> Void)?
-    /// The Agents view's step for a three-finger swipe up or down, while it shows.
+    /// The Agents view's step for a ⌥ + swipe up or down, while it shows.
     var agent: ((Int) -> Void)?
     var area = CGRect.zero
 
