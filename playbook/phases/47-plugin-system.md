@@ -292,20 +292,21 @@ working until this track switches the default plugins to installed packages.
   `plugins/node_modules/@oriel/plugin-api` link to `web/oriel`, the layout the app's plugins folder has.
 - **Decisions:** one document holds both places, so each place's CSS is nested under its container (`#home`,
   `#diff`) and the shared rows stay global; all CSS is imported by `main.ts`, as esbuild links no CSS of a
-  dynamic chunk. The home scrolls in its container, not the body.
+  dynamic chunk. The diff lets go of its patch while the home shows, as each move loaded a new page before.
 - **Decisions:** row 2 is the manifest's header: the branch menu (`label: "Branch"`, items and value from the page,
   a `{ title: "Remote" }` heading), Fetch, Pull and Push with `badge`, `label` ("Push, 1 ahead") and `busy`; the
   diff's Git Home, `Unified | Side by Side`, the file list button (its title Hide/Show File List) and Previous/Next
   with `gap: 0`. One spacer serves both places; the diff's controls start hidden and the page swaps them per place.
   Every control keeps its old id, and the page ids stay `git.<pane>.page` and `diff.<pane>.page`
   (`Plugin.name()`); another plugin's entry page is `<plugin id>.<pane>.page`.
-- **Decisions:** the commit message and the file list are in the card's state, Side by Side is the header's saved
-  value: all three now also survive a drop, a reload and a relaunch (they were kept while the app ran). Writes and
+- **Decisions (to approve):** the commit message and the file list are in the card's state, Side by Side is the
+  header's saved value: all three now also survive a drop, a reload and a relaunch (they were kept while the app ran),
+  as decision 5's Reload keeps a card's state. The docs pass changes plugins.mdx's "not saved". Writes and
   their toasts (Copy, OK) go through the API; `clipboard` joined the permissions for Copy.
 - **Fix:** `GitBar`, `DiffToolbar`, `GitRepo`, `DiffPatch`, the old pages and the old bridge's `repo`, `patch`,
   `layout`, `list`, `step` and `symbols` are gone; `@pierre/diffs` left `web/package.json`.
 - **Runs:** parity is pixel-equal against main: the home, the diff, Side by Side, no file list, and the home and the
-  diff floating, dark and light (a throwaway test with a fixed-date repository, run on both builds; the only
-  difference was the caret's blink).
+  diff floating, dark and light (a throwaway test with a fixed-date repository, run on both builds): the only
+  differences were the caret's blink and the glass's ±3 levels, which the terminal beside it shows too.
 - **For the user:** the Git card looks and works as before. A dropped or relaunched card now keeps its typed commit
   message and its Side by Side and file list.

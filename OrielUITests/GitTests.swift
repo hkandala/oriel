@@ -1,7 +1,8 @@
 import XCTest
 
-/// The Git card (phase 46): a pane labeled `oriel:git#<iid> <root>/` shows its home (`web/src/git.ts`) with row 2's
-/// branch and buttons; `<root>/ <source>` shows a diff (`web/src/diff.ts`). The writes run in a throwaway repository.
+/// The Git card (phase 46): a pane labeled `oriel:git#<iid> <root>/` shows its home (`plugins/git/home.ts`) with row
+/// 2's branch and buttons; `<root>/ <source>` shows a diff (`plugins/git/diff.ts`). The writes run in a throwaway
+/// repository.
 extension OrielUITests {
     /// The home lists every branch's commits and the changes; Stage moves a file to the staged list, Commit commits it
     /// with the typed message, Push sends it to the remote; a commit opens its diff in the card, and Back and Forward

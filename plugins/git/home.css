@@ -1,8 +1,6 @@
-/* The Git home (home.ts): rows as the sidebar's, the app's fonts and colors. The page scrolls as the card's body did. */
-[hidden] { display: none !important; }
-body { user-select: none; -webkit-user-select: none; }
+/* The Git home (home.ts): rows as the sidebar's, the app's fonts and colors. */
 #home {
-  height: 100%; overflow-y: auto; cursor: default;
+  cursor: default;
   #failure { position: fixed; inset: 0; margin: auto; height: fit-content; padding: 0 24px; text-align: center;
     color: var(--dim); }
   main { padding: 10px 0 16px; }

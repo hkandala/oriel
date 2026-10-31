@@ -7,7 +7,7 @@ import {
   type FileDiffMetadata,
   parsePatchFiles,
 } from "@pierre/diffs"
-import { control, element, type How, how, keep, open, oriel } from "./lib"
+import { control, element, type How, how, keep, open, oriel, symbol } from "./lib"
 
 const letters = { change: "M", "rename-pure": "R", "rename-changed": "R", new: "A", deleted: "D" }
 const page = element("div")
@@ -150,17 +150,30 @@ export async function show(nextRoot: string, nextSource: string, at?: string) {
   if (again) return void (at && files.some((file) => file.name === at) && reveal(at))
   root = nextRoot
   source = nextSource
+  clear()
+  await refresh()
+  // Not after another move meanwhile.
+  if (root === nextRoot && source === nextSource && at && files.some((file) => file.name === at)) reveal(at)
+}
+
+/** The home shows: the diff lets go of its patch, as each place starts from its top. */
+export const hide = () => {
+  page.hidden = true
+  root = source = ""
+  clear()
+}
+
+function clear() {
   patch = undefined
+  files = []
+  changes = []
+  change = -1
   viewed.clear()
   headers.clear()
   viewer.setItems([])
+  nav.replaceChildren()
+  empty.textContent = ""
   main.scrollTop = 0
-  await refresh()
-  if (at && files.some((file) => file.name === at)) reveal(at)
-}
-
-export const hide = () => {
-  page.hidden = true
 }
 
 /**
@@ -194,11 +207,8 @@ function draw(next: string) {
     const button = element("button", viewed.has(file.name) ? "row viewed" : "row")
     button.dataset.id = file.name
     const slash = file.name.lastIndexOf("/")
-    const symbol = element("span", "symbol")
-    symbol.style.setProperty("--symbol", "var(--sf-doc)")
-    symbol.ariaHidden = "true"
     button.append(
-      symbol,
+      symbol("doc"),
       element("span", "name", file.name.slice(slash + 1)),
       element("span", "folder", file.name.slice(0, Math.max(slash, 0))),
       ...counts(file),
@@ -358,5 +368,3 @@ export function step(by: 1 | -1) {
   if (item(place.id).collapsed) collapse(place.id, false)
   viewer.scrollTo({ type: "line", ...place, align: "center" })
 }
-
-export { reveal }
