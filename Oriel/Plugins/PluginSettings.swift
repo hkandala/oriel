@@ -79,6 +79,7 @@ private struct PluginRow: View {
                 }
                 Text(row.source).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
                     .truncationMode(.middle).textSelection(.enabled)
+                    .accessibilityIdentifier("\(id).source")
             }
             Spacer(minLength: 8)
             if let busy = installs.busy[row.id] {

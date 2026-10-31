@@ -28,8 +28,8 @@ final class PluginInstalls {
             let folder = Registry.package(manifest.id)
             let kind: InstalledPlugin.Kind = if Registry.defaults.contains(manifest.id) {
                 .bundled
-            } else if let folder, folder.deletingLastPathComponent().standardizedFileURL == Self.plugins
-                .standardizedFileURL
+            } else if let folder, folder.deletingLastPathComponent().standardizedFileURL.path
+                == Self.plugins.standardizedFileURL.path
             {
                 installed[folder.lastPathComponent].map(InstalledPlugin.Kind.installed) ?? .folder
             } else {
