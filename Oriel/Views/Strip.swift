@@ -64,6 +64,7 @@ struct Strip: View {
         }
         .onScrollGeometryChange(for: ScrollGeometry.self, of: { $0 }, action: { paging.laid($1) })
         .testValue("strip.between", "Strip Between Pages", "\(between)", shown: Self.record)
+        .onDisappear { page.stripMoving = false }
         .onScrollPhaseChange { _, phase in
             page.stripMoving = phase != .idle
             // Not a tab that closed meanwhile.
@@ -85,8 +86,7 @@ struct Strip: View {
 
     /// The selected tab's page as a point of the pages' width.
     private var start: UnitPoint {
-        let count = Double(max(workspace.tabs.count - 1, 1))
-        return UnitPoint(x: Double(page.selectedIndex(in: workspace)) / count, y: 0)
+        UnitPoint(x: Double(page.selectedIndex(in: workspace)) / Double(max(workspace.tabs.count - 1, 1)), y: 0)
     }
 
     /// A swipe's moves and lift (`Paging`); the tab it lands on is selected as its page arrives, unless it closed.

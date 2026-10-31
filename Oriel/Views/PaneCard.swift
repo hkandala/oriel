@@ -305,7 +305,7 @@ struct PaneCard: View {
 
 extension Page {
     /// The pane's browser or plugin card. Not made while the strip moves (making a web view took a frame), but where it
-    /// rests.
+    /// rests (`stripMoving`, false again also when the strip goes mid-scroll).
     func cards(_ pane: HostStore.Pane?) -> (Browser?, Plugin?) {
         guard stripMoving else { return (pane.flatMap(browser), pane.flatMap(plugin)) }
         return (pane?.terminalID.flatMap(terminals.built), pane?.terminalID.flatMap(terminals.builtPlugin))
