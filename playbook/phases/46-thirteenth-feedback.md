@@ -208,3 +208,18 @@ forward; ask track D for any change in its files.
     and dark. Send the orchestrator rough dark screenshots of the home before polish.
 
 ## Findings
+
+### Track C
+
+- **Fix:** the three-finger reading is gone: the `.gesture` monitor, `ThreeFingers` and its check script, and the
+  window frame view's indirect touches. ⌥ + two-finger scroll is back in `SwipeRouter` as phase 30 had it: ⌥ held as
+  the gesture begins sends a sideways swipe anywhere to the window's sidebar pages (one session step with no
+  sidebar: hidden, the overview, a floating window does nothing), and up or down one row step; a ⌥ wheel burst steps
+  once. The gesture and its momentum never reach what is under the pointer.
+- **Decisions:** up and down keep phase 31's rows, not phase 30's workspaces: in the Agents view they step the agent
+  row, else the workspace. Fingers up (or a wheel turned away) go to the row above whatever the scroll direction
+  (`isDirectionInvertedFromDevice`), as the user asked for three fingers. Sideways follows the sidebar's pages, so
+  it goes with the scroll direction as a swipe over the sidebar does.
+- **Runs:** the restored UI test (sessions both ways, workspaces both ways, a ⌥ wheel, the hidden sidebar) passes
+  locally; on the old code its first ⌥ swipe pages the strip and the header stays on session one.
+- **For the user:** with natural scrolling off, check that ⌥ + fingers up still goes to the row above.
