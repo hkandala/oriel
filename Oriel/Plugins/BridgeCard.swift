@@ -2,6 +2,7 @@ import AppKit
 import HerdrKit
 import os
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// The page's calls that the app answers itself: opens, the toast, the native menu, Choose Folder…, SF Symbols and
 /// the clipboard.
@@ -30,6 +31,17 @@ extension Bridge {
         default: throw PluginError("failed", "No call \(name)")
         }
         return nil
+    }
+
+    /// The facts HerdrKit reads, with the system's icon of the kind as a PNG data URL.
+    func info(_ args: [String: Any]) async throws -> Any {
+        var info = try await JSONSerialization.jsonObject(with: calls("files.info", args)) as? [String: Any] ?? [:]
+        let type = (info.removeValue(forKey: "type") as? String).flatMap { UTType($0) } ?? .data
+        var rect = CGRect(x: 0, y: 0, width: 192, height: 192)
+        let png = NSWorkspace.shared.icon(for: type).cgImage(forProposedRect: &rect, context: nil, hints: nil)
+            .flatMap { NSBitmapImageRep(cgImage: $0).representation(using: .png, properties: [:]) }
+        info["icon"] = "data:image/png;base64,\(png?.base64EncodedString() ?? "")"
+        return info
     }
 
     /// In the card (a place of this plugin), a new tab after the card's tab (the default), or a pane to its side.

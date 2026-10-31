@@ -34,7 +34,10 @@ export default async function main(oriel) {
   const read = await oriel.files.read(`${root}/a.txt`)
   line("files.read", JSON.stringify(read.text))
   await check("files.readBytes", async () => (await oriel.files.readBytes(`${root}/a.txt`)).data.length)
-  await check("files.info", async () => (await oriel.files.info(`${root}/a.txt`)).size)
+  await check("files.info", async () => {
+    const info = await oriel.files.info(`${root}/a.txt`)
+    return `${info.size} ${info.folder} ${info.icon.startsWith("data:image/png;base64,i")}`
+  })
   await check("files.list", async () => (await oriel.files.list(root)).map((entry) => entry.name).join(" "))
   await check("files.paths", async () => (await oriel.files.paths(root)).length > 0)
   await oriel.files.write(`${root}/a.txt`, "two\n")

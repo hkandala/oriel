@@ -30,7 +30,8 @@ extension OrielUITests {
         try await show(cardTab)
         XCTAssertTrue(line("ready: yes").exists(within: 10))
         for line in ["state: 1", "card: 1 plugin-api This Mac \(root)/", #"files.read: "hello\n""#,
-                     "files.changed: changed The file changed on disk", "files.missing: notFound Not a file",
+                     "files.info: 6 false true", "files.changed: changed The file changed on disk",
+                     "files.missing: notFound Not a file",
                      #"run: 3 "\#(root)\nin\n""#, "git.root: \(root)", "git.commit: one", "git.head: main",
                      "git.diff: true", "symbol: true", "controls: counted"]
         {
