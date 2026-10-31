@@ -37,7 +37,7 @@ export type Editor = { view: EditorView; land(at: string | undefined): void } | 
 /** The place's file in an editor under `parent`, or the info view when it is not text or too large to show. A file
  *  that becomes read only, writable, too large or not text shows the place anew (`again`). */
 export async function editor(place: Place, extensions: Extension[], parent: HTMLElement): Promise<Editor> {
-  const { oriel, arg: path, keep, again } = place
+  const { oriel, arg: path, keep, again, live } = place
   const file = await oriel.files.read(path).catch((error: OrielError) => error)
   if (file instanceof Error) {
     if (file.code === "notText" || file.code === "tooLarge") await info(oriel, path, parent)
@@ -104,11 +104,20 @@ export async function editor(place: Place, extensions: Extension[], parent: HTML
     view.dispatch(reload)
   }
 
-  /** The file again; a file now too large, not text or read only shows the place anew. */
+  /** The file from disk; undefined when it is gone or the place left. One now too large, not text, read only or
+   *  writable shows the place anew. */
+  const read = async () => {
+    const now = await oriel.files.read(path).catch((error: OrielError) => error)
+    if (!live()) return undefined
+    if (now instanceof Error) return void (now.code === "notText" || now.code === "tooLarge" ? again() : undefined)
+    if (now.writable === view.state.readOnly) return void again()
+    return now
+  }
+
+  /** The file again, the edits dropped. */
   const reload = async () => {
-    const now = await oriel.files.read(path).catch(() => undefined)
-    if (now?.writable !== !view.state.readOnly) return again()
-    load(now.text, now.hash)
+    const now = await read()
+    if (now) load(now.text, now.hash)
   }
 
   /** Only edits: a save of the text on disk would still wake every watcher of the file. One at a time: a second
@@ -121,12 +130,13 @@ export async function editor(place: Place, extensions: Extension[], parent: HTML
       // In the file's own line breaks.
       hash = (await oriel.files.write(path, view.state.sliceDoc(), { over: over ?? undefined })).hash
       disk = sent
-      update(view.state)
+      if (live()) update(view.state)
     } catch (error) {
       failure = error as OrielError
     } finally {
       saving = undefined
     }
+    if (!live()) return
     if (failure?.code === "changed") {
       const picked = await oriel.toast(`${name(path)} changed on disk since you opened it.`, ["Overwrite", "Reload"])
       if (picked === "Overwrite") await save(null)
@@ -138,14 +148,15 @@ export async function editor(place: Place, extensions: Extension[], parent: HTML
   }
 
   /** After a change on disk: a clean file reloads; a dirty one asks. Not for the card's own save, nor before the file
-   *  changed (the card shown again). */
+   *  changed: the hash first (the card shown again reads no file). */
   const check = async () => {
     const before = hash
-    const now = await oriel.files.read(path).catch(() => undefined)
+    if ((await oriel.files.info(path).catch(() => undefined))?.hash === before) return
+    const now = await read()
     if (!now || now.hash === before || saving || hash !== before) return
-    if (now.writable === view.state.readOnly) return again()
     if (!dirty) return load(now.text, now.hash)
     const picked = await oriel.toast(`${name(path)} changed on disk.`, ["Reload", "Keep Mine"])
+    if (!live()) return
     if (picked === "Reload") void reload()
     // The next ⌘S writes over the disk's new version.
     if (picked === "Keep Mine") hash = now.hash
@@ -165,6 +176,8 @@ export async function editor(place: Place, extensions: Extension[], parent: HTML
   keep(oriel.on("findNext", () => findNext(view)))
   keep(oriel.on("findPrevious", () => findPrevious(view)))
   keep(oriel.files.watch(path, () => void check()))
+  // A change between the read and the watch's start.
+  void check()
   // The app gives the card's web view the keyboard: the editor takes it.
   const focus = () => view.focus()
   addEventListener("focus", focus)

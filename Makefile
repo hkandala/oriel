@@ -39,6 +39,7 @@ web: web/node_modules/.package-lock.json plugins/explorer/node_modules/.package-
 	$(ESBUILD) plugins/explorer/main.ts --outdir=.build/web/explorer
 	$(ESBUILD) web/src/{git,diff}.ts web/src/{git,diff}.css --outdir=.build/web/git
 	for id in explorer git; do cp plugins/$$id/package.json .build/web/$$id/; done
+	cp plugins/explorer/places.json .build/web/explorer/
 	web/node_modules/.bin/tsc -p web/oriel
 	web/node_modules/.bin/esbuild web/oriel/runtime.ts --bundle --format=esm --minify --target=safari18 \
 		--log-level=warning --outfile=.build/web/oriel.js

@@ -2,23 +2,14 @@
 // the path, a PDF's page, and zoom for images and PDFs.
 import type { OrielError } from "@oriel/plugin-api"
 import { failed, info } from "./info"
-import type { Place, Reveal } from "./place"
+import { drawn, extension, type Place, type Reveal } from "./place"
 
 type Zoom = "fit" | "actual" | "in" | "out"
 const ZOOM = ["fit", "actual", "out", "in"] as const
 
-/** The kinds both variants draw, by extension; the rest shows the info view without reading the file. */
-const IMAGES = ["png", "jpg", "jpeg", "gif", "webp", "heic", "heif", "tif", "tiff", "bmp", "svg"]
-const AUDIO = ["mp3", "m4a", "m4b", "aac", "wav", "aif", "aiff", "aifc", "caf", "flac", "amr"]
-const VIDEO = ["mp4", "m4v", "mov", "qt", "avi", "mpg", "mpeg", "3gp", "3g2", "mts", "m2ts", "webm", "mkv", "ogv"]
-const extension = (path: string) => (/\.([^./]+)$/.exec(path)?.[1] ?? "").toLowerCase()
-export const previews = (path: string) =>
-  [...IMAGES, ...AUDIO, ...VIDEO, "pdf"].includes(extension(path))
-
 export async function show(place: Place): Promise<Reveal> {
-  const { oriel, arg: path, root, keep } = place
-  const ext = extension(path)
-  const group = IMAGES.includes(ext) ? "image" : ext === "pdf" ? "pdf" : AUDIO.includes(ext) ? "audio" : "video"
+  const { oriel, arg: path, root, keep, live } = place
+  const ext = extension(path), group = drawn(path)
   let zoom: (to: Zoom) => void = () => {}
   /** What the file shown holds: an image's resize observer, a PDF's worker, a blob's address. */
   let release = () => {}
@@ -60,6 +51,7 @@ export async function show(place: Place): Promise<Reveal> {
     // The viewer reads the library from here.
     Object.assign(globalThis, { pdfjsLib: pdfjs })
     const { EventBus, PDFViewer } = await import("pdfjs-dist/web/pdf_viewer.mjs")
+    if (!live()) return
     const container = Object.assign(document.createElement("div"), { className: "pdf" })
     container.append(Object.assign(document.createElement("div"), { className: "pdfViewer" }))
     root.replaceChildren(container)
@@ -72,11 +64,14 @@ export async function show(place: Place): Promise<Reveal> {
     eventBus.on("pagechanging", ({ pageNumber }: { pageNumber: number }) => page(`${pageNumber} of ${viewer.pagesCount}`))
     // The scheme serves pdf.js's fonts, maps and decoders from the plugin's one folder.
     const task = pdfjs.getDocument({ data, wasmUrl: "./", standardFontDataUrl: "./", cMapUrl: "./" })
-    // A failed load would leave its worker running.
-    const document_ = await task.promise.catch(() => void task.destroy())
-    if (!document_) return fallback()
-    viewer.setDocument(document_)
+    // Ends the document and its worker, also of a load under way.
     release = () => void task.destroy()
+    const document_ = await task.promise.catch(() => undefined)
+    if (!document_ || !live()) {
+      release()
+      return live() && fallback()
+    }
+    viewer.setDocument(document_)
     page(`1 of ${document_.numPages}`)
     zoom = (to) => {
       if (to === "in") viewer.increaseScale()
@@ -88,10 +83,11 @@ export async function show(place: Place): Promise<Reveal> {
   let hash: string | undefined
   /** The file's bytes, drawn; the info view for a kind not drawn, or a file WebKit or pdf.js cannot decode. */
   const draw = async () => {
-    if (!previews(path)) return info(oriel, path, root)
+    if (!group) return info(oriel, path, root)
+    // The card shown again, or a change that left the bytes as they were: the hash first, no bytes read.
+    if (hash && (await oriel.files.info(path).catch(() => undefined))?.hash === hash) return
     const file = await oriel.files.readBytes(path).catch((error: OrielError) => error)
-    // The card shown again, or a change that left the bytes as they were.
-    if (!(file instanceof Error) && file.hash === hash) return
+    if (!live() || (!(file instanceof Error) && file.hash === hash)) return
     zoom = () => {}
     release()
     release = () => {}
@@ -129,7 +125,7 @@ export async function show(place: Place): Promise<Reveal> {
   /** One draw at a time, in order: a PDF loads over several turns. */
   let shown = draw()
   keep(oriel.files.watch(path, () => {
-    shown = shown.then(draw)
+    shown = shown.then(draw, draw)
   }))
   await shown
   return undefined

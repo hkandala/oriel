@@ -2,7 +2,6 @@ import AppKit
 import HerdrKit
 import Observation
 import SwiftUI
-import UniformTypeIdentifiers
 import WebKit
 
 /// A plugin card's content as a page of its plugin's folder (`make web`), in a web view of its own: WebKit makes a

@@ -24,3 +24,6 @@ xcuserdata/
 
 # python
 __pycache__/
+
+# coverage
+*.profraw

@@ -104,12 +104,12 @@ public struct PluginCalls: Sendable {
             return ["base64": file.data.base64EncodedString(), "type": type ?? "application/octet-stream",
                     "hash": file.hash]
         case "files.info":
-            let size = try await exec.checkedOutput(["sh", "-c", Self.infoScript, "sh", path])
-                .trimmingCharacters(in: .whitespaces)
-            let folder = size == "d"
+            let lines = try await exec.checkedOutput(["sh", "-c", Self.infoScript, "sh", path]).split(separator: "\n")
+            let size = lines.first?.trimmingCharacters(in: .whitespaces) ?? "", folder = size == "d"
             let type = folder ? UTType.folder : UTType(filenameExtension: (path as NSString).pathExtension) ?? .data
             return ["name": (path as NSString).lastPathComponent, "size": Int(size) ?? 0, "folder": folder,
-                    "kind": type.localizedDescription ?? "Document", "type": type.identifier]
+                    "kind": type.localizedDescription ?? "Document", "type": type.identifier,
+                    "hash": lines.count > 1 ? String(lines[1]) : ""]
         case "files.list":
             return try await Files.list(path, repo: repo(path), exec: exec)
                 .map { ["name": $0.name, "folder": $0.isFolder, "ignored": $0.ignored] }
@@ -123,9 +123,10 @@ public struct PluginCalls: Sendable {
         }
     }
 
-    /// `d` for a folder, else the size; fails for nothing there.
+    /// `d` for a folder, else the size and the `cksum` (`Files.read`'s hash); fails for nothing there.
     static let infoScript = #"""
-    if [ -d "$1" ]; then echo d; elif [ -e "$1" ]; then wc -c <"$1"; else echo "No such file" >&2; exit 1; fi
+    if [ -d "$1" ]; then echo d; elif [ -e "$1" ]; then wc -c <"$1" && cksum <"$1"
+    else echo "No such file" >&2; exit 1; fi
     """#
 
     /// The repository a folder is in, for git's letters and ignored files.

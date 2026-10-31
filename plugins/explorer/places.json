@@ -1,0 +1,12 @@
+{
+  "markdown": ["md", "markdown", "mdx"],
+  "text": ["ts", "mts", "cts", "plist"],
+  "image": ["png", "jpg", "jpeg", "gif", "webp", "heic", "heif", "tif", "tiff", "bmp", "svg"],
+  "pdf": ["pdf"],
+  "audio": ["mp3", "m4a", "m4b", "aac", "wav", "aif", "aiff", "aifc", "caf", "flac", "amr", "ogg", "oga", "opus"],
+  "video": ["mp4", "m4v", "mov", "qt", "avi", "mpg", "mpeg", "3gp", "3g2", "m2ts", "webm", "mkv", "ogv"],
+  "binary": ["zip", "gz", "tgz", "tar", "bz2", "xz", "7z", "dmg", "pkg", "iso", "img", "bin", "exe", "dll", "dylib",
+    "o", "class", "jar", "war", "ipa", "pyc", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "pages", "numbers", "key",
+    "odt", "ods", "odp", "psd", "ai", "eps", "ico", "icns", "avif", "raw", "dng", "ttf", "otf", "epub", "usdz", "stl",
+    "jxl", "wma", "mid", "midi", "webloc", "icloud", "emlx", "fbx", "glb", "dae", "svgz"]
+}

@@ -1,5 +1,6 @@
 // What every place of the card gets from `main.ts`, and the open gestures they share.
 import type { Off, Oriel } from "@oriel/plugin-api"
+import places from "./places.json"
 
 export type Place = {
   oriel: Oriel
@@ -13,6 +14,28 @@ export type Place = {
   keep(off: Off): void
   /** Shows the place anew, as it first showed: its file became read only or too large. */
   again(): void
+  /** The card still shows the place: work that ends after it left does nothing. */
+  live(): boolean
+}
+
+/** A file's extension, lowercased; "" for none, also for a dotfile's name (as `NSString.pathExtension`). */
+export const extension = (path: string) => (/[^/]\.([^./]+)$/.exec(path)?.[1] ?? "").toLowerCase()
+
+/** What Preview draws of a file, by its extension: the kinds in places.json, "" for the info view. */
+export const drawn = (path: string) => {
+  const ext = extension(path)
+  return (["image", "pdf", "audio", "video"] as const).find((group) => places[group].includes(ext)) ?? ""
+}
+
+/** Which place shows the argument, by its name alone (a remote file is not read first), as the app's
+ *  `ExplorerPlace` reads places.json: a folder's tree; Markdown; text; Preview for the kinds it draws and the
+ *  known kinds that are not text; else File, which shows the info view for a file that is not UTF-8. */
+export function kind(arg: string): "files" | "file" | "preview" | "markdown" {
+  if (arg.endsWith("/")) return "files"
+  const ext = extension(arg)
+  if (places.markdown.includes(ext)) return "markdown"
+  if (!ext || places.text.includes(ext)) return "file"
+  return drawn(arg) || places.binary.includes(ext) ? "preview" : "file"
 }
 
 /** A place's own handling of the same place with another landing. */

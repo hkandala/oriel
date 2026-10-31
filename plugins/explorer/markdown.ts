@@ -228,8 +228,11 @@ export async function show(place: Place): Promise<Reveal> {
     }
   })
 
-  // None when the file is too large to show: the info view is there instead.
-  if (!shown) return undefined
+  // None when the file is too large to show: the info view is there instead, and Edit Mode does nothing.
+  if (!shown) {
+    oriel.controls.set("edit-mode", { enabled: false })
+    return undefined
+  }
   const { view, land } = shown
   keep(oriel.on("control", ({ id, value }) => {
     if (id === "mode") show(view, value === "edit", outlined)
