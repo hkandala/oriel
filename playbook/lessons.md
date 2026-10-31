@@ -22,6 +22,9 @@ Problems that came back across phases, and the rule that stops each. How we work
   the chrome), grep the UI tests for it and run the ones that use it.
 - **A query can wait out the accessibility timeout (6 s).** One that reaches a web view as its page starts (a
   popup) waited 6.1 s on CI, and the app drew nothing meanwhile: wait for a new web view's element for over 6 s.
+- **A redraw between a click's press and release loses the click.** A web page that redraws on every read loses
+  clicks on CI only. Compare what you draw, and compare JSON from Swift with its keys sorted: a dictionary's key
+  order changes per instance.
 - **Scope every query.** `app.windows.firstMatch` can be a tooltip, a hover card or a floating pane, and
   menu bar items share names with context menu items. Use `app.windows[id]` and the menu's own items.
 - **An accessibility client changes the app it watches**: it hides lazy-layout bugs and slows large UIs.

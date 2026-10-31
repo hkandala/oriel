@@ -304,7 +304,12 @@ working until this track switches the default plugins to installed packages.
   as decision 5's Reload keeps a card's state. The docs pass changes plugins.mdx's "not saved". Writes and
   their toasts (Copy, OK) go through the API; `clipboard` joined the permissions for Copy.
 - **Fix:** `GitBar`, `DiffToolbar`, `GitRepo`, `DiffPatch`, the old pages and the old bridge's `repo`, `patch`,
-  `layout`, `list`, `step` and `symbols` are gone; `@pierre/diffs` left `web/package.json`.
+  `layout`, `list`, `step` and `symbols` are gone; `@pierre/diffs` left `web/package.json`. With both
+  default plugins on the API, the old page path went too: `web/src/`, `WebCard`'s messages and reloads per place, and
+  `Document`'s watch. `PluginPage` keeps only `main` (marked for track G).
+- **Cause:** the app's replies come with their keys in any order (Swift dictionaries iterate per instance), so the
+  home's compare of the drawn JSON missed and every read redrew every row; a click across a redraw was lost on CI.
+  **Fix:** the compare sorts the keys (one draw per change).
 - **Runs:** parity is pixel-equal against main: the home, the diff, Side by Side, no file list, and the home and the
   diff floating, dark and light (a throwaway test with a fixed-date repository, run on both builds): the only
   differences were the caret's blink and the glass's ±3 levels, which the terminal beside it shows too.
