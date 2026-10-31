@@ -22,6 +22,8 @@ struct PluginHeader: View {
                     HeaderItem(control: control, plugin: plugin, page: page)
                         .disabled(control.enabled == false || control.busy == true)
                         .padding(.leading, before == nil && !history ? 0 : CGFloat(control.gap ?? 6))
+                        // A text its whole width before a spacer takes any: cut only when the row is full.
+                        .layoutPriority(control.type == "text" ? 1 : 0)
                 }
             }
             // Free space goes after the controls unless a spacer or a field takes it.
@@ -118,9 +120,8 @@ private struct HeaderItem: View {
             }
             return index == 0 ? part : Text("\(line)\(chevron)\(part)")
         }
-        // Its whole width before a spacer takes any: cut only when the row is full.
         return (control.digits == "mono" ? shown.monospacedDigit() : shown).fontWeight(.regular).lineLimit(1)
-            .truncationMode(.middle).layoutPriority(1)
+            .truncationMode(.middle)
             .accessibilityValue(parts.joined(separator: " › "))
     }
 
