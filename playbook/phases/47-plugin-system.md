@@ -148,6 +148,23 @@ working until this track switches the default plugins to installed packages.
 2. The old bridge (`web/src/lib/bridge.ts`), `web/src/` and every Swift piece the migration left unused are gone.
 3. Docs pass, final review, two full CI runs green in a row and the on-demand suite, on `plugin-system`.
 
+## Track F2: own build scripts (after F; beside G)
+
+The user's words: "let's go with own build script for now, we can define a standard boilerplate for our plugin, with
+all build scripts etc, so any time user or agent wants to build a plugin, they should have node and npm and can use
+this boilerplate and build it, we should show relevant errors on why plugin is not getting loaded, whether there is no
+node, or npm, or whether no dist etc when plugin is loaded, and there should be some place where we keep plugin logs as
+well for easier debugging".
+1. The shipped esbuild goes (helper, signing, the app's build cache, the inside-the-package rule, `assets`).
+2. `entry` is built JavaScript (`dist/main.js`, its chunks, CSS and assets beside it). Install runs the package
+   manager's install, then `run build` when there is a build script and no built entry. Reload Plugin runs the build
+   script, then reloads the cards keeping state; a failed build keeps the old page.
+3. A template (`plugins/template`, also New Plugin… in the Plugins panel); File Explorer and Git use its layout.
+4. Plain errors in the card, with the fix as a button: no Node, install failed, build failed, not built, bad manifest,
+   trust. Same text in the log.
+5. The log, reachable: Show Log in the card's menu, its failure card and the panel's rows.
+6. Offline tests: the CSV fixture builds itself; no Node (a PATH without npm), no dist, a failed build.
+
 ## Findings
 
 ### Track A
@@ -361,3 +378,26 @@ working until this track switches the default plugins to installed packages.
   pointer is masked (`/tmp/oriel-shots/47f-*`).
 - **For the docs pass:** building.mdx's watcher, inline source map, `manifest.json`, `oriel-plugin://app/<id>` and the
   shared default build go; Reload Plugin, the panel, `assets`, `optional` peer, the metafile rule and the log lines come in.
+
+### Track F2 (own build scripts)
+
+- **Decisions:** the app ships no bundler. A plugin's `entry` must be built `.js` (the manifest rule); the scheme serves
+  the entry's folder flat. The app runs only the package's own scripts, with the npm, pnpm or bun on the login `PATH`:
+  `install` (from the lockfile, `--ignore-scripts`, no peers), then `run build` when there is a build script and no
+  built entry yet (a published package that ships `dist/` needs none), and `run build` on Reload Plugin and on the
+  card's Build. stdout and stderr go together to the log; a failure shows its last 20 lines.
+- **Decisions:** the card says why a page cannot load, with Show Log and the fix: "‹name› needs Node.js" (no package
+  manager; Try Again), "could not install" (Try Again), "did not build" (Try Again builds), "is not built" (`dist/main.js`
+  is missing; Build, or no button when there is no build script), "stopped", "needs a newer Oriel". A bad manifest whose
+  `oriel.id` reads shows "‹id› did not load" and the field in the missing card; trust stays the prompt. Each goes to the
+  log. Show Log opens `<id>.log` in the app for `.log` files (Console), from the card's menu, the failure card and the
+  panel's rows.
+- **Decisions:** `plugins/template` is the boilerplate: `package.json` (the `oriel` key, scripts `build`, `dev` (watch),
+  `check` (tsc), devDependencies esbuild and typescript, the optional peer), `tsconfig.json`, `src/main.ts`, a README.
+  The app carries it; the Plugins panel's New Plugin… copies it under a name into the plugins folder, installs, builds,
+  trusts it and shows it in Finder. File Explorer and Git moved to `src/` → `dist/` with the same scripts (Explorer's
+  `assets` script copies pdf.js's files); `make web` installs, checks and builds all three, as a user would, then copies
+  the defaults' and the template's source (no `node_modules`, no `dist`). A first launch builds the defaults after
+  `npm ci` (about 1 s each).
+- **Decisions:** a rebuild writes `dist` in place, so a page kept over a rebuild (Keep Editing) can miss its later
+  chunks until it reloads. The defaults' edited-copy hash leaves out `dist` and `node_modules`.
