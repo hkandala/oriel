@@ -46,7 +46,12 @@ export default async function main(oriel: Oriel) {
       }
       const place = kind(arg), old = shown
       if (place === "files") trees.push(arg)
-      for (const id of ALL) oriel.controls.set(id, { hidden: !CONTROLS[place].includes(id) })
+      // The filter shows empty: a field shown with text takes the keyboard (FilterField), and the tree starts with
+      // none. In the same change, so it never shows with the last tree's text, nor a saved one.
+      for (const id of ALL) {
+        const hidden = !CONTROLS[place].includes(id)
+        oriel.controls.set(id, id === "filter" ? { hidden, value: "" } : { hidden })
+      }
       oriel.controls.set("open-with", { value: place === "files" ? "" : arg })
       if (place !== "markdown") oriel.controls.set("edit-mode", { enabled: false, checked: false })
       const root = Object.assign(document.createElement("div"), { className: "place" })

@@ -279,4 +279,6 @@ working until this track switches the default plugins to installed packages.
   (main: Preview's info view, by `UTType`). `pick.folder` on a remote machine shows main's "No folder ‹path›" notice.
 - **Runs:** 41214627809 (on eb3aebed…d66509b8): 11 of 12 green; File's Overwrite asked again, because
   `save(undefined)` took the default `over`. 41216469734 (e716cd99): 11 of 12; the new tab's order was read before the app moved
-  it after the card's (a race in the test, which now waits for the move).
+  it after the card's (a race in the test, which now waits for the move). 41217702085 (439bc03e): 11 of 12; Back to the
+  tree showed the filter field with the last tree's text until the page cleared it, and a field shown with text takes
+  the keyboard, so ⌘] went to the field. The filter now shows empty in the same change that shows it.
