@@ -1,6 +1,5 @@
 import AppKit
 import HerdrKit
-import os
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -184,8 +183,11 @@ extension CommandList {
             if let shown = key, taken.contains(shown) {
                 key = nil
                 if logged.insert("\(plugin.manifest.id) \(command.id)").inserted {
-                    let text = "\(plugin.manifest.id): \(command.key ?? "") of \(command.id) is the app's"
-                    Logger(subsystem: "dev.hkandala.oriel", category: "plugins").error("\(text, privacy: .public)")
+                    PluginLog.add(
+                        plugin.manifest.id,
+                        "the key \(command.key ?? "") of the command \(command.id) is the "
+                            + "app's: it is left off",
+                    )
                 }
             }
             let section: Command.Section = switch command.menu {

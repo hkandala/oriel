@@ -268,8 +268,7 @@ final class Bridge {
         let data = try JSONSerialization.data(withJSONObject: args)
         let calls = await PluginCalls(permissions: plugin.manifest.permissions, exec: store.machine.exec(),
                                       remote: store.machine.isRemote,
-                                      gitRuns: name.hasPrefix("files.") || name.hasPrefix("git.") ? store.gitRuns()
-                                          : false)
+                                      gitRuns: name != "run" ? store.gitRuns() : false)
         return try await calls.call(name, data)
     }
 

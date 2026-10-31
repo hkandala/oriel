@@ -138,6 +138,6 @@ extension CommandList {
                 command.key = command.key == .closePane ? .closeTab : command.key
                 return command
             } + sizes + Self.browser(pane.flatMap(page.browser))
-        return list + Self.plugin(pane.flatMap(page.plugin), besides: list)
+        return list + Self.plugin(pane?.terminalID.flatMap(page.terminals.builtPlugin), besides: list)
     }
 }

@@ -455,3 +455,10 @@ well for easier debugging".
   unsaved edits (a pane, a tab, other tabs, a workspace) shows its tab and Discard / Keep Editing first.
 - **For the user:** an outside rename of a pane (an agent labeling it a card) shows in the app only at its next
   snapshot, up to 10 s later: herdr sends no event for a pane rename (`pane.updated` does not come).
+
+### Final review fixes
+
+- **3 (B):** a manifest command's key the app already uses goes to the plugin's log, with a line in errors.mdx.
+- **12 (B):** the menus take only a plugin card already made (`builtPlugin`), never make one.
+- **13 (B):** `Plugin.landing` is gone: Back's landing is `place ?? arg` at its two places.
+- **14 (B):** a call on the card's machine asks whether git runs unless it is `run`.

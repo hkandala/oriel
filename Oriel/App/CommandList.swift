@@ -106,7 +106,8 @@ struct CommandList {
             .browser(browser)
             + view + paneKeys
             + palette(page) + window(page, pages)
-        return list + Self.plugin(page?.keyboardPane.flatMap { page?.plugin($0) }, besides: list)
+        return list + Self.plugin(page?.keyboardPane?.terminalID.flatMap { page?.terminals.builtPlugin($0) },
+                                  besides: list)
     }
 
     private var view: [Command] {

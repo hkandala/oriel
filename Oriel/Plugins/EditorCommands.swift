@@ -16,9 +16,10 @@ extension Page {
         }
     }
 
-    /// The pane's card when it takes ⌘S or ⌘F (`handles`): File Explorer's File and Markdown.
+    /// The pane's card when it takes ⌘S or ⌘F (`handles`): File Explorer's File and Markdown. Only a card already
+    /// made: a menu never makes one.
     func editor(_ pane: HostStore.Pane?) -> Plugin? {
-        pane.flatMap(plugin).flatMap { $0.handles("save") || $0.handles("find") ? $0 : nil }
+        pane?.terminalID.flatMap(terminals.builtPlugin).flatMap { $0.handles("save") || $0.handles("find") ? $0 : nil }
     }
 }
 

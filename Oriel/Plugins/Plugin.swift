@@ -172,16 +172,11 @@ final class Plugin {
         // A path that makes no label (a control character, over 1024 characters) opens nothing, as a linked open.
         guard PaneLabel(PaneLabel(plugin: manifest.id, iid: label.iid, arg: arg).text) != nil else { return }
         leave { plugin in
-            plugin.back.append((plugin.web.arg, plugin.landing(arg, place)))
+            // Back lands where it came back from: the tree reveals the file it opened, Git's home the change.
+            plugin.back.append((plugin.web.arg, place ?? arg))
             plugin.forward = []
             plugin.show(arg, at: place)
         }
-    }
-
-    /// Where a place comes back when Back returns to it from `arg`: where it came back from, so the tree reveals the
-    /// file it opened, the Git home the change (`place`) or the commit (`arg`) it opened.
-    private func landing(_ arg: String, _ place: String?) -> String? {
-        place ?? arg
     }
 
     func goBack() {
@@ -195,7 +190,7 @@ final class Plugin {
     func goForward() {
         leave { plugin in
             guard let next = plugin.forward.popLast() else { return }
-            plugin.back.append((plugin.web.arg, plugin.landing(next.arg, next.at)))
+            plugin.back.append((plugin.web.arg, next.at ?? next.arg))
             plugin.show(next.arg, at: next.at)
         }
     }
