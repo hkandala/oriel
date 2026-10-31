@@ -92,7 +92,7 @@ final class Header {
 
 extension PluginManifest {
     /// A card's row 2: a header or Back and Forward.
-    func hasRow(_: PluginPage) -> Bool {
+    var hasRow: Bool {
         history || !header.isEmpty
     }
 }
