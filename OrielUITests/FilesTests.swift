@@ -14,7 +14,7 @@ extension OrielUITests {
         let repo = "/tmp/oriel-e2e-files", root = "/private/tmp/oriel-e2e-files"
         try await makeRepo(repo, in: shell)
         let (tab, card) = try await explorer(root, in: repo)
-        element("tab.\(tab)").click()
+        try await show(tab)
 
         let tree = element("files.\(card).page")
         XCTAssertTrue(row("a.txt", in: tree).exists(within: 10))
@@ -84,7 +84,7 @@ extension OrielUITests {
             + "&& clear && echo ready-$((6*7))\r", to: shell)
         try await waitFor(shell) { $0.contains("ready-42") }
         let (tab, card) = try await explorer(root, in: repo)
-        element("tab.\(tab)").click()
+        try await show(tab)
         let tree = element("files.\(card).page")
         XCTAssertTrue(row("four.txt", in: tree).exists(within: 10))
 
@@ -97,7 +97,7 @@ extension OrielUITests {
         try await labelEnds(side, " \(root)/one.txt")
         XCTAssertTrue(element("file.\(side).page").exists(within: 10))
 
-        element("tab.\(tab)").click()
+        try await show(tab)
         let before = try await tabIDs()
         XCUIElement.perform(withKeyModifiers: .command) {
             for name in ["two.txt", "three.txt", "four.txt"] {
