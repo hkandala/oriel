@@ -72,20 +72,21 @@ extension OrielUITests {
     /// view, until the first message.
     func testALongChatShowsEarlierRowsInPlace() async throws {
         let pane = try await startChat().pane
-        app.typeText("many\r")
+        // 25 turns: about 100 rows, the newest 40 and two blocks above.
+        app.typeText("many 25\r")
         let last = row(pane, "reply", "Last.")
         XCTAssertTrue(until(10) { last.exists && last.isHittable })
         let chat = element("chat.\(pane)"), earlier = element("chat.\(pane).earlier")
-        let first = row(pane, "user", "many")
+        let first = row(pane, "user", "many 25")
         XCTAssertFalse(first.exists)
         // Up to the oldest row shown, where the button shows.
         func up() {
             for _ in 0 ..< 5 where !earlier.exists && !first.isHittable {
-                chat.scroll(byDeltaX: 0, deltaY: 10000)
+                chat.scroll(byDeltaX: 0, deltaY: 5000)
             }
         }
         var clicks = 0
-        while !first.exists, clicks < 20 {
+        while !first.exists, clicks < 5 {
             up()
             clicks += 1
             guard clicks <= 2 else {
@@ -107,7 +108,7 @@ extension OrielUITests {
             let same = row(pane, "user", text)
             XCTAssertTrue(until(3) { abs(same.frame.minY - place) < 2 }, "\(text) \(place) \(same.frame)")
         }
-        XCTAssertGreaterThan(clicks, 2)
+        XCTAssertGreaterThanOrEqual(clicks, 2)
         up()
         XCTAssertTrue(first.isHittable)
         XCTAssertFalse(earlier.exists)

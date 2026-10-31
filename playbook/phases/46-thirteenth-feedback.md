@@ -421,6 +421,8 @@ after (Release, `sample` over tab clicks, three swipes and two overview opens).
 - 10 (A): a backlog read off the main actor stops with its follow (checked every 500 lines); its marks end at the last
   line it read.
 - 18 (A): OpenCode reads each event once off the main actor, and again on it only for the events the waits read.
+- Full run (A): the Show Earlier test timed out walking 15 blocks of 40 rows at about 7.5 s each (the wheel scroll
+  and queries; one click is 0.8–1.3 s on CI and locally); it now asks the stand-in for 25 turns, two blocks: 33 s.
 - 6 (B): the cover's SPI path runs only when WebKit answers both selectors, else the 100 ms fallback (an unchecked one
   would crash on a WebKit without it).
 - 9 (B): a window that closes drops its own web cards and kept entries at once, with no picture and no trim of other
