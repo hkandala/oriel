@@ -112,14 +112,14 @@ export async function editor(place: Place, extensions: Extension[], parent: HTML
   }
 
   /** Only edits: a save of the text on disk would still wake every watcher of the file. One at a time: a second
-   *  would check the first's old hash; its edits keep the dot for the next ⌘S. `over` undefined overwrites. */
-  const save = async (over: string | undefined = hash) => {
+   *  would check the first's old hash; its edits keep the dot for the next ⌘S. `over` null overwrites. */
+  const save = async (over: string | null = hash) => {
     if (view.state.readOnly || !dirty || saving) return
     const sent = (saving = view.state.doc)
     let failure: OrielError | undefined
     try {
       // In the file's own line breaks.
-      hash = (await oriel.files.write(path, view.state.sliceDoc(), { over })).hash
+      hash = (await oriel.files.write(path, view.state.sliceDoc(), { over: over ?? undefined })).hash
       disk = sent
       update(view.state)
     } catch (error) {
@@ -129,7 +129,7 @@ export async function editor(place: Place, extensions: Extension[], parent: HTML
     }
     if (failure?.code === "changed") {
       const picked = await oriel.toast(`${name(path)} changed on disk since you opened it.`, ["Overwrite", "Reload"])
-      if (picked === "Overwrite") await save(undefined)
+      if (picked === "Overwrite") await save(null)
       if (picked === "Reload") await reload()
     } else if (failure) {
       const text = `${name(path)} was not saved: ${failure.message}`
