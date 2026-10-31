@@ -50,7 +50,7 @@ const options: CodeViewOptions<undefined, undefined> = {
   // Clicks right after Next Change or a pick in the list (CodeView drops them while it scrolls).
   pointerEventsOnScroll: true,
   layout: { paddingTop: 0, paddingBottom: 24, gap: 0 },
-  // The card's fill shows through; the sticky header blurs what scrolls under it.
+  // The card's fill shows through; the sticky header is opaque in the card's color, with a line under it.
   unsafeCSS: `
     [data-diffs-header] :is([data-additions-count], [data-deletions-count]) { display: none }
     :host {
@@ -76,8 +76,8 @@ const options: CodeViewOptions<undefined, undefined> = {
     [data-separator] { border-block: 0.5px solid var(--divider) }
     [data-separator-content] { background: none !important; color: var(--dim) }
     [data-diffs-header] {
-      background: color-mix(in srgb, var(--text) 6%, transparent) !important;
-      backdrop-filter: blur(20px);
+      background: var(--card) !important;
+      box-shadow: inset 0 -0.5px var(--divider);
       cursor: default;
     }`,
   renderHeaderPrefix: (diff: FileDiffMetadata) => {

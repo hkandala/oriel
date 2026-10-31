@@ -49,6 +49,13 @@ struct Look {
         pick(.white.opacity(0.03), .white.opacity(0.6), .white.opacity(0.018), .white.opacity(0.6))
     }
 
+    /// An opaque stand-in for a card's fill, for a web card's band that text scrolls under (the diff's file header).
+    /// Classic's is exact; Glass's is measured on a card (the desktop's blur under it moves it a few steps).
+    /// ponytail: the keyboard card's fill is a step brighter; pass `keyboard` if the band shows there.
+    var cardSolid: Color {
+        pick(Color(white: 0x2E / 255), Color(white: 0xF9 / 255), Color(white: 0x22 / 255), Color(white: 0xFB / 255))
+    }
+
     /// Over `cardFill` on the card that has the keyboard: Glass a little brighter; light cards end at white 0.7
     /// (Glass) and 0.8 (Classic).
     var keyboardFill: Color {

@@ -338,7 +338,8 @@ struct WebCardContent: View {
 
     var body: some View {
         let css = [
-            ("text", Color.primary), ("dim", look.paneButton), ("divider", look.divider), ("accent", .accentColor),
+            ("text", Color.primary), ("dim", look.paneButton), ("divider", look.divider), ("card", look.cardSolid),
+            ("accent", .accentColor),
             ("working", look.working), ("needs-you", look.needsYou), ("finished", look.finished),
             ("error", look.error),
         ].map { name, color in
