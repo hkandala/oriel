@@ -413,15 +413,16 @@ well for easier debugging".
 - **Measured** (decision 7): Release builds of main (1dba133a) and this branch, alternating, each card the first one
   in a freshly launched app against a throwaway session, timed from its `WebCard`'s start to its loader's end (a
   timestamp patch in both builds, not committed); memory is the app plus WebKit's processes 5 s after (`footprint`).
-  Load 14–50 (`uptime`), so ±150 ms per sample: medians of 3 runs, 5 for git home and Markdown.
+  Load 14–50 (`uptime`), so ±150 ms per sample: medians of 3 runs, 5 for the Git home and Markdown (measured last,
+  after their fixes; the others before them, which only take time off).
 
   | Card | main ms | branch ms | | main MB | branch MB |
   |---|---|---|---|---|---|
   | File Explorer tree | 626 | 674 | +8 % | 171 | 173 |
   | File (2,145-line Swift) | 766 | 644 | −16 % | 214 | 215 |
-  | Markdown | 555 | 677 | +22 % | 222 | 222 |
+  | Markdown | 530 | 548 | +3 % | 222 | 222 |
   | PDF (8 pages) | 597 | 641 | +7 % | 328 | 329 |
-  | Git home | 598 | 673 | +13 % | 169 | 169 |
+  | Git home | 620 | 640 | +3 % | 169 | 169 |
   | Diff (14 files) | 612 | 619 | +1 % | 248 | 248 |
   | Cold first launch, tree (launch to drawn) | 1,650 | 4,450 | +2.8 s | 134 | 139 |
 
@@ -431,10 +432,14 @@ well for easier debugging".
   for the listing (main's page asked once): both run together. Git's page asked for its row symbols, then read: the
   first place now reads and draws under the loader meanwhile. pdf.js's viewer CSS (124 KB) was in every explorer
   card's `main.css`: only a PDF loads it (2 MB less WebKit memory per card). Both plugins are 1.1.1.
-- **Open:** Markdown and the Git home stay 75–120 ms over main: the runtime, then the entry, then the place's chunk
-  load one after the other (main's page was one bundle). A `modulepreload` of the entry made Reload Plugin's page
-  blank on CI (41233504051) and was dropped. The cold launch's 2.8 s is the defaults' install (copy, `npm ci`, build,
-  decision 5 and F2), not on main by design.
+- **Cause, the last 75–120 ms of Markdown and the Git home:** the runtime, then the entry, then the place's chunk
+  loaded one after the other (main's page was one bundle). **Fix:** the page has a module script for the entry beside
+  the runtime's (one module: the runtime's import gets it); Git's home is in its entry (its draft read moves to the
+  first show); File's and Markdown's file read starts with the place's chunk. The tree and Markdown stay chunks (the
+  tree is 248 KB the other places would parse; Markdown's Read needs CodeMirror's parser). A `modulepreload` of the
+  entry made Reload Plugin's page blank on CI (41233504051, a page loaded again over the same URL), and was dropped.
+- **Decisions:** the cold first launch's +2.8 s is the defaults' install (copy, `npm ci`, build: decision 5 and F2), by
+  design.
 - **Cause, OverviewTests' stty flake:** a new surface first reports libghostty's guess before layout (100×40 at 1x,
   CI's screens), then the card's grid. When the stream's first frame came between them, `started()` resized to the
   guess still in `grid` and cancelled the pending real size, so the PTY stayed 100×40 under a 94×38 card. **Fix:** it
