@@ -149,3 +149,31 @@ working until this track switches the default plugins to installed packages.
 3. Docs pass, final review, two full CI runs green in a row and the on-demand suite, on `plugin-system`.
 
 ## Findings
+
+### Track A
+
+- **Decisions:** the `oriel` key holds the manifest page's fields with `entry` for `main` and an `id` of its own (a
+  package name can be scoped); `version`, `description` and `keywords` are the package's. The description is the
+  chooser row's detail line and the keywords are ⌘K's extra words, so the three rows read as before. `opens` may
+  hold `files` and `folders` together: File Explorer opens both (`*` and folders), Git `{ "git": true }`.
+- **Decisions:** the registry reads, first id wins: the browser (Swift), the app's default plugins (`make web` now
+  writes `.build/web/<id>/` with each one's pages, `card.css` and `package.json`; read in place until track F),
+  `settings.json`'s local paths (`/`, `~` or `.`; relative to its folder), then `~/.config/oriel/plugins/*/`. A bad
+  manifest or a taken id is skipped and logged to the unified log (`log show --predicate 'subsystem ==
+  "dev.hkandala.oriel"'`) until track F's log files. `-configFolder` points it elsewhere; UI tests pass a folder
+  that does not exist unless a test writes one.
+- **Decisions:** the manifest model and its rules live in HerdrKit (`PluginManifest`, unit tested), with the
+  file-pattern rank of the manifest page. Header controls and commands are decoded and checked (types, unique ids,
+  ⌘ chords) but not drawn or put in ⌘K yet: their picks need the control event (tracks B and C).
+- **Fix:** the scheme serves `oriel-plugin://<id>/<page>` from that plugin's folder only, with the security page's
+  CSP for `oriel-plugin://<id>` (`default-src 'none'`, own scripts, styles, fonts and fetches); the navigation
+  lock allows only the card's own URL.
+- **Decisions:** a user plugin's card shows its loader (it has no page until tracks B and F); File Explorer and
+  Git keep `PluginPage` for their pages until tracks D and E. A missing plugin's card (any well-formed
+  `oriel:` label the registry lacks) shows the id, the argument, Show Placeholder and Close Pane; Show Placeholder
+  is kept on the pane model, not saved. Open With lists the other plugins whose patterns match after the apps
+  (none today, so it looks as before; on a remote machine it shows only when one matches); a pick renames the
+  pane to that plugin with the same iid. The tree's row-menu Open With and URL patterns for links wait for a
+  plugin that needs them (tracks D, B).
+- **For the user:** nothing changes on screen with no packages of your own. A label `oriel:<unknown>#abc123 x`
+  shows the missing card.
