@@ -35,9 +35,10 @@ enum Registry {
         current.loaded = load()
     }
 
-    /// The folder `oriel-plugin://<id>/` serves: the plugin's current build.
+    /// The folder `oriel-plugin://<id>/` serves: the built entry's (`dist`), with its chunks, CSS and assets.
     static func files(_ id: String) -> URL? {
-        PluginBuilds.shared.folders[id]
+        guard let entry = plugin(id)?.entry else { return nil }
+        return package(id)?.appending(path: entry).deletingLastPathComponent()
     }
 
     /// A plugin package's folder, which the app builds from (a default plugin's installed copy, maybe not made yet);
@@ -87,10 +88,10 @@ enum Registry {
     /// manifest or a taken id is left out, with the reason in the log.
     struct Loaded {
         let all: [PluginManifest], defaults: Set<String>, folders: [String: URL]
-        let byID: [String: PluginManifest], symbols: Set<String>
+        let byID: [String: PluginManifest], symbols: Set<String>, problems: [String: String]
 
-        init(all: [PluginManifest], defaults: Set<String>, folders: [String: URL]) {
-            (self.all, self.defaults, self.folders) = (all, defaults, folders)
+        init(all: [PluginManifest], defaults: Set<String>, folders: [String: URL], problems: [String: String]) {
+            (self.all, self.defaults, self.folders, self.problems) = (all, defaults, folders, problems)
             byID = Dictionary(uniqueKeysWithValues: all.map { ($0.id, $0) })
             symbols = Set(all.map(\.icon) + PluginPage.allCases.map(\.symbol) + ExplorerPlace.allCases.map(\.symbol)
                 + [missing])
@@ -99,6 +100,7 @@ enum Registry {
     }
 
     private static func load() -> Loaded {
+        problems = [:]
         // The defaults' installed copies, with the app's manifest while a copy is missing (first launch).
         let plugins = config.appending(path: "plugins")
         let mine = packages(in: folder?.appending(path: "defaults")).map { manifest, url in
@@ -124,7 +126,8 @@ enum Registry {
         return Loaded(all: [browser] + manifests.filter { defaults.contains($0.id) }
             + manifests.filter { !defaults.contains($0.id) }.sorted { $0.id < $1.id },
             defaults: defaults.union([browser.id]),
-            folders: Dictionary(kept.map { ($0.manifest.id, $0.url) }) { first, _ in first })
+            folders: Dictionary(kept.map { ($0.manifest.id, $0.url) }) { first, _ in first },
+            problems: problems.filter { problem in !manifests.contains { $0.id == problem.key } })
     }
 
     /// Each subfolder's package, by folder name.
@@ -147,9 +150,24 @@ enum Registry {
         do {
             return try (PluginManifest(package: data), folder)
         } catch {
-            note(folder, "\(file.path): \(error.text)")
+            let text = "\(file.path): \(error.text)"
+            note(folder, text)
+            // A label naming its id shows why it did not load, when the id itself reads.
+            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+            if let id = (json?["oriel"] as? [String: Any])?["id"] as? String {
+                problems[id] = text
+                PluginLog.add(id, text)
+            }
             return nil
         }
+    }
+
+    /// Why a package with this id was left out (a bad manifest), while the list is read; `Loaded.problems` after.
+    private static var problems: [String: String] = [:]
+
+    /// Why the plugin of a label did not load: its manifest's error.
+    static func problem(_ id: String) -> String? {
+        current.loaded.problems[id]
     }
 
     /// A package left out: in the unified log, and in the log file named after its folder (it may have no id).

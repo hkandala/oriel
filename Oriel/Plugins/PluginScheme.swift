@@ -30,13 +30,11 @@ final class PluginScheme: NSObject, WKURLSchemeHandler {
         let styles = page && FileManager.default.fileExists(atPath: folder.appending(path: "\(css).css").path)
         // The runtime and the card's base style are the app's, for every plugin.
         let from = ["oriel.js", "card.css"].contains(file) ? Registry.folder : folder
-        // A file the build lacks from the build before it: the later chunks of a page that kept running over a rebuild.
         let data = file.contains("/") || file.hasPrefix(".") ? nil : page ? Data("""
         <!doctype html><meta charset="utf-8"><link rel="stylesheet" href="card.css">\
         \(styles ? "<link rel=\"stylesheet\" href=\"\(css).css\">" : "")\
         <script type="module" src="\(script).js"></script>
-        """.utf8) : [from, PluginBuilds.shared.previous[id]].lazy.compactMap(\.self)
-            .compactMap { try? Data(contentsOf: $0.appending(path: file)) }.first
+        """.utf8) : from.flatMap { try? Data(contentsOf: $0.appending(path: file)) }
         guard let data else {
             task.didFailWithError(URLError(.fileDoesNotExist))
             return

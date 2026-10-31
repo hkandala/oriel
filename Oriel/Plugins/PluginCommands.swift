@@ -3,8 +3,8 @@ import SwiftUI
 import WebKit
 
 extension CommandList {
-    /// A plugin card's (future-work/plugins/building#debug-it): Reload Plugin and the Web Inspector, in the card's
-    /// menu, View ▸ Pane and ⌘K. Not File Explorer's and Git's built pages, which the app builds with itself.
+    /// A plugin card's (future-work/plugins/building#debug-it): Reload Plugin, the Web Inspector and its log, in the
+    /// card's menu, View ▸ Pane and ⌘K.
     static func pluginCard(_ plugin: Plugin?) -> [Command] {
         guard let plugin, plugin.web.page == .main else { return [] }
         let id = plugin.manifest.id, view = plugin.web.view
@@ -14,6 +14,8 @@ extension CommandList {
             Command(section: .pane, title: view.inspectorShown ? "Hide Web Inspector" : "Show Web Inspector",
                     symbol: "hammer", keywords: "plugin developer tools devtools console",
                     action: view.toggleInspector),
+            Command(section: .pane, title: "Show Log", symbol: "doc.text.magnifyingglass",
+                    keywords: "plugin build errors console debug") { PluginLog.show(id) },
         ]
     }
 

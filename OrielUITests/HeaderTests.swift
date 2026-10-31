@@ -97,9 +97,9 @@ extension OrielUITests {
             #"{"id":"gone","type":"button","symbol":"trash","title":"Gone","hidden":true}"#,
             #"{"id":"open-with","type":"openWith","value":"/tmp/notes.md"}"#,
         ].joined(separator: ",")
-        let json = #"{"version":"1.0.0","oriel":{"id":"fixture","name":"Fixture","api":1,"entry":"main.ts","#
+        let json = #"{"version":"1.0.0","oriel":{"id":"fixture","name":"Fixture","api":1,"entry":"main.js","#
             + #""icon":"testtube.2","history":true,"header":[\#(header)]}}"#
-        let bare = #"{"version":"1.0.0","oriel":{"id":"bare","name":"Bare","api":1,"entry":"main.ts","icon":"leaf"}}"#
+        let bare = #"{"version":"1.0.0","oriel":{"id":"bare","name":"Bare","api":1,"entry":"main.js","icon":"leaf"}}"#
         return "rm -rf \(config) && mkdir -p \(config)/plugins/fixture \(config)/plugins/bare && touch /tmp/notes.md"
             + " && echo '\(json)' > \(config)/plugins/fixture/package.json"
             + " && echo '\(bare)' > \(config)/plugins/bare/package.json && clear && echo made-$((6*7))"

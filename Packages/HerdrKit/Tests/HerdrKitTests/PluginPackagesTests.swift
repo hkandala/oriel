@@ -12,12 +12,12 @@ private let offline = ProcessExec(localExec.environment.merging([
 private func package(_ folder: URL, version: String, extra: [String: Any] = [:]) throws {
     let json: [String: Any] = [
         "name": "csv-table", "version": version, "description": "Tables",
-        "oriel": ["id": "csv-table", "name": "CSV Table", "api": 1, "entry": "main.ts", "icon": "tablecells",
+        "oriel": ["id": "csv-table", "name": "CSV Table", "api": 1, "entry": "dist/main.js", "icon": "tablecells",
                   "permissions": ["files:read"]],
     ].merging(extra) { $1 }
     try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
     try JSONSerialization.data(withJSONObject: json).write(to: folder.appending(path: "package.json"))
-    try Data("export default () => {}\n".utf8).write(to: folder.appending(path: "main.ts"))
+    try Data("export default () => {}\n".utf8).write(to: folder.appending(path: "main.js"))
 }
 
 @Test func `sources read as pi's, each with the folder it installs into`() {
@@ -57,7 +57,7 @@ private func package(_ folder: URL, version: String, extra: [String: Any] = [:])
     let pinned = try #require(PluginSource("git:\(repo.path)@v1"))
     let staged = try await PluginPackages.fetch(pinned, into: plugins, exec: offline)
     #expect(staged.manifest.version == "1.0.0")
-    let folder = try await PluginPackages.finish(staged, into: plugins, exec: offline)
+    let folder = try await PluginPackages.finish(staged, into: plugins, exec: offline).folder
     #expect(folder == plugins.appending(path: "csv-table"))
     // Only the installed package is left in the plugins folder.
     #expect(try FileManager.default.contentsOfDirectory(atPath: plugins.path) == ["csv-table"])
@@ -88,7 +88,7 @@ private func package(_ folder: URL, version: String, extra: [String: Any] = [:])
     let staged = try await PluginPackages.fetch(#require(PluginSource("npm:\(tarball)")), into: plugins,
                                                 exec: offline)
     #expect(staged.manifest.id == "csv-table")
-    let folder = try await PluginPackages.finish(staged, into: plugins, exec: offline)
+    let folder = try await PluginPackages.finish(staged, into: plugins, exec: offline).folder
     #expect(folder.lastPathComponent == "csv-table-1.0.0")
     #expect(FileManager.default.fileExists(atPath: folder.appending(path: "node_modules/pad/index.js").path))
     #expect(!FileManager.default.fileExists(atPath: folder.appending(path: "node_modules/@oriel").path))
@@ -111,23 +111,6 @@ private func package(_ folder: URL, version: String, extra: [String: Any] = [:])
     #expect(try FileManager.default.contentsOfDirectory(atPath: plugins.path).isEmpty)
 }
 
-@Test func `a build may read only the package's own files, links included`() throws {
-    let scratch = try scratchFolder()
-    defer { try? FileManager.default.removeItem(at: scratch) }
-    let package = scratch.appending(path: "plugin"), modules = package.appending(path: "node_modules")
-    try FileManager.default.createDirectory(at: modules.appending(path: ".pnpm/dep"), withIntermediateDirectories: true)
-    try FileManager.default.createSymbolicLink(at: modules.appending(path: "dep"),
-                                               withDestinationURL: modules.appending(path: ".pnpm/dep"))
-    try FileManager.default.createSymbolicLink(at: package.appending(path: "keys"), withDestinationURL: scratch)
-    for file in ["main.ts", "node_modules/.pnpm/dep/index.js", "../secret.json"] {
-        try Data().write(to: package.appending(path: file))
-    }
-    try PluginPackages.inside(package, ["main.ts", "node_modules/dep/index.js", "(disabled):fs", "<data:text/plain,a>"])
-    for outside in ["../secret.json", "keys/secret.json", "../missing.js"] {
-        #expect(throws: PluginError.self, "\(outside)") { try PluginPackages.inside(package, [outside]) }
-    }
-}
-
 @Test func `the settings list keeps the file's other keys and each source once`() throws {
     let scratch = try scratchFolder()
     defer { try? FileManager.default.removeItem(at: scratch) }
@@ -141,4 +124,50 @@ private func package(_ folder: URL, version: String, extra: [String: Any] = [:])
     #expect(PluginPackages.sources(settings) == ["npm:a"])
     let json = try JSONSerialization.jsonObject(with: Data(contentsOf: settings)) as? [String: Any]
     #expect(json?["theme"] as? String == "x")
+}
+
+/// A package whose `build` script copies its entry into `dist`, or fails.
+private func buildable(_ folder: URL, build: String = "mkdir -p dist && cp main.js dist/main.js") throws {
+    try package(folder, version: "1.0.0", extra: ["scripts": ["build": build]])
+}
+
+@Test func `an install builds a package with a build script and no build, and a shipped build is kept`() async throws {
+    let scratch = try scratchFolder()
+    defer { try? FileManager.default.removeItem(at: scratch) }
+    let repo = scratch.appending(path: "csv-table"), plugins = scratch.appending(path: "plugins")
+    try buildable(repo)
+    let git = ["git", "-C", repo.path, "-c", "user.name=t", "-c", "user.email=t@t"]
+    _ = try await offline.checkedOutput(["git", "init", "--quiet", repo.path])
+    _ = try await offline.checkedOutput(git + ["add", "."])
+    _ = try await offline.checkedOutput(git + ["commit", "--quiet", "-m", "one"])
+    let source = try #require(PluginSource("git:\(repo.path)"))
+    let (folder, output) = try await PluginPackages.finish(PluginPackages.fetch(source, into: plugins, exec: offline),
+                                                           into: plugins, exec: offline)
+    #expect(FileManager.default.fileExists(atPath: folder.appending(path: "dist/main.js").path))
+    #expect(output.contains("mkdir -p dist"))
+
+    // A build in the repository (a published package's `dist`) needs no build: this script would fail.
+    try buildable(repo, build: "exit 3")
+    try FileManager.default.createDirectory(at: repo.appending(path: "dist"), withIntermediateDirectories: true)
+    try Data().write(to: repo.appending(path: "dist/main.js"))
+    _ = try await offline.checkedOutput(git + ["add", "."])
+    _ = try await offline.checkedOutput(git + ["commit", "--quiet", "-m", "two"])
+    _ = try await PluginPackages.finish(PluginPackages.fetch(source, into: plugins, exec: offline), into: plugins,
+                                        exec: offline)
+}
+
+@Test func `a failed build says its last lines, and no package manager says to install Node`() async throws {
+    let scratch = try scratchFolder()
+    defer { try? FileManager.default.removeItem(at: scratch) }
+    try buildable(scratch, build: "echo main.ts:3:1: ERROR: Expected identifier && exit 3")
+    do {
+        _ = try await PluginPackages.build(scratch, exec: offline)
+        Issue.record("the build passed")
+    } catch let HerdrError.failed(text) {
+        #expect(text.contains("main.ts:3:1: ERROR: Expected identifier"))
+    }
+    // No npm, pnpm or bun on the PATH.
+    let bare = ProcessExec(offline.environment.merging(["PATH": "/usr/bin:/bin"]) { $1 }, herdr: nil, asked: .now)
+    await #expect(throws: PluginPackages.NoManager.self) { try await PluginPackages.build(scratch, exec: bare) }
+    #expect(try await PluginPackages.build(scratch.appending(path: "none"), exec: bare) == nil)
 }

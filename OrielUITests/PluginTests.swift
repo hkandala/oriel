@@ -127,7 +127,7 @@ extension OrielUITests {
     private func packages(in config: String) -> String {
         func package(_ id: String, _ more: String) -> String {
             #"{"version":"1.0.0","description":"\#(id) rows","oriel":{"id":"\#(id)","name":"\#(id)","api":1,"#
-                + #""entry":"main.ts","icon":"note.text"\#(more)}}"#
+                + #""entry":"main.js","icon":"note.text"\#(more)}}"#
         }
         let files = [
             ("plugins/notes", package("notes", #","opens":{"folders":true},"chooser":"Notes""#)),

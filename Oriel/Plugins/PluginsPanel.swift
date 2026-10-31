@@ -41,6 +41,12 @@ struct PluginsPanel: View {
             .frame(maxHeight: 360)
             .fixedSize(horizontal: false, vertical: true)
             HStack {
+                Button("New Plugin…") { Task { await installs.create() } }
+                    .buttonStyle(.glass).controlSize(.small).accessibilityIdentifier("plugins.new")
+                if let busy = installs.busy.first(where: { $0.value == "Creating…" }) {
+                    ProgressView().controlSize(.small)
+                    Text("Creating \(busy.key)…").foregroundStyle(.secondary)
+                }
                 Spacer()
                 Button("Reload Plugins") { Task { await Plugin.reloadAll() } }
                     .buttonStyle(.glass).controlSize(.small).accessibilityIdentifier("plugins.reload-all")
@@ -110,6 +116,10 @@ private struct PluginRow: View {
                             .accessibilityIdentifier("\(id).update")
                     }
                     if row.manifest != nil {
+                        IconButton(symbol: "doc.text.magnifyingglass", help: "Show Log", size: 24) {
+                            PluginLog.show(row.id)
+                        }
+                        .accessibilityIdentifier("\(id).log")
                         IconButton(symbol: "arrow.clockwise", help: "Reload Plugin", size: 24) {
                             Task { await Plugin.reload(row.id) }
                         }

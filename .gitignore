@@ -27,3 +27,6 @@ __pycache__/
 
 # coverage
 *.profraw
+
+# plugins' builds (their own build scripts)
+plugins/*/dist/

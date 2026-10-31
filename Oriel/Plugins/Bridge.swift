@@ -12,7 +12,7 @@ final class Bridge {
     /// The page's changes of its commands (`controls.set` of a command's id): `title`, `checked`, `enabled`.
     private(set) var commands: [String: [String: Any]] = [:]
     /// `main` threw or the page cannot run: the card shows this (a title and the error's first lines) with Reload.
-    var failure: (title: String, text: String)?
+    var failure: PluginProblem?
     /// The plugin's state value as last set (JSON), kept beside the header's values.
     @ObservationIgnored private var state: Any?
     @ObservationIgnored private var saving: Task<Void, Never>?
@@ -58,10 +58,11 @@ final class Bridge {
         plugin.web.view.keyboard = { [weak self] in self?.keyboard = $0 }
         if plugin.manifest.api > Self.api {
             plugin.web.ready = true
-            failure = (
-                "\(plugin.manifest.name) needs a newer Oriel",
-                "It is written for version \(plugin.manifest.api) of "
+            failure = PluginProblem(
+                title: "\(plugin.manifest.name.shown) needs a newer Oriel",
+                text: "It is written for version \(plugin.manifest.api) of "
                     + "the plugin API; this Oriel has version \(Self.api).",
+                button: nil,
             )
         }
     }
@@ -222,12 +223,11 @@ final class Bridge {
             event("keyboard", keyboard)
         case "card.setDirty": plugin.web.dirty = args["dirty"] as? Bool == true
         case "card.failed":
-            failure = (
-                "\(plugin.manifest.name.shown) stopped",
-                [args["text"], args["stack"]].compactMap { $0 as? String }
+            failure = .noted(plugin.manifest, PluginProblem(
+                title: "\(plugin.manifest.name.shown) stopped",
+                text: [args["text"], args["stack"]].compactMap { $0 as? String }
                     .filter { !$0.isEmpty }.joined(separator: "\n"),
-            )
-            PluginLog.add(plugin.manifest.id, "stopped: \(failure?.text ?? "")")
+            ))
             plugin.web.ready = true
         case "state.set":
             let value = args["value"] ?? NSNull()

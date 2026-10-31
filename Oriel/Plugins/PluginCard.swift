@@ -22,7 +22,7 @@ struct PluginCard: View {
             // Over the page alone, as the page is.
             .overlay {
                 if let failure = plugin.web.bridge?.failure {
-                    PluginFailure(plugin: plugin, title: failure.title, text: failure.text)
+                    PluginFailure(plugin: plugin, problem: failure)
                 } else if plugin.web.bridge != nil, !PluginTrust.shared.allows(plugin.manifest) {
                     TrustPrompt(plugin: plugin, page: page)
                 }
@@ -97,31 +97,47 @@ struct PluginToolbar: View {
     }
 }
 
-/// A plugin page that stopped (its `main` threw) or cannot run (its API is too new): the title, the error's first
-/// lines, and Reload.
+/// Why a plugin's page cannot load (`PluginProblem`): the title, the error's lines, its fix (Reload, Try Again or
+/// Build) and Show Log.
 private struct PluginFailure: View {
     let plugin: Plugin
-    let title: String
-    let text: String
+    let problem: PluginProblem
     @Environment(\.look) private var look
 
     var body: some View {
+        let id = "pane.\(plugin.paneID)"
         VStack(spacing: 10) {
             Image(systemName: plugin.manifest.icon).font(.system(size: 28)).foregroundStyle(.secondary)
-            Text(title).font(.system(size: 13, weight: .semibold))
-                .accessibilityIdentifier("pane.\(plugin.paneID).failure")
-            Text(text).font(.system(size: 12).monospaced()).foregroundStyle(.secondary).lineLimit(6)
-                .multilineTextAlignment(.center).textSelection(.enabled)
-            if plugin.manifest.api <= Bridge.api {
-                Button("Reload") { plugin.web.reload() }
-                    .buttonStyle(.glass).controlSize(.small).padding(.top, 4)
-                    .accessibilityIdentifier("pane.\(plugin.paneID).reload")
+            Text(problem.title).font(.system(size: 13, weight: .semibold)).accessibilityIdentifier("\(id).failure")
+            Text(problem.text).font(.system(size: 12).monospaced()).foregroundStyle(.secondary).lineLimit(12)
+                .multilineTextAlignment(.center).textSelection(.enabled).accessibilityIdentifier("\(id).failure.text")
+            HStack(spacing: 8) {
+                Button("Show Log") { PluginLog.show(plugin.manifest.id) }.buttonStyle(.glass)
+                    .accessibilityIdentifier("\(id).show-log")
+                if let button = problem.button {
+                    Button(button) { fix() }.buttonStyle(.glassProminent)
+                        .accessibilityIdentifier(problem.builds ? "\(id).build" : "\(id).reload")
+                }
             }
+            .controlSize(.small)
+            .padding(.top, 4)
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         // Over what the page drew before it stopped.
         .background(look.cardSolid)
+    }
+
+    /// Build runs the package's build script first; Reload and Try Again load the page again.
+    private func fix() {
+        guard problem.builds else { return plugin.web.reload() }
+        Task {
+            if let problem = await PluginBuilds.shared.build(plugin.manifest) {
+                plugin.web.bridge?.failure = problem
+            } else {
+                plugin.web.reload()
+            }
+        }
     }
 }
 
@@ -176,9 +192,15 @@ struct MissingPlugin: View {
         VStack(spacing: 12) {
             Image(systemName: Registry.missing).font(.system(size: 28)).foregroundStyle(.secondary)
             VStack(spacing: 4) {
-                Text("\(label.plugin) is not on this Mac").font(.system(size: 13, weight: .semibold))
+                // A package with the id whose manifest is wrong says what is wrong.
+                let problem = Registry.problem(label.plugin)
+                Text(problem == nil ? "\(label.plugin) is not on this Mac" : "\(label.plugin) did not load")
+                    .font(.system(size: 13, weight: .semibold))
                     .accessibilityIdentifier("pane.\(pane.id).missing")
-                if !label.arg.isEmpty {
+                if let problem {
+                    Text(problem).font(.system(size: 12).monospaced()).foregroundStyle(.secondary).lineLimit(4)
+                        .textSelection(.enabled).accessibilityIdentifier("pane.\(pane.id).missing.text")
+                } else if !label.arg.isEmpty {
                     Text(label.arg).font(.system(size: 12)).foregroundStyle(.secondary).lineLimit(2)
                         .truncationMode(.middle).textSelection(.enabled)
                 }
