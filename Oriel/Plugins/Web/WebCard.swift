@@ -15,26 +15,15 @@ final class WebCard {
         PluginPage(kind, arg)
     }
 
-    /// The label's argument; a new one (a rename from elsewhere, a diff's source) loads the page again with it.
-    var arg: String {
-        didSet {
-            // Another file: its page reads it again.
-            place = nil
-            hash = nil
-            toast = nil
-            if loaded {
-                script()
-                view.load(URLRequest(url: PluginScheme.url(page)))
-            }
-        }
-    }
+    /// The place shown: a file's or a folder's path, a diff's root and source. The label follows it (`Plugin.show`).
+    private(set) var arg: String
 
     @ObservationIgnored weak var store: HostStore?
     @ObservationIgnored let view: WebCardView
     /// A linked open's landing, for the first load only: a line for a file, a path from the repo's root for a diff.
     @ObservationIgnored private var place: String?
-    /// Opens a link from the page in a new tab (`Page.open(_:arg:at:from:)`).
-    @ObservationIgnored var open: ((PluginKind, String, String?) -> Void)?
+    /// Opens a link from the page, in the card or beside it (`Page.open(_:arg:at:from:how:)`).
+    @ObservationIgnored var open: ((PluginKind, String, String?, Opening) -> Void)?
     fileprivate(set) var dirty = false
     /// A diff's row 2: Side by Side, and the file list shown. Per card, not saved.
     var split = false {
@@ -94,6 +83,19 @@ final class WebCard {
         }
     }
 
+    /// Another place: its page loads with it.
+    func show(_ arg: String, at place: String?) {
+        self.arg = arg
+        self.place = place
+        hash = nil
+        toast = nil
+        dirty = false
+        if loaded {
+            script()
+            view.load(URLRequest(url: PluginScheme.url(page)))
+        }
+    }
+
     /// A message to the page's `receive` handler (`web/src/lib/bridge.ts`): row 2's controls. A page reads their first
     /// state from its first ask's reply, so one sent before it listens is no loss.
     func send(_ message: [String: Any]) {
@@ -134,9 +136,10 @@ final class WebCard {
         case "patch":
             return await patch()
         case "open":
-            // No kind: a file, opened with its kind.
+            // No kind: the File Explorer's; no `how`: in the card.
             guard let arg = message["arg"] as? String else { return (nil, "No path") }
-            open?((message["kind"] as? String).flatMap(PluginKind.init) ?? .explorer, arg, message["at"] as? String)
+            open?((message["kind"] as? String).flatMap(PluginKind.init) ?? .explorer, arg, message["at"] as? String,
+                  (message["how"] as? String).flatMap(Opening.init) ?? .here)
         default:
             return await files(message)
         }
@@ -198,12 +201,20 @@ private final class Relay: NSObject, WKScriptMessageHandlerWithReply, WKNavigati
 final class WebCardView: BrowserView {
     /// The ⇧⌘← or ⇧⌘→ the menu handed to the page: WebKit sends it again when the page leaves it, for Move Tab.
     var handed: NSEvent?
+    /// Back (true) or Forward, ⌘[ and ⌘] over the card, as in a browser: there they do not select a pane.
+    var step: ((Bool) -> Void)?
 
-    /// WebKit gives the page every ⌘ key first, and CodeMirror takes some of the app's (⌘[ ⌘] select a pane): the
-    /// menu goes first, as over a native text view.
+    /// WebKit gives the page every ⌘ key first, and CodeMirror takes some of the app's: the menu goes first, as over a
+    /// native text view.
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        window?.firstResponder === self && NSApp.mainMenu?.performKeyEquivalent(with: event) == true
-            || super.performKeyEquivalent(with: event)
+        guard window?.firstResponder === self else { return super.performKeyEquivalent(with: event) }
+        if let step, event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
+           let key = event.charactersIgnoringModifiers, key == "[" || key == "]"
+        {
+            step(key == "[")
+            return true
+        }
+        return NSApp.mainMenu?.performKeyEquivalent(with: event) == true || super.performKeyEquivalent(with: event)
     }
 }
 

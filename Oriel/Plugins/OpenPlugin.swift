@@ -1,6 +1,18 @@
 import HerdrKit
 import SwiftUI
 
+/// Where a plugin card opens a file or a diff (ui/plugins): in the card (a click or a double-click), in a new tab
+/// beside the card's tab (⌘), or in a pane to the card's side (⌥).
+enum Opening: String {
+    case here, tab, side
+
+    /// By the modifier keys held now: for a native row's click.
+    @MainActor static var now: Opening {
+        let flags = NSEvent.modifierFlags
+        return flags.contains(.command) ? .tab : flags.contains(.option) ? .side : .here
+    }
+}
+
 /// The ways a browser or plugin pane opens: the chooser's rows, Open ‹Kind› Here and linked opens.
 extension Page {
     /// A browser or plugin pane takes the chooser's pane's place, with Replace Pane's steps (ui/new-pane#browser). It
@@ -32,11 +44,17 @@ extension Page {
         }
     }
 
-    /// A linked open from the card of terminal `source`: a new herdr tab right after the card's tab, in its workspace
-    /// and folder (also from a floating window), which the snapshot after it selects with the keyboard; after the
+    /// An open from the card of terminal `source`: in the card itself when it is of that kind (`Plugin.go`); else a
+    /// linked open, a new herdr tab right after the card's tab, in its workspace and folder (also from a floating
+    /// window), or a pane to the card's side, which the snapshot after it selects with the keyboard; after the
     /// selected tab once the card is gone. Its card lands at a line of a file or a diff's file, once (not in the
     /// label).
-    func open(_ kind: PluginKind, arg: String, at place: String? = nil, from source: String) async {
+    func open(_ kind: PluginKind, arg: String, at place: String? = nil, from source: String,
+              how: Opening = .tab) async
+    {
+        if how == .here, let plugin = terminals.builtPlugin(source), plugin.kind == kind {
+            return plugin.go(arg, at: place)
+        }
         let card = store.panes.first { $0.terminalID == source }
         guard let tabID = card?.tabID ?? selectedTab?.id, let workspace = store.workspace(of: tabID),
               let index = workspace.tabs.firstIndex(where: { $0.id == tabID }) else { return }
@@ -47,14 +65,26 @@ extension Page {
             guard let id = try await client.newTab(workspace: workspace.id, cwd: cwd, label: label.text,
                                                    command: label.placeholder)
             else { throw HerdrError.failed("herdr named no pane") }
-            let pane = try await client.pane(id)
+            var pane = try await client.pane(id)
+            // ponytail: herdr makes no split with a command, so the new tab shows for a snapshot before its pane
+            // moves beside the card; hide it as Replace Pane does if that flash shows.
+            if how == .side, let card {
+                do {
+                    pane = try await client.move(pane: id, to: .tab(card.tabID, beside: card.id)) ?? pane
+                } catch {
+                    try? await client.close(pane: id)
+                    throw error
+                }
+            }
             // ponytail: a card made from a snapshot before this line misses its landing; hand it over in the label
             // if that shows.
             if let place, let terminalID = pane.terminalID {
                 terminals.landings[terminalID] = place
             }
             // herdr adds it last: before the tab now after the card's.
-            try await client.move(tab: pane.tabID, to: index + 1)
+            if how != .side || card == nil {
+                try await client.move(tab: pane.tabID, to: index + 1)
+            }
             follow(pane, pane.terminalID)
         }
     }

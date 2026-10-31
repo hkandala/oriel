@@ -8,7 +8,7 @@ import { Prec } from "@codemirror/state"
 import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate, WidgetType } from "@codemirror/view"
 import { tags } from "@lezer/highlight"
 import MarkdownIt from "markdown-it"
-import { arg, at, receive, report } from "./lib/bridge"
+import { arg, at, how, receive, report } from "./lib/bridge"
 import { editor, handle } from "./lib/editor"
 import "./markdown/markdown.css"
 
@@ -199,7 +199,8 @@ function list(view: EditorView, tree = syntaxTree(view.state)) {
   outline.replaceChildren(...rows)
 }
 
-// Links in Read: `#` scrolls the page, http(s) opens the browser plugin, a relative path the plugin of its kind.
+// Links in Read: `#` scrolls the page, http(s) opens the browser plugin beside, a relative path its file in the card
+// (⌘ in a new tab, ⌥ to the side).
 article.addEventListener("click", (event) => {
   const link = (event.target as Element).closest("a")
   if (!link) return
@@ -209,10 +210,10 @@ article.addEventListener("click", (event) => {
   if (href.startsWith("#")) {
     document.getElementById(decodeURIComponent(href.slice(1)))?.scrollIntoView()
   } else if (/^https?:/i.test(href)) {
-    report({ op: "open", kind: "browser", arg: href })
+    report({ op: "open", kind: "browser", arg: href, how: event.altKey ? "side" : "tab" })
   } else if (href && !/^[a-z][a-z\d+.-]*:/i.test(href)) {
     const base = `file://${arg.split("/").map(encodeURIComponent).join("/")}`
-    report({ op: "open", arg: decodeURIComponent(new URL(href, base).pathname) })
+    report({ op: "open", arg: decodeURIComponent(new URL(href, base).pathname), how: how(event) })
   }
 })
 
@@ -223,7 +224,7 @@ if (!view) {
   receive((message) => {
     if (message.op === "markdown") return show(view, message.edit, message.outline)
     // Find works in the text: Read hides it.
-    if (message.op === "find" && !edit) show(view, true, outlined)
+    if ((message.op === "find" || message.op === "reveal") && !edit) show(view, true, outlined)
     handle(view, message)
   })
   // A linked open at a line (a diff's): Edit, with the caret there (`editor`).

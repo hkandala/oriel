@@ -75,8 +75,9 @@ final class PaneViewRegistry {
         let plugin = Plugin(terminalID: terminalID, paneID: pane.id, label: label,
                             place: landings.removeValue(forKey: terminalID), store: store)
         plugin.web.view.onKeyboard = claim(terminalID)
-        plugin.web.open = { [weak self] kind, arg, place in
-            Task { await self?.pages?.page(of: terminalID)?.open(kind, arg: arg, at: place, from: terminalID) }
+        plugin.web.open = { [weak self] kind, arg, place, how in
+            Task { await self?.pages?.page(of: terminalID)?.open(kind, arg: arg, at: place, from: terminalID, how: how)
+            }
         }
         plugins[terminalID] = plugin
         return plugin
@@ -99,8 +100,7 @@ final class PaneViewRegistry {
         plugins = plugins.filter { kept($0.key, $0.value.label) }
         for (terminalID, plugin) in plugins {
             if let label = labels[terminalID], label != plugin.label {
-                plugin.label = label
-                plugin.web.arg = label.arg
+                plugin.follow(label)
             }
         }
         for (terminalID, browser) in browsers {

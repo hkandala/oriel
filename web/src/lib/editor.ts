@@ -89,7 +89,18 @@ export const handle = (view: EditorView, message: In) => {
       break
     case "findPrevious":
       findPrevious(view)
+      break
+    case "reveal":
+      land(view, message.at)
   }
+}
+
+/** The caret on a 1-based line, in the middle of the card. */
+const land = (view: EditorView, at: string | undefined) => {
+  const line = Number(at)
+  if (!(line >= 1 && line <= view.state.doc.lines)) return
+  const pos = view.state.doc.line(line).from
+  view.dispatch({ selection: { anchor: pos }, effects: EditorView.scrollIntoView(pos, { y: "center" }) })
 }
 
 /** The card's file in an editor under `parent`, or the info view when the file is too large to show. */
@@ -124,11 +135,7 @@ export async function editor(extensions: Extension[], parent = document.body) {
     }),
   })
   disk = view.state.doc
-  const line = Number(at)
-  if (line >= 1 && line <= view.state.doc.lines) {
-    const pos = view.state.doc.line(line).from
-    view.dispatch({ selection: { anchor: pos }, effects: EditorView.scrollIntoView(pos, { y: "center" }) })
-  }
+  land(view, at)
   receive((message) => handle(view, message))
   // The app gives the card's web view the keyboard: the editor takes it.
   addEventListener("focus", () => view.focus())

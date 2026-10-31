@@ -31,12 +31,12 @@ type Ask =
   | { op: "paths" }
   | { op: "git" }
 /**
- * `open`: a new tab; with no kind, `arg` is a file opened with its kind; `at` its landing (`at` below). `save`: the
- * editor's text, to disk. `filter`: the Files card ended its filter.
+ * `open`: `arg` in the card, a new tab or a pane to its side (`how`, the card by default); with no kind, in a File
+ * Explorer; `at` its landing (`at` below). `save`: the editor's text, to disk. `filter`: the tree ended its filter.
  */
 type Report =
   | { op: "dirty"; dirty: boolean }
-  | { op: "open"; kind?: string; arg: string; at?: string }
+  | { op: "open"; kind?: string; arg: string; at?: string; how?: How }
   | { op: "save"; text: string }
   | { op: "symbol"; symbol: string }
   | { op: "page"; page: number; pages: number }
@@ -56,6 +56,8 @@ export type In =
   | { op: "filter"; text: string }
   | { op: "collapse" }
   | { op: "markdown"; edit: boolean; outline: boolean }
+  /** The place shown again with another landing: a line, or a path to show in the tree. */
+  | { op: "reveal"; at: string }
 
 declare global {
   interface Window {
@@ -72,6 +74,10 @@ export const arg = window.card.arg
 
 /** A linked open's landing, on the first load only: a file's 1-based line, or a diff's file from the repo's root. */
 export const at = window.card.at
+
+/** Where an open goes, by the modifier keys: ⌘ a new tab, ⌥ a pane to the side, else the card itself. */
+export type How = "here" | "tab" | "side"
+export const how = (event: MouseEvent | KeyboardEvent): How => (event.metaKey ? "tab" : event.altKey ? "side" : "here")
 
 /** Rejects with the app's error text; the reply's type is the ask's. */
 export const ask = (message: Ask) => host.postMessage(message) as Promise<any>

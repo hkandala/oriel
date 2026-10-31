@@ -2,7 +2,7 @@
 // path, and a collapsed Git section with the changes and a graph of the history.
 import { FileTree, type FileTreeBatchOperation, type FileTreeDirectoryHandle, type GitStatus } from "@pierre/trees"
 import "./files.css"
-import { type Change, type Commit, type Entry, arg, ask, receive, report } from "./lib/bridge"
+import { type Change, type Commit, type Entry, type How, arg, ask, how, receive, report } from "./lib/bridge"
 
 document.body.innerHTML = `
 <p id="message" hidden></p>
@@ -274,9 +274,10 @@ function commitRow({ hash, subject, date, lane, children, parents, through }: Co
   return element
 }
 
-/** Double-click, ⌘-click or Return on what `pick` finds opens it. In the capture phase, before the tree's own click
- *  (⌘ adds to its selection). */
-function onOpen(element: HTMLElement, pick: (node: HTMLElement) => string | undefined, open: (value: string) => void) {
+/** Double-click or Return on what `pick` finds opens it in the card, ⌘-click in a new tab, ⌥-click to the side. In
+ *  the capture phase, before the tree's own click (⌘ adds to its selection). */
+function onOpen(element: HTMLElement, pick: (node: HTMLElement) => string | undefined,
+  open: (value: string, how: How) => void) {
   const under = (event: Event) => {
     const node = event.composedPath().find((n): n is HTMLElement => n instanceof HTMLElement && pick(n) !== undefined)
     return node && pick(node)
@@ -284,23 +285,23 @@ function onOpen(element: HTMLElement, pick: (node: HTMLElement) => string | unde
   element.addEventListener(
     "click",
     (event) => {
-      const at = event.metaKey || event.detail === 2 ? under(event) : undefined
+      const at = event.metaKey || event.altKey || event.detail === 2 ? under(event) : undefined
       if (at === undefined) return
       event.stopPropagation()
-      open(at)
+      open(at, how(event))
     },
     true,
   )
   element.addEventListener("keydown", (event) => {
     const at = event.key === "Enter" ? under(event) : undefined
-    if (at !== undefined) open(at)
+    if (at !== undefined) open(at, how(event))
   })
 }
 
 // A file: in a new tab with its kind; a change: the diff of the uncommitted changes at that file; a commit: its diff.
 for (const trees of [host, matches]) {
-  onOpen(trees, (node) => (node.dataset.itemType === "file" ? node.dataset.itemPath : undefined), (path) =>
-    report({ op: "open", arg: `${base}/${path}` }),
+  onOpen(trees, (node) => (node.dataset.itemType === "file" ? node.dataset.itemPath : undefined), (path, how) =>
+    report({ op: "open", arg: `${base}/${path}`, how }),
   )
   // A double-click on a folder opens or closes it once, as in the Finder: its second click toggles nothing.
   trees.addEventListener(
@@ -312,11 +313,11 @@ for (const trees of [host, matches]) {
     true,
   )
 }
-onOpen(document.getElementById("changes")!, (node) => node.dataset.change, (path) =>
-  report({ op: "open", kind: "git", arg: `${root} uncommitted`, at: path }),
+onOpen(document.getElementById("changes")!, (node) => node.dataset.change, (path, how) =>
+  report({ op: "open", kind: "git", arg: `${root} uncommitted`, at: path, how }),
 )
-onOpen(document.getElementById("history")!, (node) => node.dataset.commit, (hash) =>
-  report({ op: "open", kind: "git", arg: `${root} ${hash}` }),
+onOpen(document.getElementById("history")!, (node) => node.dataset.commit, (hash, how) =>
+  report({ op: "open", kind: "git", arg: `${root} ${hash}`, how }),
 )
 
 // A page loaded again (a new root, a crashed process) starts with no filter.

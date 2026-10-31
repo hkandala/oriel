@@ -125,8 +125,8 @@ final class Plugin {
         didSet { name() }
     }
 
-    /// Its arg changes with a rename from elsewhere or the card's own (a diff's source); its iid never does.
-    var label: PaneLabel
+    /// The pane's label as the last snapshot has it: the card's own renames come later. Its iid never changes.
+    private(set) var label: PaneLabel
     /// The content: `web/src/<kind>.ts`.
     let web: WebCard
 
@@ -134,10 +134,14 @@ final class Plugin {
         self.terminalID = terminalID
         self.paneID = paneID
         self.label = label
-        // An old Files label names its root without the `/` of a folder.
-        let arg = label.plugin == "files" && !label.arg.hasSuffix("/") ? label.arg + "/" : label.arg
-        web = WebCard(kind: label.kind ?? .explorer, arg: arg, place: place, store: store)
+        web = WebCard(kind: label.kind ?? .explorer, arg: Self.arg(label), place: place, store: store)
         name()
+        web.view.step = { [weak self] back in back ? self?.goBack() : self?.goForward() }
+    }
+
+    /// An old Files label names its root without the `/` of a folder.
+    private static func arg(_ label: PaneLabel) -> String {
+        label.plugin == "files" && !label.arg.hasSuffix("/") ? label.arg + "/" : label.arg
     }
 
     /// The page's identifier names the page it shows: `file.<pane>.page`.
@@ -152,6 +156,109 @@ final class Plugin {
     /// Unsaved edits, as the page reports them: the dot after the title.
     var dirty: Bool {
         web.dirty
+    }
+
+    /// The places shown before and after this one, as a browser's history: an argument and its landing each.
+    private(set) var back: [(arg: String, at: String?)] = []
+    private(set) var forward: [(arg: String, at: String?)] = []
+    /// The arguments the card renamed its label to that no snapshot showed yet: a snapshot read before a rename is no
+    /// rename from elsewhere.
+    @ObservationIgnored private var renamed: Set<String> = []
+
+    var canGoBack: Bool {
+        !back.isEmpty
+    }
+
+    var canGoForward: Bool {
+        !forward.isEmpty
+    }
+
+    /// Shows another place in the card, after the one it shows; the same place with a landing goes there. The tree
+    /// comes back with the file it opened revealed.
+    func go(_ arg: String, at place: String? = nil) {
+        guard arg != web.arg else {
+            if let place {
+                web.send(["op": "reveal", "at": place])
+            }
+            return
+        }
+        leave {
+            self.back.append((self.web.arg, self.web.page == .files ? arg : nil))
+            self.forward = []
+            self.show(arg, at: place)
+        }
+    }
+
+    func goBack() {
+        guard let last = back.last else { return }
+        leave {
+            self.back.removeLast()
+            self.forward.append((self.web.arg, nil))
+            self.show(last.arg, at: last.at)
+        }
+    }
+
+    func goForward() {
+        guard let next = forward.last else { return }
+        leave {
+            self.forward.removeLast()
+            self.back.append((self.web.arg, self.web.page == .files ? next.arg : nil))
+            self.show(next.arg, at: next.at)
+        }
+    }
+
+    /// Unsaved edits ask first: Back or a click would drop them.
+    private func leave(_ then: @escaping () -> Void) {
+        guard web.dirty else { return then() }
+        web.toast = Toast(
+            text: "\(label.title) has unsaved edits.",
+            other: ("Discard", then),
+            main: ("Keep Editing", {}),
+        )
+    }
+
+    /// The label follows the place, so a reload or a card made again comes back to it.
+    private func show(_ arg: String, at place: String?) {
+        web.show(arg, at: place)
+        name()
+        let label = PaneLabel(plugin: kind.rawValue, iid: label.iid, arg: arg)
+        guard PaneLabel(label.text) != nil, let store = web.store else { return }
+        renamed.insert(arg)
+        Task { await store.rename(pane: paneID, label: label.text) }
+    }
+
+    /// A snapshot's label: the card's own rename, or a new place from elsewhere (an agent's `herdr pane rename`),
+    /// shown after the one the card shows, as a browser's.
+    func follow(_ label: PaneLabel) {
+        self.label = label
+        let arg = Self.arg(label)
+        if arg == web.arg {
+            renamed = []
+        } else if !renamed.contains(arg) {
+            back.append((web.arg, nil))
+            forward = []
+            web.show(arg, at: nil)
+            name()
+        }
+    }
+}
+
+/// Back and Forward at the left of row 2.
+struct BackForward: View {
+    let plugin: Plugin
+    @Environment(\.look) private var look
+
+    var body: some View {
+        // No opacity of their own: ChromeStyle dims a disabled button.
+        HStack(spacing: 0) {
+            IconButton(symbol: "chevron.left", help: "Back", key: .init("["), size: 22) { plugin.goBack() }
+                .disabled(!plugin.canGoBack)
+                .accessibilityIdentifier("pane.\(plugin.paneID).back")
+            IconButton(symbol: "chevron.right", help: "Forward", key: .init("]"), size: 22) { plugin.goForward() }
+                .disabled(!plugin.canGoForward)
+                .accessibilityIdentifier("pane.\(plugin.paneID).forward")
+        }
+        .foregroundStyle(look.paneButton)
     }
 }
 
