@@ -32,7 +32,8 @@ extension OrielUITests {
         XCTAssertEqual(control("go-back").frame.minX - page.minX, 1, accuracy: 1, "\(page)")
         XCTAssertGreaterThan(control("filter").frame.width, control("jump").frame.width)
         // 6 pt apart by default; `gap` 0 joins Push to Outline.
-        XCTAssertEqual(control("mode").frame.minX - control("rows").frame.maxX, 6, accuracy: 1)
+        // The segments' first sits 2 pt into their track.
+        XCTAssertEqual(control("mode.read").frame.minX - control("rows").frame.maxX, 6 + 2, accuracy: 1)
         XCTAssertEqual(control("push").frame.minX, control("outline").frame.maxX, accuracy: 0.5)
         keepScreenshot("plugin header")
 
