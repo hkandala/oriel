@@ -89,14 +89,16 @@ public enum PluginPackages {
                 }
                 // A scoped package's tarball name has no folder in it.
                 let tarball = staging.appending(path: (file as NSString).lastPathComponent).path
-                _ = try await exec.checkedOutput(["tar", "-xzf", tarball, "-C", staging.path])
+                // The fetch's bound for each step: the default 10 s runs out on a loaded Mac.
+                _ = try await exec.checkedOutput(["tar", "-xzf", tarball, "-C", staging.path], timeout: .seconds(300))
                 try? FileManager.default.removeItem(atPath: tarball)
             case let .git(url, ref):
                 let git = ["env", "GIT_TERMINAL_PROMPT=0", "git"]
                 _ = try await exec.checkedOutput(git + ["clone", "--quiet", "--", url, folder.path],
                                                  timeout: .seconds(300))
                 if let ref {
-                    _ = try await exec.checkedOutput(git + ["-C", folder.path, "checkout", "--quiet", ref, "--"])
+                    _ = try await exec.checkedOutput(git + ["-C", folder.path, "checkout", "--quiet", ref, "--"],
+                                                     timeout: .seconds(300))
                 }
             case .local: break
             }

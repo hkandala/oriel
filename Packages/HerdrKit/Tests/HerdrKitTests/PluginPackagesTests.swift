@@ -82,7 +82,9 @@ private func package(_ folder: URL, version: String, extra: [String: Any] = [:])
     try FileManager.default.createDirectory(at: pad, withIntermediateDirectories: true)
     try Data(#"{"name":"pad","version":"1.0.0","main":"index.js"}"#.utf8).write(to: pad.appending(path: "package.json"))
     try Data("module.exports = (s) => ` ${s}`\n".utf8).write(to: pad.appending(path: "index.js"))
-    let packed = try await offline.checkedOutput(["sh", "-c", #"cd "$1" && npm pack --silent"#, "sh", source.path])
+    // Node can take over the default 10 s to start on a loaded Mac: the app's own `npm pack` bound.
+    let packed = try await offline.checkedOutput(["sh", "-c", #"cd "$1" && npm pack --silent"#, "sh", source.path],
+                                                 timeout: .seconds(300))
     let tarball = source.appending(path: packed.split(separator: "\n").last.map(String.init) ?? "").path
 
     let staged = try await PluginPackages.fetch(#require(PluginSource("npm:\(tarball)")), into: plugins,

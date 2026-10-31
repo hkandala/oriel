@@ -497,3 +497,5 @@ well for easier debugging".
 - **11 (F):** a card's first page waits for a build under way; after a failed one it shows the failure's toast, so a
   card a failed Reload Plugin made again from a changed manifest says so (PackageTests bumps the version too).
 - **16 (F):** DefaultPlugins' comment names Try Again (landed with 27).
+- **Flake (F):** PluginPackagesTests' npm source test hit the default 10 s bound of its own `npm pack` at a load of
+  400+ (node's start); it has the app's 300 s, and the app's install gives its `tar` and `git checkout` the same.
