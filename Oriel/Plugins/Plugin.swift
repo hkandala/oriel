@@ -153,7 +153,15 @@ final class Plugin {
         self.label = label
         web = WebCard(kind: label.kind ?? .explorer, arg: Self.arg(label), place: place, store: store)
         name()
-        web.view.step = { [weak self] back in back ? self?.goBack() : self?.goForward() }
+        web.view.step = { [weak self] back in
+            guard let self, back ? canGoBack : canGoForward else { return false }
+            if back {
+                goBack()
+            } else {
+                goForward()
+            }
+            return true
+        }
     }
 
     /// An old Files label names its root without the `/` of a folder.

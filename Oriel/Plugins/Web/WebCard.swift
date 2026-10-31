@@ -248,17 +248,17 @@ private final class Relay: NSObject, WKScriptMessageHandlerWithReply, WKNavigati
 final class WebCardView: BrowserView {
     /// The ⇧⌘← or ⇧⌘→ the menu handed to the page: WebKit sends it again when the page leaves it, for Move Tab.
     var handed: NSEvent?
-    /// Back (true) or Forward, ⌘[ and ⌘] over the card, as in a browser: there they do not select a pane.
-    var step: ((Bool) -> Void)?
+    /// Back (true) or Forward, ⌘[ and ⌘] over the card, as in a browser; false when there is no place that way, and
+    /// the key selects a pane as elsewhere.
+    var step: ((Bool) -> Bool)?
 
     /// WebKit gives the page every ⌘ key first, and CodeMirror takes some of the app's: the menu goes first, as over a
     /// native text view.
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         guard window?.firstResponder === self else { return super.performKeyEquivalent(with: event) }
         if let step, event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
-           let key = event.charactersIgnoringModifiers, key == "[" || key == "]"
+           let key = event.charactersIgnoringModifiers, key == "[" || key == "]", step(key == "[")
         {
-            step(key == "[")
             return true
         }
         return NSApp.mainMenu?.performKeyEquivalent(with: event) == true || super.performKeyEquivalent(with: event)

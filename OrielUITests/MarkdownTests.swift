@@ -2,7 +2,7 @@ import XCTest
 
 /// The Markdown plugin (phase 44): Read renders the file, Edit (⌘E) is its own text with each mark hidden unless
 /// the caret is in its element, the outline lists the headings, ⌘S saves, Read follows the file on disk, the
-/// overview's tile shows the page and a relative link opens its file in a new tab.
+/// overview's tile shows the page and a relative link shows its file in the card, or a new tab with ⌘.
 extension OrielUITests {
     func testMarkdownCardReadsEditsSavesAndLinks() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
@@ -16,7 +16,7 @@ extension OrielUITests {
             + "'Some *words*.' '## Second' '[Other](other.md)' >notes.md && printf '# Other\\n' >other.md && clear "
             + "&& echo ready-$((6*7))\r", to: shell)
         try await waitFor(shell) { $0.contains("ready-42") }
-        let card = try await markdownCard("\(folder)/notes.md")
+        let (tab, card) = try await markdownCard("\(folder)/notes.md")
 
         // Read: the rendered page, front matter left out; no editor.
         let page = element("markdown.\(card).page")
@@ -38,18 +38,24 @@ extension OrielUITests {
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(element("overview").vanishes(within: 2))
 
-        // Back in Read, clean: a change on disk shows; a relative link opens its file in a new tab after this one.
+        // Back in Read, clean: a change on disk shows; a relative link shows its file in the card, ⌘-click in a new
+        // tab after this one.
         app.typeKey("e", modifierFlags: .command)
         XCTAssertTrue(element("pane.\(card).mode.read").has(\.isSelected, true, within: 3))
         try await send("printf '## Third\\n' >>notes.md\r", to: shell)
         XCTAssertTrue(page.staticTexts.matching(NSPredicate(format: "value == 'Third'")).firstMatch.exists(within: 5))
         let before = try await tabIDs()
-        page.links["Other"].click()
+        XCUIElement.perform(withKeyModifiers: .command) { page.links["Other"].click() }
         let opened = try await newTabID(after: before)
         closeAfter("tab", opened)
         XCTAssertTrue(element("tab.\(opened)").has(\.label, "File Explorer other.md", within: 5))
         let label = try await paneLabel(pane(of: opened))
         XCTAssertTrue(label.hasPrefix("oriel:explorer#") && label.hasSuffix(" \(folder)/other.md"), label)
+        try await show(tab)
+        page.links["Other"].click()
+        XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, "other.md", within: 5))
+        element("pane.\(card).back").click()
+        XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, "notes.md", within: 5))
     }
 
     /// ⌘E: marks away from the caret (at the top) are hidden; an outline row puts the caret on its heading, whose
@@ -75,7 +81,7 @@ extension OrielUITests {
     }
 
     /// A Markdown card of this file in a tab of its own in w2 (selected by `newTab`), made as Oriel makes one, shown.
-    private func markdownCard(_ path: String) async throws -> String {
+    private func markdownCard(_ path: String) async throws -> (tab: String, pane: String) {
         let root: [String: Any] = ["type": "pane", "cwd": "/tmp", "label": "oriel:markdown#e2emdc \(path)",
                                    "command": ["sh", "-c", "cat", "sh"]]
         let reply = try await Self.call(one, "layout.apply", ["workspace_id": "w2", "focus": false, "root": root])
@@ -83,6 +89,6 @@ extension OrielUITests {
         let tab: String = try field(layout?["tab_id"], "layout's tab")
         closeAfter("tab", tab)
         try await show(tab)
-        return try field((layout?["root"] as? [String: Any])?["pane_id"], "layout's pane")
+        return try (tab, field((layout?["root"] as? [String: Any])?["pane_id"], "layout's pane"))
     }
 }
