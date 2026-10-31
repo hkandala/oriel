@@ -3,7 +3,7 @@ import SwiftUI
 import WebKit
 
 extension CommandList {
-    /// A plugin card's (future-work/plugins/building#debug-it): Reload Plugin, the Web Inspector and its log, in the
+    /// A plugin card's (plugins/building#debug-it): Reload Plugin, the Web Inspector and its log, in the
     /// card's menu, View ▸ Pane and ⌘K.
     static func pluginCard(_ plugin: Plugin?) -> [Command] {
         guard let plugin else { return [] }

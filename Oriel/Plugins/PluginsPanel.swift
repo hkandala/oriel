@@ -1,7 +1,7 @@
 import HerdrKit
 import SwiftUI
 
-/// Plugins (future-work/plugins, decision 5), a glass panel over the window like Open Session: a source to install
+/// Plugins (plugins/packages), a glass panel over the window like Open Session: a source to install
 /// (`npm:`, `git:` or a folder's path), Reload Plugins, and every plugin with its name, version and source, and
 /// Update, Reload and Remove. Esc or a click outside closes it.
 struct PluginsPanel: View {

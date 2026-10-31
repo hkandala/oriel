@@ -1,4 +1,4 @@
-// The building page's CSV Table (future-work/plugins/building), the fixture of PackageTests. The test edits the
+// The building page's CSV Table (plugins/building), the fixture of PackageTests. The test edits the
 // caption below and presses Reload Plugin.
 import type { Oriel } from "@oriel/plugin-api"
 import { parse } from "./parse"

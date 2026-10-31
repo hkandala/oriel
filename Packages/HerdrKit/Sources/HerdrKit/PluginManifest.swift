@@ -1,7 +1,7 @@
 import Foundation
 import UniformTypeIdentifiers
 
-/// A plugin's manifest (future-work/plugins/manifest): the `oriel` key of its package's `package.json`, with the
+/// A plugin's manifest (plugins/manifest): the `oriel` key of its package's `package.json`, with the
 /// package's `version`, `description` and `keywords`. Read before any of the plugin's code runs, so the chooser, ⌘K
 /// and Open With list it at once. Unknown fields are ignored, so a manifest written for a newer app still loads.
 public struct PluginManifest: Decodable, Sendable, Equatable {

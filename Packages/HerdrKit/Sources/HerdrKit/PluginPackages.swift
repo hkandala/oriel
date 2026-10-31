@@ -1,6 +1,6 @@
 import Foundation
 
-/// A plugin package's source in `settings.json`'s `packages`, as pi's (future-work/plugins, decision 5):
+/// A plugin package's source in `settings.json`'s `packages`, as pi's (plugins/packages):
 /// `npm:<spec>` (`npm:@scope/name@1.2.0`), `git:<repository>[@ref]` (`git:github.com/x/y@v1`, also a URL or a local
 /// repository's path), or a local path, which loads in place and is never installed or changed.
 public enum PluginSource: Equatable, Sendable {

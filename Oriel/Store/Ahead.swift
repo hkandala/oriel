@@ -258,7 +258,7 @@ extension HostStore {
     private func closing(_ close: Close) -> (any Multiplexer) async throws -> Void {
         switch close {
         case let .pane(id):
-            // The device that closes a browser or plugin pane removes its state file (future-work/plugins/state).
+            // The device that closes a browser or plugin pane removes its state file (plugins/api#state).
             let state = pane(id)?.plugin?.statePath(session: session), machine = machine
             return { client in
                 try await client.close(pane: id)

@@ -168,7 +168,7 @@ final class HostStore {
                 if !loadedSessions {
                     loadedSessions = true
                     notice = nil
-                    // State files of plugin panes closed elsewhere (future-work/plugins/state).
+                    // State files of plugin panes closed elsewhere (plugins/api#state).
                     Task { [machine, session] in await machine.exec().pruneState(session: session) }
                     await loadSessions()
                 }

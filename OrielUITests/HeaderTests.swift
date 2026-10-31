@@ -1,6 +1,6 @@
 import XCTest
 
-/// A plugin's header row (phase 47, future-work/plugins/manifest#header).
+/// A plugin's header row (phase 47, plugins/manifest#header).
 extension OrielUITests {
     /// A user plugin's controls, drawn from its manifest before its page loads: Back and Forward at the row's left
     /// edge, a menu with a section and a divider, a path text, a badge in a button's label, a field that takes the

@@ -2,7 +2,7 @@ import AppKit
 import CryptoKit
 import HerdrKit
 
-/// File Explorer and Git as packages the user can edit (future-work/plugins, decision 5): the app carries their source
+/// File Explorer and Git as packages the user can edit (plugins/packages): the app carries their source
 /// (`Resources/web/defaults/<id>`, no `node_modules`) and installs each one into the plugins folder on first launch,
 /// a copy and then `npm ci` from its lockfile. An app with a newer version replaces an unedited copy; an edited copy,
 /// or one the app has other source for at the same version (a build of the repository), stays until the user picks

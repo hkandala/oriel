@@ -3,7 +3,7 @@ import HerdrKit
 import Observation
 import WebKit
 
-/// The app's side of a plugin page's `oriel` object (web/oriel/runtime.ts, future-work/plugins/api): the page's
+/// The app's side of a plugin page's `oriel` object (web/oriel/runtime.ts, plugins/api): the page's
 /// calls, the events it hears, and the card's state. Bound to its card when the card is made, so no message names a
 /// machine or another card; each call is checked against the manifest's permissions (`PluginCalls`).
 @MainActor @Observable

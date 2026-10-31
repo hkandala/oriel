@@ -1,4 +1,4 @@
-// Git: a repository's home and its diffs, places of one card (ui/plugins#git). The home is `<root>/`, a diff
+// Git: a repository's home and its diffs, places of one card (plugins/default-plugins#git). The home is `<root>/`, a diff
 // `<root>/ <source>`; the card moves between them with `card.go` and the app's Back and Forward. The diff, with
 // @pierre/diffs, loads on its first use.
 import type { Oriel } from "@oriel/plugin-api"

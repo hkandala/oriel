@@ -1,4 +1,4 @@
-// The plugin API, version 1 (future-work/plugins/api): the object a plugin's entry gets. The app ships it as the host
+// The plugin API, version 1 (plugins/api): the object a plugin's entry gets. The app ships it as the host
 // types package `@oriel/plugin-api`; a plugin lists that in `peerDependencies` as "*" and imports only its types:
 //
 //   import type { Oriel } from "@oriel/plugin-api"

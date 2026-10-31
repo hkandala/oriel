@@ -34,7 +34,7 @@ struct PluginHeader: View {
     }
 }
 
-/// One control as its type draws it (future-work/plugins/manifest#header); its identifier is `pane.<pane>.<id>`.
+/// One control as its type draws it (plugins/manifest#header); its identifier is `pane.<pane>.<id>`.
 private struct HeaderItem: View {
     let control: PluginManifest.Control
     let plugin: Plugin
