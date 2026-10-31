@@ -78,6 +78,14 @@ private func error(_ oriel: String, package: String = #""version": "0.1.0""#) ->
     #expect(error(base + #", "chooser": "Notes", "opens": {"folders": true}"#) == nil)
 }
 
+@Test func `a web address matches a plugin's urls`() throws {
+    let pulls = try manifest(base + #", "opens": {"urls": ["https://github.com/*/*/pull/*"]}"#)
+    #expect(pulls.opens(url: "https://github.com/hkandala/oriel/pull/12"))
+    #expect(pulls.opens(url: "HTTPS://GitHub.com/a/b/pull/1/files"))
+    #expect(!pulls.opens(url: "https://github.com/hkandala/oriel/issues/12"))
+    #expect(try !manifest(base).opens(url: "https://github.com/a/b/pull/1"))
+}
+
 @Test func `the most specific pattern wins: a name, an extension, a subtype, its supertype, then anything`() throws {
     func rank(_ files: [String], _ path: String) throws -> Int? {
         let list = files.map { "\"\($0)\"" }.joined(separator: ",")
