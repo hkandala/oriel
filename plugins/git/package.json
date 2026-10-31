@@ -1,6 +1,6 @@
 {
   "name": "@oriel/git",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "private": true,
   "description": "Changes and history",
   "keywords": ["diff", "changes", "commit", "uncommitted", "history"],
