@@ -119,7 +119,7 @@ extension Bridge {
     }
 
     /// Choose Folder…: This Mac's folder panel; a remote machine's folder field, the path as the machine resolves it
-    /// (`~` its home folder). Nil when cancelled or no folder.
+    /// (`~` its home folder), with a notice for a path that is no folder. Nil when cancelled or no folder.
     private func folder(from start: String, _ plugin: Plugin) async -> String? {
         guard let store = plugin.web.store, let window = plugin.web.view.window else { return nil }
         if !store.machine.isRemote {
@@ -142,11 +142,17 @@ extension Bridge {
         alert.window.initialFirstResponder = field
         guard await alert.beginSheetModal(for: window) == .alertFirstButtonReturn else { return nil }
         let script = #"case $1 in "~"*) set -- "$HOME${1#\~}";; esac; cd "$1" 2>/dev/null && pwd -P"#
-        guard let channel = try? await store.machine.exec().run(["sh", "-c", script, "sh", field.stringValue])
-        else { return nil }
-        channel.closeInput()
-        let path = await channel.lines.reduce("", +)
-        return await channel.exit().status == 0 && path.hasPrefix("/") ? path : nil
+        var path = ""
+        if let channel = try? await store.machine.exec().run(["sh", "-c", script, "sh", field.stringValue]) {
+            channel.closeInput()
+            path = await channel.lines.reduce("", +)
+            path = await channel.exit().status == 0 ? path : ""
+        }
+        guard path.hasPrefix("/") else {
+            await store.show(Notice(text: "No folder \(field.stringValue)", tone: .warning))
+            return nil
+        }
+        return path
     }
 
     /// An SF Symbol, `size` points tall at 2x, as a PNG data URL: black on clear, for a mask.

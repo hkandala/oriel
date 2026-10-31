@@ -271,12 +271,12 @@ working until this track switches the default plugins to installed packages.
   were cut at half the row. A card's move drops the old place's toast, as a page load did.
 - **Fix:** a PDF changed on disk redraws: the old page called `PDFDocumentProxy.destroy`, which pdf.js 6 lacks, and
   stopped there; the loading task's `destroy` ends the document and its worker.
-- **Changes for approval** (parity screenshots in `/tmp/oriel-shots/47d`, everything else pixel-equal): a Markdown
+- **Approved changes** (parity screenshots in `/tmp/oriel-shots/47d`, everything else pixel-equal): a Markdown
   card no longer takes the keyboard as it loads (main's `article.focus()` made it the keyboard card); Collapse All is
   in the card buttons' color, as the design says (main drew it in the text color); Edit Mode is in the View menu only
   while a File Explorer card has the keyboard, disabled outside Markdown; the filter of a root inside a repository
-  (not its root) lists git's files (the API's `files.paths`); a remote Choose Folder… with a bad path does nothing
-  instead of a notice; `.pem`, `.crt`, `.cer`, `.eml` and `.ps` open in File (main: Preview's info view, by `UTType`).
+  (not its root) lists git's files (the API's `files.paths`); `.pem`, `.crt`, `.cer`, `.eml` and `.ps` open in File
+  (main: Preview's info view, by `UTType`). `pick.folder` on a remote machine shows main's "No folder ‹path›" notice.
 - **Runs:** 41214627809 (on eb3aebed…d66509b8): 11 of 12 green; File's Overwrite asked again, because
   `save(undefined)` took the default `over`. 41216469734 (e716cd99): 11 of 12; the new tab's order was read before the app moved
   it after the card's (a race in the test, which now waits for the move).
