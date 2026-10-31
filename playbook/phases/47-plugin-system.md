@@ -296,10 +296,10 @@ working until this track switches the default plugins to installed packages.
 - **Decisions:** row 2 is the manifest's header: the branch menu (`label: "Branch"`, items and value from the page,
   a `{ title: "Remote" }` heading), Fetch, Pull and Push with `badge`, `label` ("Push, 1 ahead") and `busy`; the
   diff's Git Home, `Unified | Side by Side`, the file list button (its title Hide/Show File List) and Previous/Next
-  with `gap: 0`. One spacer serves both places; the diff's controls start hidden and the page swaps them per place.
-  Every control keeps its old id, and the page ids stay `git.<pane>.page` and `diff.<pane>.page`
-  (`Plugin.name()`); another plugin's entry page is `<plugin id>.<pane>.page`.
-- **Decisions (to approve):** the commit message and the file list are in the card's state, Side by Side is the
+  with `gap: 0`. One spacer serves both places; every place's controls start hidden and the page shows its
+  place's. Every control keeps its old id. An entry page is `<plugin id>.<pane>.page`, so the diff's page is
+  `git.<pane>.page` too (the one id the migration forces).
+- **Decisions:** the commit message and the file list are in the card's state, Side by Side is the
   header's saved value: all three now also survive a drop, a reload and a relaunch (they were kept while the app ran),
   as decision 5's Reload keeps a card's state. The docs pass changes plugins.mdx's "not saved". Writes and
   their toasts (Copy, OK) go through the API; `clipboard` joined the permissions for Copy.
@@ -308,5 +308,6 @@ working until this track switches the default plugins to installed packages.
 - **Runs:** parity is pixel-equal against main: the home, the diff, Side by Side, no file list, and the home and the
   diff floating, dark and light (a throwaway test with a fixed-date repository, run on both builds): the only
   differences were the caret's blink and the glass's ±3 levels, which the terminal beside it shows too.
-- **For the user:** the Git card looks and works as before. A dropped or relaunched card now keeps its typed commit
+- **For the user:** the Git card looks and works as before, but a new card's row 2 shows only Back and Forward until
+  its page runs (a moment; the old row drew at once). A dropped or relaunched card now keeps its typed commit
   message and its Side by Side and file list.

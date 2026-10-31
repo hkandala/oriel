@@ -32,7 +32,7 @@ extension OrielUITests {
         commit("second", in: home).click()
         try await expect("the label names the commit") { try await paneLabel(card).hasSuffix(" \(root)/ \(hash)") }
         XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, String(hash.prefix(7)), within: 3))
-        let page = element("diff.\(card).page")
+        let page = element("git.\(card).page")
         XCTAssertTrue(page.buttons["a.txt"].exists(within: 10))
         XCTAssertFalse(page.buttons["b.md"].exists)
         element("pane.\(card).go-back").click()
