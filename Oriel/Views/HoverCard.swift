@@ -34,10 +34,28 @@ extension View {
     /// Draws the open hover panel over this view, the window's content: no scroll view or mask around its
     /// trigger clips it, and there is one at a time.
     func hoverPanelHost() -> some View {
-        overlayPreferenceValue(OpenPanelKey.self) { open in
+        modifier(HoverPanelHost())
+    }
+}
+
+/// The window's open hover panel, which its trigger sets: observed only by the host. (A preference that every tab
+/// capsule wrote was combined at every update of the window: 100–150 ms of the main thread in a pass of tab
+/// switches, swipes and overview opens.)
+@MainActor @Observable
+final class HoverPanels {
+    var open: OpenPanel?
+}
+
+private struct HoverPanelHost: ViewModifier {
+    @State private var panels = HoverPanels()
+
+    func body(content: Content) -> some View {
+        content.environment(panels).overlay {
             // Always here, so the panel is the view inserted and scales about its own edge, not the window's.
             GeometryReader { proxy in
-                PanelLayout(trigger: open.map { proxy[$0.trigger] } ?? .zero, place: open?.place ?? .under) {
+                let open = panels.open, origin = proxy.frame(in: .global).origin
+                let trigger = open?.trigger.offsetBy(dx: -origin.x, dy: -origin.y) ?? .zero
+                PanelLayout(trigger: trigger, place: open?.place ?? .under) {
                     // In only: the panel would lose its place on the way out.
                     if let open {
                         open.content.transition(.asymmetric(
@@ -54,20 +72,12 @@ extension View {
     }
 }
 
-private struct OpenPanel {
-    let trigger: Anchor<CGRect>
+struct OpenPanel {
+    /// Its trigger's `HoverPanel`, and the trigger's frame in the window (global).
+    let owner: UUID
+    var trigger: CGRect
     let place: PanelPlace
     let content: AnyView
-}
-
-private struct OpenPanelKey: PreferenceKey {
-    static var defaultValue: OpenPanel? {
-        nil
-    }
-
-    static func reduce(value: inout OpenPanel?, nextValue: () -> OpenPanel?) {
-        value = nextValue() ?? value
-    }
 }
 
 /// Puts the panel at its place by the trigger, kept inside the window.
@@ -107,6 +117,14 @@ private struct HoverPanel<Panel: View>: ViewModifier {
     @State private var window: NSWindow?
     /// Off under the overview, which hides its trigger (`underOverview`).
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(HoverPanels.self) private var panels: HoverPanels?
+    @State private var id = UUID()
+    /// The trigger's frame in the window, not observed: a write at every move (the tab bar's capsules while the strip
+    /// slides) redrew every trigger at every frame.
+    @State private var trigger = Trigger()
+    private final class Trigger {
+        var frame = CGRect.zero
+    }
 
     private var enabled: Bool {
         wanted && isEnabled
@@ -122,13 +140,11 @@ private struct HoverPanel<Panel: View>: ViewModifier {
                 overTrigger = false
                 hovered()
             })
-            .anchorPreference(key: OpenPanelKey.self, value: .bounds) { anchor in
-                open ? OpenPanel(trigger: anchor, place: place, content: AnyView(panel { show(false) }
-                        .onHover { overPanel = $0
-                            hovered()
-                        }
-                        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { panelFrame = $0 }))
-                    : nil
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame in
+                trigger.frame = frame
+                if open, panels?.open?.owner == id {
+                    panels?.open?.trigger = frame
+                }
             }
             .accessibilityActions {
                 if let action {
@@ -168,6 +184,20 @@ private struct HoverPanel<Panel: View>: ViewModifier {
     private func show(_ value: Bool) {
         pending?.cancel()
         open = value
+        if value {
+            panels?.open = OpenPanel(
+                owner: id,
+                trigger: trigger.frame,
+                place: place,
+                content: AnyView(panel { show(false) }
+                    .onHover { overPanel = $0
+                        hovered()
+                    }
+                    .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { panelFrame = $0 }),
+            )
+        } else if panels?.open?.owner == id {
+            panels?.open = nil
+        }
         if value, monitor == nil {
             let under = NSWindow.windowNumber(at: NSEvent.mouseLocation, belowWindowWithWindowNumber: 0)
             window = NSApp.window(withWindowNumber: under) ?? NSApp.keyWindow
