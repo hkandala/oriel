@@ -38,8 +38,6 @@ export default async function main(oriel) {
     const info = await oriel.files.info(`${root}/a.txt`)
     return `${info.size} ${info.folder} ${info.icon.startsWith("data:image/png;base64,i")}`
   })
-  await check("files.list", async () => (await oriel.files.list(root)).map((entry) => entry.name).join(" "))
-  await check("files.paths", async () => (await oriel.files.paths(root)).length > 0)
   await oriel.files.write(`${root}/a.txt`, "two\n")
   await check("files.changed", () => oriel.files.write(`${root}/a.txt`, "three\n", { over: read.hash }))
   await check("files.missing", () => oriel.files.read(`${root}/none.txt`))
@@ -52,6 +50,12 @@ export default async function main(oriel) {
   await git("init", "-q", "-b", "main", root)
   await oriel.run(["git", "config", "user.email", "t@t"], { cwd: root })
   await oriel.run(["git", "config", "user.name", "t"], { cwd: root })
+  await oriel.files.write(`${root}/.gitignore`, "ignored.txt\n")
+  await oriel.files.write(`${root}/ignored.txt`, "x\n")
+  // Folders first; git's ignored files marked.
+  await check("files.list", async () =>
+    (await oriel.files.list(root)).map((entry) => entry.name + (entry.folder ? "/" : "") + (entry.ignored ? "!" : "")).join(" "))
+  await check("files.paths", async () => (await oriel.files.paths(root)).sort().join(" "))
   await check("git.root", () => oriel.git.root(root))
   await check("git.status", async () => (await oriel.git.status(root)).map((c) => `${c.letter} ${c.path}`).join(", "))
   await oriel.git.stage(root, ["a.txt"])
@@ -71,13 +75,13 @@ export default async function main(oriel) {
   oriel.controls.set("count", { value: "counted" })
   line("controls", oriel.controls.get("count"))
 
-  let watched = 0
+  let watched = 0, shown = 0
   oriel.files.watch(`${root}/watched.txt`, () => line("watch", ++watched))
   oriel.on("control", ({ id }) => line("control", id))
   oriel.on("place", ({ arg, at }) => line("place", `${arg} ${at ?? ""}`))
   oriel.on("save", () => line("save", "heard"))
   oriel.on("keyboard", (yes) => line("keyboard", yes))
-  oriel.on("visible", (yes) => line("visible", yes))
+  oriel.on("visible", (yes) => line("visible", `${yes} ${++shown}`))
   oriel.on("theme", (theme) => line("theme", `${theme.dark ? "dark" : "light"} changed`))
 
   button("Toast", async () => line("toast", await oriel.toast("Pick one", ["No", "Yes"])))

@@ -152,7 +152,10 @@ private func failure(_ name: String, _ args: [String: Any], _ calls: PluginCalls
     _ = try await call("git.switch", ["root": root, "branch": "other"])
     #expect(try await call("git.head", ["root": root]).flatMap { $0 as? [String: Any] }?["branch"] as? String
         == "other")
-    #expect(await failure("git.switch", ["root": root, "branch": "-f"]) == "failed")
+    // Never an option: `--detach` would work.
+    #expect(await failure("git.switch", ["root": root, "branch": "--detach"]) == "failed")
+    #expect(try await call("git.head", ["root": root]).flatMap { $0 as? [String: Any] }?["branch"] as? String
+        == "other")
     // git's message, never a password prompt.
     #expect(await failure("git.switch", ["root": root, "branch": "none"]) == "failed")
 }

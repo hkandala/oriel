@@ -38,12 +38,10 @@ struct PluginCard: View {
                 }
             }
             .animation(.easeOut(duration: 0.15), value: plugin.web.toast == nil)
-            // Not in an overview tile: the card's own watch catches up when it shows again. A plugin's page stays
-            // through its moves.
-            .task(id: "\(isEnabled) \(plugin.web.page == .main ? "" : plugin.web.arg)") {
-                if isEnabled, plugin.web.page == .main {
-                    await plugin.web.bridge?.shown()
-                } else if isEnabled {
+            // Not in an overview tile: the card's own watch catches up when it shows again. A plugin's page has its
+            // own (`Bridge.shown`).
+            .task(id: "\(isEnabled) \(plugin.web.arg)") {
+                if isEnabled, plugin.web.page != .main {
                     await plugin.web.watch()
                 }
             }
@@ -139,6 +137,7 @@ private struct PluginFailure: View {
     let plugin: Plugin
     let title: String
     let text: String
+    @Environment(\.look) private var look
 
     var body: some View {
         VStack(spacing: 10) {
@@ -155,6 +154,8 @@ private struct PluginFailure: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // Over what the page drew before it stopped.
+        .background(look.cardSolid)
     }
 }
 

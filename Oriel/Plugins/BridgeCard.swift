@@ -55,6 +55,29 @@ extension Bridge {
         try plugin.web.open?(opener(arg, args["plugin"] as? String), arg, args["at"] as? String, how)
     }
 
+    /// The toast the page waits on goes: its promise resolves with no button.
+    func dropToast() {
+        if let toast {
+            event("toast", ["id": toast])
+            self.toast = nil
+        }
+    }
+
+    /// The page's toast, replacing one it waits on.
+    func show(_ text: String, buttons: [String]?, id: Int) {
+        guard let web = plugin?.web else { return }
+        dropToast()
+        toast = id
+        let picked = { [weak self] (title: String) in
+            guard let self, toast == id else { return }
+            toast = nil
+            event("toast", ["id": id, "button": title])
+        }
+        let main = buttons?.last ?? "OK"
+        web.toast = Toast(text: text, other: buttons?.first.map { title in (title, { picked(title) }) },
+                          main: (main, { picked(main) }))
+    }
+
     /// The plugin an open names, else the browser for a web address, the first plugin that opens folders for a
     /// folder, or a file's default plugin.
     private func opener(_ arg: String, _ id: String?) throws -> PluginManifest {

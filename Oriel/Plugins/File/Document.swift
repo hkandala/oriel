@@ -178,23 +178,25 @@ extension CommandList {
     static func editorCommands(page: Page?, pane: HostStore.Pane?, terminal: Bool,
                                _ editor: @escaping @MainActor () -> Plugin?) -> [Command]
     {
-        let over = editor() != nil, find = page?.find != nil
+        // A plugin's card takes only what its manifest `handles`.
+        let finder = { editor().flatMap { $0.handles("find") ? $0 : nil } }
+        let save = editor()?.handles("save") == true, over = finder() != nil, find = page?.find != nil
         return [
-            Command(section: .file, title: "Save", key: over ? .save : nil, symbol: "square.and.arrow.down",
-                    enabled: over) { editor()?.command("save") },
+            Command(section: .file, title: "Save", key: save ? .save : nil, symbol: "square.and.arrow.down",
+                    enabled: save) { editor()?.command("save") },
             editMode(editor),
             Command(section: .edit, title: "Find…", key: .init("f"), symbol: "magnifyingglass",
                     keywords: "search scrollback", enabled: terminal || over, action: {
-                        if let editor = editor() {
+                        if let editor = finder() {
                             editor.command("find")
                         } else {
                             page?.openFind(pane)
                         }
                     }),
             Command(section: .edit, title: "Find Next", key: .findNext, symbol: "chevron.down",
-                    enabled: find || over) { page?.findStep(1, in: editor()) },
+                    enabled: find || over) { page?.findStep(1, in: finder()) },
             Command(section: .edit, title: "Find Previous", key: over ? .findPrevious : nil, symbol: "chevron.up",
-                    enabled: find || over) { page?.findStep(-1, in: editor()) },
+                    enabled: find || over) { page?.findStep(-1, in: finder()) },
         ]
     }
 }

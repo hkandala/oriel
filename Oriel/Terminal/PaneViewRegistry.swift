@@ -123,6 +123,7 @@ final class PaneViewRegistry {
         plugin.web.view.onKeyboard = claim(terminalID)
         plugin.web.view.pictured = { [weak self] in self?.noted(terminalID) }
         plugin.web.view.shot.image = keptPicture(terminalID)
+        plugin.web.bridge?.shown(webInView.contains(terminalID))
         plugin.web.open = { [weak self] opener, arg, place, how in
             let page = self?.pages?.page(of: terminalID)
             Task { await page?.open(opener, arg: arg, at: place, from: terminalID, how: how) }

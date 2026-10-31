@@ -191,7 +191,11 @@ export interface Theme {
   /** The app's text size in points (⌘+ ⌘− ⌘0). */
   textSize: number
   /** The app's tokens as CSS colors; also CSS variables on the root (`--text`, …), with `--app-text-size`. */
-  colors: Record<"text" | "dim" | "divider" | "accent" | "working" | "needs-you" | "finished" | "error", string>
+  /** `card` is an opaque stand-in for the card's fill, for a band that text scrolls under. */
+  colors: Record<
+    "text" | "dim" | "divider" | "card" | "accent" | "on-accent" | "working" | "needs-you" | "finished" | "error",
+    string
+  >
 }
 
 /** What every failed call rejects with. */
