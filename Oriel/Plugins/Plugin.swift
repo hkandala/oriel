@@ -117,6 +117,7 @@ final class Plugin {
     let manifest: PluginManifest
     /// The content: `web/src/<page>.ts`.
     let web: WebCard
+    let header: Header
 
     init(terminalID: String, paneID: String, label: PaneLabel, manifest: PluginManifest, page: PluginPage,
          place: String?, store: HostStore)
@@ -126,6 +127,7 @@ final class Plugin {
         self.label = label
         self.manifest = manifest
         web = WebCard(plugin: manifest.id, page: page, arg: label.place, place: place, store: store)
+        header = Header(manifest: manifest)
         name()
         web.view.step = { [weak self] back in
             guard let self, back ? canGoBack : canGoForward else { return false }
