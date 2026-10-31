@@ -43,10 +43,8 @@ extension OrielUITests {
         let shown = count("visible: true ")
         try await send("echo x > \(folder)/watched.txt\r", to: shell)
         XCTAssertTrue(line("watch: 1").exists(within: 5))
-        // File system events may come twice for one write.
-        let watched = count("watch: ")
         try await machineChecks(folder, shell: shell, tab: tab, cardTab: cardTab)
-        try await expect("the watch once more") { count("watch: ") == watched + 1 }
+        XCTAssertTrue(line("watch.again: yes").exists(within: 5))
         XCTAssertTrue(line("visible: true \(shown + 2)").exists)
 
         try await cardCalls(card, in: cardTab, root: root)
@@ -111,6 +109,10 @@ extension OrielUITests {
         // The manifest's commands while the card has the keyboard; one with a key the app uses goes without it.
         app.typeKey("y", modifierFlags: [.command, .shift])
         XCTAssertTrue(line("control: shout").exists(within: 3))
+        // A header button of the manifest; the header's text the page set.
+        element("pane.\(card).again").click()
+        XCTAssertTrue(line("control: again").exists(within: 3))
+        XCTAssertTrue(element("pane.\(card).count").has(\.stringValue, "counted", within: 1))
 
         // A place of its own, its label following; Back says where it came back from.
         button("Go").click()

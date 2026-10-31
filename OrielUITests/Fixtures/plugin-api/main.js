@@ -75,13 +75,22 @@ export default async function main(oriel) {
   oriel.controls.set("count", { value: "counted" })
   line("controls", oriel.controls.get("count"))
 
-  let watched = 0, shown = 0
-  oriel.files.watch(`${root}/watched.txt`, () => line("watch", ++watched))
+  // The watch called right after the card came into view again: no file change does that.
+  let watched = 0, shown = 0, hidden = false, again = false
+  oriel.files.watch(`${root}/watched.txt`, () => {
+    line("watch", ++watched)
+    if (again) line("watch.again", "yes")
+    again = false
+  })
   oriel.on("control", ({ id }) => line("control", id))
   oriel.on("place", ({ arg, at }) => line("place", `${arg} ${at ?? ""}`))
   oriel.on("save", () => line("save", "heard"))
   oriel.on("keyboard", (yes) => line("keyboard", yes))
-  oriel.on("visible", (yes) => line("visible", `${yes} ${++shown}`))
+  oriel.on("visible", (yes) => {
+    line("visible", `${yes} ${++shown}`)
+    again = yes && hidden
+    hidden = !yes
+  })
   oriel.on("theme", (theme) => line("theme", `${theme.dark ? "dark" : "light"} changed`))
 
   button("Toast", async () => line("toast", await oriel.toast("Pick one", ["No", "Yes"])))
