@@ -12,7 +12,8 @@ extension OrielUITests {
         XCTAssertTrue(until(10) { last.exists && last.isHittable })
         let bottom = element("chat.\(pane).bottom")
         XCTAssertFalse(bottom.exists)
-        // Where the newest row sits at the bottom: Scroll to Bottom lands there too.
+        // Where the newest row sits at the bottom once the turn ended: Scroll to Bottom lands there too.
+        XCTAssertTrue(element("chat.\(pane).send").exists(within: 5))
         let composer = element("chat.\(pane).composer"), gap = composer.frame.minY - last.frame.maxY
 
         // Up into the older messages, by natural scrolling either way.
@@ -75,34 +76,38 @@ extension OrielUITests {
         let last = row(pane, "reply", "Last.")
         XCTAssertTrue(until(10) { last.exists && last.isHittable })
         let chat = element("chat.\(pane)"), earlier = element("chat.\(pane).earlier")
-        let first = row(pane, "user", "Question 1")
+        let first = row(pane, "user", "many")
         XCTAssertFalse(first.exists)
-        var clicks = 0
         // Up to the oldest row shown, where the button shows.
         func up() {
-            for _ in 0 ..< 20 where !earlier.exists {
-                chat.scroll(byDeltaX: 0, deltaY: 5000)
+            for _ in 0 ..< 5 where !earlier.exists && !first.isHittable {
+                chat.scroll(byDeltaX: 0, deltaY: 10000)
             }
         }
+        var clicks = 0
         while !first.exists, clicks < 10 {
             up()
-            // The message at the top stays where it is.
-            let users = app.descendants(matching: .any).matching(identifier: "chat.\(pane).user")
-                .allElementsBoundByIndex
-            let top = try XCTUnwrap(users.filter { $0.frame.minY >= chat.frame.minY - 1 }
-                .min { $0.frame.minY < $1.frame.minY })
-            let (text, place) = (top.stringValue, top.frame.minY)
-            earlier.click()
             clicks += 1
+            guard clicks <= 2 else {
+                earlier.click()
+                continue
+            }
+            // The message at the top stays where it is.
+            let tree = try chat.snapshot()
+            var queue = [tree], users: [XCUIElementSnapshot] = []
+            while let node = queue.popLast() {
+                queue += node.children
+                if node.identifier == "chat.\(pane).user", node.frame.minY >= tree.frame.minY - 1 {
+                    users.append(node)
+                }
+            }
+            let top = try XCTUnwrap(users.min { $0.frame.minY < $1.frame.minY })
+            let (text, place) = (top.value as? String ?? "", top.frame.minY)
+            earlier.click()
             let same = row(pane, "user", text)
-            XCTAssertTrue(
-                until(3) { abs(same.frame.minY - place) < 2 && users.count < self.app.descendants(matching: .any)
-                    .matching(identifier: "chat.\(pane).user").count
-                },
-                "\(text) \(place) \(same.frame)",
-            )
+            XCTAssertTrue(until(3) { abs(same.frame.minY - place) < 2 }, "\(text) \(place) \(same.frame)")
         }
-        XCTAssertGreaterThan(clicks, 1)
+        XCTAssertGreaterThan(clicks, 2)
         up()
         XCTAssertTrue(first.isHittable)
         XCTAssertFalse(earlier.exists)

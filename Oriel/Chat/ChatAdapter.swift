@@ -117,14 +117,17 @@ extension Chat {
     {
         guard let lines = try? await exec.follow(source, from: marks[source] ?? FileMark(), skip: skip) else { return }
         var torn = 0, count = 0
-        (loading, backlog) = (true, history)
         // A batch's lines in one main-actor turn: the card draws once for them, not once per line.
         for await batch in lines {
             for line in batch where !Task.isCancelled && self.source == source {
                 switch line {
-                case let .opened(_, again) where again && !backlog.entries.isEmpty:
-                    backlog = ChatHistory()
-                    restarted()
+                // Once the file is there: Claude Code and pi write theirs with the first message, and the empty chat
+                // shows its glyph until then, the loader only while a history loads.
+                case let .opened(_, again):
+                    (loading, backlog) = (true, again ? ChatHistory() : history)
+                    if again, !history.entries.isEmpty {
+                        restarted()
+                    }
                 case let .line(text, mark):
                     marks[source] = mark
                     torn = change { read(text, &$0) } ? 0 : torn + 1
@@ -136,7 +139,6 @@ extension Chat {
                         await Task.yield()
                     }
                 case .loaded: showBacklog()
-                case .opened: break
                 }
             }
         }

@@ -6,6 +6,8 @@ import SwiftUI
 struct ChatMessages: View, Equatable {
     let chat: Chat
     let page: Page
+    /// In a floating window: the card starts right under its title row, with no header of its own above.
+    let floats: Bool
     var composing: FocusState<Bool>.Binding
     /// While scrolled up, the row at the top, which stays there when the card resizes or rows come; nil at the
     /// bottom, which stays at the bottom.
@@ -20,31 +22,34 @@ struct ChatMessages: View, Equatable {
     /// The card's width the messages lay out at, and the wait for its next one.
     @State private var width: CGFloat?
     @State private var settling: Task<Void, Never>?
-    /// The oldest row shown, once Show Earlier was clicked; nil: the newest `block` rows.
+    /// The oldest row shown, once the chat left the bottom (new rows then do not move it) or Show Earlier was
+    /// clicked; nil: the newest `block` rows.
     @State private var first: String?
     @Environment(\.look) private var look
     private var settings = AppSettings()
     private static let end = "end"
     /// The rows a long chat shows at a time, and Show Earlier adds: about 25 turns, laid out in 0.3–0.4 s on a
     /// very busy Mac.
-    static let block = 100
+    private static let block = 100
 
-    init(chat: Chat, page: Page, composing: FocusState<Bool>.Binding) {
+    init(chat: Chat, page: Page, floats: Bool, composing: FocusState<Bool>.Binding) {
         self.chat = chat
         self.page = page
+        self.floats = floats
         self.composing = composing
     }
 
-    /// The focus binding stays the same for a card.
+    /// The focus binding stays the same for a card. Not built again for the store's other changes: the rows are
+    /// worked out in the body (3–4 ms for a 3,900-entry history).
     nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.chat === rhs.chat && lhs.page === rhs.page
+        lhs.chat === rhs.chat && lhs.page === rhs.page && lhs.floats == rhs.floats
     }
 
     var body: some View {
         Group {
             // No scroll view until there is something to show: one made empty keeps the top inset that held its empty
             // content at the bottom after a long history loads, a blank above the messages.
-            if chat.history.entries.isEmpty, chat.outgoing.isEmpty, chat.problem == nil {
+            if chat.history.entries.isEmpty, chat.loading || (chat.outgoing.isEmpty && chat.problem == nil) {
                 empty
             } else {
                 messages
@@ -74,7 +79,7 @@ struct ChatMessages: View, Equatable {
     private var empty: some View {
         ZStack {
             if chat.loading {
-                ProgressView().controlSize(.small).accessibilityIdentifier("chat.\(chat.paneID).loading")
+                ProgressView().controlSize(.small)
             } else if let pane = page.store.pane(chat.paneID) {
                 ProgramGlyph(icon: pane.iconID, letter: pane.letter, size: 64).opacity(0.5)
                     .accessibilityElement(children: .ignore)
@@ -87,16 +92,14 @@ struct ChatMessages: View, Equatable {
         // The next scroll view starts at the bottom, with the newest rows (a new session too).
         .onAppear {
             hold(nil)
-            atBottom = true
-            first = nil
+            (atBottom, atTop, first) = (true, false, nil)
         }
     }
 
     private var messages: some View {
-        let floats = page.store.pane(chat.paneID).map(page.floats) == true
         let level = settings.chatLevel
         let rows = chat.history.rows(level, working: chat.phase == .working)
-        let start = first.flatMap { id in rows.firstIndex { $0.id == id } } ?? Self.start(rows[...])
+        let start = first.flatMap { id in rows.firstIndex { $0.id == id } } ?? Self.start(rows[...], level)
         return ScrollViewReader { proxy in
             ScrollView {
                 // Not lazy: a lazy stack guessed the height of the rows it had not built, by up to four times, and
@@ -118,25 +121,38 @@ struct ChatMessages: View, Equatable {
                     Color.clear.frame(height: 22).id(Self.end)
                 }
                 .scrollTargetLayout()
-                // A floating window's card starts right under its title row, with no header of its own above. None
-                // above a long chat's oldest row shown: the scroll keeps the row at the top in place, its top at the
-                // top, so earlier rows come above it without moving what is in view.
+                // None above a long chat's oldest row shown: the place goes back with the top row's top at the top, so
+                // earlier rows come above it without moving what is in view.
                 .padding(.horizontal, 32).padding(.top, start > 0 ? 0 : floats ? 28 : 16)
                 .frame(maxWidth: ChatView.column)
                 .frame(maxWidth: .infinity)
             }
             // The scroll view names the row at the top as it scrolls: not at the bottom, which follows new rows. Set
             // here, not in an onChange, so the body is not built again per row scrolled past.
-            .scrollPosition(id: Binding(get: { top }, set: { hold(atBottom ? nil : $0) }), anchor: .top)
+            .scrollPosition(id: Binding(get: { top }, set: { row in
+                hold(atBottom ? nil : row)
+                if !atBottom, first == nil, start > 0 {
+                    first = rows[start].id
+                }
+            }), anchor: .top)
             .defaultScrollAnchor(.bottom)
             .defaultScrollAnchor(held ? nil : .bottom, for: .sizeChanges)
-            .onScrollGeometryChange(for: Bool.self) { $0.visibleRect.minY < 40 } action: { atTop = $1 }
+            .onScrollGeometryChange(for: Bool.self) { $0.visibleRect.minY < 8 } action: { atTop = $1 }
+            // A plain stack's scroll keeps its offset when the rows above change height (a split) or come (Show
+            // Earlier): the row that was at the top goes back there.
+            .onScrollGeometryChange(for: CGFloat.self) { $0.contentSize.height } action: { _, _ in
+                if let top {
+                    proxy.scrollTo(top, anchor: .top)
+                }
+            }
             .onScrollGeometryChange(for: Bool.self) { geometry in
                 geometry.contentSize.height + geometry.contentInsets.bottom - geometry.visibleRect.maxY < 40
             } action: {
                 atBottom = $1
+                // Back at the bottom: the newest block again.
                 if $1 {
                     hold(nil)
+                    first = nil
                 }
             }
             .focusEffectDisabled()
@@ -147,6 +163,8 @@ struct ChatMessages: View, Equatable {
             // At once while the reading column keeps its width.
             .frame(width: width)
             .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+            // From the newest block: a block of another level can be many more rows.
+            .onChange(of: level) { first = nil }
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { new in
                 settling?.cancel()
                 guard let old = width, min(old, new) < ChatView.column + 64 else {
@@ -168,23 +186,36 @@ struct ChatMessages: View, Equatable {
             }
             .overlay(alignment: .top) {
                 if start > 0, atTop {
-                    earlierButton { first = rows[Self.start(rows[..<start])].id }.padding(.top, floats ? 28 : 16)
+                    earlierButton {
+                        hold(rows[start].id)
+                        first = rows[Self.start(rows[..<start], level)].id
+                    }
+                    .padding(.top, floats ? 28 : 16)
                 }
             }
         }
     }
 
-    /// The first of the newest `block` rows, at a user's message so its turn shows whole.
-    static func start(_ rows: ArraySlice<ChatRow>) -> Int {
-        guard rows.count > block else { return rows.startIndex }
-        let cut = rows.endIndex - block
-        return rows[cut...].firstIndex {
+    /// The first of the newest `block` rows, at a user's message near there so its turn shows whole. A run open at
+    /// Everything counts its steps too: each is a row.
+    private static func start(_ rows: ArraySlice<ChatRow>, _ level: ChatLevel) -> Int {
+        var cut = rows.endIndex, count = 0
+        while cut > rows.startIndex, count < block {
+            cut -= 1
+            if case let .stack(_, steps) = rows[cut], level == .everything {
+                count += steps.count
+            }
+            count += 1
+        }
+        guard cut > rows.startIndex else { return cut }
+        let user = rows[cut...].prefix(block / 2).firstIndex {
             if case .user = $0 {
                 true
             } else {
                 false
             }
-        } ?? cut
+        }
+        return user ?? cut
     }
 
     /// The row at the top while scrolled up; `held` changes only when that starts or ends, so the body is not built

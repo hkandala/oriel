@@ -211,6 +211,10 @@ extension OrielUITests {
         let drawer = element("chat.\(pane).drawer")
         XCTAssertTrue(drawer.exists(within: 5))
         XCTAssertFalse(element("chat.\(pane).composer").exists)
+        // The state on row 2, under the title.
+        let state = element("pane.\(pane).state")
+        XCTAssertEqual(state.stringValue, "Needs you")
+        XCTAssertGreaterThanOrEqual(state.frame.minY, element("pane.\(pane).title").frame.maxY)
         XCTAssertTrue(hasKeyboard("terminal.\(pane)"))
         app.typeText("1")
         XCTAssertTrue(drawer.vanishes(within: 5))

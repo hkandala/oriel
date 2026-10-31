@@ -13,7 +13,8 @@ struct ChatView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ChatMessages(chat: chat, page: page, composing: $composing).equatable()
+            ChatMessages(chat: chat, page: page, floats: page.store.pane(chat.paneID).map(page.floats) == true,
+                         composing: $composing).equatable()
             if chat.drawer, let terminal {
                 WaitingDrawer(chat: chat, page: page, terminal: terminal).frame(height: max(160, height * 0.45))
                     .padding(.horizontal, 32).padding(.bottom, 14).padding(.top, 4)
