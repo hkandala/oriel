@@ -13,6 +13,8 @@ struct Strip: View {
     @State private var paging = Paging()
     /// e2e (`-recordStrip YES`): the scroll updates that left the strip between two pages, that is, a slide.
     @State private var between = 0
+    /// The tabs' order changed while the strip moved: it follows the selected tab when it comes to rest (`follow`).
+    @State private var reordered = false
     private static let record = UserDefaults.standard.bool(forKey: "recordStrip")
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -66,9 +68,11 @@ struct Strip: View {
         // Web cards wait for the strip to rest (`Page.cards`), also one that goes mid-scroll.
         .onDisappear { moving(false) }
         .onScrollPhaseChange { _, phase in
+            let follows = reordered
             moving(phase != .idle)
-            // Not a tab that closed meanwhile.
-            if phase == .idle, let shown = position.viewID(type: String.self),
+            // Not a tab that closed meanwhile, and not over a selection whose tab moved meanwhile: the strip went to
+            // it.
+            if phase == .idle, !follows, let shown = position.viewID(type: String.self),
                workspace.tabs.contains(where: { $0.id == shown })
             {
                 page.selectedTabIDs[workspace.id] = shown
@@ -82,15 +86,27 @@ struct Strip: View {
             // can miss the scroll: again once it has.
             Task { position.scrollTo(id: target, anchor: .leading) }
         }
-        // The selected tab moved (an open's new tab is made last, then moved beside its card) or tabs came before it:
-        // the strip kept its offset, so it showed another tab's page than the selected one (item 28). It follows the
-        // selected tab to its place, by its offset (its id is the position already: a scroll to it moved nothing).
-        .onChange(of: workspace.tabs.map(\.id)) {
-            let index = page.selectedIndex(in: workspace)
-            if !page.stripMoving, Int(page.stripPage.rounded()) != index {
-                _ = paging.show(index, $position)
+        .onChange(of: workspace.tabs.map(\.id)) { old, new in
+            let selected = page.selectedTabIDs[workspace.id]
+            if old.firstIndex(where: { $0 == selected }) != new.firstIndex(where: { $0 == selected }) {
+                follow()
             }
         }
+    }
+
+    /// The selected tab moved (an open's new tab is made last, then moved beside its card) or tabs came before it: the
+    /// strip kept its offset, so it showed another tab's page than the selected one (item 28). It goes to the selected
+    /// tab's place by its offset, then by its id once laid out (its id alone was the position already: a scroll to it
+    /// moved nothing); while the strip moves, once it rests.
+    private func follow() {
+        guard !page.stripMoving else {
+            reordered = true
+            return
+        }
+        reordered = false
+        guard let target = page.selectedTabIDs[workspace.id] else { return }
+        _ = paging.show(page.selectedIndex(in: workspace), $position)
+        Task { position.scrollTo(id: target, anchor: .leading) }
     }
 
     /// A page's cards inside its page: room for the cards' outer stroke and shadow, the scroll view clips.
@@ -136,6 +152,9 @@ struct Strip: View {
     private func moving(_ moving: Bool) {
         if page.stripMoving != moving {
             page.stripMoving = moving
+        }
+        if !moving, reordered {
+            follow()
         }
     }
 

@@ -449,3 +449,7 @@ after (Release, `sample` over tab clicks, three swipes and two overview opens).
   code (at the fifth) and passes.
 - Full run (B): testOverviewCostsAndLetsGoAfter checks what the overview does with pictures: each tile in view gets a
   snapshot, and its cards' streams end with the overview still open.
+- Full runs (B, item 28, again): on CI the move came while the strip still moved from the scroll to the new tab, and
+  the strip's page number there could not be trusted. The strip now follows whenever the selected tab's place in the
+  order changes, by offset and then by id once laid out, and a move during motion waits for the strip to rest (its
+  scroll phase or a swipe's landing) instead of selecting the page that shows then. The five-open test is green on CI.
