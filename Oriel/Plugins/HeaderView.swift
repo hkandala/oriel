@@ -21,7 +21,7 @@ struct PluginHeader: View {
                     let before = controls[..<index].last { $0.hidden != true }
                     HeaderItem(control: control, plugin: plugin, page: page)
                         .disabled(control.enabled == false || control.busy == true)
-                        .padding(.leading, before == nil && !history ? 0 : Self.gap(before, control))
+                        .padding(.leading, before == nil && !history ? 0 : CGFloat(control.gap ?? 6))
                 }
             }
             // Free space goes after the controls unless a spacer or a field takes it.
@@ -29,12 +29,6 @@ struct PluginHeader: View {
                 Spacer(minLength: 0)
             }
         }
-    }
-
-    /// 6 pt between controls; icon buttons side by side touch, as Back and Forward do.
-    private static func gap(_ before: PluginManifest.Control?, _ control: PluginManifest.Control) -> CGFloat {
-        let icons = ["button", "toggle"]
-        return icons.contains(control.type) && before.map { icons.contains($0.type) } == true ? 0 : 6
     }
 }
 
@@ -124,7 +118,8 @@ private struct HeaderItem: View {
             }
             return index == 0 ? part : Text("\(line)\(chevron)\(part)")
         }
-        return shown.fontWeight(.regular).lineLimit(1).truncationMode(.middle)
+        return (control.digits == "mono" ? shown.monospacedDigit() : shown).fontWeight(.regular).lineLimit(1)
+            .truncationMode(.middle)
             .accessibilityValue(parts.joined(separator: " › "))
     }
 

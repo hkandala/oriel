@@ -3,10 +3,10 @@ import XCTest
 /// A plugin's header row (phase 47, future-work/plugins/manifest#header).
 extension OrielUITests {
     /// A user plugin's controls, drawn from its manifest before its page loads: Back and Forward at the row's left
-    /// edge, a menu with a section and a divider, a path text, a badge in a button's label, a field that takes the free
-    /// width, Open With; a hidden control is not drawn. A toggle and segments change at once, a menu pick leaves the
-    /// value to the page, and the floating window draws the same row with the same values. A plugin with no header has
-    /// one header row.
+    /// edge, a menu with a section and a divider, a path text, a badge in a button's label, a field that takes the
+    /// free width, gaps, Open With; a hidden control is not drawn. A toggle and segments change at once, a menu pick
+    /// leaves the value to the page, and the floating window draws the same row with the same values. A plugin with
+    /// no header has one header row.
     func testAPluginsHeaderDrawsItsManifestsControls() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (_, shell) = try await newTab("header")
@@ -31,6 +31,9 @@ extension OrielUITests {
         let page = element("fixture.\(card).card").frame
         XCTAssertEqual(control("go-back").frame.minX - page.minX, 1, accuracy: 1, "\(page)")
         XCTAssertGreaterThan(control("filter").frame.width, control("jump").frame.width)
+        // 6 pt apart by default; `gap` 0 joins Push to Outline.
+        XCTAssertEqual(control("mode").frame.minX - control("rows").frame.maxX, 6, accuracy: 1)
+        XCTAssertEqual(control("push").frame.minX, control("outline").frame.maxX, accuracy: 0.5)
         keepScreenshot("plugin header")
 
         XCTAssertTrue(control("outline").isSelected)
@@ -85,11 +88,11 @@ extension OrielUITests {
             #"{"id":"filter","type":"field","placeholder":"Filter"}"#,
             #"{"id":"jump","type":"text","style":"path","symbol":"curlybraces","#
                 + #""value":["Sources","App.swift","body"]}"#,
-            #"{"id":"rows","type":"text","style":"dim","value":"3 of 12"}"#,
+            #"{"id":"rows","type":"text","style":"dim","digits":"mono","value":"3 of 12"}"#,
             #"{"id":"mode","type":"segmented","options":[{"value":"read","title":"Read"},"#
                 + #"{"value":"edit","title":"Edit"}],"value":"read"}"#,
             #"{"id":"outline","type":"toggle","symbol":"sidebar.left","title":"Outline","value":true}"#,
-            #"{"id":"push","type":"button","symbol":"arrow.up","title":"Push","badge":"2"}"#,
+            #"{"id":"push","type":"button","symbol":"arrow.up","title":"Push","badge":"2","gap":0}"#,
             #"{"id":"gone","type":"button","symbol":"trash","title":"Gone","hidden":true}"#,
             #"{"id":"open-with","type":"openWith","value":"/tmp/notes.md"}"#,
         ].joined(separator: ",")
