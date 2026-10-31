@@ -282,12 +282,16 @@ public final class ProcessExec: Exec {
             reader.cancel()
             errors.cancel()
         }
-        // A dropped stream terminates; one that ended at EOF leaves stderr to finish for `exit`.
+        // A dropped stream terminates; one that ended at EOF leaves stderr to finish for `exit`. Not on the dropping
+        // thread: a cancel runs this where it is called (the main actor, when a chat card leaves view), and the kill
+        // and the pipes' handlers took up to 0.8 s there on a loaded Mac.
         linesContinuation.onTermination = { reason in
-            if case .cancelled = reason {
-                terminate()
-            } else {
-                kill()
+            DispatchQueue.global().async {
+                if case .cancelled = reason {
+                    terminate()
+                } else {
+                    kill()
+                }
             }
         }
         let status = Task { await ended.first { _ in true } ?? -1 }
