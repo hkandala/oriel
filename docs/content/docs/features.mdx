@@ -40,20 +40,23 @@ Each part of the window has its own page under UI design.
 - Split in four directions, move between cards and swap them with the keys,
   rename a pane, move it to another tab or workspace from its context menu.
 - A new pane asks what it runs: Terminal, Agent (Claude Code, Codex, Pi or
-  OpenCode, with a loader until it is ready), Browser, Files or Changes.
+  OpenCode, with a loader until it is ready), Browser, File Explorer or Git.
   Return gives a terminal.
 - Browser panes: a web page in a card, with Web Inspector, its own logins
   per machine, the page's icon, and a remote machine's `localhost` through
   the SSH connection. ⌘-click and Open Link in New Tab open a link in a new
   tab. Agents open them beside themselves.
-- Default plugins, on any machine: **Files** (the whole tree with a filter,
-  git letters, and a Git section with changes and a history graph),
-  **Changes** (the uncommitted diff or any recent commit, unified or side by
-  side, with a file list), and from their links **File** (an editor with
-  syntax colors and a jump bar), **Markdown** (Read and Edit with an outline)
-  and **Preview** (images, PDF, audio, video). Edits show a dirty dot, ⌘S
-  saves, and a file changed on disk reloads, or asks when there are edits.
-  Links open in a new tab beside the current one.
+- Default plugins, on any machine, each one card with Back and Forward:
+  **File Explorer** (the whole tree with a filter and git letters, a root
+  you can change, and in the same card each file as an editor with syntax
+  colors and a jump bar, Markdown with Read, Edit and an outline, or a
+  preview of images, PDF, audio and video) and **Git** (the changes with
+  Stage, Unstage and Commit, Fetch, Pull and Push, a branch menu, the
+  history graph of every branch, and the diff of any change or commit,
+  unified or side by side). Edits show the Edited dot, ⌘S saves, and a file
+  changed on disk reloads, or asks when there are edits. A click opens in
+  the card, ⌘-click in a new tab, ⌥-click in a pane to the side. Open With
+  shows each app's icon.
 - Layout changes animate.
 - Zoom a pane to fill the window, then return.
 - Drag a pane to swap it, place it beside another card, split it into
@@ -80,7 +83,10 @@ Each part of the window has its own page under UI design.
   Chat in the card header to see it as messages with a reply box, like
   Messages, on any machine, in a card or a floating window, with the whole
   session and full Markdown (tables, task lists). The agent keeps running.
-  Pick how much to see: Replies, Activity or Everything, and open a tool call
+  The user's messages and the agent's replies are blue and gray bubbles, as
+  in Messages. A long chat opens at the bottom with its newest turns, and
+  Show Earlier loads the ones before.
+  Pick how much to see: Replies only, Activity or Everything, and open a tool call
   to its input and output. Esc stops the agent. Answer Claude Code's questions
   and OpenCode's permissions in the chat. When the agent asks something else,
   its live terminal shows at the bottom of the card.
