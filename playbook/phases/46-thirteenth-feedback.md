@@ -442,6 +442,7 @@ after (Release, `sample` over tab clicks, three swipes and two overview opens).
 - Full run (F, item 33): the menu bar's list is made in `MenuBar`, which had no settings of its own, so a settings
   change (Reset Font Size after ⌘=) no longer reached the menu; `MenuBar` holds `AppSettings`, as `AppCommands` did.
   The other commands' states come from observed models, which run it again.
-- Full run (B, F): a replaced floated pane's window came back 46 pt short on CI (its default size): it now takes the
-  old window's frame from the old window itself, not through a frame autosave name, and every floating window puts
-  its frame back on the next turn if SwiftUI sized it after the app did.
+- Full run (B, F): a replaced floated pane's window came back 46 pt short on CI: the app set a floating window's
+  frame once it showed, and SwiftUI's default size could come after. SwiftUI now places each new floating window at
+  the frame asked for with it (`defaultWindowPlacement`): a replaced pane's old window's (read from that window, with
+  the old one ordered out first, else it was cascaded 29 pt), else its saved frame, else over its main window.

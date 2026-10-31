@@ -28,7 +28,8 @@ extension Page {
             // The main window's keyboard leaves it for another card of the tab.
             focusKeyboardCard()
         }
-        WindowPages.openWindow?(id: "float", value: Floating(session: id, terminalID: terminalID))
+        FloatFrames.open(Floating(session: id, terminalID: terminalID), over: terminals.pages?.window,
+                         with: WindowPages.openWindow)
     }
 
     /// "New Pane" while it asks what it runs (as the card's header says), a browser's "Browser" and its page, a
@@ -172,7 +173,7 @@ struct FloatingWindow: View {
         .navigationTitle(pane.map { pane in
             page?.kindTitle(pane).map { [$0, $1].plainTitle } ?? pane.cardTitle
         } ?? "terminal")
-        .background(FloatReader(terminalID: floating.terminalID, main: pages?.window,
+        .background(FloatReader(terminalID: floating.terminalID,
                                 pinned: page?.floating[floating.terminalID] == true,
                                 closed: { page?.floating[floating.terminalID] = nil }))
         // Also gone before it first drew (a Detach right after the Float).

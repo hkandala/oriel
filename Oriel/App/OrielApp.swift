@@ -53,8 +53,8 @@ struct OrielApp: App {
             }
         }
         .windowToolbarStyle(.unifiedCompact)
-        // Until FloatReader sets a new one's frame from its main window.
         .defaultSize(width: 720, height: 460)
+        .defaultWindowPlacement { _, _ in FloatFrames.placement() }
         .windowResizability(.contentMinSize)
         .restorationBehavior(.disabled)
         // Its scene's own File items (Close on ⌘W) came back over the main window's: ⌘W closed the main window.
@@ -105,7 +105,8 @@ struct ContentView: View {
                 pages.opened()
                 for page in pages.list {
                     for id in page.floating.keys {
-                        openWindow(id: "float", value: Floating(session: page.id, terminalID: id))
+                        FloatFrames.open(Floating(session: page.id, terminalID: id), over: pages.window,
+                                         with: openWindow)
                     }
                 }
                 // A machine just added connects now, asking what ssh asks in this window.

@@ -139,8 +139,15 @@ extension Page {
             guard let old = replaced.terminal, let pinned = floating[old], let new = replaced.made?.terminalID
             else { continue }
             floating[new] = pinned
-            FloatFrames.handed[new] = FloatFrames.windows.object(forKey: old as NSString)?.frame
-            WindowPages.openWindow?(id: "float", value: Floating(session: id, terminalID: new))
+            // Out of the way first: a new window over one of its group at the same place is cascaded 29 pt off.
+            let window = FloatFrames.windows.object(forKey: old as NSString)
+            window?.orderOut(nil)
+            FloatFrames.open(
+                Floating(session: id, terminalID: new),
+                over: terminals.pages?.window,
+                frame: window?.frame,
+                with: WindowPages.openWindow,
+            )
         }
     }
 }
