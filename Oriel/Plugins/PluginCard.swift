@@ -87,6 +87,7 @@ struct PluginToolbar: View {
 
     var body: some View {
         switch plugin.web.page {
+        case .main: PluginHeader(plugin: plugin, page: page)
         case .diff: DiffToolbar(plugin: plugin)
         case .git: GitBar(plugin: plugin)
         case let shown:
@@ -119,84 +120,6 @@ struct PluginToolbar: View {
                 }
             }
         }
-    }
-}
-
-/// Open With, as other editors draw it: the default app's icon opens the file in it; its menu lists that app, then
-/// the others that open the file, each with its icon, then the other plugins that open it, whose pick turns the card
-/// into theirs.
-private struct OpenWith: View {
-    let path: String
-    /// The Mac's apps: on This Mac.
-    let apps: Bool
-    let plugins: [PluginManifest]
-    let pick: (PluginManifest) -> Void
-
-    var body: some View {
-        let url = URL(filePath: path)
-        Group {
-            if apps, let main = NSWorkspace.shared.urlForApplication(toOpen: url) {
-                Menu {
-                    OpenWithItems(url: url, plugins: plugins, pick: pick)
-                } label: {
-                    Image(nsImage: OpenWithItems.icon(main))
-                } primaryAction: {
-                    NSWorkspace.shared.open([url], withApplicationAt: main,
-                                            configuration: NSWorkspace.OpenConfiguration())
-                }
-                .help("Open with \(FileManager.default.displayName(atPath: main.path))")
-            } else {
-                Menu("Open With") { OpenWithItems(url: apps ? url : nil, plugins: plugins, pick: pick) }
-            }
-        }
-        .menuStyle(.button)
-        .buttonStyle(.borderless)
-        .fixedSize()
-    }
-}
-
-/// Their own view: SwiftUI asks LaunchServices again only when the path changes, not at every render of the card.
-private struct OpenWithItems: View {
-    /// Nil: no apps (a remote machine's file).
-    let url: URL?
-    let plugins: [PluginManifest]
-    let pick: (PluginManifest) -> Void
-
-    var body: some View {
-        if let url {
-            let workspace = NSWorkspace.shared, main = workspace.urlForApplication(toOpen: url)
-            let others = workspace.urlsForApplications(toOpen: url).filter { $0 != main }
-            if let main {
-                item(main, url)
-                Divider()
-            }
-            ForEach(others, id: \.self) { item($0, url) }
-            if !plugins.isEmpty {
-                Divider()
-            }
-        }
-        ForEach(plugins, id: \.id) { plugin in
-            Button(plugin.name, systemImage: plugin.icon) { pick(plugin) }
-        }
-    }
-
-    private func item(_ app: URL, _ url: URL) -> some View {
-        Button {
-            NSWorkspace.shared.open([url], withApplicationAt: app, configuration: NSWorkspace.OpenConfiguration())
-        } label: {
-            Label {
-                Text(FileManager.default.displayName(atPath: app.path))
-            } icon: {
-                Image(nsImage: Self.icon(app))
-            }
-        }
-    }
-
-    /// The app's icon at menu size: LaunchServices gives it at 32 pt.
-    static func icon(_ app: URL) -> NSImage {
-        let icon = NSWorkspace.shared.icon(forFile: app.path)
-        icon.size = NSSize(width: 16, height: 16)
-        return icon
     }
 }
 
