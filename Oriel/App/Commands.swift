@@ -105,6 +105,9 @@ extension View {
 
 private struct MenuBar: ViewModifier {
     let commands: CommandList
+    /// The settings the commands read (Reset Font Size's state, the chat level's checkmark): their change runs this
+    /// body again, which the menu bar takes its list from. `commands.settings` is no dynamic property of this view.
+    private var settings = AppSettings()
 
     func body(content: Content) -> some View {
         var commands = commands

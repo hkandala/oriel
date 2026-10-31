@@ -437,3 +437,6 @@ after (Release, `sample` over tab clicks, three swipes and two overview opens).
 - 31 (E): the diff's `Unified | Side by Side` is the app's pill segments, as Read | Edit, not the system control.
 - Found in the item 31 screenshot pass (D): Back and Forward had the ids `pane.<id>.back` and `.forward`, the same
   as a floated pane's Bring Back Here in the main window: now `pane.<id>.go-back` and `.go-forward`.
+- Full run (F, item 33): the menu bar's list is made in `MenuBar`, which had no settings of its own, so a settings
+  change (Reset Font Size after ⌘=) no longer reached the menu; `MenuBar` holds `AppSettings`, as `AppCommands` did.
+  The other commands' states come from observed models, which run it again.
