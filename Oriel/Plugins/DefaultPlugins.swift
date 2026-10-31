@@ -1,12 +1,12 @@
+import AppKit
 import CryptoKit
-import Foundation
 import HerdrKit
 
 /// File Explorer and Git as packages the user can edit (future-work/plugins, decision 5): the app carries their source
 /// (`Resources/web/defaults/<id>`, no `node_modules`) and installs each one into the plugins folder on first launch,
-/// a copy and then `npm ci` from its lockfile. An app whose copy differs (a newer version, or a build of the
-/// repository with changed source) replaces an unedited copy; an edited one stays until the user picks Update to
-/// Version or Reset to Default in the Plugins panel.
+/// a copy and then `npm ci` from its lockfile. An app with a newer version replaces an unedited copy; an edited copy,
+/// or one the app has other source for at the same version (a build of the repository), stays until the user picks
+/// Update to Version or Reset to Default in the Plugins panel.
 @MainActor @Observable
 final class DefaultPlugins {
     static let shared = DefaultPlugins()
@@ -15,16 +15,15 @@ final class DefaultPlugins {
     /// Reload to try again).
     private(set) var installing: Set<String> = []
     private(set) var failures: [String: String] = [:]
-    /// The copies changed since they were installed, and the app's version where its copy differs from the one
-    /// installed.
-    private(set) var edited: Set<String> = []
-    private(set) var newer: [String: String] = [:]
+    /// What the panel offers per default: the app's newer version (Update to Version), or nil for its other source
+    /// or the user's edits (Reset to Default).
+    private(set) var offers: [String: String?] = [:]
     @ObservationIgnored private var tasks: [String: Task<Void, Never>] = [:]
 
-    /// Each default's source hash as installed, to tell an edited copy and the app's other one
-    /// (`plugins/.defaults.json`).
+    /// Each default as installed (`plugins/.defaults.json`): its version, the app's source's hash, and the copy's
+    /// after its install (a package manager may write its lockfile into it), to tell an edited copy.
     private struct Record: Codable {
-        let hash: String
+        let version: String, source: String, copy: String
     }
 
     private static var records: URL {
@@ -46,37 +45,50 @@ final class DefaultPlugins {
         }) { first, _ in first }
     }
 
-    /// At launch: the staging folders of installs a quit cut short go; the missing defaults install, unedited copies
-    /// the app has another of are replaced, and edited ones are noted.
-    func install() async {
+    /// The staging folders of installs a quit cut short go, before any install starts.
+    private init() {
         let plugins = PluginInstalls.plugins, files = FileManager.default
         for name in (try? files.contentsOfDirectory(atPath: plugins.path)) ?? [] where name.hasPrefix(".install-") {
             try? files.removeItem(at: plugins.appending(path: name))
         }
-        await check()
-        for id in Self.bundled.keys {
-            if !files.fileExists(atPath: plugins.appending(path: id).path) || newer[id] != nil && !edited.contains(id) {
+    }
+
+    /// At launch: the missing defaults install, and unedited copies older than the app's version are replaced.
+    func install() async {
+        let records = Self.read()
+        for (id, manifest) in Self.bundled {
+            let copy = PluginInstalls.plugins.appending(path: id)
+            guard FileManager.default.fileExists(atPath: copy.path) else {
+                await put(id)
+                continue
+            }
+            if let record = records[id], Self.newer(manifest.version, than: record.version),
+               await Self.hash(copy) == record.copy
+            {
                 await put(id)
             }
         }
+        await check()
     }
 
-    /// Which copies are edited, and which the app has another of.
+    /// What the panel offers for each installed default.
     func check() async {
         let records = Self.read()
-        var edited = Set<String>(), newer: [String: String] = [:]
-        for (id, manifest) in Self.bundled {
+        var offers: [String: String?] = [:]
+        for (id, manifest) in Self.bundled where !installing.contains(id) {
             let copy = PluginInstalls.plugins.appending(path: id)
             guard FileManager.default.fileExists(atPath: copy.path), let source = Self.source?.appending(path: id)
             else { continue }
-            if await Self.hash(copy) != records[id]?.hash {
-                edited.insert(id)
-            }
-            if await Self.hash(source) != records[id]?.hash {
-                newer[id] = manifest.version
+            let record = records[id]
+            if Self.newer(manifest.version, than: record?.version ?? "") {
+                offers[id] = .some(manifest.version)
+            } else if await Self.hash(copy) != record?.copy {
+                offers[id] = .some(nil)
+            } else if await Self.hash(source) != record?.source {
+                offers[id] = .some(nil)
             }
         }
-        (self.edited, newer) = (edited, newer)
+        self.offers = offers
     }
 
     /// Waits for the plugin's install, made now when its copy is missing: nil once it is in place, else why not.
@@ -88,13 +100,34 @@ final class DefaultPlugins {
         return FileManager.default.fileExists(atPath: copy.path) ? nil : failures[id] ?? "It is not installed"
     }
 
-    /// Install, Update to Version and Reset to Default: the app's source copied over the plugin's folder, its
-    /// dependencies from its lockfile, then its cards load again. One at a time per plugin.
-    func put(_ id: String) async {
+    /// Update to Version and Reset to Default: an edited copy goes to the Trash, after a question.
+    func reset(_ id: String) async {
+        let copy = PluginInstalls.plugins.appending(path: id), record = Self.read()[id]
+        let edited = await Self.hash(copy) != record?.copy
+        if edited {
+            let alert = NSAlert()
+            alert.messageText = "Replace your edited \(Self.bundled[id]?.name ?? id)?"
+            alert.informativeText = "Your copy goes to the Trash, and Oriel installs its own."
+            alert.addButton(withTitle: "Replace")
+            alert.addButton(withTitle: "Cancel")
+            let answer = if let window = NSApp.keyWindow {
+                await alert.beginSheetModal(for: window)
+            } else {
+                alert.runModal()
+            }
+            guard answer == .alertFirstButtonReturn else { return }
+        }
+        await put(id, trash: edited)
+        await check()
+    }
+
+    /// The app's source copied over the plugin's folder, its dependencies from its lockfile, then its cards load
+    /// again. One at a time per plugin; `trash`: the old copy goes to the Trash, not away.
+    func put(_ id: String, trash: Bool = false) async {
         if let task = tasks[id] {
             return await task.value
         }
-        let task = Task { await copy(id) }
+        let task = Task { await copy(id, trash: trash) }
         tasks[id] = task
         installing.insert(id)
         await task.value
@@ -102,7 +135,7 @@ final class DefaultPlugins {
         installing.remove(id)
     }
 
-    private func copy(_ id: String) async {
+    private func copy(_ id: String, trash: Bool) async {
         guard let source = Self.source?.appending(path: id) else { return }
         failures[id] = nil
         let plugins = PluginInstalls.plugins,
@@ -113,13 +146,15 @@ final class DefaultPlugins {
             try FileManager.default.createDirectory(at: staging, withIntermediateDirectories: true)
             try FileManager.default.copyItem(at: source, to: copy)
             try await PluginPackages.dependencies(copy, exec: localExec.value)
-            let hash = await Self.hash(copy)
+            let hashes = await (Self.hash(source), Self.hash(copy))
             try PluginPackages.place(copy, at: plugins.appending(path: id), keeping: staging)
+            if trash {
+                try? FileManager.default.trashItem(at: staging.appending(path: "old"), resultingItemURL: nil)
+            }
             var records = Self.read()
-            records[id] = Record(hash: hash)
+            records[id] = Record(version: Self.bundled[id]?.version ?? "", source: hashes.0, copy: hashes.1)
             try JSONEncoder().encode(records).write(to: Self.records, options: .atomic)
-            edited.remove(id)
-            newer[id] = nil
+            offers[id] = nil
             // A first install's cards wait for it (`Bridge.prepare`); an update's load the new copy.
             if had {
                 Task { await Plugin.reload(id) }
@@ -130,6 +165,11 @@ final class DefaultPlugins {
             failures[id] = error.localizedDescription.firstLine
             PluginLog.add(id, "install failed: \(error.localizedDescription)")
         }
+    }
+
+    /// A version above another, part by part (`1.10.0` over `1.9.2`).
+    private static func newer(_ version: String, than other: String) -> Bool {
+        version.compare(other, options: .numeric) == .orderedDescending
     }
 
     private static func read() -> [String: Record] {

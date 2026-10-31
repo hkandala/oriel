@@ -96,9 +96,9 @@ private struct PluginRow: View {
                     if row.kind == .bundled {
                         // An edited copy stays the user's until they pick the app's again.
                         let defaults = DefaultPlugins.shared
-                        if let version = defaults.newer[row.id] ?? (defaults.edited.contains(row.id) ? "" : nil) {
-                            Button(version.isEmpty ? "Reset to Default" : "Update to Version \(version)") {
-                                Task { await defaults.put(row.id) }
+                        if let offer = defaults.offers[row.id] {
+                            Button(offer.map { "Update to Version \($0)" } ?? "Reset to Default") {
+                                Task { await defaults.reset(row.id) }
                             }
                             .buttonStyle(.glass).controlSize(.small).padding(.trailing, 4)
                             .accessibilityIdentifier("\(id).reset")

@@ -10,7 +10,10 @@ let (binary, session, out) = (arguments[1], arguments[2], arguments[3])
 let app = Process()
 app.executableURL = URL(fileURLWithPath: binary)
 // Classic: an opaque window, so the desktop does not show in the captures.
-app.arguments = ["-session", session, "-ApplePersistenceIgnoreState", "YES", "-interfaceStyle", "classic"]
+// The tests' config folder and npm's cache: the default plugins never install into the user's ~/.config/oriel.
+app.arguments = ["-session", session, "-ApplePersistenceIgnoreState", "YES", "-interfaceStyle", "classic",
+                 "-configFolder", "/tmp/oriel-e2e-no-config"]
+app.environment = ProcessInfo.processInfo.environment.merging(["npm_config_offline": "true"]) { $1 }
 try app.run()
 let pid = app.processIdentifier
 

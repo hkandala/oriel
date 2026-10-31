@@ -350,8 +350,10 @@ working until this track switches the default plugins to installed packages.
 - **Decisions:** the app carries the default plugins' source (`make web` copies `plugins/<id>` without `node_modules`)
   and installs each into the plugins folder when its copy is missing: a copy, then `npm ci` from its lockfile; its cards
   show "Installing ‹name›…", or "‹name› could not install" with Reload to try again. `.defaults.json` keeps each copy's
-  source hash: a copy the app has another of (a new version, or a repository build with changed source) is replaced
-  when unedited; an edited one shows Update to Version / Reset to Default in the panel. The UI tests use their own
+  version and hashes: an app with a newer version replaces an unedited copy (never an older app, so a Debug and a
+  Release build can share the folder); an edited copy, or other source at the same version, shows Update to Version or
+  Reset to Default in the panel, which asks first and puts an edited copy in the Trash. File Explorer's and Git's card
+  menus now have Reload Plugin and Show Web Inspector too. The UI tests use their own
   config folder (`-configFolder`, also on the helper's `open` launches) and `npm_config_offline` (npm's cache, which
   `make web` fills); `scripts/e2e.sh` removes it first, so each run installs its build's defaults.
 - **Runs:** File Explorer and Git, built by the app from installed copies, match main: Git's parity shots 0 px over
