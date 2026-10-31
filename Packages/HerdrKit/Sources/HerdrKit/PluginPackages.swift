@@ -42,14 +42,17 @@ public enum PluginSource: Equatable, Sendable {
         let name: Substring
         switch self {
         case let .npm(spec):
-            // `@scope/name@range`, `name@range`, or a tarball's path.
-            let bare = spec.dropFirst().split(separator: "@", maxSplits: 1).first.map { spec.prefix(1) + $0 } ?? ""
+            // A tarball's path, `@scope/name@range` or `name@range`.
+            let path = ["/", ".", "~"].contains(spec.prefix(1)) || spec.hasPrefix("file:")
+            let bare = path ? Substring(spec)
+                : spec.dropFirst().split(separator: "@", maxSplits: 1).first.map { spec.prefix(1) + $0 } ?? ""
             name = (bare.split(separator: "/").last ?? "").replacing(/\.(tgz|tar\.gz)$/, with: "")
         case let .git(url, _):
             name = (url.split(separator: "/").last ?? "").replacing(/\.git$/, with: "")
         case .local: return nil
         }
-        return name.isEmpty || name.hasPrefix(".") ? nil : String(name)
+        // The plugins folder's `node_modules` holds the host types package.
+        return name.isEmpty || name.hasPrefix(".") || name == "node_modules" ? nil : String(name)
     }
 }
 
@@ -110,12 +113,26 @@ public enum PluginPackages {
         defer { discard(staged) }
         try await dependencies(staged.folder, exec: exec)
         guard let name = staged.source.folder else { throw HerdrError.failed("A local path is not installed") }
-        let target = plugins.appending(path: name), old = staged.staging.appending(path: "old")
-        if FileManager.default.fileExists(atPath: target.path) {
-            try FileManager.default.moveItem(at: target, to: old)
-        }
-        try FileManager.default.moveItem(at: staged.folder, to: target)
+        let target = plugins.appending(path: name)
+        try place(staged.folder, at: target, keeping: staged.staging)
         return target
+    }
+
+    /// Moves a folder over `target`; the old one waits in `staging` until the move worked, else it goes back.
+    public static func place(_ folder: URL, at target: URL, keeping staging: URL) throws {
+        let files = FileManager.default, old = staging.appending(path: "old"),
+            had = files.fileExists(atPath: target.path)
+        if had {
+            try files.moveItem(at: target, to: old)
+        }
+        do {
+            try files.moveItem(at: folder, to: target)
+        } catch {
+            if had {
+                try? files.moveItem(at: old, to: target)
+            }
+            throw error
+        }
     }
 
     public static func discard(_ staged: Staged) {
@@ -151,6 +168,24 @@ public enum PluginPackages {
         }
         _ = try await exec.checkedOutput(["sh", "-c", #"cd "$1" && shift && exec "$@""#, "sh", folder.path] + argv,
                                          timeout: .seconds(600))
+    }
+
+    /// A build reads the plugin's own files and `node_modules` only (decision 5): esbuild resolves an import from a
+    /// parent's `node_modules` or a `../` path, and would bundle any file of the Mac into a page with no permissions.
+    /// `paths` are relative to the package; a link counts by where it leads (pnpm's lead into the package's own
+    /// `node_modules`).
+    public static func inside(_ package: URL, _ paths: [String]) throws(PluginError) {
+        /// `realpath`, not `resolvingSymlinksInPath`, which drops `/private` only from paths that exist.
+        func real(_ url: URL) -> String? {
+            realpath(url.path, nil).map { path in
+                defer { free(path) }
+                return String(cString: path)
+            }
+        }
+        let root = (real(package) ?? package.path) + "/"
+        if let outside = paths.first(where: { real(package.appending(path: $0))?.hasPrefix(root) != true }) {
+            throw PluginError("outside", "\(outside): imports from outside the package")
+        }
     }
 
     // MARK: settings.json

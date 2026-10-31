@@ -68,8 +68,6 @@ struct OrielApp: App {
             .restorationBehavior(.disabled)
             .commandsRemoved()
             .handlesExternalEvents(matching: [])
-        // Oriel ▸ Settings… (⌘,): the plugins (future-work/plugins).
-        Settings { PluginSettings() }
     }
 }
 
@@ -222,7 +220,7 @@ private struct WindowContent: View {
     @Binding var sidebar: Bool
     @Binding var agents: Bool
     @Binding var sidebarWidth: Double
-    /// The one floating panel open: the workspace menu, the palette, Open Session or Keyboard Shortcuts.
+    /// The one floating panel open: the workspace menu, the palette, Open Session, Keyboard Shortcuts or Plugins.
     @State private var panel: Panel?
     @State private var workspaceButtonX: CGFloat = 0
     @State private var fullScreen = false
@@ -239,7 +237,7 @@ private struct WindowContent: View {
         let look = Look(style: style, dark: colorScheme == .dark, contrast: colorSchemeContrast == .increased)
         let commands = CommandList(pages: pages, palette: open(.palette), sidebar: $sidebar, agents: $agents,
                                    openSession: open(.openSession), shortcuts: open(.shortcuts),
-                                   settings: settings)
+                                   plugins: open(.plugins), settings: settings)
         // The strip's and the sidebar's 4 pt top room (for the cards' strokes) lies under the title row, so the
         // cards start at its bottom edge, as in Rex; the row stays on top for its clicks and window drags.
         VStack(spacing: -4) {
@@ -299,6 +297,9 @@ private struct WindowContent: View {
                 Palette(pages: pages, page: page, commands: commands, open: open(.palette), height: height)
                     .padding(.top, 96).floatingPanel(open: open(.palette), alignment: .top)
             }
+            if panel == .plugins {
+                PluginsPanel().padding(.top, 96).floatingPanel(open: open(.plugins), alignment: .top)
+            }
             if panel == .shortcuts {
                 Shortcuts(commands: commands.all).floatingPanel(open: open(.shortcuts), alignment: .center)
             }
@@ -356,7 +357,7 @@ private struct WindowContent: View {
     }
 
     enum Panel {
-        case workspaces, palette, openSession, shortcuts
+        case workspaces, palette, openSession, shortcuts, plugins
     }
 
     /// Whether this panel is the open one; opening it closes the other.

@@ -4,7 +4,8 @@ import Testing
 
 /// npm never reaches the network here (`npm_config_offline`), and git none of the user's config.
 private let offline = ProcessExec(localExec.environment.merging([
-    "npm_config_offline": "true", "npm_config_cache": URL.temporaryDirectory.appending(path: "oriel-npm-cache").path,
+    "npm_config_offline": "true", "npm_config_userconfig": "/dev/null",
+    "npm_config_cache": URL.temporaryDirectory.appending(path: "oriel-npm-cache").path,
     "GIT_CONFIG_GLOBAL": "/dev/null", "GIT_CONFIG_NOSYSTEM": "1",
 ]) { $1 }, herdr: nil, asked: .now)
 
@@ -25,6 +26,8 @@ private func package(_ folder: URL, version: String, extra: [String: Any] = [:])
     #expect(PluginSource("npm:csv-table@^1")?.folder == "csv-table")
     #expect(PluginSource("npm:csv-table")?.folder == "csv-table")
     #expect(PluginSource("npm:/tmp/csv-table-0.1.0.tgz")?.folder == "csv-table-0.1.0")
+    #expect(PluginSource("npm:/Users/me/@work/csv.tgz")?.folder == "csv")
+    #expect(PluginSource("git:github.com/x/node_modules")?.folder == nil)
     #expect(PluginSource("git:github.com/x/csv-table@v1") == .git(url: "https://github.com/x/csv-table", ref: "v1"))
     #expect(PluginSource("git:github.com/x/csv-table.git")?.folder == "csv-table")
     #expect(PluginSource("git:git@github.com:x/csv-table") == .git(url: "git@github.com:x/csv-table", ref: nil))
@@ -106,6 +109,23 @@ private func package(_ folder: URL, version: String, extra: [String: Any] = [:])
         try await PluginPackages.fetch(#require(PluginSource("git:\(repo.path)")), into: plugins, exec: offline)
     }
     #expect(try FileManager.default.contentsOfDirectory(atPath: plugins.path).isEmpty)
+}
+
+@Test func `a build may read only the package's own files, links included`() throws {
+    let scratch = try scratchFolder()
+    defer { try? FileManager.default.removeItem(at: scratch) }
+    let package = scratch.appending(path: "plugin"), modules = package.appending(path: "node_modules")
+    try FileManager.default.createDirectory(at: modules.appending(path: ".pnpm/dep"), withIntermediateDirectories: true)
+    try FileManager.default.createSymbolicLink(at: modules.appending(path: "dep"),
+                                               withDestinationURL: modules.appending(path: ".pnpm/dep"))
+    try FileManager.default.createSymbolicLink(at: package.appending(path: "keys"), withDestinationURL: scratch)
+    for file in ["main.ts", "node_modules/.pnpm/dep/index.js", "../secret.json"] {
+        try Data().write(to: package.appending(path: file))
+    }
+    try PluginPackages.inside(package, ["main.ts", "node_modules/dep/index.js"])
+    for outside in ["../secret.json", "keys/secret.json", "../missing.js"] {
+        #expect(throws: PluginError.self, "\(outside)") { try PluginPackages.inside(package, [outside]) }
+    }
 }
 
 @Test func `the settings list keeps the file's other keys and each source once`() throws {

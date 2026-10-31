@@ -1,6 +1,7 @@
 import CryptoKit
 import Foundation
 import HerdrKit
+import WebKit
 
 /// Builds each plugin package's entry with the esbuild the app ships (`Contents/Helpers/esbuild`, as pi ships jiti),
 /// from the package's own `node_modules`, into `~/Library/Caches/dev.hkandala.oriel/plugins/<id>/<hash>`. A build is
@@ -9,9 +10,12 @@ import HerdrKit
 final class PluginBuilds {
     static let shared = PluginBuilds()
 
-    /// Each plugin's current build, which the scheme serves (`Registry.files`).
+    /// Each plugin's current build, which the scheme serves (`Registry.files`), and the one before it: a page that
+    /// kept running over a rebuild (Keep Editing) still loads its later chunks from it.
     private(set) var folders: [String: URL] = [:]
-    @ObservationIgnored private var running: [String: Task<Made, Never>] = [:]
+    private(set) var previous: [String: URL] = [:]
+    /// Each plugin's last build: the next one waits for it, so two never write one plugin's folders at once.
+    @ObservationIgnored private var running: [String: Task<String?, Never>] = [:]
     /// A build's folder, or esbuild's errors; `built` false for a build found in the cache.
     private struct Made {
         let folder: URL?, errors: String?, built: Bool
@@ -20,40 +24,46 @@ final class PluginBuilds {
     /// Makes the plugin's current build when its inputs changed, or always (`again`). Nil when it passed; esbuild's
     /// errors when it failed, which also go to the plugin's log. A failed build leaves the last one current.
     func build(_ manifest: PluginManifest, again: Bool = false) async -> String? {
-        let id = manifest.id
-        if let task = running[id] {
-            let errors = await task.value.errors
-            guard again else { return errors }
+        let id = manifest.id, last = running[id]
+        let task = Task { () -> String? in
+            _ = await last?.value
+            guard let package = Registry.package(id), manifest.entry != nil else {
+                return "\(manifest.name.shown) has no package to build"
+            }
+            let start = ContinuousClock.now, keep = folders[id]
+            let made = await Task.detached {
+                await Self.make(manifest, package, again: again, keep: keep)
+            }.value
+            if let folder = made.folder, folder != folders[id] {
+                previous[id] = folders[id]
+                folders[id] = folder
+            }
+            if let errors = made.errors {
+                PluginLog.add(id, "build failed:\n\(errors)")
+            } else if made.built {
+                PluginLog.add(
+                    id,
+                    "built in \((ContinuousClock.now - start).formatted(.units(allowed: [.milliseconds])))",
+                )
+            }
+            return made.errors
         }
-        guard let package = Registry.package(id), let entry = manifest.entry else {
-            return "\(manifest.name) has no package to build"
-        }
-        let start = ContinuousClock.now
-        let task = Task.detached { await Self.make(id, package, entry, manifest.assets, again: again) }
         running[id] = task
-        let made = await task.value, (folder, errors) = (made.folder, made.errors)
-        if running[id] == task {
-            running[id] = nil
-        }
-        if let folder {
-            folders[id] = folder
-        }
-        if let errors {
-            PluginLog.add(id, "build failed:\n\(errors)")
-        } else if made.built {
-            PluginLog.add(id, "built in \((ContinuousClock.now - start).formatted(.units(allowed: [.milliseconds])))")
-        }
-        return errors
+        return await task.value
     }
 
-    /// The host types package `@oriel/plugin-api` in the plugins folder's `node_modules`, where `tsc` finds it from
-    /// any plugin in the folder (a plugin lists it in `peerDependencies` and never bundles it). At launch, when the
-    /// app's differs.
+    /// At launch: the host types package `@oriel/plugin-api` in the plugins folder's `node_modules`, where `tsc`
+    /// finds it from any plugin in the folder (a plugin lists it in `peerDependencies` and never bundles it), when the
+    /// app's differs; and the staging folders of installs a quit cut short go.
     static func writeTypes() {
         guard let source = Registry.folder?.appending(path: "plugin-api") else { return }
-        let target = Registry.config.appending(path: "plugins/node_modules/@oriel/plugin-api")
+        let plugins = Registry.config.appending(path: "plugins")
+        let target = plugins.appending(path: "node_modules/@oriel/plugin-api")
         Task.detached {
             let files = FileManager.default
+            for name in (try? files.contentsOfDirectory(atPath: plugins.path)) ?? [] where name.hasPrefix(".install-") {
+                try? files.removeItem(at: plugins.appending(path: name))
+            }
             for name in ["package.json", "oriel.d.ts"] {
                 let data = try? Data(contentsOf: source.appending(path: name))
                 guard let data, data != (try? Data(contentsOf: target.appending(path: name))) else { continue }
@@ -73,37 +83,45 @@ final class PluginBuilds {
         + ["png", "jpg", "jpeg", "gif", "webp", "svg", "woff", "woff2", "ttf", "otf", "wasm"]
         .map { "--loader:.\($0)=file" }
 
-    private nonisolated static func make(_ id: String, _ package: URL, _ entry: String, _ assets: [String],
-                                         again: Bool) async -> Made
+    /// One build, run after the plugin's last one ended. `keep`: the current build, which stays as the previous one.
+    private nonisolated static func make(_ manifest: PluginManifest, _ package: URL, again: Bool,
+                                         keep: URL?) async -> Made
     {
-        let files = FileManager.default, root = cache.appending(path: id),
+        let files = FileManager.default, root = cache.appending(path: manifest.id),
             folder = root.appending(path: inputs(package))
         if !again, files.fileExists(atPath: folder.path) {
             return Made(folder: folder, errors: nil, built: false)
         }
         // Into a folder of its own, then in place: a card never loads half a build.
-        let temporary = root.appending(path: ".\(UUID().uuidString)")
-        let (status, output) = await run(flags + [entry, "--outdir=\(temporary.path)"], in: package)
+        let temporary = root.appending(path: ".\(UUID().uuidString)"), meta = root.appending(path: ".meta.json")
+        defer { try? files.removeItem(at: temporary) }
+        let (status, output) = await run(flags + [manifest.entry ?? "", "--outdir=\(temporary.path)",
+                                                  "--metafile=\(meta.path)"], in: package)
         guard status == 0 else {
-            try? files.removeItem(at: temporary)
             let text = output.trimmingCharacters(in: .whitespacesAndNewlines)
             return Made(folder: nil, errors: text.isEmpty ? "esbuild failed (\(status))" : text, built: true)
         }
         do {
-            try copy(assets, from: package, to: temporary)
+            try PluginPackages.inside(package, read(meta))
+            try copy(manifest.assets, from: package, to: temporary)
             try? files.removeItem(at: folder)
             try files.moveItem(at: temporary, to: folder)
         } catch {
-            try? files.removeItem(at: temporary)
-            return Made(folder: nil, errors: error.localizedDescription, built: true)
+            return Made(folder: nil, errors: (error as? PluginError)?.text ?? error.localizedDescription, built: true)
         }
-        // The plugin's older builds go; a card still on one loads the new one at its next load.
+        // The plugin's older builds go, but the one cards may still run.
         for old in (try? files.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)) ?? []
-            where old.lastPathComponent != folder.lastPathComponent
+            where ![folder.lastPathComponent, keep?.lastPathComponent].contains(old.lastPathComponent)
         {
             try? files.removeItem(at: old)
         }
         return Made(folder: folder, errors: nil, built: true)
+    }
+
+    /// The files esbuild read, from its metafile, relative to the package.
+    private nonisolated static func read(_ meta: URL) throws -> [String] {
+        let json = try JSONSerialization.jsonObject(with: Data(contentsOf: meta)) as? [String: Any]
+        return ((json?["inputs"] as? [String: Any]) ?? [:]).keys.sorted()
     }
 
     /// The manifest's `assets` beside the build, flat: a `*` in a path's last part matches as a shell's does.
@@ -113,8 +131,10 @@ final class PluginBuilds {
             let folder = path.deletingLastPathComponent()
             let names = pattern.contains("*") ? try FileManager.default.contentsOfDirectory(atPath: folder.path)
                 .filter { fnmatch(pattern, $0, 0) == 0 } : [pattern]
-            for name in names {
-                try FileManager.default.copyItem(at: folder.appending(path: name), to: build.appending(path: name))
+            let files = names.map { folder.appending(path: $0) }
+            try PluginPackages.inside(package, files.map { String($0.path.dropFirst(package.path.count + 1)) })
+            for file in files {
+                try FileManager.default.copyItem(at: file, to: build.appending(path: file.lastPathComponent))
             }
         }
     }
@@ -179,6 +199,8 @@ enum PluginLog {
     private nonisolated static let queue = DispatchQueue(label: "dev.hkandala.oriel.plugin-log")
 
     nonisolated static func add(_ id: String, _ text: String) {
+        // A page's line breaks stay indented under its line, so they never read as the app's own lines.
+        let text = text.replacingOccurrences(of: "\n", with: "\n  ")
         let line = Data("\(Date.now.ISO8601Format(.iso8601(timeZone: .current))) \(text)\n".utf8)
         queue.async {
             let file = folder.appending(path: "\(id).log"), files = FileManager.default
@@ -196,6 +218,29 @@ enum PluginLog {
     }
 }
 
+extension WebCard {
+    /// The page again, from its start: Reload after it stopped, Reload Plugin. A plugin's page once it is trusted and
+    /// built.
+    func reload() {
+        bridge?.failure = nil
+        ready = false
+        guard let bridge else {
+            script()
+            view.load(URLRequest(url: PluginScheme.url(plugin, page)))
+            return
+        }
+        loads += 1
+        let load = loads
+        Task { [weak self] in
+            // Only the last reload loads: Allow and a Reload Plugin may overlap.
+            guard await bridge.prepare(), let self, load == loads else { return }
+            bridge.reset()
+            script()
+            view.load(URLRequest(url: PluginScheme.url(plugin, page)))
+        }
+    }
+}
+
 extension Bridge {
     /// Before the page loads: the user trusts the plugin (else the card shows the trust prompt) and its build passed
     /// (else the card shows the errors with Reload). True when the page can load.
@@ -205,8 +250,10 @@ extension Bridge {
             plugin.web.ready = true
             return false
         }
+        // ponytail: the default plugins' pages are the app's own build until they are installed packages.
+        guard !Registry.defaults.contains(plugin.manifest.id) else { return true }
         if let errors = await PluginBuilds.shared.build(plugin.manifest) {
-            failure = ("\(plugin.manifest.name) did not build", errors)
+            failure = ("\(plugin.manifest.name.shown) did not build", errors)
             plugin.web.ready = true
             return false
         }
@@ -222,26 +269,31 @@ extension Plugin {
 
     /// Reload Plugin: its package read again, its build made again, then each of its cards' pages loaded again with
     /// their state and header values. A card whose manifest changed is made again from the new one (its header, and
-    /// its trust when the permissions grew). A failed build keeps the pages and says so in each card; a card with
-    /// unsaved edits asks first.
-    static func reload(_ id: String) async {
+    /// its trust when the permissions grew). A failed build keeps the pages and says so in each card. Unsaved edits
+    /// ask first, on the first card that has them.
+    /// ponytail: Discard there drops every card's edits, and a card made again starts from its state file (up to
+    /// 500 ms behind); ask per card and hand the state over if that bites.
+    static func reload(_ id: String, asked: Bool = false) async {
+        if !asked, let dirty = cards.first(where: { $0.manifest.id == id && $0.dirty }) {
+            dirty.leave { _ in Task { await reload(id, asked: true) } }
+            return
+        }
         Registry.reload()
         guard let manifest = Registry.plugin(id), manifest.entry != nil, !Registry.defaults.contains(id) else { return }
         let cards = cards.filter { $0.manifest == manifest && $0.web.page == .main }
-        if let errors = await PluginBuilds.shared.build(manifest, again: true) {
-            for card in cards {
-                if card.web.bridge?.failure != nil || !card.web.ready {
-                    // It never ran: it shows the new errors.
-                    card.web.reload()
-                } else {
-                    card.web.toast = Toast(text: "\(manifest.name) did not build: \(errors.firstLine)", other: nil,
-                                           main: ("Try Again", { Task { await reload(id) } }))
-                }
-            }
+        guard let errors = await PluginBuilds.shared.build(manifest, again: true) else {
+            cards.forEach { $0.web.reload() }
             return
         }
         for card in cards {
-            card.leave { $0.web.reload() }
+            if card.web.bridge?.failure != nil || !card.web.ready {
+                // It never ran: it shows the new errors.
+                card.web.bridge?.failure = ("\(manifest.name.shown) did not build", errors)
+                card.web.ready = true
+            } else {
+                card.web.toast = Toast(text: "\(manifest.name.shown) did not build: \(errors.firstLine)", other: nil,
+                                       main: ("Try Again", { Task { await reload(id) } }))
+            }
         }
     }
 

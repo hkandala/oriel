@@ -107,8 +107,7 @@ enum Registry {
         // A settings path into the plugins folder is the same package.
         let kept = found.filter { folders.insert($0.url.standardizedFileURL.path).inserted }.filter { manifest, url in
             if let first = seen[manifest.id] {
-                let text = "\(url.path): the id \(manifest.id) is taken by \(first)"
-                log.error("\(text, privacy: .public)")
+                note(url, "\(url.path): the id \(manifest.id) is taken by \(first)")
                 return false
             }
             seen[manifest.id] = url.path
@@ -134,32 +133,33 @@ enum Registry {
         let file = folder.appending(path: "package.json")
         guard let data = try? Data(contentsOf: file) else {
             if named {
-                log.error("\(file.path, privacy: .public): no package.json")
+                note(folder, "\(file.path): no package.json")
             }
             return nil
         }
         do {
             return try (PluginManifest(package: data), folder)
         } catch {
-            log.error("\(file.path, privacy: .public): \(error.text, privacy: .public)")
+            note(folder, "\(file.path): \(error.text)")
             return nil
         }
     }
 
-    /// The local paths in `settings.json`'s `packages`, from its folder or the home folder; npm and git sources install
-    /// into the plugins folder.
+    /// A package left out: in the unified log, and in the log file named after its folder (it may have no id).
+    private static func note(_ folder: URL, _ text: String) {
+        log.error("\(text, privacy: .public)")
+        PluginLog.add(folder.lastPathComponent, text)
+    }
+
+    /// The local paths in `settings.json`'s `packages`; npm and git sources install into the plugins folder.
     private static func paths() -> [URL] {
-        let settings = config.appending(path: "settings.json")
-        guard let data = try? Data(contentsOf: settings),
-              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return [] }
-        // A string, or an object with its `source`, as pi's.
-        let sources = (json["packages"] as? [Any] ?? []).compactMap {
-            $0 as? String ?? ($0 as? [String: Any])?["source"] as? String
-        }
-        return sources.filter { ["/", "~", "."].contains($0.prefix(1)) }
-            .map { path in
-                let path = (path as NSString).expandingTildeInPath
-                return (path.hasPrefix("/") ? URL(filePath: path) : config.appending(path: path)).standardizedFileURL
-            }
+        PluginPackages.sources(config.appending(path: "settings.json"))
+            .filter { ["/", "~", "."].contains($0.prefix(1)) }.map(local)
+    }
+
+    /// A local path source's folder, from the settings' folder or the home folder.
+    static func local(_ path: String) -> URL {
+        let path = (path as NSString).expandingTildeInPath
+        return (path.hasPrefix("/") ? URL(filePath: path) : config.appending(path: path)).standardizedFileURL
     }
 }

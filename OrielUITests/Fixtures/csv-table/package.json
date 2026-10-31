@@ -6,7 +6,7 @@
   "peerDependencies": { "@oriel/plugin-api": "*" },
   "peerDependenciesMeta": { "@oriel/plugin-api": { "optional": true } },
   "oriel": {
-    "id": "csv-table",
+    "id": "oriel-e2e-csv-table",
     "name": "CSV Table",
     "api": 1,
     "entry": "main.ts",

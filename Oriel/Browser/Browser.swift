@@ -276,10 +276,6 @@ final class Browser: NSObject {
         }
     }
 
-    func showInspector() {
-        view.showInspector()
-    }
-
     /// A save still pending would bring back the state file a close removed.
     isolated deinit {
         saving?.cancel()

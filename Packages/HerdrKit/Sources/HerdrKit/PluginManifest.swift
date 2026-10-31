@@ -150,6 +150,11 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
         (header, history, commands, handles, permissions, assets) = ([], false, [], [], [], [])
     }
 
+    /// The entry's build's name, without `.js`: esbuild names it after the entry's file, in the build's top folder.
+    public var entryName: String {
+        (((entry ?? "") as NSString).lastPathComponent as NSString).deletingPathExtension
+    }
+
     /// A package's `package.json`; a missing field or a wrong value throws the field's name and what is wrong.
     public init(package data: Data) throws(ManifestError) {
         do {

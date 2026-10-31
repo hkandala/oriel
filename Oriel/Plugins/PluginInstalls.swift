@@ -1,7 +1,7 @@
 import AppKit
 import HerdrKit
 
-/// Settings › Plugins' work (future-work/plugins, decision 5): install, update and remove of `npm:`, `git:` and local
+/// The Plugins panel's work (future-work/plugins, decision 5): install, update and remove of `npm:`, `git:` and local
 /// path sources, the `packages` list of `settings.json`, and the trust prompt before a package's dependencies install.
 @MainActor @Observable
 final class PluginInstalls {
@@ -10,7 +10,7 @@ final class PluginInstalls {
     /// What a row is doing (`Installing…`), by its id: a plugin's id, or a source not installed yet.
     private(set) var busy: [String: String] = [:]
     /// The last install, update or remove that failed: its text, and the same again.
-    var failure: (text: String, retry: () -> Void)?
+    var failure: (text: String, retry: (() -> Void)?)?
 
     static var settings: URL {
         Registry.config.appending(path: "settings.json")
@@ -37,7 +37,7 @@ final class PluginInstalls {
             }
             return InstalledPlugin(id: manifest.id, manifest: manifest, kind: kind)
         }
-        let present = Set(plugins.compactMap { Registry.package($0.id)?.lastPathComponent })
+        let present = Set((try? FileManager.default.contentsOfDirectory(atPath: Self.plugins.path)) ?? [])
         let missing = installed.filter { !present.contains($0.key) }.sorted { $0.key < $1.key }
         return plugins + missing.map { InstalledPlugin(id: $0.value, manifest: nil, kind: .installed($0.value)) }
     }
@@ -47,13 +47,13 @@ final class PluginInstalls {
     func install(_ text: String) async {
         let text = text.trimmingCharacters(in: .whitespaces)
         guard let source = PluginSource(text) else {
-            failure = ("Enter npm:<package>, git:<repository> or a folder’s path", {})
+            failure = ("Enter npm:<package>, git:<repository> or a folder’s path", nil)
             return
         }
         if let folder = source.folder, !PluginPackages.sources(Self.settings).contains(text),
            FileManager.default.fileExists(atPath: Self.plugins.appending(path: folder).path)
         {
-            failure = ("A plugin folder named \(folder) is already installed", {})
+            failure = ("A plugin folder named \(folder) is already installed", nil)
             return
         }
         await run(text, "Installing…") {
@@ -78,24 +78,17 @@ final class PluginInstalls {
     /// folder stays where it is.
     func remove(_ row: InstalledPlugin) async {
         guard row.kind != .bundled else { return }
-        let name = row.manifest?.name ?? row.id
-        let local = if case .local = row.kind {
-            true
-        } else {
-            false
+        var text = "Its folder in the plugins folder goes to the Trash."
+        if case .local = row.kind {
+            text = "Its folder stays where it is; Oriel stops loading it."
         }
-        guard await ask("Remove “\(name.shown)”?", local ? "Its folder stays where it is; Oriel stops loading it."
-            : "Its folder in the plugins folder goes to the Trash.", button: "Remove") else { return }
+        guard await ask("Remove “\((row.manifest?.name ?? row.id).shown)”?", text, button: "Remove") else { return }
         await run(row.id, "Removing…") {
             if case let .installed(text) = row.kind {
                 try PluginPackages.list(text, in: Self.settings, add: false)
             }
             if case let .local(path) = row.kind {
-                let listed = PluginPackages.sources(Self.settings).first { source in
-                    let expanded = (source as NSString).expandingTildeInPath
-                    return (expanded.hasPrefix("/") ? URL(filePath: expanded)
-                        : Registry.config.appending(path: expanded)).standardizedFileURL.path == path
-                }
+                let listed = PluginPackages.sources(Self.settings).first { Registry.local($0).path == path }
                 if let listed {
                     try PluginPackages.list(listed, in: Self.settings, add: false)
                 }
@@ -103,41 +96,54 @@ final class PluginInstalls {
                 try FileManager.default.trashItem(at: folder, resultingItemURL: nil)
             }
             PluginTrust.shared.forget(row.id)
-            Registry.reload()
+            try? FileManager.default.removeItem(at: PluginBuilds.cache.appending(path: row.id))
         }
     }
 
     private func fetch(_ source: PluginSource, _ text: String) async throws {
         let exec = await localExec.value
         let staged = try await PluginPackages.fetch(source, into: Self.plugins, exec: exec)
-        guard await trusts(staged.manifest, from: text) else {
+        do {
+            try free(staged.manifest.id, for: Self.plugins.appending(path: source.folder ?? ""))
+            guard await trusts(staged.manifest, from: text) else { return PluginPackages.discard(staged) }
+            _ = try await PluginPackages.finish(staged, into: Self.plugins, exec: exec)
+        } catch {
             PluginPackages.discard(staged)
-            return
+            throw error
         }
-        _ = try await PluginPackages.finish(staged, into: Self.plugins, exec: exec)
-        try PluginPackages.list(text, in: Self.settings, add: true)
-        await Plugin.reload(staged.manifest.id)
+        try installed(staged.manifest, text)
     }
 
     private func list(local path: String, _ text: String) async throws {
-        let expanded = (path as NSString).expandingTildeInPath
-        let folder = expanded.hasPrefix("/") ? URL(filePath: expanded) : Registry.config.appending(path: expanded)
+        let folder = Registry.local(path)
         let manifest = try PluginManifest(package: Data(contentsOf: folder.appending(path: "package.json")))
+        try free(manifest.id, for: folder)
         guard await trusts(manifest, from: text) else { return }
-        try PluginPackages.list(text, in: Self.settings, add: true)
-        await Plugin.reload(manifest.id)
+        try installed(manifest, text)
     }
 
-    /// The trust prompt at install: the source and what the plugin can do. Kept on Install; not asked again while
-    /// the permissions stay within what was allowed.
+    /// An id the app or another folder has would install a package the registry leaves out.
+    private func free(_ id: String, for folder: URL) throws {
+        if let other = Registry.package(id), other.standardizedFileURL.path != folder.standardizedFileURL.path {
+            throw HerdrError.failed("The id \(id) is taken by \((other.path as NSString).abbreviatingWithTildeInPath)")
+        }
+    }
+
+    /// Listed and trusted once it is in place, then its cards load again.
+    private func installed(_ manifest: PluginManifest, _ source: String) throws {
+        try PluginPackages.list(source, in: Self.settings, add: true)
+        PluginTrust.shared.allow(manifest)
+        Task { await Plugin.reload(manifest.id) }
+    }
+
+    /// The trust prompt at install: the source and what the plugin can do. A new source always asks; an update only
+    /// when its permissions grew.
     private func trusts(_ manifest: PluginManifest, from source: String) async -> Bool {
-        guard !PluginTrust.shared.allows(manifest) else { return true }
+        let new = !PluginPackages.sources(Self.settings).contains(source)
+        guard new || !PluginTrust.shared.allows(manifest) else { return true }
         let text = ["\(manifest.id) \(manifest.version.shown) from \(source)", manifest.description.shown,
                     PluginTrust.words(manifest).joined(separator: " ")].filter { !$0.isEmpty }
-        guard await ask("Trust “\(manifest.name.shown)”?", text.joined(separator: "\n\n"), button: "Install")
-        else { return false }
-        PluginTrust.shared.allow(manifest)
-        return true
+        return await ask("Trust “\(manifest.name.shown)”?", text.joined(separator: "\n\n"), button: "Install")
     }
 
     private func ask(_ title: String, _ text: String, button: String) async -> Bool {
@@ -162,6 +168,9 @@ final class PluginInstalls {
         } catch {
             let text = (error as? ManifestError).map { "package.json: \($0.text)" } ?? error.localizedDescription
             failure = (text.firstLine, { Task { await self.run(id, doing, body) } })
+            if Registry.plugin(id) != nil {
+                PluginLog.add(id, "\(doing) failed: \(text)")
+            }
         }
     }
 }

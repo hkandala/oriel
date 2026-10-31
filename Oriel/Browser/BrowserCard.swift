@@ -29,7 +29,7 @@ extension CommandList {
                     keywords: "address url browser", enabled: browser != nil) { browser?.wantsAddress = true },
             Command(section: .edit, title: "Show Web Inspector", key: .init("i", modifiers: [.command, .option]),
                     symbol: "hammer", keywords: "developer tools devtools browser",
-                    enabled: browser?.loaded == true) { browser?.showInspector() },
+                    enabled: browser?.loaded == true) { browser?.view.showInspector() },
         ]
     }
 }
@@ -204,7 +204,7 @@ struct BrowserToolbar: View {
             .foregroundStyle(look.paneButton)
             address(id)
             IconButton(symbol: "hammer", help: "Web Inspector", key: .init("i", modifiers: [.command, .option]),
-                       size: 22, action: browser.showInspector)
+                       size: 22, action: browser.view.showInspector)
                 .disabled(!browser.loaded)
                 .foregroundStyle(look.paneButton)
                 .accessibilityIdentifier("\(id).inspector")

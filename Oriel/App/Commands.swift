@@ -176,6 +176,8 @@ struct AppSettings: DynamicProperty {
 struct Command {
     /// Its group in the menu bar, divided from the others; in the menu bar's order, which the palette follows too.
     enum Section: CaseIterable {
+        /// The app menu, after About.
+        case app
         case file, close, edit, view
         /// View ▸ Pane's setting, first.
         case paneSetting
@@ -196,7 +198,7 @@ struct Command {
             case .tabSteps, .tabs: .tabs
             case .workspaceSteps, .workspaces: .workspaces
             case .pages, .sessions: .sessions
-            case .file, .close, .view, .size, .palette, .help: .view
+            case .app, .file, .close, .view, .size, .palette, .help: .view
             }
         }
     }
@@ -249,15 +251,12 @@ struct Command {
 struct AppCommands: Commands {
     @FocusedValue(\.commands) private var commands
     @Environment(\.openWindow) private var openWindow
-    @Environment(\.openSettings) private var openSettings
     private var settings = AppSettings()
 
     var body: some Commands {
         // Every main window opens through it. `_ =` is no statement in a builder.
         // swiftlint:disable:next redundant_discardable_let
         let _ = (WindowPages.openWindow = openWindow)
-        // swiftlint:disable:next redundant_discardable_let
-        let _ = (CommandList.openSettings = openSettings)
         // A key runs the key window's command for it, whichever window's list the menu bar holds; behind a sheet,
         // none. With no window: New Window and the settings.
         let list = (commands?.menu ?? CommandList(settings: settings).menuBarList).map { command in
@@ -270,10 +269,14 @@ struct AppCommands: Commands {
                         command.action()
                     }
                 }
+            } else if command.section == .app {
+                // The app menu reads no window's list as it opens (it showed the windowless one): the key window's.
+                keyed.action = { CommandList.keyWindow?.first { $0.title == command.title }?.action() }
             }
             return keyed
         }
         CommandGroup(replacing: .appInfo) { Button("About Oriel") { openWindow(id: "about") } }
+        CommandGroup(after: .appInfo) { items(list, .app) }
         CommandGroup(replacing: .newItem) { items(list, .file) }
         // ⌘W closes the keyboard card, ⇧⌘W the tab, ⌃⌘W the workspace, ⌥⌘W detaches the session (design: keyboard).
         CommandGroup(replacing: .saveItem) { items(list, .close) }
