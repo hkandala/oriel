@@ -245,3 +245,30 @@ working until this track switches the default plugins to installed packages.
 - **For the docs pass:** the trust prompt's words for `git` must say it can commit, pull and push.
 - **For the user:** nothing changes for File Explorer and Git. A plugin package with a `.js` entry in
   `~/.config/oriel/plugins/` now loads in its card and can call the whole API.
+
+### Track D (File Explorer on the API)
+
+- **Decisions:** `plugins/explorer` is a package with its own `node_modules` (CodeMirror, `@pierre/trees`,
+  markdown-it, pdf.js) and lockfile; `make web` runs `npm ci` there, checks it with `tsc` against
+  `@oriel/plugin-api` (a link `plugins/node_modules/@oriel/plugin-api` to `web/oriel`, as track E) and bundles
+  `main.ts` with esbuild into `.build/web/explorer`. `card.css` is the app's base for every plugin page
+  (`web/oriel/card.css`); the explorer's own CSS is imported by `main.ts` (a dynamic import's CSS gets no link),
+  scoped by `data-place`.
+- **Decisions:** `main.ts` routes the four places, each a module loaded with `import()`. A move draws the new place
+  in a hidden root over the old one and swaps them once it drew, so the old frame stays until then; the same place
+  with a landing only lands. Each place ends its handlers, watches and views on leaving (`keep`). Row 2 is the
+  manifest's (every place control `hidden` until the page shows its own); Edit Mode is a manifest command (⌘E).
+- **Decisions:** the app still classifies an explorer's place from the label (`ExplorerPlace`, with `UTType`) for the
+  tab icon, the page id (`files/file/preview/markdown.<pane>.page`, so no test id changed) and which places take ⌘S
+  and ⌘F. The page has no file types: it routes by extension lists, and File shows the info view for anything that
+  is not UTF-8. Show in File Explorer's "tree it came from" is the page's own list of trees shown.
+- **Fix:** a header text takes its whole width before a spacer (`layoutPriority`): the jump bar and Preview's path
+  were cut at half the row. A card's move drops the old place's toast, as a page load did.
+- **Fix:** a PDF changed on disk redraws: the old page called `PDFDocumentProxy.destroy`, which pdf.js 6 lacks, and
+  stopped there; the loading task's `destroy` ends the document and its worker.
+- **Changes for approval** (parity screenshots in `/tmp/oriel-shots/47d`, everything else pixel-equal): a Markdown
+  card no longer takes the keyboard as it loads (main's `article.focus()` made it the keyboard card); Collapse All is
+  in the card buttons' color, as the design says (main drew it in the text color); Edit Mode is in the View menu only
+  while a File Explorer card has the keyboard, disabled outside Markdown; a root inside a repository (not its root)
+  dims ignored files and its filter lists git's files (the API's `files.list` and `files.paths`); a remote Choose
+  Folder… with a bad path does nothing instead of a notice.
