@@ -10,6 +10,11 @@ import WebKit
 @MainActor @Observable
 final class WebCard {
     let kind: PluginKind
+    /// The page the argument picks.
+    var page: PluginPage {
+        PluginPage(kind, arg)
+    }
+
     /// The label's argument; a new one (a rename from elsewhere, a diff's source) loads the page again with it.
     var arg: String {
         didSet {
@@ -19,7 +24,7 @@ final class WebCard {
             toast = nil
             if loaded {
                 script()
-                view.reload()
+                view.load(URLRequest(url: PluginScheme.url(page)))
             }
         }
     }
@@ -50,7 +55,7 @@ final class WebCard {
     /// A File card's jump bar: the scopes around the caret (`file.ts`).
     private(set) var symbol = ""
     /// A PDF preview's `3 of 12`.
-    private(set) var page = ""
+    private(set) var pdfPage = ""
     /// The file's hash as last read or saved, which a save checks (`Document.swift`).
     @ObservationIgnored var hash: String?
     /// A save is writing: its own change on disk is no reload.
@@ -85,7 +90,7 @@ final class WebCard {
                                      in: nil, in: .page)
         } else {
             loaded = true
-            view.load(URLRequest(url: PluginScheme.page(kind)))
+            view.load(URLRequest(url: PluginScheme.url(page)))
         }
     }
 
@@ -117,7 +122,7 @@ final class WebCard {
             // A page loaded again, maybe for another file: its reports come again.
             dirty = false
             symbol = ""
-            page = ""
+            pdfPage = ""
             return await read()
         case "save":
             // Only a file read: a nil hash would overwrite whatever is on disk. One save at a time: a second would
@@ -131,8 +136,7 @@ final class WebCard {
         case "open":
             // No kind: a file, opened with its kind.
             guard let arg = message["arg"] as? String else { return (nil, "No path") }
-            open?((message["kind"] as? String).flatMap(PluginKind.init) ?? PluginKind.opening(arg), arg,
-                  message["at"] as? String)
+            open?((message["kind"] as? String).flatMap(PluginKind.init) ?? .explorer, arg, message["at"] as? String)
         default:
             return await files(message)
         }
@@ -145,7 +149,7 @@ final class WebCard {
         case "symbol":
             symbol = message["symbol"] as? String ?? ""
         case "page":
-            page = "\(message["page"] as? Int ?? 1) of \(message["pages"] as? Int ?? 1)"
+            pdfPage = "\(message["page"] as? Int ?? 1) of \(message["pages"] as? Int ?? 1)"
         case "markdown":
             markdown = (message["edit"] as? Bool == true, message["outline"] as? Bool == true)
         default:
@@ -172,10 +176,10 @@ private final class Relay: NSObject, WKScriptMessageHandlerWithReply, WKNavigati
     }
 
     /// The card's own page only: a Markdown file's HTML (a `<meta>` refresh, a form) would take the view, and the
-    /// bridge with it, to any site or to another kind's page.
+    /// bridge with it, to any site or to another page.
     func webView(_: WKWebView, decidePolicyFor action: WKNavigationAction) async -> WKNavigationActionPolicy {
         guard let url = action.request.url, let card else { return .cancel }
-        return url.scheme == PluginScheme.name && url.path == PluginScheme.page(card.kind).path ? .allow : .cancel
+        return url == PluginScheme.url(card.page) ? .allow : .cancel
     }
 
     func webView(_: WKWebView, didFinish _: WKNavigation!) {
@@ -203,7 +207,7 @@ final class WebCardView: BrowserView {
     }
 }
 
-/// Serves the bundle: `oriel-plugin://app/<kind>` is a page that runs `<kind>.js`, any other name a file of it.
+/// Serves the bundle: `oriel-plugin://app/<page>` is a page that runs `<page>.js`, any other name a file of it.
 /// `loadFileURL` runs no module scripts.
 @MainActor
 final class PluginScheme: NSObject, WKURLSchemeHandler {
@@ -211,15 +215,15 @@ final class PluginScheme: NSObject, WKURLSchemeHandler {
     static let name = "oriel-plugin"
     private static let folder = Bundle.main.resourceURL?.appending(path: "web")
 
-    static func page(_ kind: PluginKind) -> URL {
-        URL(string: "\(name)://app/")?.appending(path: kind.rawValue) ?? URL(filePath: "/")
+    static func url(_ page: PluginPage) -> URL {
+        URL(string: "\(name)://app/")?.appending(path: page.rawValue) ?? URL(filePath: "/")
     }
 
     func webView(_: WKWebView, start task: any WKURLSchemeTask) {
         guard let url = task.request.url else { return }
         // One folder, no subfolders: the last component is decoded, so `..%2F` would climb out of it.
-        let file = url.lastPathComponent, page = url.pathExtension.isEmpty && PluginKind(rawValue: file) != nil
-        // A kind's page has its own styles when it imports CSS (esbuild writes `<kind>.css`).
+        let file = url.lastPathComponent, page = url.pathExtension.isEmpty && PluginPage(rawValue: file) != nil
+        // A page has its own styles when it imports CSS (esbuild writes `<page>.css`).
         let styles = page && Self.folder
             .map { FileManager.default.fileExists(atPath: $0.appending(path: "\(file).css").path) } == true
         let data = file.contains("/") || file.hasPrefix(".") ? nil : page ? Data("""

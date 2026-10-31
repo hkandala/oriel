@@ -29,7 +29,7 @@ extension CommandList {
     /// The action asks `target` when it runs: the menu bar may be older than the last keyboard move. No key over
     /// another card: a disabled item would swallow its ⌘E.
     static func editMode(_ target: @escaping @MainActor () -> Plugin?) -> Command {
-        let markdown = { target().flatMap { $0.kind == .markdown ? $0.web : nil } }
+        let markdown = { target().flatMap { $0.web.page == .markdown ? $0.web : nil } }
         return Command(section: .view, title: "Edit Mode", key: markdown() == nil ? nil : .init("e"), symbol: "pencil",
                        keywords: "markdown read", enabled: markdown() != nil,
                        checked: markdown()?.markdown.edit == true, action: {

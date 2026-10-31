@@ -35,6 +35,8 @@ extension WebCard {
         }
         guard ["list", "paths", "git"].contains(ask) else { return (nil, "Unknown message") }
         guard let exec = await store?.machine.exec() else { return (nil, "Closed") }
+        // The argument is a folder's, with its `/`.
+        let arg = arg.count > 1 && arg.hasSuffix("/") ? String(arg.dropLast()) : arg
         do {
             switch ask {
             case "list":

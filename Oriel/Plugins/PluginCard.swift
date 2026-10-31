@@ -78,14 +78,13 @@ struct PluginToolbar: View {
     let page: Page
 
     var body: some View {
-        switch plugin.kind {
+        switch plugin.web.page {
         case .diff: DiffToolbar(plugin: plugin, page: page)
         case .files: FilesBar(card: plugin.web, paneID: plugin.paneID)
-        case .browser: EmptyView()
         case .file, .preview, .markdown:
             HStack(spacing: 6) {
-                // Each kind's own spacer: Preview's controls sit right of it, by Open With.
-                switch plugin.kind {
+                // Each page's own spacer: Preview's controls sit right of it, by Open With.
+                switch plugin.web.page {
                 case .preview: PreviewBar(plugin: plugin)
                 case .markdown: MarkdownBar(plugin: plugin)
                 default:

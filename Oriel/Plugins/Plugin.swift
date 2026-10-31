@@ -5,48 +5,65 @@ import UniformTypeIdentifiers
 /// The pane kinds Oriel draws itself over a herdr pane that runs a placeholder, named by the pane's label
 /// (future-work/plugins/labels): the browser and the default plugins.
 enum PluginKind: String, CaseIterable {
-    case browser, file, preview, markdown, diff, files
+    case browser, explorer, git
 
-    /// The tab's first part and the placeholder's title.
+    /// The tab's first part, the placeholder's title and the chooser's row.
     var name: String {
-        rawValue.capitalized
+        self == .explorer ? "File Explorer" : rawValue.capitalized
     }
 
     static let symbols = Set(allCases.map(\.symbol))
-
-    /// The kind that opens a file, by its name alone (a remote file is not read first): Markdown, then images, PDF,
-    /// audio and video, then text. A name the system does not know (`.rs`, `Makefile`) is text; anything else
-    /// previews, which shows its icon, size and Open With.
-    static func opening(_ path: String) -> PluginKind {
-        let ext = (path as NSString).pathExtension.lowercased()
-        if ["md", "markdown", "mdx"].contains(ext) {
-            return .markdown
-        }
-        // `.ts` is TypeScript, not an MPEG-2 stream; a repository's `.plist` is XML.
-        guard !ext.isEmpty, !["ts", "mts", "cts", "plist"].contains(ext), let type = UTType(filenameExtension: ext),
-              !type.isDynamic else { return .file }
-        if [.image, .pdf, .audiovisualContent].contains(where: type.conforms) {
-            return .preview
-        }
-        return type.conforms(to: .text) ? .file : .preview
-    }
 
     /// Its SF Symbol: the card's, the tab's and the chooser's icon.
     var symbol: String {
         switch self {
         case .browser: "globe"
-        case .file: "doc.text"
-        case .preview: "photo"
-        case .markdown: "doc.richtext"
-        case .diff: "plusminus"
-        case .files: "folder"
+        case .explorer: "folder"
+        case .git: "arrow.triangle.branch"
         }
     }
 }
 
+/// A plugin card's web page (`web/src/<page>.ts`), which its argument picks: the File Explorer's tree, File, Preview
+/// or Markdown; Git's diff.
+enum PluginPage: String {
+    case files, file, preview, markdown, diff
+
+    /// A folder's argument ends in `/`; a file opens by its name alone (a remote file is not read first): Markdown,
+    /// then images, PDF, audio and video, then text. A name the system does not know (`.rs`, `Makefile`) is text;
+    /// anything else previews, which shows its icon, size and Open With.
+    init(_ kind: PluginKind, _ arg: String) {
+        guard kind == .explorer else {
+            self = .diff
+            return
+        }
+        let ext = (arg as NSString).pathExtension.lowercased()
+        if arg.hasSuffix("/") {
+            self = .files
+        } else if ["md", "markdown", "mdx"].contains(ext) {
+            self = .markdown
+        } else if ext.isEmpty || ["ts", "mts", "cts", "plist"].contains(ext) {
+            // `.ts` is TypeScript, not an MPEG-2 stream; a repository's `.plist` is XML.
+            self = .file
+        } else if let type = UTType(filenameExtension: ext), !type.isDynamic {
+            self = [.image, .pdf, .audiovisualContent].contains(where: type.conforms) || !type.conforms(to: .text)
+                ? .preview : .file
+        } else {
+            self = .file
+        }
+    }
+
+    /// File and Markdown: an editor, which takes ⌘S and ⌘F.
+    var edits: Bool {
+        self == .file || self == .markdown
+    }
+}
+
 extension PaneLabel {
+    /// The words of the five kinds before File Explorer and Git still open.
     var kind: PluginKind? {
-        PluginKind(rawValue: plugin)
+        PluginKind(rawValue: ["file": "explorer", "preview": "explorer", "markdown": "explorer", "files": "explorer",
+                              "diff": "git"][plugin] ?? plugin)
     }
 
     /// A diff's repo root and source: the last word when it is `uncommitted` or a commit hash, else Uncommitted.
@@ -63,7 +80,7 @@ extension PaneLabel {
     /// The card's and the tab's title, from the label alone (menus ask for every tab's): the file's or the root's
     /// name, a diff's `Changes` or short hash.
     var title: String {
-        if kind == .diff {
+        if kind == .git {
             let source = diff.source
             return source == "uncommitted" ? "Changes" : String(source.prefix(7))
         }
@@ -117,16 +134,19 @@ final class Plugin {
         self.terminalID = terminalID
         self.paneID = paneID
         self.label = label
-        web = WebCard(kind: label.kind ?? .file, arg: label.arg, place: place, store: store)
+        // An old Files label names its root without the `/` of a folder.
+        let arg = label.plugin == "files" && !label.arg.hasSuffix("/") ? label.arg + "/" : label.arg
+        web = WebCard(kind: label.kind ?? .explorer, arg: arg, place: place, store: store)
         name()
     }
 
-    private func name() {
-        web.view.setAccessibilityIdentifier("\(kind.rawValue).\(paneID).page")
+    /// The page's identifier names the page it shows: `file.<pane>.page`.
+    func name() {
+        web.view.setAccessibilityIdentifier("\(web.page.rawValue).\(paneID).page")
     }
 
     var kind: PluginKind {
-        label.kind ?? .file
+        label.kind ?? .explorer
     }
 
     /// Unsaved edits, as the page reports them: the dot after the title.

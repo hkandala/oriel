@@ -2,7 +2,7 @@
 // path, and a collapsed Git section with the changes and a graph of the history.
 import { FileTree, type FileTreeBatchOperation, type FileTreeDirectoryHandle, type GitStatus } from "@pierre/trees"
 import "./files.css"
-import { type Change, type Commit, type Entry, arg as root, ask, receive, report } from "./lib/bridge"
+import { type Change, type Commit, type Entry, arg, ask, receive, report } from "./lib/bridge"
 
 document.body.innerHTML = `
 <p id="message" hidden></p>
@@ -29,8 +29,9 @@ let failed = false
 const STATUS: Record<string, GitStatus> = {
   M: "modified", T: "modified", C: "modified", A: "added", D: "deleted", R: "renamed", U: "untracked",
 }
-/** Paths in the tree are from the root; `/` as the root gives no `//`. */
-const base = root.replace(/\/$/, "")
+/** The argument is a folder's, with its `/`. Paths in the tree are from the root; `/` as the root gives no `//`. */
+const base = arg.replace(/\/$/, "")
+const root = base || "/"
 const parent = (path: string) => path.slice(0, path.lastIndexOf("/", path.length - 2) + 1)
 const folder = (path: string) => tree.getItem(path) as FileTreeDirectoryHandle | null
 
@@ -312,10 +313,10 @@ for (const trees of [host, matches]) {
   )
 }
 onOpen(document.getElementById("changes")!, (node) => node.dataset.change, (path) =>
-  report({ op: "open", kind: "diff", arg: `${root} uncommitted`, at: path }),
+  report({ op: "open", kind: "git", arg: `${root} uncommitted`, at: path }),
 )
 onOpen(document.getElementById("history")!, (node) => node.dataset.commit, (hash) =>
-  report({ op: "open", kind: "diff", arg: `${root} ${hash}` }),
+  report({ op: "open", kind: "git", arg: `${root} ${hash}` }),
 )
 
 // A page loaded again (a new root, a crashed process) starts with no filter.

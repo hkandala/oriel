@@ -53,9 +53,9 @@ extension WebCard {
         // A diff of the uncommitted changes follows its work tree; a commit's never changes.
         // ponytail: on This Mac a build under an ignored folder makes the diff ask git about once a second; skip
         // events under ignored folders if that costs.
-        guard kind != .diff || diff.source == "uncommitted" else { return }
-        let changes = await Files.watch(kind == .diff ? diff.root : arg, exec: store.machine.exec())
-        if kind == .files || kind == .diff {
+        guard kind != .git || diff.source == "uncommitted" else { return }
+        let changes = await Files.watch(kind == .git ? diff.root : arg, exec: store.machine.exec())
+        if page == .files || page == .diff {
             // What changed while the card was hidden.
             send(["op": "changed"])
             for await _ in changes {
@@ -106,7 +106,7 @@ extension WebCard {
         guard let store else { throw HerdrError.failed("Closed") }
         let exec = await store.machine.exec(), ext = (arg as NSString).pathExtension
         let type = UTType(filenameExtension: ext) ?? .data
-        let preview = kind == .preview
+        let preview = page == .preview
         let shown: [UTType] = [.png, .jpeg, .gif, .webP, .heic, .tiff, .bmp, .svg, .pdf, .audiovisualContent]
         if preview, !shown.contains(where: type.conforms) {
             return try await (["info": info(Files.size(arg, exec: exec), type)], nil)
@@ -145,13 +145,6 @@ extension WebCard {
     }
 }
 
-extension Plugin {
-    /// File and Markdown: an editor, which takes ⌘S and ⌘F.
-    var edits: Bool {
-        kind == .file || kind == .markdown
-    }
-}
-
 extension Page {
     /// The File or Markdown card with the keyboard: the menu's Save and Find go to its page.
     var editor: Plugin? {
@@ -169,7 +162,7 @@ extension Page {
 
     /// The pane's card when it is a File or Markdown card.
     func editor(_ pane: HostStore.Pane?) -> Plugin? {
-        pane.flatMap(plugin).flatMap { $0.edits ? $0 : nil }
+        pane.flatMap(plugin).flatMap { $0.web.page.edits ? $0 : nil }
     }
 }
 

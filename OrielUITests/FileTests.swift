@@ -52,7 +52,7 @@ extension OrielUITests {
         try await diskChangesWhileDirty(card, file: file, shell: left)
 
         findKeys(card)
-        tiled(card, "file")
+        tiled(card, "explorer")
         try await keysStayInTheEditor(card, shell: left)
     }
 
@@ -212,6 +212,6 @@ extension OrielUITests {
         // Audio in WebKit's player.
         try await relabel(card, label + "hi.m4a")
         XCTAssertTrue(until(10) { page.buttons.firstMatch.exists })
-        tiled(card, "preview")
+        tiled(card, "explorer")
     }
 }

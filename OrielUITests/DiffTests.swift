@@ -25,7 +25,7 @@ extension OrielUITests {
         keepScreenshot("diff card, uncommitted")
         // The overview's tile borrows the card's page, and the card gets it back.
         app.typeKey("o", modifierFlags: [.command, .control])
-        XCTAssertTrue(element("overview.card.\(card)").has(\.stringValue, "diff", within: 3))
+        XCTAssertTrue(element("overview.card.\(card)").has(\.stringValue, "git", within: 3))
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(element("overview").vanishes(within: 2))
         XCTAssertTrue(page.buttons["a.txt"].exists(within: 3))
@@ -126,7 +126,7 @@ extension OrielUITests {
         }
         XCTAssertTrue(element("tab.\(opened)").has(\.isSelected, true, within: 5))
         let pane = try await pane(of: opened), label = try await paneLabel(pane)
-        XCTAssertTrue(label.hasPrefix("oriel:file#") && label.hasSuffix(" \(path)"), label)
+        XCTAssertTrue(label.hasPrefix("oriel:explorer#") && label.hasSuffix(" \(path)"), label)
         return pane
     }
 }

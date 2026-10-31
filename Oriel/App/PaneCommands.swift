@@ -78,8 +78,8 @@ extension CommandList {
         ]
         // Each on every pane but one of its kind.
         let plugins = [
-            (PluginKind.browser, "web page url localhost"), (.files, "file tree explorer folder"),
-            (.diff, "diff git uncommitted"),
+            (PluginKind.browser, "web page url localhost"), (.explorer, "files tree folder finder"),
+            (.git, "diff changes commit uncommitted history"),
         ].filter { pane?.plugin?.kind != $0.0 }.map { kind, keywords in
             Command(section: .close, title: "Open \(Chooser.Row.plugin(kind).labels.name) Here", group: .panes,
                     symbol: kind.symbol, keywords: "pane kind " + keywords, enabled: pane != nil, action: {

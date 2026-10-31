@@ -2,8 +2,8 @@ import AppKit
 import HerdrKit
 import Observation
 
-/// A new pane's chooser (ui/new-pane): Terminal, Agent (which opens its agents under it), Browser, Files or
-/// Changes. The app's own state, kept on the session's store so every window shows it; herdr sees a plain shell. Its
+/// A new pane's chooser (ui/new-pane): Terminal, Agent (which opens its agents under it), Browser, File Explorer or
+/// Git. The app's own state, kept on the session's store so every window shows it; herdr sees a plain shell. Its
 /// card is a new tab's or split's stand-in until herdr made the pane, then the pane's terminal, which a move keeps.
 @MainActor @Observable
 final class Chooser {
@@ -17,12 +17,12 @@ final class Chooser {
         Agent(name: "Pi", command: "pi"), Agent(name: "OpenCode", command: "opencode"),
     ]
 
-    /// A row of the list: `start` is an agent's, by its place in `agents`; `plugin` a browser, Files or Changes.
+    /// A row of the list: `start` is an agent's, by its place in `agents`; `plugin` a browser, File Explorer or Git.
     enum Row: Hashable {
         case terminal, agent, plugin(PluginKind), start(Int)
     }
 
-    static let plugins = [PluginKind.browser, .files, .diff].map(Row.plugin)
+    static let plugins = [PluginKind.browser, .explorer, .git].map(Row.plugin)
 
     @ObservationIgnored let standIn: String?
     /// herdr's pane, once it answered.
@@ -33,7 +33,7 @@ final class Chooser {
     var selected = Row.terminal
     /// The picked agent until it is ready: the card shows the loader.
     var starting: Agent?
-    /// Browser, Files or Changes was picked: the card shows its loader while its pane takes this one's place.
+    /// Browser, File Explorer or Git was picked: the card shows its loader while its pane takes this one's place.
     var opening: PluginKind?
 
     init(standIn: String? = nil) {
@@ -63,17 +63,19 @@ extension Chooser.Row {
         case .terminal: ("Terminal", "Shell")
         case .agent: ("Agent", "Coding agent")
         case .plugin(.browser): ("Browser", "Web page")
-        case .plugin(.files): ("Files", "File tree")
-        case .plugin(.diff): ("Changes", "Uncommitted diff")
+        case .plugin(.explorer): ("File Explorer", "Files and folders")
+        case .plugin(.git): ("Git", "Changes and history")
         case let .plugin(kind): (kind.name, "")
         case let .start(index): (Chooser.agents[index].name, Chooser.agents[index].command)
         }
     }
 
-    /// Its identifier's last part: an agent's command, else its name.
+    /// Its identifier's last part: an agent's command, a plugin's kind, else its name.
     var id: String {
         if case let .start(index) = self {
             Chooser.agents[index].command
+        } else if case let .plugin(kind) = self {
+            kind.rawValue
         } else {
             labels.name.lowercased()
         }

@@ -34,7 +34,7 @@ extension OrielUITests {
 
         // The overview's tile shows the card's own page.
         app.typeKey("o", modifierFlags: [.command, .control])
-        XCTAssertTrue(element("overview.card.\(card)").has(\.stringValue, "markdown", within: 3))
+        XCTAssertTrue(element("overview.card.\(card)").has(\.stringValue, "explorer", within: 3))
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(element("overview").vanishes(within: 2))
 
@@ -47,9 +47,9 @@ extension OrielUITests {
         page.links["Other"].click()
         let opened = try await newTabID(after: before)
         closeAfter("tab", opened)
-        XCTAssertTrue(element("tab.\(opened)").has(\.label, "Markdown other.md", within: 5))
+        XCTAssertTrue(element("tab.\(opened)").has(\.label, "File Explorer other.md", within: 5))
         let label = try await paneLabel(pane(of: opened))
-        XCTAssertTrue(label.hasPrefix("oriel:markdown#") && label.hasSuffix(" \(folder)/other.md"), label)
+        XCTAssertTrue(label.hasPrefix("oriel:explorer#") && label.hasSuffix(" \(folder)/other.md"), label)
     }
 
     /// ⌘E: marks away from the caret (at the top) are hidden; an outline row puts the caret on its heading, whose

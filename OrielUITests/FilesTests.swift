@@ -38,7 +38,7 @@ extension OrielUITests {
         keepScreenshot("files card")
         // The overview draws the card live in its tile.
         app.typeKey("o", modifierFlags: [.command, .control])
-        XCTAssertTrue(element("overview.card.\(card)").has(\.stringValue, "files", within: 3))
+        XCTAssertTrue(element("overview.card.\(card)").has(\.stringValue, "explorer", within: 3))
         app.typeKey(.escape, modifierFlags: [])
 
         // A file in a folder never opened: the filter loads every path.
@@ -47,18 +47,18 @@ extension OrielUITests {
         XCTAssertTrue(row("main.swift").exists(within: 5))
         XCTAssertFalse(row("a.txt").exists)
         var label = try await opens(row("main.swift"))
-        XCTAssertTrue(label.hasPrefix("oriel:file#") && label.hasSuffix(" \(root)/src/deep/main.swift"), label)
+        XCTAssertTrue(label.hasPrefix("oriel:explorer#") && label.hasSuffix(" \(root)/src/deep/main.swift"), label)
 
         element("tab.\(tab)").click()
         row("Git").click()
         XCTAssertTrue(row("second-commit").exists(within: 3))
         label = try await opens(row("Modified: a.txt"), command: true)
-        XCTAssertTrue(label.hasPrefix("oriel:diff#") && label.hasSuffix(" \(root) uncommitted"), label)
+        XCTAssertTrue(label.hasPrefix("oriel:git#") && label.hasSuffix(" \(root) uncommitted"), label)
 
         element("tab.\(tab)").click()
         label = try await opens(row("second-commit"))
-        XCTAssertTrue(label.hasPrefix("oriel:diff#") && label.range(of: #" \#(root) [0-9a-f]{40}$"#,
-                                                                    options: .regularExpression) != nil, label)
+        XCTAssertTrue(label.hasPrefix("oriel:git#") && label.range(of: #" \#(root) [0-9a-f]{40}$"#,
+                                                                   options: .regularExpression) != nil, label)
         try await send("rm -rf \(repo)\r", to: shell)
     }
 

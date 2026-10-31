@@ -190,7 +190,7 @@ extension Page {
         guard tab.label.allSatisfy(\.isNumber) else { return (tab.label, nil) }
         // The stack's first, without the stack: the menus ask for every tab's title.
         let front = keyboardCard(tab.id) ?? store.panes(in: tab.id).first
-        // "Browser" and its page dimmed, as a terminal's "zsh oriel"; "Files oriel".
+        // "Browser" and its page dimmed, as a terminal's "zsh oriel"; "File Explorer oriel".
         if let pane = front, pane.plugin != nil, let (name, detail) = kindTitle(pane) {
             return (name, detail)
         }

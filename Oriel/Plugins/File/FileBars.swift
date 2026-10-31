@@ -29,8 +29,8 @@ struct PreviewBar: View {
         Text(path).foregroundStyle(.secondary).fontWeight(.regular).lineLimit(1).truncationMode(.middle)
             .accessibilityIdentifier("\(id).path")
         Spacer(minLength: 0)
-        if !plugin.web.page.isEmpty {
-            Text(plugin.web.page).foregroundStyle(.secondary).fontWeight(.regular).monospacedDigit()
+        if !plugin.web.pdfPage.isEmpty {
+            Text(plugin.web.pdfPage).foregroundStyle(.secondary).fontWeight(.regular).monospacedDigit()
                 .accessibilityIdentifier("\(id).page")
         }
         let type = UTType(filenameExtension: (path as NSString).pathExtension)
