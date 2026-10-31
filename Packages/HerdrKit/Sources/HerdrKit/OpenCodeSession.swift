@@ -4,8 +4,9 @@ import Foundation
 /// their parts, first from `GET /session/<id>/message`, then from the `/event` stream, upserted by id. The core is
 /// user text, text replies, tool parts (a call and its result in one) and the end of a turn; reasoning, todos,
 /// subagents and compaction are extras of 1.x; anything else is skipped.
-/// Not `Sendable`: it keeps the parts as JSON objects; the app holds it on the main actor.
-public struct OpenCodeSession {
+/// `@unchecked Sendable`: its parts are JSONSerialization's immutable objects, so a copy is safe to read and change
+/// on another thread; the app builds it off the main actor.
+public struct OpenCodeSession: @unchecked Sendable {
     public let id: String
     public private(set) var history = ChatHistory()
     private var messages: [String: Message] = [:]

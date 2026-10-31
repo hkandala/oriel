@@ -56,10 +56,19 @@ extension Chat {
 
     /// Follows an agent's side file from the chat's mark: `line` gives a line's history file when it starts a session
     /// (and handles any other line itself). A new file is the history from its start. `late`: no session after 10 s is
-    /// a problem. `skip`: the lines of the history file its parser skips (`Exec.follow`).
+    /// a problem. `skip`: the lines of the history file its parser skips (`Exec.follow`). A parser with no state of
+    /// its own.
     func followSessions(_ sideFile: String, on exec: any Exec, late: Bool, skip: String = "0",
-                        read: @escaping (String, inout ChatHistory) -> Bool, restarted: @escaping () -> Void = {},
+                        read: @escaping @Sendable (String, inout ChatHistory) -> Bool,
                         line: ([String: Any]) async -> String?) async
+    {
+        let parser = Parser(take: {}, put: { _ in }, read: { _, text, _, history in read(text, &history) })
+        await followSessions(sideFile, on: exec, late: late, skip: skip, parser: parser, line: line)
+    }
+
+    /// As above, with a parser whose state goes on from line to line.
+    func followSessions(_ sideFile: String, on exec: any Exec, late: Bool, skip: String = "0",
+                        parser: Parser<some Sendable>, line: ([String: Any]) async -> String?) async
     {
         var transcript: Task<Void, Never>?
         // One history follow at a time: they share the chat's backlog.
@@ -69,7 +78,7 @@ extension Chat {
             transcript = Task {
                 await old?.value
                 guard !Task.isCancelled else { return }
-                await self.follow(history: source, on: exec, skip: skip, read: read, restarted: restarted)
+                await self.follow(history: source, on: exec, skip: skip, parser: parser)
             }
         }
         let timer = Task {
@@ -103,43 +112,55 @@ extension Chat {
         await transcript?.value
     }
 
-    /// Changes the history a follow builds: the backlog while it loads, else the one the card shows.
-    func change<T>(_ body: (inout ChatHistory) -> T) -> T {
-        loading ? body(&backlog) : body(&history)
+    /// A history file's parser, its state handed over for a run of lines: `take` hands it over (and lets go of its
+    /// own copy, so it changes in place), `put` gets it back; `read` gets each line with where it ends in the file.
+    /// `restarted`: the file was rewritten.
+    struct Parser<State: Sendable> {
+        let take: () -> State
+        let put: (State) -> Void
+        let read: @Sendable (inout State, String, Int, inout ChatHistory) -> Bool
+        var restarted: () -> Void = {}
+    }
+
+    /// Changes the history a follow builds: the backlog while it loads, else the one the card shows; once the lines
+    /// being read off the main actor are in.
+    func change(_ body: @escaping (inout ChatHistory) -> Void) {
+        if reading {
+            queued.append(body)
+        } else if loading {
+            body(&backlog)
+        } else {
+            body(&history)
+        }
     }
 
     /// Follows the history file while it is the chat's, each line read by the adapter's parser (false: a torn line);
-    /// five torn lines in a row are a problem, until a good one. `restarted`: the file was rewritten. What the file
-    /// held when opened goes into the backlog, which shows whole once read (a long session would show row by row, and
-    /// rebuild every row each time).
-    private func follow(history source: String, on exec: any Exec, skip: String,
-                        read: (String, inout ChatHistory) -> Bool, restarted: () -> Void) async
-    {
+    /// five torn lines in a row are a problem, until a good one. What the file held when opened goes into the backlog,
+    /// read off the main actor (a 100 MB session takes seconds), which shows whole once read (a long session would show
+    /// row by row, and rebuild every row each time). The lines after it are read where they come, a batch at a time.
+    private func follow(history source: String, on exec: any Exec, skip: String, parser: Parser<some Any>) async {
         guard let lines = try? await exec.follow(source, from: marks[source] ?? FileMark(), skip: skip) else { return }
-        var torn = 0, count = 0
+        var torn = 0
         // A batch's lines in one main-actor turn: the card draws once for them, not once per line.
         for await batch in lines {
-            for line in batch where !Task.isCancelled && self.source == source {
-                switch line {
-                // Once the file is there: Claude Code and pi write theirs with the first message, and the empty chat
-                // shows its glyph until then, the loader only while a history loads.
-                case let .opened(_, again):
-                    (loading, backlog) = (true, again ? ChatHistory() : history)
-                    if again, !history.entries.isEmpty {
-                        restarted()
+            // Each run of lines between the file's events at once.
+            var run: [(text: String, mark: FileMark)] = []
+            for line in batch {
+                guard !Task.isCancelled, self.source == source else { break }
+                guard case let .line(text, mark) = line else {
+                    torn = await read(run, torn: torn, source: source, parser: parser)
+                    run = []
+                    if case let .opened(_, again) = line {
+                        opened(again: again, parser: parser)
+                    } else {
+                        showBacklog()
                     }
-                case let .line(text, mark):
-                    marks[source] = mark
-                    torn = change { read(text, &$0) } ? 0 : torn + 1
-                    check(torn: torn)
-                    count += 1
-                    // A long session takes a second to read: the app goes on meanwhile (the backlog draws only once
-                    // read).
-                    if loading, count.isMultiple(of: 200) {
-                        await Task.yield()
-                    }
-                case .loaded: showBacklog()
+                    continue
                 }
+                run.append((text, mark))
+            }
+            if !Task.isCancelled, self.source == source {
+                torn = await read(run, torn: torn, source: source, parser: parser)
             }
         }
         // Cut short (the card went, the connection dropped): the marks went on, so the history keeps what they read;
@@ -147,6 +168,68 @@ extension Chat {
         if loading {
             showBacklog(self.source == source)
         }
+    }
+
+    /// Once the file is there: Claude Code and pi write theirs with the first message, and the empty chat shows its
+    /// glyph until then, the loader only while a history loads.
+    private func opened(again: Bool, parser: Parser<some Any>) {
+        (loading, backlog) = (true, again ? ChatHistory() : history)
+        if again, !history.entries.isEmpty {
+            parser.restarted()
+        }
+    }
+
+    /// Reads a run of lines into the history a follow builds: the backlog off the main actor, the rest here.
+    private func read(_ run: [(text: String, mark: FileMark)], torn: Int, source: String,
+                      parser: Parser<some Any>) async -> Int
+    {
+        guard !run.isEmpty else { return torn }
+        let read = parser.read
+        var state = parser.take(), torn = torn, five = false
+        if loading {
+            var backlog = backlog
+            self.backlog = ChatHistory()
+            reading = true
+            (state, backlog, torn, five) = await Task.detached { [state, backlog, torn] in
+                var (state, backlog, torn) = (state, backlog, torn)
+                let five = Self.lines(run, read, &state, &backlog, &torn)
+                return (state, backlog, torn, five)
+            }.value
+            reading = false
+            if self.source == source {
+                self.backlog = backlog
+            }
+        } else {
+            five = Self.lines(run, read, &state, &history, &torn)
+        }
+        // Not into another session's parser (a session line started it again meanwhile).
+        if self.source == source {
+            parser.put(state)
+            marks[source] = run.last?.mark
+        }
+        if five {
+            problem = Self.unknownFormat
+        }
+        check(torn: torn)
+        for body in queued {
+            change(body)
+        }
+        queued = []
+        return torn
+    }
+
+    /// Reads the lines into the history; true when five torn lines came in a row.
+    private nonisolated static func lines<State>(_ run: [(text: String, mark: FileMark)],
+                                                 _ read: (inout State, String, Int, inout ChatHistory) -> Bool,
+                                                 _ state: inout State, _ history: inout ChatHistory,
+                                                 _ torn: inout Int) -> Bool
+    {
+        var five = false
+        for (text, mark) in run {
+            torn = read(&state, text, mark.offset, &history) ? 0 : torn + 1
+            five = five || torn == 5
+        }
+        return five
     }
 
     private func check(torn: Int) {

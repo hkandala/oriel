@@ -76,9 +76,14 @@ struct PiAgent: ChatAdapter {
     /// problem.
     @MainActor func follow(_ chat: Chat, on exec: any Exec) async {
         chat.recorded = kept.phase
-        await chat.followSessions(Self.state(token), on: exec, late: true, read: { [kept] line, history in
-            kept.transcript.read(line, end: chat.marks[chat.source ?? ""]?.offset ?? 0, into: &history)
-        }, restarted: { [kept] in kept.transcript = PiTranscript() }, line: { read($0, chat) })
+        // The transcript goes with the lines it reads, its own copy let go so it changes in place.
+        let parser = Chat.Parser(take: { [kept] in
+            defer { kept.transcript = PiTranscript() }
+            return kept.transcript
+        }, put: { [kept] in kept.transcript = $0 }, read: { transcript, line, end, history in
+            transcript.read(line, end: end, into: &history)
+        }, restarted: { [kept] in kept.transcript = PiTranscript() })
+        await chat.followSessions(Self.state(token), on: exec, late: true, parser: parser) { read($0, chat) }
     }
 
     /// A state line: the phase it says, and a session line's transcript.

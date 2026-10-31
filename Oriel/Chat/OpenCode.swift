@@ -161,7 +161,15 @@ struct OpenCode: ChatAdapter {
             guard line.hasPrefix("data: "),
                   let event = try? JSONSerialization.jsonObject(with: Data(line.utf8.dropFirst(6))) as? [String: Any]
             else { continue }
-            if session.apply(event) {
+            // Built again whole for each event (OpenCodeSession's ponytail): off the main actor.
+            let changed: Bool
+            (session, changed) = await Task.detached { [session] in
+                var session = session
+                let event = try? JSONSerialization.jsonObject(with: Data(line.utf8.dropFirst(6))) as? [String: Any]
+                let changed = event.map { session.apply($0) } ?? false
+                return (session, changed)
+            }.value
+            if changed {
                 chat.history = session.history
             }
             if waits.take(event, session: id, url: url) {
@@ -176,8 +184,11 @@ struct OpenCode: ChatAdapter {
     {
         let answer = await exec.openCode(url, "/session/\(id)/message", folder: folder)
         guard !Task.isCancelled else { return nil }
-        var session = OpenCodeSession(id: id)
-        guard let answer, answer.status == 200, session.load(answer.body) else {
+        let session = await Task.detached { [answer] in
+            var session = OpenCodeSession(id: id)
+            return answer?.status == 200 && session.load(answer?.body ?? "") ? session : nil
+        }.value
+        guard let session else {
             chat.problem = Self.serverProblem + " did not give the session" + (answer.map { " (\($0.status))" } ?? "")
             return nil
         }

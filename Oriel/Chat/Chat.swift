@@ -47,6 +47,9 @@ final class Chat {
     @ObservationIgnored var backlog = ChatHistory()
     /// The empty chat shows the loader meanwhile.
     var loading = false
+    /// A run of the backlog's lines is being read off the main actor: changes wait in `queued` until it is in.
+    @ObservationIgnored var reading = false
+    @ObservationIgnored var queued: [(inout ChatHistory) -> Void] = []
     /// Where the history comes from: its file, or OpenCode's server and session.
     @ObservationIgnored var source: String?
     @ObservationIgnored private var viewers = 0
