@@ -25,7 +25,8 @@ lint:
 
 # The default plugins' pages (Oriel/Plugins/Web), a folder per plugin that the scheme serves as
 # oriel-plugin://<id>/: its pages (one module each, shared chunks), card.css and its package.json, which the registry
-# reads. The project copies .build/web into the app's resources.
+# reads. Beside them the plugin API's runtime (oriel.js, checked against its types) and card.css, which every plugin's
+# entry page loads. The project copies .build/web into the app's resources.
 ESBUILD = web/node_modules/.bin/esbuild --bundle --splitting --format=esm --minify --target=safari18 \
 	--log-level=warning --external:*.svg --external:*.gif
 
@@ -34,6 +35,10 @@ web: web/node_modules/.package-lock.json
 	$(ESBUILD) web/src/{files,file,preview,markdown}.ts web/src/{card,files}.css --outdir=.build/web/explorer
 	$(ESBUILD) web/src/{git,diff}.ts web/src/{card,git,diff}.css --outdir=.build/web/git
 	for id in explorer git; do cp plugins/$$id/package.json .build/web/$$id/; done
+	web/node_modules/.bin/tsc -p web/oriel
+	web/node_modules/.bin/esbuild web/oriel/runtime.ts --bundle --format=esm --minify --target=safari18 \
+		--log-level=warning --outfile=.build/web/oriel.js
+	cp .build/web/explorer/card.css .build/web/
 	@# pdf.js's worker, decoders, fonts and character maps, which it loads by name from the page's folder. Its viewer's
 	@# CSS names images of the editing tools the cards leave out.
 	cp web/node_modules/pdfjs-dist/build/pdf.worker.min.mjs web/node_modules/pdfjs-dist/wasm/{openjpeg,jbig2,qcms_bg}.wasm \

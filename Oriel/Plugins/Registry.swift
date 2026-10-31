@@ -20,6 +20,12 @@ enum Registry {
     private static let loaded = load()
     private static let byID = Dictionary(uniqueKeysWithValues: all.map { ($0.id, $0) })
 
+    /// The folder `oriel-plugin://<id>/` serves: a default plugin's built pages, else the package's folder.
+    /// ponytail: a package's files as they are, so its entry must be JavaScript until the app builds packages.
+    static func files(_ id: String) -> URL? {
+        defaults.contains(id) ? folder?.appending(path: id) : loaded.folders[id]
+    }
+
     /// The default plugins' built pages and their `package.json`, in place until the app installs them.
     static let folder = Bundle.main.resourceURL?.appending(path: "web")
 
@@ -57,7 +63,11 @@ enum Registry {
 
     /// The first package of an id wins, in this order: the app's, the settings' local paths, the plugins folder. A bad
     /// manifest or a taken id is left out, with the reason in the log.
-    private static func load() -> (all: [PluginManifest], defaults: Set<String>) {
+    private struct Loaded {
+        let all: [PluginManifest], defaults: Set<String>, folders: [String: URL]
+    }
+
+    private static func load() -> Loaded {
         let mine = packages(in: folder)
         // The old label words open File Explorer or Git.
         var seen = Dictionary(uniqueKeysWithValues: [browser.id, "file", "preview", "markdown", "files", "diff"]
@@ -74,10 +84,12 @@ enum Registry {
             }
             seen[manifest.id] = url.path
             return true
-        }.map(\.manifest)
-        let defaults = Set(mine.map(\.manifest.id))
-        return ([browser] + kept.filter { defaults.contains($0.id) }
-            + kept.filter { !defaults.contains($0.id) }.sorted { $0.id < $1.id }, defaults.union([browser.id]))
+        }
+        let defaults = Set(mine.map(\.manifest.id)), manifests = kept.map(\.manifest)
+        return Loaded(all: [browser] + manifests.filter { defaults.contains($0.id) }
+            + manifests.filter { !defaults.contains($0.id) }.sorted { $0.id < $1.id },
+            defaults: defaults.union([browser.id]),
+            folders: Dictionary(kept.map { ($0.manifest.id, $0.url) }) { first, _ in first })
     }
 
     /// Each subfolder's package, by folder name.

@@ -157,15 +157,16 @@ extension Page {
     /// Find Next (1) or Previous (-1): in the editor's page, else in the terminal's find bar.
     func findStep(_ step: Int, in editor: Plugin?) {
         if let editor {
-            editor.web.send(["op": step > 0 ? "findNext" : "findPrevious"])
+            editor.command(step > 0 ? "findNext" : "findPrevious")
         } else {
             Task { await find?.step(step) }
         }
     }
 
-    /// The pane's card when it is a File or Markdown card.
+    /// The pane's card when it is a File or Markdown card, or a plugin's that takes ⌘S or ⌘F (`handles`).
     func editor(_ pane: HostStore.Pane?) -> Plugin? {
-        pane.flatMap(plugin).flatMap { $0.web.page.edits ? $0 : nil }
+        pane.flatMap(plugin)
+            .flatMap { $0.web.page.edits || $0.web.page == .main && !$0.manifest.handles.isEmpty ? $0 : nil }
     }
 }
 
@@ -180,12 +181,12 @@ extension CommandList {
         let over = editor() != nil, find = page?.find != nil
         return [
             Command(section: .file, title: "Save", key: over ? .save : nil, symbol: "square.and.arrow.down",
-                    enabled: over) { editor()?.web.send(["op": "save"]) },
+                    enabled: over) { editor()?.command("save") },
             editMode(editor),
             Command(section: .edit, title: "Find…", key: .init("f"), symbol: "magnifyingglass",
                     keywords: "search scrollback", enabled: terminal || over, action: {
                         if let editor = editor() {
-                            editor.web.send(["op": "find"])
+                            editor.command("find")
                         } else {
                             page?.openFind(pane)
                         }

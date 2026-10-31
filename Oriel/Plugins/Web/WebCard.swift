@@ -6,7 +6,8 @@ import UniformTypeIdentifiers
 import WebKit
 
 /// A plugin card's content as a page of its plugin's folder (`make web`), in a web view of its own: WebKit makes a
-/// process per web view whatever the process pool. The page talks to the app through `web/src/lib/bridge.ts`.
+/// process per web view whatever the process pool. File Explorer's and Git's pages talk to the app through
+/// `web/src/lib/bridge.ts`; a plugin's entry page (`main`) through the plugin API (`Bridge`).
 @MainActor @Observable
 final class WebCard {
     /// Its plugin's id: File Explorer's or Git's.
@@ -19,13 +20,15 @@ final class WebCard {
 
     @ObservationIgnored weak var store: HostStore?
     @ObservationIgnored let view: WebCardView
+    /// A `main` page's calls and events.
+    var bridge: Bridge?
     /// A linked open's landing, for the first load only: a line for a file, a path from the repo's root for a diff.
-    @ObservationIgnored private var place: String?
+    @ObservationIgnored private(set) var place: String?
     /// Opens a link from the page, in the card or beside it (`Page.open(_:arg:at:from:how:)`).
     @ObservationIgnored var open: ((PluginManifest, String, String?, Opening) -> Void)?
-    fileprivate(set) var dirty = false
+    var dirty = false
     /// The page drew its first rows or its file: the loader goes.
-    private(set) var ready = false
+    var ready = false
     /// A diff's row 2: Side by Side, and the file list shown. Per card, not saved.
     var split = false {
         didSet { send(["op": "layout", "split": split]) }
@@ -78,20 +81,46 @@ final class WebCard {
 
     /// The app's colors as CSS variables. The first call loads the page; the script also starts a page still loading
     /// or loaded again with them, so every first paint has them.
-    func theme(_ css: String) {
+    func theme(_ css: String, _ theme: [String: Any]) {
         self.css = css
+        bridge?.theme = theme
         script()
         if loaded {
             view.callAsyncJavaScript("document.documentElement.style.cssText = css", arguments: ["css": css],
                                      in: nil, in: .page)
         } else {
             loaded = true
-            view.load(URLRequest(url: PluginScheme.url(plugin, page)))
+            guard page == .main else {
+                view.load(URLRequest(url: PluginScheme.url(plugin, page)))
+                return
+            }
+            // A plugin's page starts with its saved state, and not at all with an API too new.
+            Task {
+                await bridge?.start()
+                if bridge?.failure == nil {
+                    reload()
+                }
+            }
         }
+    }
+
+    /// The page again, from its start: Reload after it stopped.
+    func reload() {
+        bridge?.failure = nil
+        ready = false
+        script()
+        view.load(URLRequest(url: PluginScheme.url(plugin, page)))
     }
 
     /// Another place: its page loads with it.
     func show(_ arg: String, at place: String?) {
+        // A plugin's page draws its places itself.
+        guard page != .main else {
+            self.arg = arg
+            self.place = place
+            bridge?.place(arg, at: place)
+            return
+        }
         self.arg = arg
         page = PluginPage(plugin, arg) ?? page
         self.place = place
@@ -114,16 +143,22 @@ final class WebCard {
         view.callAsyncJavaScript("window.receive?.(message)", arguments: ["message": message], in: nil, in: .page)
     }
 
+    /// The card's context and colors, in the page before its code runs: a plugin's `oriel_card` (`Bridge.context`),
+    /// File Explorer's and Git's `card`.
     private func script() {
         var card: [String: Any] = ["arg": arg, "css": css]
         card["at"] = place
+        let name = page == .main ? "oriel_card" : "card"
+        if let bridge, page == .main {
+            card = bridge.context().merging(["css": css]) { $1 }
+        }
         let json = (try? JSONSerialization.data(withJSONObject: card)).map {
             String(decoding: $0, as: UTF8.self)
         } ?? "{}"
         let content = view.configuration.userContentController
         content.removeAllUserScripts()
         content.addUserScript(WKUserScript(
-            source: "window.card = \(json); document.documentElement.style.cssText = card.css",
+            source: "window.\(name) = \(json); document.documentElement.style.cssText = window.\(name).css",
             injectionTime: .atDocumentStart, forMainFrameOnly: true,
         ))
     }
@@ -215,7 +250,7 @@ final class WebCard {
 }
 
 /// A menu item's action as a closure: the item keeps it (`representedObject`), its target is weak.
-private final class MenuAction: NSObject {
+final class MenuAction: NSObject {
     private let run: () -> Void
 
     init(_ run: @escaping () -> Void) {
@@ -241,7 +276,12 @@ private final class Relay: NSObject, WKScriptMessageHandlerWithReply, WKNavigati
     func userContentController(_: WKUserContentController,
                                didReceive message: WKScriptMessage) async -> (Any?, String?)
     {
-        await card?.answer(message.body) ?? (nil, "Closed")
+        guard let card else { return (nil, "Closed") }
+        // A plugin's page has the plugin API alone; File Explorer's and Git's pages the old messages.
+        if card.page == .main, let bridge = card.bridge {
+            return await bridge.call(message.body as? [String: Any] ?? [:])
+        }
+        return await card.answer(message.body)
     }
 
     /// The card's own page only: a Markdown file's HTML (a `<meta>` refresh, a form) would take the view, and the
@@ -269,7 +309,12 @@ private final class Relay: NSObject, WKScriptMessageHandlerWithReply, WKNavigati
         guard !reloaded else { return }
         reloaded = true
         card?.dirty = false
-        webView.reload()
+        // A plugin's page again with its state now.
+        if card?.page == .main {
+            card?.reload()
+        } else {
+            webView.reload()
+        }
     }
 }
 
@@ -277,6 +322,8 @@ private final class Relay: NSObject, WKScriptMessageHandlerWithReply, WKNavigati
 final class WebCardView: BrowserView {
     /// The ⇧⌘← or ⇧⌘→ the menu handed to the page: WebKit sends it again when the page leaves it, for Move Tab.
     var handed: NSEvent?
+    /// A plugin page's `keyboard`.
+    var keyboard: ((Bool) -> Void)?
     /// Back (true) or Forward, ⌘[ and ⌘] over the card, as in a browser; false when there is no place that way, and
     /// the key selects a pane as elsewhere.
     var step: ((Bool) -> Bool)?
@@ -292,76 +339,47 @@ final class WebCardView: BrowserView {
         }
         return NSApp.mainMenu?.performKeyEquivalent(with: event) == true || super.performKeyEquivalent(with: event)
     }
-}
 
-/// Serves each plugin from its own folder: `oriel-plugin://<id>/<page>` is a page that runs `<page>.js`, any other
-/// name a file of it. `loadFileURL` runs no module scripts.
-@MainActor
-final class PluginScheme: NSObject, WKURLSchemeHandler {
-    static let shared = PluginScheme()
-    static let name = "oriel-plugin"
-
-    static func url(_ plugin: String, _ page: PluginPage) -> URL {
-        URL(string: "\(name)://\(plugin)/")?.appending(path: page.rawValue) ?? URL(filePath: "/")
+    override func becomeFirstResponder() -> Bool {
+        let became = super.becomeFirstResponder()
+        if became {
+            keyboard?(true)
+        }
+        return became
     }
 
-    func webView(_: WKWebView, start task: any WKURLSchemeTask) {
-        // The default plugins' built pages, until the app builds plugins itself: `make web` names each folder by its
-        // plugin's id.
-        guard let url = task.request.url, let id = url.host(), Registry.defaults.contains(id),
-              let folder = Registry.folder?.appending(path: id)
-        else {
-            task.didFailWithError(URLError(.fileDoesNotExist))
-            return
+    override func resignFirstResponder() -> Bool {
+        let resigned = super.resignFirstResponder()
+        if resigned {
+            keyboard?(false)
         }
-        // One folder, no subfolders: the last component is decoded, so `..%2F` would climb out of it.
-        let file = url.lastPathComponent, page = url.pathExtension.isEmpty && PluginPage(rawValue: file) != nil
-        // A page has its own styles when it imports CSS (esbuild writes `<page>.css`).
-        let styles = page && FileManager.default.fileExists(atPath: folder.appending(path: "\(file).css").path)
-        let data = file.contains("/") || file.hasPrefix(".") ? nil : page ? Data("""
-        <!doctype html><meta charset="utf-8"><link rel="stylesheet" href="card.css">\
-        \(styles ? "<link rel=\"stylesheet\" href=\"\(file).css\">" : "")\
-        <script type="module" src="\(file).js"></script>
-        """.utf8) : try? Data(contentsOf: folder.appending(path: file))
-        guard let data else {
-            task.didFailWithError(URLError(.fileDoesNotExist))
-            return
-        }
-        // UTType knows no MIME type for pdf.js's decoders.
-        let mime = page ? "text/html" : url.pathExtension == "wasm" ? "application/wasm"
-            : UTType(filenameExtension: url.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
-        // Scripts, styles, fonts and fetches only from the plugin's own folder (future-work/plugins/security); a
-        // preview shows its file from a blob.
-        let own = "\(Self.name)://\(id)"
-        task.didReceive(HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: [
-            "Content-Type": mime,
-            "Content-Security-Policy": "default-src 'none'; script-src \(own) 'wasm-unsafe-eval'; "
-                + "style-src \(own) 'unsafe-inline'; img-src \(own) data: blob:; media-src blob:; "
-                + "font-src \(own) data:; connect-src \(own); frame-src 'none'; form-action 'none'; base-uri 'none'",
-        ]) ?? URLResponse())
-        task.didReceive(data)
-        task.didFinish()
+        return resigned
     }
-
-    func webView(_: WKWebView, stop _: any WKURLSchemeTask) {}
 }
 
-/// A card's page in the card, with the app's colors.
+/// A card's page in the card, with the app's colors and text size: CSS variables on the page's root, and a plugin's
+/// `oriel.theme`.
 struct WebCardContent: View {
     let card: WebCard
     @Environment(\.self) private var environment
     @Environment(\.look) private var look
+    @AppStorage("fontSize") private var textSize = PaneTerminal.fontSize
 
     var body: some View {
-        let css = [
+        let colors = [
             ("text", Color.primary), ("dim", look.paneButton), ("divider", look.divider), ("card", look.cardSolid),
             ("accent", .accentColor), ("on-accent", Look.onAccent),
             ("working", look.working), ("needs-you", look.needsYou), ("finished", look.finished),
             ("error", look.error),
         ].map { name, color in
             let rgb = color.resolve(in: environment)
-            return "--\(name): rgb(\(rgb.red * 255) \(rgb.green * 255) \(rgb.blue * 255) / \(rgb.opacity))"
-        }.joined(separator: "; ") + "; color-scheme: \(look.dark ? "dark" : "light")"
-        WebHost(view: card.view).onChange(of: css, initial: true) { card.theme(css) }
+            return (name, "rgb(\(rgb.red * 255) \(rgb.green * 255) \(rgb.blue * 255) / \(rgb.opacity))")
+        }
+        let css = colors.map { "--\($0): \($1)" }.joined(separator: "; ")
+            + "; --app-text-size: \(textSize)px; color-scheme: \(look.dark ? "dark" : "light")"
+        WebHost(view: card.view).onChange(of: css, initial: true) {
+            card.theme(css, ["dark": look.dark, "style": look.style.rawValue, "textSize": textSize,
+                             "colors": Dictionary(uniqueKeysWithValues: colors)])
+        }
     }
 }

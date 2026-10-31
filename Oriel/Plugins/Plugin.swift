@@ -3,16 +3,15 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 /// A plugin card's web page (`web/src/<page>.ts`), which its argument picks: the File Explorer's tree, File, Preview
-/// or Markdown; Git's home (`<root>`) or a diff (`<root> <source>`).
+/// or Markdown; Git's home (`<root>`) or a diff (`<root> <source>`); any other plugin's entry (`main`), which draws
+/// every place of its card itself through the plugin API (`Bridge`).
 enum PluginPage: String, CaseIterable {
-    case files, file, preview, markdown, diff, git
-    /// Any other plugin's entry page.
-    case main
+    case files, file, preview, markdown, diff, git, main
 
     /// A folder's argument ends in `/`; a file opens by its name alone (a remote file is not read first): Markdown,
     /// then images, PDF, audio and video, then text. A name the system does not know (`.rs`, `Makefile`) is text;
     /// anything else previews, which shows its icon, size and Open With.
-    /// Nil for any other plugin: these pages are File Explorer's and Git's.
+    /// Nil for a plugin with no entry (the browser).
     init?(_ plugin: String, _ arg: String) {
         switch plugin {
         case "git":
@@ -50,7 +49,7 @@ enum PluginPage: String, CaseIterable {
         case .markdown: "doc.richtext"
         case .diff: "plusminus"
         case .git: "arrow.triangle.branch"
-        case .main: "puzzlepiece.extension"
+        case .main: Registry.missing
         }
     }
 
@@ -135,6 +134,7 @@ final class Plugin {
         web = WebCard(plugin: manifest.id, page: page, arg: label.place, place: place, store: store)
         header = Header(manifest: manifest)
         name()
+        web.bridge = Bridge(plugin: self)
         web.view.step = { [weak self] back in
             guard let self, back ? canGoBack : canGoForward else { return false }
             if back {
@@ -149,6 +149,15 @@ final class Plugin {
     /// The page's identifier names the page it shows: `file.<pane>.page`.
     func name() {
         web.view.setAccessibilityIdentifier("\(web.page.rawValue).\(paneID).page")
+    }
+
+    /// A menu command for the card's page: `save`, `find`, `findNext` or `findPrevious`.
+    func command(_ name: String) {
+        if web.page == .main {
+            web.bridge?.command(name)
+        } else {
+            web.send(["op": name])
+        }
     }
 
     /// Unsaved edits, as the page reports them: the dot after the title.
@@ -176,7 +185,9 @@ final class Plugin {
     /// comes back with the file it opened revealed.
     func go(_ arg: String, at place: String? = nil) {
         guard arg != web.arg else {
-            if let place {
+            if web.page == .main {
+                web.bridge?.place(arg, at: place)
+            } else if let place {
                 web.send(["op": "reveal", "at": place])
             }
             return
@@ -195,7 +206,8 @@ final class Plugin {
     private func landing(_ arg: String, _ place: String?) -> String? {
         switch web.page {
         case .files: arg
-        case .git: place ?? arg
+        // A plugin's page: where it came back from.
+        case .git, .main: place ?? arg
         default: nil
         }
     }
@@ -304,7 +316,8 @@ struct BackForward: View {
 /// Reload). A button's action ends it.
 struct Toast {
     let text: String
-    let other: (title: String, action: () -> Void)
+    /// None: the main button alone.
+    let other: (title: String, action: () -> Void)?
     let main: (title: String, action: () -> Void)
 }
 
