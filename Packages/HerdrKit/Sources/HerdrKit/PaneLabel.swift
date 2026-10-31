@@ -64,19 +64,12 @@ public struct PaneLabel: Equatable, Sendable {
         }
     }
 
-    /// A Git card's repo root (without its `/`) and its diff's source (`uncommitted` or a commit hash), from its
-    /// place: `<root>/` is the home, `<root>/ <source>` a diff.
-    public var diff: (root: String, source: String?) {
+    /// A Git card's diff source (`uncommitted` or a commit hash), from its place: `<root>/` is the home, `<root>/
+    /// <source>` a diff.
+    public var diffSource: String? {
         let place = place
-        if let space = place.lastIndex(of: " "), place[..<space].hasSuffix("/") {
-            return (Self.root(place[..<space]), String(place[place.index(after: space)...]))
-        }
-        return (Self.root(place[...]), nil)
-    }
-
-    /// A folder's path without its last `/`; `/` stays.
-    private static func root(_ folder: Substring) -> String {
-        folder.count > 1 && folder.hasSuffix("/") ? String(folder.dropLast()) : String(folder)
+        guard let space = place.lastIndex(of: " "), place[..<space].hasSuffix("/") else { return nil }
+        return String(place[place.index(after: space)...])
     }
 
     /// The instance state file, relative to the home folder (future-work/plugins/state).
