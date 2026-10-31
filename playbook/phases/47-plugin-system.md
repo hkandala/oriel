@@ -347,5 +347,15 @@ working until this track switches the default plugins to installed packages.
 - **Decisions:** `~/Library/Logs/Oriel/plugins/<id>.log` gets build times and errors, console lines and uncaught
   errors (the runtime forwards them), stopped pages, denied calls, failed updates, and manifests the registry left out
   (under the folder's name). esbuild warnings stay out (`--log-level=error`).
+- **Decisions:** the app carries the default plugins' source (`make web` copies `plugins/<id>` without `node_modules`)
+  and installs each into the plugins folder when its copy is missing: a copy, then `npm ci` from its lockfile; its cards
+  show "Installing ‹name›…", or "‹name› could not install" with Reload to try again. `.defaults.json` keeps each copy's
+  source hash: a copy the app has another of (a new version, or a repository build with changed source) is replaced
+  when unedited; an edited one shows Update to Version / Reset to Default in the panel. The UI tests use their own
+  config folder (`-configFolder`, also on the helper's `open` launches) and `npm_config_offline` (npm's cache, which
+  `make web` fills); `scripts/e2e.sh` removes it first, so each run installs its build's defaults.
+- **Runs:** File Explorer and Git, built by the app from installed copies, match main: Git's parity shots 0 px over
+  8 levels but a caret blink; File Explorer's only the approved Collapse All once the hover state of the card under the
+  pointer is masked (`/tmp/oriel-shots/47f-*`).
 - **For the docs pass:** building.mdx's watcher, inline source map, `manifest.json`, `oriel-plugin://app/<id>` and the
   shared default build go; Reload Plugin, the panel, `assets`, `optional` peer, the metafile rule and the log lines come in.
