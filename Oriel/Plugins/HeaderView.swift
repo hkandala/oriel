@@ -77,6 +77,7 @@ private struct HeaderItem: View {
         if control.badge == nil, control.busy != true {
             IconButton(symbol: symbol, help: title, size: 22) { plugin.header.pick(id, nil) }
                 .foregroundStyle(look.paneButton)
+                .accessibilityLabel(control.label ?? title)
         } else {
             Button { plugin.header.pick(id, nil) } label: {
                 HStack(spacing: 2) {
@@ -96,7 +97,7 @@ private struct HeaderItem: View {
             .foregroundStyle(look.paneButton)
             .help(title)
             // In the label: XCUITest reads no button's value.
-            .accessibilityLabel(control.badge.map { "\(title), \($0)" } ?? title)
+            .accessibilityLabel(control.label ?? control.badge.map { "\(title), \($0)" } ?? title)
         }
     }
 
@@ -108,6 +109,7 @@ private struct HeaderItem: View {
         }
         .foregroundStyle(isOn ? AnyShapeStyle(.tint) : AnyShapeStyle(look.paneButton))
         .accessibilityAddTraits(isOn ? .isSelected : [])
+        .accessibilityLabel(control.label ?? control.title ?? "")
     }
 
     /// Plain, dim, or a path: its parts with `›` between them, the first dim. The symbol, dim, before the last part
@@ -179,7 +181,7 @@ private struct HeaderMenu: View {
         .menuStyle(.button)
         .buttonStyle(.borderless)
         .fixedSize()
-        .accessibilityLabel(control.title ?? "")
+        .accessibilityLabel(control.label ?? control.title ?? "")
         .accessibilityValue(shown)
     }
 

@@ -64,6 +64,8 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
         public let id: String?
         public var symbol: String?
         public var title: String?
+        /// What VoiceOver reads, when the title (with a button's badge) says too little: "Push, 1 ahead".
+        public var label: String?
         /// An `openWith`'s is the file's path.
         public var value: Value?
         /// A segmented control's.
