@@ -107,6 +107,7 @@ extension OrielUITests {
         allow.click()
         XCTAssertTrue(element("plugins.csv-git.version").has(\.stringValue, "0.1.0", within: 10))
         XCTAssertTrue(element("plugins.csv-table").exists)
+        keepScreenshot("settings plugins")
         app.typeKey("w", modifierFlags: .command)
     }
 

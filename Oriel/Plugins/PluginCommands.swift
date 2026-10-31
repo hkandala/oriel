@@ -17,9 +17,18 @@ extension CommandList {
         ]
     }
 
-    /// ⌘K's: every plugin read and built again.
-    static let reloadPlugins = Command(section: .palette, title: "Reload Plugins", symbol: "arrow.clockwise",
-                                       keywords: "plugin build refresh packages") { Task { await Plugin.reloadAll() } }
+    /// ⌘K's: every plugin read and built again, and Settings › Plugins.
+    static var plugins: [Command] {
+        [
+            Command(section: .palette, title: "Reload Plugins", symbol: "arrow.clockwise",
+                    keywords: "plugin build refresh packages") { Task { await Plugin.reloadAll() } },
+            Command(section: .palette, title: "Plugins…", symbol: Registry.missing,
+                    keywords: "settings install update remove packages npm git") { openSettings?() },
+        ]
+    }
+
+    /// Opens Settings (`AppCommands` keeps it).
+    static var openSettings: OpenSettingsAction?
 }
 
 extension WKWebView {

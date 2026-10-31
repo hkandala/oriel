@@ -11,22 +11,27 @@ final class PluginBuilds {
 
     /// Each plugin's current build, which the scheme serves (`Registry.files`).
     private(set) var folders: [String: URL] = [:]
-    @ObservationIgnored private var running: [String: Task<(URL?, String?), Never>] = [:]
+    @ObservationIgnored private var running: [String: Task<Made, Never>] = [:]
+    /// A build's folder, or esbuild's errors; `built` false for a build found in the cache.
+    private struct Made {
+        let folder: URL?, errors: String?, built: Bool
+    }
 
     /// Makes the plugin's current build when its inputs changed, or always (`again`). Nil when it passed; esbuild's
     /// errors when it failed, which also go to the plugin's log. A failed build leaves the last one current.
     func build(_ manifest: PluginManifest, again: Bool = false) async -> String? {
         let id = manifest.id
         if let task = running[id] {
-            let (_, errors) = await task.value
+            let errors = await task.value.errors
             guard again else { return errors }
         }
         guard let package = Registry.package(id), let entry = manifest.entry else {
             return "\(manifest.name) has no package to build"
         }
+        let start = ContinuousClock.now
         let task = Task.detached { await Self.make(id, package, entry, again: again) }
         running[id] = task
-        let (folder, errors) = await task.value
+        let made = await task.value, (folder, errors) = (made.folder, made.errors)
         if running[id] == task {
             running[id] = nil
         }
@@ -35,6 +40,8 @@ final class PluginBuilds {
         }
         if let errors {
             PluginLog.add(id, "build failed:\n\(errors)")
+        } else if made.built {
+            PluginLog.add(id, "built in \((ContinuousClock.now - start).formatted(.units(allowed: [.milliseconds])))")
         }
         return errors
     }
@@ -67,12 +74,12 @@ final class PluginBuilds {
         .map { "--loader:.\($0)=file" }
 
     private nonisolated static func make(_ id: String, _ package: URL, _ entry: String,
-                                         again: Bool) async -> (URL?, String?)
+                                         again: Bool) async -> Made
     {
         let files = FileManager.default, root = cache.appending(path: id),
             folder = root.appending(path: inputs(package))
         if !again, files.fileExists(atPath: folder.path) {
-            return (folder, nil)
+            return Made(folder: folder, errors: nil, built: false)
         }
         // Into a folder of its own, then in place: a card never loads half a build.
         let temporary = root.appending(path: ".\(UUID().uuidString)")
@@ -80,13 +87,13 @@ final class PluginBuilds {
         guard status == 0 else {
             try? files.removeItem(at: temporary)
             let text = output.trimmingCharacters(in: .whitespacesAndNewlines)
-            return (nil, text.isEmpty ? "esbuild failed (\(status))" : text)
+            return Made(folder: nil, errors: text.isEmpty ? "esbuild failed (\(status))" : text, built: true)
         }
         try? files.removeItem(at: folder)
         do {
             try files.moveItem(at: temporary, to: folder)
         } catch {
-            return (nil, error.localizedDescription)
+            return Made(folder: nil, errors: error.localizedDescription, built: true)
         }
         // The plugin's older builds go; a card still on one loads the new one at its next load.
         for old in (try? files.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)) ?? []
@@ -94,7 +101,7 @@ final class PluginBuilds {
         {
             try? files.removeItem(at: old)
         }
-        return (folder, nil)
+        return Made(folder: folder, errors: nil, built: true)
     }
 
     /// The hash of what a build reads: the package's files (path, size, time) outside `node_modules`, the package

@@ -188,8 +188,7 @@ struct CommandList {
             Command(section: .palette, title: fullScreen ? "Exit Full Screen" : "Enter Full Screen",
                     key: .init("f", modifiers: [.command, .control]),
                     symbol: "arrow.up.left.and.arrow.down.right") { NSApp.keyWindow?.toggleFullScreen(nil) },
-            Self.reloadPlugins,
-        ]
+        ] + Self.plugins
     }
 
     /// The Window menu's tab, workspace and page steps, and the places on ⌘1…⌘9.
