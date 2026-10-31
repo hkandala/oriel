@@ -13,7 +13,7 @@ enum PluginKind: String, CaseIterable {
     }
 
     /// Every symbol a plugin card shows: its kind's and its pages'.
-    static let symbols = Set(allCases.map(\.symbol) + ["doc.text", "photo", "doc.richtext", "plusminus"])
+    static let symbols = Set(allCases.map(\.symbol) + PluginPage.allCases.map(\.symbol))
 
     /// Its SF Symbol: the card's, the tab's and the chooser's icon.
     var symbol: String {
@@ -27,7 +27,7 @@ enum PluginKind: String, CaseIterable {
 
 /// A plugin card's web page (`web/src/<page>.ts`), which its argument picks: the File Explorer's tree, File, Preview
 /// or Markdown; Git's diff.
-enum PluginPage: String {
+enum PluginPage: String, CaseIterable {
     case files, file, preview, markdown, diff
 
     /// A folder's argument ends in `/`; a file opens by its name alone (a remote file is not read first): Markdown,
@@ -74,7 +74,12 @@ enum PluginPage: String {
 extension PaneLabel {
     /// Its program icon: the page's a File Explorer shows, else the kind's.
     var symbol: String? {
-        kind == .explorer ? PluginPage(.explorer, arg).symbol : kind?.symbol
+        kind == .explorer ? PluginPage(.explorer, place).symbol : kind?.symbol
+    }
+
+    /// The argument as the card reads it: an old Files label names its root without the `/` of a folder.
+    var place: String {
+        plugin == "files" && !arg.hasSuffix("/") ? arg + "/" : arg
     }
 
     /// The words of the five kinds before File Explorer and Git still open.
@@ -151,7 +156,7 @@ final class Plugin {
         self.terminalID = terminalID
         self.paneID = paneID
         self.label = label
-        web = WebCard(kind: label.kind ?? .explorer, arg: Self.arg(label), place: place, store: store)
+        web = WebCard(kind: label.kind ?? .explorer, arg: label.place, place: place, store: store)
         name()
         web.view.step = { [weak self] back in
             guard let self, back ? canGoBack : canGoForward else { return false }
@@ -162,11 +167,6 @@ final class Plugin {
             }
             return true
         }
-    }
-
-    /// An old Files label names its root without the `/` of a folder.
-    private static func arg(_ label: PaneLabel) -> String {
-        label.plugin == "files" && !label.arg.hasSuffix("/") ? label.arg + "/" : label.arg
     }
 
     /// The page's identifier names the page it shows: `file.<pane>.page`.
@@ -207,28 +207,26 @@ final class Plugin {
             }
             return
         }
-        leave {
-            self.back.append((self.web.arg, self.web.page == .files ? arg : nil))
-            self.forward = []
-            self.show(arg, at: place)
+        leave { plugin in
+            plugin.back.append((plugin.web.arg, plugin.web.page == .files ? arg : nil))
+            plugin.forward = []
+            plugin.show(arg, at: place)
         }
     }
 
     func goBack() {
-        guard let last = back.last else { return }
-        leave {
-            self.back.removeLast()
-            self.forward.append((self.web.arg, nil))
-            self.show(last.arg, at: last.at)
+        leave { plugin in
+            guard let last = plugin.back.popLast() else { return }
+            plugin.forward.append((plugin.web.arg, nil))
+            plugin.show(last.arg, at: last.at)
         }
     }
 
     func goForward() {
-        guard let next = forward.last else { return }
-        leave {
-            self.forward.removeLast()
-            self.back.append((self.web.arg, self.web.page == .files ? next.arg : nil))
-            self.show(next.arg, at: next.at)
+        leave { plugin in
+            guard let next = plugin.forward.popLast() else { return }
+            plugin.back.append((plugin.web.arg, plugin.web.page == .files ? next.arg : nil))
+            plugin.show(next.arg, at: next.at)
         }
     }
 
@@ -246,34 +244,36 @@ final class Plugin {
         }
     }
 
-    /// Unsaved edits ask first: Back or a click would drop them.
-    private func leave(_ then: @escaping () -> Void) {
-        guard web.dirty else { return then() }
-        web.toast = Toast(
-            text: "\(label.title) has unsaved edits.",
-            other: ("Discard", then),
-            main: ("Keep Editing", {}),
-        )
+    /// Unsaved edits ask first: Back or a click would drop them. The toast keeps the card weakly.
+    private func leave(_ then: @escaping (Plugin) -> Void) {
+        guard web.dirty else { return then(self) }
+        let name = (web.arg as NSString).lastPathComponent
+        web.toast = Toast(text: "\(name) has unsaved edits.", other: ("Discard", { [weak self] in self.map(then) }),
+                          main: ("Keep Editing", {}))
     }
 
     /// The label follows the place, so a reload or a card made again comes back to it.
     private func show(_ arg: String, at place: String?) {
         web.show(arg, at: place)
         name()
-        let label = PaneLabel(plugin: kind.rawValue, iid: label.iid, arg: arg)
-        guard PaneLabel(label.text) != nil, let store = web.store else { return }
+        let text = PaneLabel(plugin: kind.rawValue, iid: label.iid, arg: arg).text, paneID = paneID
+        guard PaneLabel(text) != nil, let store = web.store else { return }
         renamed.insert(arg)
-        Task { await store.rename(pane: paneID, label: label.text) }
+        // Not `HostStore.rename`, which skips a label the last snapshot has: a quick Back renames to it again.
+        Task { await store.write { try await $0.rename(pane: paneID, label: text) } }
     }
 
-    /// A snapshot's label: the card's own rename, or a new place from elsewhere (an agent's `herdr pane rename`),
-    /// shown after the one the card shows, as a browser's.
+    /// Each snapshot's label: the card's own rename, or a new place from elsewhere (an agent's `herdr pane rename`),
+    /// shown after the one the card shows, as a browser's. Once a snapshot shows the place shown, no older one comes.
+    /// ponytail: a place from elsewhere drops unsaved edits without asking, as a rename always did.
     func follow(_ label: PaneLabel) {
-        self.label = label
-        let arg = Self.arg(label)
+        let changed = label != self.label, arg = label.place
+        if changed {
+            self.label = label
+        }
         if arg == web.arg {
             renamed = []
-        } else if !renamed.contains(arg) {
+        } else if changed, !renamed.contains(arg) {
             back.append((web.arg, nil))
             forward = []
             web.show(arg, at: nil)

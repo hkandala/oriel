@@ -46,15 +46,20 @@ extension OrielUITests {
         XCTAssertEqual(after, tabs)
         keepScreenshot("file explorer file")
 
-        // Back: the tree, the file revealed in its open folders; Forward: the file.
-        element("pane.\(card).back").click()
+        // Back (⌘[ over the card): the tree, the file revealed in its open folders; Forward (⌘]): the file.
+        file.textViews.firstMatch.click()
+        app.typeKey("[", modifierFlags: .command)
         XCTAssertTrue(row("main.swift", in: tree).exists(within: 10))
         try await labelEnds(card, " \(root)/")
-        element("pane.\(card).forward").click()
+        app.typeKey("]", modifierFlags: .command)
         XCTAssertTrue(file.textViews.firstMatch.exists(within: 10))
         element("pane.\(card).reveal").click()
         XCTAssertTrue(row("main.swift", in: tree).exists(within: 10))
         XCTAssertTrue(element("pane.\(card).forward").has(\.isEnabled, false, within: 3))
+        element("pane.\(card).back").click()
+        XCTAssertTrue(file.textViews.firstMatch.exists(within: 10))
+        element("pane.\(card).back").click()
+        XCTAssertTrue(row("main.swift", in: tree).exists(within: 10))
 
         try await moveRoot(card, tree, root)
         try await send("rm -rf \(repo)\r", to: shell)
@@ -73,8 +78,8 @@ extension OrielUITests {
         XCTAssertTrue(row("a.txt", in: tree).exists(within: 10))
     }
 
-    /// ⌘-click opens a file in a new tab right after the card's, ⌥-click in a pane to the card's side. Several quick
-    /// ⌘-clicks: the newest open's tab is the one selected and shown, with its card.
+    /// ⌘-click opens a file in a new tab right after the card's, ⌥-click in a pane to the card's side. After each
+    /// open the selected tab and the shown card agree.
     func testFileExplorerOpensInNewTabsAndToTheSide() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (_, shell) = try await newTab("files-open")
@@ -83,7 +88,8 @@ extension OrielUITests {
         try await send("rm -rf \(repo) && mkdir -p \(repo) && cd \(repo) && touch one.txt two.txt three.txt four.txt "
             + "&& clear && echo ready-$((6*7))\r", to: shell)
         try await waitFor(shell) { $0.contains("ready-42") }
-        let (tab, card) = try await explorer(root, in: repo)
+        // An old Files label, its root without the `/`, still opens the tree.
+        let (tab, card) = try await explorer(root, in: repo, label: "oriel:files#e2efio \(root)")
         try await show(tab)
         let tree = element("files.\(card).page")
         XCTAssertTrue(row("four.txt", in: tree).exists(within: 10))
@@ -97,39 +103,31 @@ extension OrielUITests {
         try await labelEnds(side, " \(root)/one.txt")
         XCTAssertTrue(element("file.\(side).page").exists(within: 10))
 
-        try await show(tab)
-        let before = try await tabIDs()
-        XCUIElement.perform(withKeyModifiers: .command) {
-            for name in ["two.txt", "three.txt", "four.txt"] {
-                row(name, in: tree).click()
-            }
+        // Each ⌘-click from the tree: the new tab right after the card's is selected and shows its own card.
+        for name in ["two.txt", "three.txt", "four.txt"] {
+            try await show(tab)
+            let before = try await tabIDs()
+            XCUIElement.perform(withKeyModifiers: .command) { row(name, in: tree).click() }
+            let opened = try await newTabID(after: before)
+            closeAfter("tab", opened)
+            let pane = try await pane(of: opened)
+            try await labelEnds(pane, " \(root)/\(name)")
+            let order = try await order(of: opened), cardOrder = try await self.order(of: tab)
+            XCTAssertEqual(order, cardOrder.map { $0 + 1 })
+            XCTAssertTrue(element("tab.\(opened)").has(\.isSelected, true, within: 5), name)
+            XCTAssertTrue(element("file.\(pane).page").has(\.isHittable, true, within: 5), name)
+            XCTAssertFalse(tree.isHittable)
         }
-        let opened = try await poll("three new tabs") { () async throws -> [String]? in
-            let now = try await tabIDs().filter { !before.contains($0) }
-            return now.count == 3 ? now : nil
-        }
-        opened.forEach { closeAfter("tab", $0) }
-        var newest = ""
-        for id in opened where try await paneLabel(pane(of: id)).hasSuffix("/four.txt") {
-            newest = id
-        }
-        XCTAssertTrue(element("tab.\(newest)").has(\.isSelected, true, within: 5), newest)
-        let page = try await pane(of: newest)
-        XCTAssertTrue(element("file.\(page).page").has(\.isHittable, true, within: 5))
-        // Settled: no later reply takes the selection or the strip elsewhere.
-        XCTAssertFalse(until(1) { !element("tab.\(newest)").isSelected || !element("page.\(newest)").isHittable })
         try await send("rm -rf \(repo)\r", to: shell)
     }
 
     /// A File Explorer card at the folder, in a tab of its own, made as Oriel makes one.
-    private func explorer(_ root: String, in repo: String) async throws -> (tab: String, pane: String) {
+    private func explorer(_ root: String, in repo: String,
+                          label: String? = nil) async throws -> (tab: String, pane: String)
+    {
+        let label = label ?? "oriel:explorer#e2efil \(root)/", command = ["sh", "-c", "cat", "sh"]
         let reply = try await Self.call(one, "layout.apply", ["workspace_id": "w2", "focus": false, "root": [
-            "type": "pane", "cwd": repo, "label": "oriel:explorer#e2efil \(root)/", "command": [
-                "sh",
-                "-c",
-                "cat",
-                "sh",
-            ],
+            "type": "pane", "cwd": repo, "label": label, "command": command,
         ]])
         let layout = reply["layout"] as? [String: Any]
         let tab: String = try field(layout?["tab_id"], "layout's tab")

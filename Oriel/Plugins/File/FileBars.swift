@@ -7,7 +7,7 @@ struct JumpBar: View {
     let plugin: Plugin
 
     var body: some View {
-        let path = plugin.label.arg as NSString, folder = (path.deletingLastPathComponent as NSString).lastPathComponent
+        let path = plugin.web.arg as NSString, folder = (path.deletingLastPathComponent as NSString).lastPathComponent
         let symbol = plugin.web.symbol, chevron = Text(" › ").foregroundStyle(.tertiary)
         let file = Text("\(Text(folder).foregroundStyle(.secondary))\(chevron)\(path.lastPathComponent)")
         let shown = symbol.isEmpty ? file
@@ -25,7 +25,7 @@ struct PreviewBar: View {
     @Environment(\.look) private var look
 
     var body: some View {
-        let id = "pane.\(plugin.paneID)", path = plugin.label.arg
+        let id = "pane.\(plugin.paneID)", path = plugin.web.arg
         Text(path).foregroundStyle(.secondary).fontWeight(.regular).lineLimit(1).truncationMode(.middle)
             .accessibilityIdentifier("\(id).path")
         Spacer(minLength: 0)

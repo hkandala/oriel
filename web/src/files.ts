@@ -267,6 +267,8 @@ for (const trees of [host, matches]) {
     "click",
     (event) => {
       const at = row(event)
+      // A ⌘- or ⌥-double-click opens once.
+      if (at && event.detail > 1 && (event.metaKey || event.altKey)) return event.stopPropagation()
       if (!at || !(event.metaKey || event.altKey || event.detail >= 2)) return
       if (at.folder && !event.metaKey && !event.altKey) return event.stopPropagation()
       event.stopPropagation()
@@ -282,6 +284,7 @@ for (const trees of [host, matches]) {
   trees.addEventListener("contextmenu", (event) => {
     const at = row(event)
     if (at) menu(event, { arg: at.folder ? `${at.path}/` : at.path, folder: at.folder })
+    else event.preventDefault()
   })
 }
 

@@ -72,7 +72,8 @@ struct FilesBar: View {
         panel.directoryURL = URL(filePath: path)
         Task {
             guard await panel.beginSheetModal(for: window) == .OK, let url = panel.url else { return }
-            plugin.go(url.path(percentEncoded: false))
+            let folder = url.path(percentEncoded: false)
+            plugin.go(folder.hasSuffix("/") ? folder : folder + "/")
         }
     }
 
@@ -112,20 +113,29 @@ extension WebCard {
         do {
             switch ask {
             case "list":
-                let entries = try await Files.list(message["path"] as? String ?? arg, repo: repo, exec: exec)
+                // The repository first, so the first listing dims what git ignores.
+                if repo?.root != arg {
+                    repo = await (arg, gitRoot(arg, exec))
+                }
+                let entries = try await Files.list(message["path"] as? String ?? arg, repo: repo?.path, exec: exec)
                 return (entries.map { ["name": $0.name, "folder": $0.isFolder, "ignored": $0.ignored] }, nil)
             case "paths":
-                return try await (Files.paths(arg, repo: repo, exec: exec), nil)
+                return try await (Files.paths(arg, repo: repo?.path, exec: exec), nil)
             default:
-                // A root inside a repository but not its root shows no letters: git's paths are from the repo's root.
-                let runs = await store?.gitRuns() == true
-                repo = runs ? await Git.root(arg, exec: exec).flatMap { $0 == arg ? $0 : nil } : nil
-                guard repo != nil else { return ([] as [Any], nil) }
+                repo = await (arg, gitRoot(arg, exec))
+                guard repo?.path != nil else { return ([] as [Any], nil) }
                 return try await (Git.status(arg, exec: exec).map { ["letter": String($0.letter), "path": $0.path] },
                                   nil)
             }
         } catch {
             return (nil, error.localizedDescription)
         }
+    }
+
+    /// The root when it is a repository's root and git runs. A root inside a repository but not its root shows no
+    /// git: git's paths are from the repository's root.
+    private func gitRoot(_ root: String, _ exec: any Exec) async -> String? {
+        guard await store?.gitRuns() == true else { return nil }
+        return await Git.root(root, exec: exec).flatMap { $0 == root ? $0 : nil }
     }
 }

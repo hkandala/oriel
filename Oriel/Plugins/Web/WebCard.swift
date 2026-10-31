@@ -38,8 +38,8 @@ final class WebCard {
 
     /// Files: row 2's filter; a page loaded again ends it.
     var filter = ""
-    /// Files: the root, when the last `git` ask found it a repository's root; listings then carry git's state.
-    @ObservationIgnored var repo: String?
+    /// The tree's root and its repository, when the root is a repository's root; listings then carry git's state.
+    @ObservationIgnored var repo: (root: String, path: String?)?
     /// What the Markdown page shows, as it reports it.
     private(set) var markdown = (edit: false, outline: false)
     var toast: Toast?
@@ -140,6 +140,7 @@ final class WebCard {
         case "menu":
             menu(message)
         case "patch":
+            defer { ready = true }
             return await patch()
         case "open":
             // No kind: the File Explorer's; no `how`: in the card.

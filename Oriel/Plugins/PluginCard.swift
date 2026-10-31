@@ -123,24 +123,25 @@ private struct OpenWith: View {
     let path: String
 
     var body: some View {
-        let url = URL(filePath: path), main = NSWorkspace.shared.urlForApplication(toOpen: url)
-        Menu {
-            OpenWithItems(url: url)
-        } label: {
-            if let main {
-                Image(nsImage: OpenWithItems.icon(main))
+        let url = URL(filePath: path)
+        Group {
+            if let main = NSWorkspace.shared.urlForApplication(toOpen: url) {
+                Menu {
+                    OpenWithItems(url: url)
+                } label: {
+                    Image(nsImage: OpenWithItems.icon(main))
+                } primaryAction: {
+                    NSWorkspace.shared.open([url], withApplicationAt: main,
+                                            configuration: NSWorkspace.OpenConfiguration())
+                }
+                .help("Open with \(FileManager.default.displayName(atPath: main.path))")
             } else {
-                Text("Open With")
-            }
-        } primaryAction: {
-            if let main {
-                NSWorkspace.shared.open([url], withApplicationAt: main, configuration: NSWorkspace.OpenConfiguration())
+                Menu("Open With") { OpenWithItems(url: url) }
             }
         }
         .menuStyle(.button)
         .buttonStyle(.borderless)
         .fixedSize()
-        .help(main.map { "Open with \(FileManager.default.displayName(atPath: $0.path))" } ?? "Open With")
     }
 }
 

@@ -26,7 +26,7 @@ final class PaneViewRegistry {
     private var browsers: [String: Browser] = [:]
     /// The other plugin panes' cards, the same way.
     private var plugins: [String: Plugin] = [:]
-    /// Linked opens' landings (`Page.open(_:arg:at:from:)`) for the cards not made yet.
+    /// Linked opens' landings (`Page.open(_:arg:at:from:how:)`) for the cards not made yet.
     var landings: [String: String] = [:]
 
     /// The pane's terminal, made on first use.
@@ -76,8 +76,8 @@ final class PaneViewRegistry {
                             place: landings.removeValue(forKey: terminalID), store: store)
         plugin.web.view.onKeyboard = claim(terminalID)
         plugin.web.open = { [weak self] kind, arg, place, how in
-            Task { await self?.pages?.page(of: terminalID)?.open(kind, arg: arg, at: place, from: terminalID, how: how)
-            }
+            let page = self?.pages?.page(of: terminalID)
+            Task { await page?.open(kind, arg: arg, at: place, from: terminalID, how: how) }
         }
         plugins[terminalID] = plugin
         return plugin
@@ -99,7 +99,7 @@ final class PaneViewRegistry {
         browsers = browsers.filter { kept($0.key, $0.value.label) }
         plugins = plugins.filter { kept($0.key, $0.value.label) }
         for (terminalID, plugin) in plugins {
-            if let label = labels[terminalID], label != plugin.label {
+            if let label = labels[terminalID] {
                 plugin.follow(label)
             }
         }

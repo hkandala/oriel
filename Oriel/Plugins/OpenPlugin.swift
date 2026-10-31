@@ -49,9 +49,7 @@ extension Page {
     /// window), or a pane to the card's side, which the snapshot after it selects with the keyboard; after the
     /// selected tab once the card is gone. Its card lands at a line of a file or a diff's file, once (not in the
     /// label).
-    func open(_ kind: PluginKind, arg: String, at place: String? = nil, from source: String,
-              how: Opening = .tab) async
-    {
+    func open(_ kind: PluginKind, arg: String, at place: String? = nil, from source: String, how: Opening) async {
         if how == .here, let plugin = terminals.builtPlugin(source), plugin.kind == kind {
             return plugin.go(arg, at: place)
         }
