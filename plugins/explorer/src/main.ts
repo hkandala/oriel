@@ -1,7 +1,6 @@
 // File Explorer: one card that moves between four places, each its own module loaded on first use: the tree of a
 // folder (files.ts), and a file as text (file.ts), as Markdown (markdown.ts) or as an image, a PDF or a player
 // (preview.ts). The app draws row 2 from the manifest; each place shows its own controls.
-import "pdfjs-dist/web/pdf_viewer.css"
 import type { Off, Oriel } from "@oriel/plugin-api"
 import "./explorer.css"
 import "./files.css"

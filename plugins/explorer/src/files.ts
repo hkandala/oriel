@@ -134,12 +134,14 @@ export async function show(place: Place): Promise<Reveal> {
     ignored.delete(path)
   }
 
-  /** The folder's entries from the machine, in place of what the tree had in it. */
-  async function list(at: string) {
+  /** The folder's entries from the machine, in place of what the tree had in it; `rooted` is asked meanwhile, as
+   *  whether the root is a repository's (the first listing). */
+  async function list(at: string, rooted?: Promise<boolean>) {
     unlisted.delete(at)
     let entries: { name: string; folder: boolean; ignored: boolean }[]
     try {
       entries = await oriel.files.list(at ? `${base}/${at.slice(0, -1)}` : top)
+      if (rooted) repository = await rooted
     } catch {
       if (at) return
       children.clear()
@@ -320,11 +322,9 @@ export async function show(place: Place): Promise<Reveal> {
     })
   }
 
-  // The repository first, so the first listing dims what git ignores; the rows, then git's letters.
-  await run(async () => {
-    repository = await oriel.git.root(top).then((found) => found === top, () => false)
-    await list("")
-  })
+  // Whether the root is a repository's with the first listing, so it dims what git ignores (one wait for both, as
+  // each starts a process); the rows, then git's letters.
+  await run(() => list("", oriel.git.root(top).then((found) => found === top, () => false)))
   run(async () => {
     if (place.at) await reveal(place.at)
     await git()
