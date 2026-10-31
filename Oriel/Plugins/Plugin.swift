@@ -51,7 +51,7 @@ extension PaneLabel {
     /// The card's and the tab's title, from the label alone (menus ask for every tab's): the file's or the root's
     /// name, a diff's `Changes` or short hash.
     var title: String {
-        if manifest?.id == "git", let source = diff.source {
+        if manifest?.id == "git", let source = diffSource {
             return source == "uncommitted" ? "Changes" : String(source.prefix(7))
         }
         let name = (arg as NSString).lastPathComponent
