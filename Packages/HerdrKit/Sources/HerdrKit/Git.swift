@@ -67,7 +67,8 @@ public enum Git {
 
     /// The last 500 commits of every branch, remote branch and tag, and HEAD (also detached), newest first, each child
     /// before its parents. Not `--all`: the stash, notes and git's own refs would add lanes.
-    /// ponytail: 500 rows; a Show More row when a longer history must show.
+    /// ponytail: 500 rows; a Show More row when a longer history must show. An orphan branch with no commit yet
+    /// fails on `HEAD` and shows no history; drop `HEAD` there if that matters.
     public static func log(_ root: String, exec: any Exec) async throws -> [Commit] {
         try await exec.checkedOutput(
             ["git", "-C", root, "log", "--branches", "--remotes", "--tags", "HEAD", "-n", "500", "--topo-order",

@@ -49,10 +49,13 @@ final class GitRepo {
             again = true
             return await loading.value
         }
-        let task = Task { await read() }
+        // Ends itself: a caller after the read and before this one resumes must start a new read.
+        let task = Task {
+            await read()
+            loading = nil
+        }
         loading = task
         await task.value
-        loading = nil
     }
 
     private func read() async {
