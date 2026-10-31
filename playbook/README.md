@@ -62,3 +62,4 @@ run and test it is in the root `README.md`.
 | 44 | Default plugins with web components (merged into main) | [44-plugins-web.md](phases/44-plugins-web.md) |
 | 45 | Twelfth feedback: the chat's turns, empty state, speed and the panes skill | [45-twelfth-feedback.md](phases/45-twelfth-feedback.md) |
 | 46 | Thirteenth feedback: chat bubbles and long chats, pane speed, File Explorer and Git | [46-thirteenth-feedback.md](phases/46-thirteenth-feedback.md) |
+| 47 | The plugin system: packages, the `oriel` API, File Explorer and Git on it (branch `plugin-system`) | [47-plugin-system.md](phases/47-plugin-system.md) |
