@@ -177,8 +177,9 @@ extension OrielUITests {
     }
 
     /// What the overview costs: a workspace of 6 tabs and 12 panes, 8 of them printing, only its
-    /// first tab shown. Open, the cards of the tiles it lays out stream and draw; closed, the ones only it showed let
-    /// go (no visits, D46). Footprint and CPU of each step are in the result bundle.
+    /// first tab shown. Open, each tile in view gets a picture: the cards with none stream until they drew, then let
+    /// go (D70: the tiles are pictures), so the streams come back to the strip's while it is still open. Footprint and
+    /// CPU of each step are in the result bundle.
     func testOverviewCostsAndLetsGoAfter() async throws {
         let (tabs, _) = try await newWorkspace("usage", tabs: 6)
         var panes: [String] = []
@@ -198,18 +199,18 @@ extension OrielUITests {
         let strip = try await measure("strip")
         app.typeKey("o", modifierFlags: [.command, .control])
         XCTAssertTrue(element("overview").exists(within: 2))
-        // The tiles laid out (in or near view: the grid is lazy) stream their cards too.
-        try await poll("the tiles' cards to stream") { () async throws -> Int? in
-            let count = try await helpers(measure("overview", seconds: 1))
-            return count > helpers(strip) ? count : nil
-        }
-        let open = try await measure("overview")
-        // The second tab's tile turns live (its one card is checked again below).
+        // The second tab's tile, never shown, gets its picture (its one card is checked again below).
         let card = element("overview.card.\(panes[3])")
         scrollOverview(to: element("overview.tab.\(tabs[1])"))
-        XCTAssertTrue(until(5) { card.stringValue.hasPrefix("live") }, card.stringValue)
-        // Down to the new workspace's tiles: those in view stream, the ones scrolled away let go. Either way: the
-        // sign follows the natural scrolling setting.
+        XCTAssertTrue(until(10) { card.stringValue.hasPrefix("snapshot") }, card.stringValue)
+        // Pictures taken, the tiles' streams end with the overview still open.
+        try await poll("the tiles' streams to end") { () async throws -> Int? in
+            let count = try await helpers(measure("overview", seconds: 1))
+            return count <= helpers(strip) + 1 ? count : nil
+        }
+        let open = try await measure("overview")
+        // Down to the new workspace's tiles: those in view get their pictures the same way. Either way: the sign
+        // follows the natural scrolling setting.
         let last = element("overview.tab.\(tabs[5])")
         for delta in [-3000.0, 3000, -3000] where !(last.exists && last.isHittable) {
             element("overview").scroll(byDeltaX: 0, deltaY: delta)
@@ -218,14 +219,14 @@ extension OrielUITests {
         XCTAssertTrue(last.isHittable)
         keepScreenshot("overview of 6 tabs")
         let scrolled = try await measure("overview, scrolled")
-        // The strip's kept terminals, at most 16 cards, and a run or two ending.
+        // The strip's kept terminals, at most 16 cards still drawing their first picture, and a run or two ending.
         XCTAssertLessThanOrEqual(helpers(scrolled), helpers(strip) + 16 + 2, scrolled)
-        // Back up: the second tab's card, live on the way down, shows its snapshot or its terminal at once, never the
-        // bare fill.
+        // Back up: the second tab's card shows its snapshot at once, never the bare fill.
         scrollOverview(to: element("overview.tab.\(tabs[1])"), step: 3000, steps: 1)
         XCTAssertTrue(card.exists)
         XCTAssertFalse(card.stringValue.hasPrefix("loading"), card.stringValue)
-        // Its snapshot at the tile's pixel size: "‹live or snapshot› ‹its width in pixels›".
+        XCTAssertTrue(card.stringValue.hasPrefix("snapshot"), card.stringValue)
+        // Its snapshot at the tile's pixel size: "snapshot ‹its width in pixels›".
         let width = Double(card.stringValue.split(separator: " ").last ?? "") ?? 0
         XCTAssertGreaterThanOrEqual(width, card.frame.width * (NSScreen.main?.backingScaleFactor ?? 1) - 2,
                                     card.stringValue)
