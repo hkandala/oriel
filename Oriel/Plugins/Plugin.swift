@@ -168,11 +168,7 @@ final class Plugin {
 
     /// A menu command for the card's page: `save`, `find`, `findNext` or `findPrevious`.
     func command(_ name: String) {
-        if web.page == .main {
-            web.bridge?.event(name, NSNull())
-        } else {
-            web.send(["op": name])
-        }
+        web.bridge?.event(name, NSNull())
     }
 
     /// Unsaved edits, as the page reports them: the dot after the title.
