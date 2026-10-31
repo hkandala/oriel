@@ -38,6 +38,7 @@ extension OrielUITests {
         try await expect("back home") { try await paneLabel(card).hasSuffix("e2egit \(root)") }
         element("pane.\(card).forward").click()
         try await expect("forward to the commit") { try await paneLabel(card).hasSuffix(" \(root) \(hash)") }
+        try await diff(page, card: card, tab: tab, root: root)
         element("pane.\(card).diff.home").click()
         // A change opens Uncommitted at its file, which follows the work tree.
         XCTAssertTrue(home.buttons["Modified: a.txt"].exists(within: 10))
@@ -47,7 +48,6 @@ extension OrielUITests {
         XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, "Changes", within: 3))
         try await send("echo new >c.txt\r", to: left)
         XCTAssertTrue(page.buttons["c.txt"].exists(within: 10))
-        try await diff(page, card: card, tab: tab, root: root)
 
         element("pane.\(card).diff.home").click()
         let branch = element("pane.\(card).git.branch")
@@ -80,7 +80,7 @@ extension OrielUITests {
         try await expectGit("--git-dir \(repo).git log -1 --format=%s main", "e2e commit", in: left, repo: repo)
     }
 
-    /// The diff's own controls, from the Uncommitted diff of the repository.
+    /// The diff's own controls, on the diff of the commit that changes lines 1-150 and 290.
     private func diff(_ page: XCUIElement, card: String, tab: String, root: String) async throws {
         // Clicks in the page wait for what it draws: its layout comes back late after the card was hidden.
         let open = page.buttons["Open a.txt"]
