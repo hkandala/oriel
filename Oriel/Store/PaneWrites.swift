@@ -212,8 +212,23 @@ extension Page {
         selectedTab.flatMap { Ahead.isStandIn($0.id) ? $0.id : nil }
     }
 
-    /// Closes it, or asks first in this window (D41).
+    /// Closes it, or asks first in this window (D41). A plugin card with unsaved edits asks in its card first, as a
+    /// move does (Discard, Keep Editing).
     func close(_ close: HostStore.Close) {
+        let tabs = store.tabIDs(close)
+        let closed = store.panes.filter { pane in close.paneID.map { $0 == pane.id } ?? tabs.contains(pane.tabID) }
+        if let pane = closed.first(where: { $0.terminalID.flatMap(terminals.builtPlugin)?.web.dirty == true }),
+           let dirty = pane.terminalID.flatMap(terminals.builtPlugin)
+        {
+            // Its tab shows: Close Other Tabs may close one out of view.
+            if let workspace = store.workspaces.first(where: { $0.tabs.contains { $0.id == pane.tabID } }) {
+                select(workspace, tab: pane.tabID)
+            }
+            return dirty.leave { [weak self] card in
+                card.web.dirty = false
+                self?.close(close)
+            }
+        }
         // The same close again (a second ⇧⌘W while herdr is asked) would ask twice; another close goes on.
         let key = String(describing: close)
         // The old pane of a replace that runs: herdr closes it already.
