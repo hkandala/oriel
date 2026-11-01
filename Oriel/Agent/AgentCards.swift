@@ -120,10 +120,7 @@ extension AgentCall {
             throw AgentError(code: "failed", message: "Oriel does not show herdr session \(target.session)")
         }
         guard let pane = store.pane(target.id) else {
-            throw AgentError(
-                code: "pane_not_found",
-                message: "pane \(target.id) is not in herdr session \(target.session)",
-            )
+            throw AgentError.paneNotFound(target.id, in: target.session)
         }
         return (store, pane)
     }

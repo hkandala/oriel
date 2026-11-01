@@ -14,25 +14,18 @@ extension AgentCommand {
         try call.done()
         let machine = call.store.machine
         guard let window = call.store.windows.first else {
-            throw AgentError(code: "failed", message: "no window shows herdr session \(call.store.session)")
+            throw AgentError.noWindow(call.store.session)
         }
         let existing = target.floating != nil
         WindowPages.float(session: target.session, pane: target.id, machine: machine.id, over: window, agent: true)
         // A session with no page opens a float-only one, which floats the pane once it connects.
-        var floating = target.floating
-        let end = ContinuousClock.now + .seconds(8)
-        while floating == nil, window.floatPending != nil, end > .now {
-            try await Task.sleep(for: .milliseconds(50))
-            floating = target.floating
-        }
+        try await settle(for: .seconds(8)) { target.floating != nil || window.floatPending == nil }
+        let floating = target.floating
         if floating == nil, case let .failed(error) = target.store?.state {
             throw error
         }
         guard let (page, terminalID) = floating else {
-            throw AgentError(
-                code: "pane_not_found",
-                message: "pane \(target.id) is not in herdr session \(target.session)",
-            )
+            throw AgentError.paneNotFound(target.id, in: target.session)
         }
         if onTop {
             page.floating[terminalID] = true

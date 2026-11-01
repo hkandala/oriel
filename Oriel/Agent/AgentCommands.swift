@@ -46,10 +46,10 @@ enum AgentCommands {
         let json = argv.contains("--json")
         var call = AgentCall(store: store, pane: pane, cwd: cwd, id: id, args: argv.filter { $0 != "--json" })
         do {
-            // No command is `help`.
+            // No arguments: help.
             let name = call.args.isEmpty ? "help" : call.args.removeFirst()
             guard let command = all.first(where: { $0.name == name }) else {
-                throw AgentError(code: "unknown_command", message: "no command \(name); `oriel help` lists them")
+                throw AgentError.unknownCommand(name)
             }
             let output = try await command.run(&call)
             return AgentAnswer(code: 0, out: json ? output.jsonData : Data(output.text.utf8), err: "")
@@ -84,6 +84,18 @@ struct AgentError: Error {
 
     static func usage(_ message: String) -> AgentError {
         AgentError(code: "usage", message: message)
+    }
+
+    static func paneNotFound(_ id: String, in session: String) -> AgentError {
+        AgentError(code: "pane_not_found", message: "pane \(id) is not in herdr session \(session)")
+    }
+
+    static func noWindow(_ session: String) -> AgentError {
+        AgentError(code: "failed", message: "no window shows herdr session \(session)")
+    }
+
+    static func unknownCommand(_ name: String) -> AgentError {
+        AgentError(code: "unknown_command", message: "no command \(name); `oriel help` lists them")
     }
 }
 
@@ -171,7 +183,7 @@ struct AgentCall {
         }
         let target = PaneTarget(session: session, id: id, machine: store.machine)
         if let found = target.store, found.state == .live, found.pane(id) == nil {
-            throw AgentError(code: "pane_not_found", message: "pane \(id) is not in herdr session \(session)")
+            throw AgentError.paneNotFound(id, in: session)
         }
         return target
     }
@@ -200,7 +212,7 @@ extension AgentCommand {
         let all = [.status] + AgentCommands.all
         if let name {
             guard let command = all.first(where: { $0.name == name }) else {
-                throw AgentError(code: "unknown_command", message: "no command \(name); `oriel help` lists them")
+                throw AgentError.unknownCommand(name)
             }
             let text = "usage: oriel \(command.usage)\n\n\(command.summary).\n"
                 + (command.help.isEmpty ? "" : "\n\(command.help)\n")
@@ -218,7 +230,7 @@ extension AgentCommand {
         A <pane> is w1:p3 in this session, or <session>/<pane> on this machine. `oriel help <command>` tells more.
 
         """
-        return AgentOutput(["commands": AgentCommands.all.map {
+        return AgentOutput(["commands": all.map {
             ["name": $0.name, "usage": $0.usage, "summary": $0.summary]
         }], text: text)
     }

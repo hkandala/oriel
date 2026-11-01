@@ -40,7 +40,11 @@ extension AgentCommand {
         with Oriel's chat flags, as Start Agent Here does, and answers then, not when the agent is ready.
         """,
     ) { call in
-        let place = try call.place()
+        if call.args.contains("--replace") {
+            throw AgentError.usage("--replace takes a browser or plugin card")
+        }
+        // The options first, so the name is the next argument; a bad name is told before a bad place.
+        let place = Result { try call.place() }
         let name = try call.argument("name")
         try call.done()
         guard let agent = Chooser.agents.first(where: { $0.command == name }) else {
@@ -48,10 +52,7 @@ extension AgentCommand {
             no agent \(name); there are \(Chooser.agents.map(\.command).joined(separator: ", "))
             """)
         }
-        if case .replace = place {
-            throw AgentError.usage("--replace takes a browser or plugin card")
-        }
-        let (store, id) = try await call.newPane(place)
+        let (store, id) = try await call.newPane(place.get())
         let chooser = Chooser()
         chooser.paneID = id
         chooser.terminalID = store.pane(id)?.terminalID

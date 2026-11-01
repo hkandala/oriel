@@ -15,8 +15,9 @@ extension OrielUITests {
         try await waitForPrompt(pane)
         try await expectOpen("w2")
         let oriel = Self.orielCommand
-        try await run("\(oriel) agent nobody", in: pane, "nobody", 1, "oriel: no agent nobody; there are claude")
-        try await run("\(oriel) agent claude --replace w1:p1", in: pane, "replace", 2, "oriel: --replace takes")
+        try await run("\(oriel) agent nobody --beside w9:p9", in: pane, "nobody", 1,
+                      "oriel: no agent nobody; there are claude")
+        try await run("\(oriel) agent claude --replace w9:p9", in: pane, "replace", 2, "oriel: --replace takes")
         try await send("command -v claude >/dev/null; echo installed-$((6*7))-$?\r", to: pane)
         try await waitFor(pane) { $0.contains("\ninstalled-42-") }
         if try await read(pane).contains("\ninstalled-42-0") {

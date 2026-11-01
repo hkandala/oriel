@@ -36,16 +36,17 @@ extension AgentCall {
         case .tab: (near, split) = (PaneTarget(session: store.session, id: pane, machine: store.machine), nil)
         case .replace: throw AgentError.usage("--replace makes no pane")
         }
-        let (store, card) = try found(near)
-        guard let workspace = store.workspace(of: card.tabID),
-              let index = workspace.tabs.firstIndex(where: { $0.id == card.tabID })
-        else { throw AgentError(code: "pane_not_found", message: "pane \(near.id) is in no tab") }
+        let found = try found(near), store = found.0
         if case .tab(float: true) = place, store.windows.isEmpty {
-            throw AgentError(code: "failed", message: "no window shows herdr session \(store.session)")
+            throw AgentError.noWindow(store.session)
         }
         let made = try await store.request { client in
-            try await store.newPane(client, in: workspace.id, cwd: cwd, label: label,
-                                    split.map { .split(tab: card.tabID, pane: card.id, $0) } ?? .tab(after: index))
+            // Its tab and index once the writes before it are done: they can move tabs.
+            guard let card = store.pane(found.1.id), let workspace = store.workspace(of: card.tabID),
+                  let index = workspace.tabs.firstIndex(where: { $0.id == card.tabID })
+            else { throw AgentError(code: "pane_not_found", message: "pane \(near.id) is in no tab") }
+            let spot = split.map { PanePlace.split(tab: card.tabID, pane: card.id, $0) } ?? .tab(after: index)
+            return try await store.newPane(client, in: workspace.id, cwd: cwd, label: label, spot)
         }
         // In its place: a snapshot between the new tab and the move has it in the temporary tab.
         try await settle { store.pane(made.id)?.tabID == made.tabID }
@@ -63,9 +64,9 @@ extension AgentCall {
     }
 }
 
-/// Waits up to 5 s for what the snapshots show, 50 ms between looks.
-func settle(_ done: () -> Bool) async throws {
-    let end = ContinuousClock.now + .seconds(5)
+/// Waits up to `limit` for what the snapshots show, 50 ms between looks.
+func settle(for limit: Duration = .seconds(5), _ done: () -> Bool) async throws {
+    let end = ContinuousClock.now + limit
     while !done(), end > .now {
         try await Task.sleep(for: .milliseconds(50))
     }
