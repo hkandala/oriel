@@ -275,7 +275,9 @@ private struct WindowContent: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             .overlay {
                 if pages.overview {
+                    // Gone at once, also when the sidebar moves in the same update (⌘. from the overview).
                     Overview(pages: pages, leading: sidebar ? sidebarWidth - gap : 0)
+                        .transition(.identity)
                 }
             }
         }

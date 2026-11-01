@@ -60,11 +60,13 @@ struct OverviewPage: View, Equatable {
                 pages.settleOverview()
             }
         }
-        // Another session shows: its tiles report no leaving, and would stay live out of view.
+        // Another session shows: its tiles report no leaving, and would stay live out of view; a scroll that went
+        // with it never ends.
         .onDisappear {
             pages.overviewTabs[page.id] = nil
+            pages.overviewScrolling = false
+            pages.settleOverview()
         }
-        .accessibilityIdentifier("overview.page.\(page.id)")
     }
 
     /// All but `open`, a closure made anew with the overview's body.

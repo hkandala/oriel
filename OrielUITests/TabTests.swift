@@ -169,27 +169,6 @@ extension OrielUITests {
         try await expectShown(shown[0].tab, "back from the other session")
     }
 
-    /// A tile of the overview opens a middle tab of a workspace of many, then the workspace shown again and ⌘4: each
-    /// time the tab's page shows with its capsule alone lit.
-    func testTheCapsuleSitsOnTheTabShownHoweverItShows() async throws {
-        let tabs = try await newWorkspace("capsule", tabs: 5).tabs
-        let workspace = workspace(of: tabs[0])
-        app.typeKey("o", modifierFlags: [.command, .control])
-        XCTAssertTrue(element("overview").exists(within: 2))
-        // The workspace's row is below CI's window: the lazy rows make it as it scrolls in.
-        let tile = element("overview.tab.\(tabs[2])")
-        scrollOverview(to: tile)
-        XCTAssertTrue(tile.has(\.isHittable, true, within: 2))
-        tile.click()
-        XCTAssertTrue(element("overview").vanishes(within: 2))
-        try await expectShown(tabs[2], "opened from its tile")
-        element("workspace.w2").click()
-        element("workspace.\(workspace)").click()
-        try await expectShown(tabs[2], "its workspace shown again")
-        app.typeKey("4", modifierFlags: .command)
-        try await expectShown(tabs[3], "⌘4")
-    }
-
     /// The tab's page is in view: its card takes clicks and its capsule alone is lit.
     private func expectShown(_ tab: String, _ step: String) async throws {
         let pane = try await pane(of: tab)

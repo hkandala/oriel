@@ -107,8 +107,10 @@ struct Detail: View {
                 }
                 .accessibilityIdentifier("new-tab")
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let tab = page.selectedTab {
-                // A view of its own per tab: a shared one would carry its cards' places into the next tab's.
+            } else {
+                // As the tab bar's marker: the first tab until a snapshot settles the selection. A view of its own
+                // per tab: a shared one would carry its cards' places into the next tab's.
+                let tab = workspace.tabs[page.selectedIndex(in: workspace)]
                 TabPage(tab: tab, page: page).id("\(page.id) \(tab.id)")
             }
         } else if page.store.state == .live {

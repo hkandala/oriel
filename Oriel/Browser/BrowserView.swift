@@ -114,8 +114,8 @@ class BrowserView: WKWebView {
     }
 
     /// Its picture over it as it comes into view, until WebKit drew it: WebKit paints only what shows, so a page
-    /// scrolled back into the strip's view or put back into a window drew blank for a frame or two. Not over a page
-    /// that shows already (a swipe's landing), nor one of other proportions (resized meanwhile); a new web view (its
+    /// put back into a window drew blank for a frame or two. Not over a page that shows already, nor one of other
+    /// proportions (resized meanwhile); a new web view (its
     /// card made again) takes it at any size. At most 2 s, also while a page loads.
     func coverUntilDrawn() {
         cover?.removeFromSuperview()

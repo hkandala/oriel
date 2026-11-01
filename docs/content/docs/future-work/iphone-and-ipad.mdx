@@ -9,7 +9,7 @@ over SSH.
 
 ## Layout
 
-- The strip pages with a one-finger swipe.
+- Tab pages swipe with one finger (a choice for the phone: the Mac switches tabs at once, with no swipe).
 - iPhone shows one pane per page, in reading order through each tab's split
   tree. This is a drawing choice. Nothing changes in herdr.
 - A row of chips over the page has one chip per pane, with the tabs split by
@@ -151,7 +151,7 @@ A small test build checks Citadel with the relay before any iOS work:
 - One multiplatform SwiftUI app target (macOS 26, iPadOS 26 and iOS 26) and the same
   `HerdrKit` package. One minimum OS means no fallbacks.
 - iOS only: `CitadelExec`, the UIKit terminal subclass (it yields its pan
-  gesture when the motion is mostly horizontal, so the strip pages), the
+  gesture when the motion is mostly horizontal, so the tab pages swipe), the
   compact layout. macOS only: `ProcessExec`, `SSHExec`, the
   askpass script, the pill panel, the Dock badge, scroll routing with
   `NSEvent`, the `WindowGroup` scene.

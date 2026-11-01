@@ -310,17 +310,14 @@ One path is [Future work](/docs/future-work).
   and the still goes once the new surface has drawn herdr's settled frames,
   so the card is never empty. A still the system took back gives the card's
   fill and the first fade-in.
-- A terminal gets its surface only when it first streams, so a card that a
-  lazy page lays out but never shows costs no GPU memory.
+- A terminal gets its surface only when it first streams, so a card that
+  never shows costs no GPU memory.
 - One `terminal session` run per streaming terminal, also in one session:
   herdr 0.9.5 ties each client connection to one terminal
   (`ControlTerminal {target}` on a connection still in the pending terminal
   mode), and the CLI takes one target. One run costs about 7 MB and almost
   no CPU. Many terminals per run would need herdr's private client protocol
   on its socket.
-- During a swipe the neighbor tab shows each card's last image, or its fill
-  for a card never shown.
-  Its streams start when the swipe stops.
 - Streams are opened by `terminal_id`, so they survive the pane moving, even
   to another workspace.
 

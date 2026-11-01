@@ -66,6 +66,8 @@ extension View {
     func underOverview(_ pages: WindowPages, own: Bool = false) -> some View {
         let shown = pages.overview == own
         return opacity(shown ? 1 : 0)
+            // At once, also in the sidebar's animation (⌘. from the overview).
+            .animation(nil, value: shown)
             .allowsHitTesting(shown)
             // Not `accessibilityHidden(false)`, which overrides the hidden ones inside (a button's overlay image
             // took its identifier too).

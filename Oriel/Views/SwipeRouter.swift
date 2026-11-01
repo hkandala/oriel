@@ -36,9 +36,9 @@ enum SwipeRouter {
     }
 
     /// Every window's sidebar pages; each registers itself.
-    fileprivate static let anchors = NSHashTable<ScrollAnchor.Anchor>.weakObjects()
+    fileprivate static let anchors = NSHashTable<PagesAnchor.Anchor>.weakObjects()
     /// The pages the current sideways gesture goes to, and whether it lifted; nil while it goes the usual way.
-    private weak static var pager: ScrollAnchor.Anchor?
+    private weak static var pager: PagesAnchor.Anchor?
     private static var lifted = false
     private static var picked = false
     /// ⌥ was held as the current gesture began.
@@ -119,7 +119,7 @@ enum SwipeRouter {
         event.isDirectionInvertedFromDevice ? -event.scrollingDeltaY : event.scrollingDeltaY
     }
 
-    private static func give(_ event: NSEvent, to pager: ScrollAnchor.Anchor) {
+    private static func give(_ event: NSEvent, to pager: PagesAnchor.Anchor) {
         if event.phase == .changed {
             pager.marks.drag?(-event.scrollingDeltaX, false)
         } else if event.phase == .ended || event.phase == .cancelled, !lifted {
@@ -156,7 +156,7 @@ enum SwipeRouter {
 /// Marks the sidebar's pages for the router: they take a sideways swipe's moves (`drag`, the first one of a gesture
 /// marked) and lift (with the fingers' speed), and a wheel's turn (`step`), within `area` (in the window, from its
 /// top left) and down to the window's bottom (the dots and the filter too).
-struct ScrollAnchor: NSViewRepresentable {
+struct PagesAnchor: NSViewRepresentable {
     var step: ((Int) -> Void)?
     var drag: ((Double, Bool) -> Void)?
     var lift: ((Double) -> Void)?
@@ -181,7 +181,7 @@ struct ScrollAnchor: NSViewRepresentable {
     }
 
     final class Anchor: NSView {
-        var marks = ScrollAnchor()
+        var marks = PagesAnchor()
 
         /// Under the event, for the sidebar's pages. The window's content view is its whole SwiftUI host, the
         /// window's full size; its points count from the bottom.

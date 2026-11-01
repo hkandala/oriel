@@ -54,7 +54,7 @@ struct Sidebar: View {
             }
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { area = $0 }
             // Not under the overview, which hides it.
-            .background(ScrollAnchor(
+            .background(PagesAnchor(
                 step: step,
                 drag: pages.overview ? nil : drag as (Double, Bool) -> Void,
                 lift: lift,
@@ -279,7 +279,7 @@ private struct PageDots: View {
     }
 }
 
-/// The handle at the sidebar's trailing edge, beside the pages and over the strip's 8 pt gap: a drag resizes it
+/// The handle at the sidebar's trailing edge, beside the pages and over the tab page's 8 pt gap: a drag resizes it
 /// within `Sidebar.widths`.
 private struct ResizeHandle: View {
     @Binding var width: Double
