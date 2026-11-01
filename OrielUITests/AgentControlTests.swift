@@ -63,6 +63,8 @@ extension OrielUITests {
         try await waitForPrompt("w1:p1")
         try await expectOpen("w1")
         let oriel = Self.orielCommand
+        // The Key Host store writes it once its session opens, beside its first marks.
+        try await run("until ! grep -qx '# oriel-cli 0' \(oriel); do sleep 0.1; done", in: "w1:p1", "new", 0)
         try await run("\(oriel) status --json | tr , '\\n'", in: "w1:p1", "status", 0, "\"remote\":true")
         try await run("\(oriel) info", in: "w1:p1", "info", 0, "machine: Key Host")
         try await run("\(oriel) float w1:p2", in: "w1:p1", "float", 0, "floating: true")
