@@ -40,7 +40,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     func applicationWillFinishLaunching(_: Notification) {
         // Windows and their pages come back after a normal quit too, whatever the system setting says. A session
         // start waits 10 s for its server (`-startTimeout`).
-        UserDefaults.standard.register(defaults: ["NSQuitAlwaysKeepsWindows": true, "startTimeout": 10])
+        UserDefaults.standard.register(defaults: [
+            "NSQuitAlwaysKeepsWindows": true, "startTimeout": 10,
+            Notifications.needsYou: true, Notifications.finished: true, Notifications.fromAgents: true,
+        ])
         let center = UNUserNotificationCenter.current()
         center.delegate = self
         // macOS asks the user once; later calls answer at once. The Dock badge shows only with `.badge` allowed.
@@ -136,14 +139,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         let id = response.notification.request.identifier
         await MainActor.run {
             NSApp.activate()
-            WindowPages.go(to: id)
+            WindowPages.go(to: id.hasPrefix(Notifications.agent) ? String(id.dropFirst(Notifications.agent.count)) : id)
         }
     }
 }
 
-/// The app's notifications (D31): needs you and finished, for every open page; no sounds.
+/// The app's notifications (D31): needs you and finished, for every open page, and the ones agents post with
+/// `oriel notify`; no sounds. Each kind has its switch (app storage keys).
 @MainActor
 enum Notifications {
+    static let needsYou = "notifyNeedsYou", finished = "notifyFinished", fromAgents = "notifyFromAgents"
+    /// The id's prefix of an agent's: out of the snapshot's sweep, which removes a pane's that no longer hold.
+    static let agent = "agent|"
+
     /// Posts the snapshot's new needs-you and finishes, except for panes the user looks at, and removes the page's
     /// ones that no longer hold (the pane works, idles, closed or lost its agent).
     static func post(_ changes: [Seen.Change], _ page: Page) {
@@ -158,7 +166,9 @@ enum Notifications {
                 .filter { $0.hasPrefix("\(store.machine.id)|\(store.session)|") && !holding.contains($0) }
             center.removeDeliveredNotifications(withIdentifiers: gone)
         }
-        for change in changes where change.state >= .finishedUnseen {
+        for change in changes where change.state >= .finishedUnseen
+            && UserDefaults.standard.bool(forKey: change.state == .needsYou ? needsYou : finished)
+        {
             guard let pane = store.pane(change.paneID), pane.tabID != store.lookingTabID else { continue }
             let content = UNMutableNotificationContent()
             content.title = "\(pane.agentName ?? "agent") \(change.state.word)"
@@ -166,6 +176,18 @@ enum Notifications {
             UNUserNotificationCenter.current()
                 .add(UNNotificationRequest(identifier: id(pane, of: store), content: content, trigger: nil))
         }
+    }
+
+    /// An agent's (`oriel notify`), for the pane a click shows; a newer one of the pane replaces it.
+    static func post(_ title: String, _ body: String, from agent: String, for pane: HostStore.Pane,
+                     of store: HostStore) async throws
+    {
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.subtitle = "\(agent) · \(store.label)"
+        content.body = body
+        try await UNUserNotificationCenter.current()
+            .add(UNNotificationRequest(identifier: Self.agent + id(pane, of: store), content: content, trigger: nil))
     }
 
     /// The user looks at these panes.

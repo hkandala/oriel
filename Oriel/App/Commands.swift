@@ -168,6 +168,10 @@ struct AppSettings: DynamicProperty {
     @AppStorage("interfaceStyle") var style = InterfaceStyle.glass
     @AppStorage("fontSize") var fontSize = PaneTerminal.fontSize
     @AppStorage("focusFollowsMouse") var followMouse = false
+    /// The notifications' switches (status#notifications), all on by default.
+    @AppStorage(Notifications.needsYou) var notifyNeedsYou = true
+    @AppStorage(Notifications.finished) var notifyFinished = true
+    @AppStorage(Notifications.fromAgents) var notifyFromAgents = true
 }
 
 /// One command (D48). The menu bar and the palette read the one list of them (`CommandList`).

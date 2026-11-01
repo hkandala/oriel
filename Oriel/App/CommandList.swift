@@ -40,6 +40,18 @@ struct CommandList {
             Command(section: .app, title: "Plugins…", group: .plugins, symbol: Registry.missing,
                     keywords: "install update remove packages npm git settings",
                     enabled: plugins != nil) { plugins?.wrappedValue = true },
+            Command(section: .app, title: "Notifications", symbol: "bell", keywords: "alerts banners agents",
+                    menu: [
+                        Command(section: .app, title: "Needs You", checked: settings.notifyNeedsYou) {
+                            settings.notifyNeedsYou.toggle()
+                        },
+                        Command(section: .app, title: "Finished", checked: settings.notifyFinished) {
+                            settings.notifyFinished.toggle()
+                        },
+                        Command(section: .app, title: "From Agents", checked: settings.notifyFromAgents) {
+                            settings.notifyFromAgents.toggle()
+                        },
+                    ]),
             Command(section: .file, title: "New Window", key: .init("n"), symbol: "macwindow.badge.plus") {
                 WindowPages.open(machine: pages?.machine ?? .thisMac)
             },
