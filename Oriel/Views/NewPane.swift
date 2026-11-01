@@ -140,7 +140,7 @@ struct NewPane: View {
             switch row {
             case .terminal: Image(systemName: "terminal")
             case .agent: Image(systemName: "sparkles")
-            case let .plugin(id): Image(systemName: Registry.plugin(id)?.icon ?? Registry.missing)
+            case let .plugin(id): Image(symbol: Registry.plugin(id)?.icon ?? Registry.missing)
             case .start: ProgramTile(icon: row.id)
             }
         }

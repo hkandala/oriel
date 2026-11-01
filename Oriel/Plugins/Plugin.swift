@@ -81,6 +81,21 @@ extension PaneLabel {
     }
 }
 
+extension Image {
+    /// An SF Symbol, else the app's own symbol of that name (`Assets.xcassets`: Git's `source.branch`), for what a
+    /// manifest names: a plugin's icon, a control's or a menu item's symbol.
+    init(symbol name: String) {
+        self = NSImage(systemSymbolName: name, accessibilityDescription: nil) == nil ? Image(name) :
+            Image(systemName: name)
+    }
+}
+
+extension NSImage {
+    static func symbol(_ name: String) -> NSImage? {
+        NSImage(systemSymbolName: name, accessibilityDescription: nil) ?? NSImage(named: name)
+    }
+}
+
 /// A plugin pane's card (not the browser's, which has its own), made on first use from its label and kept by
 /// terminal id as terminals are: what its header and content share, and its page.
 @MainActor @Observable

@@ -113,10 +113,7 @@ extension Bridge {
             let entry = menu.addItem(withTitle: title, action: #selector(MenuAction.fire), keyEquivalent: "")
             entry.target = action
             entry.representedObject = action
-            entry.image = (item["symbol"] as? String).flatMap { NSImage(
-                systemSymbolName: $0,
-                accessibilityDescription: nil,
-            ) }
+            entry.image = (item["symbol"] as? String).flatMap(NSImage.symbol)
         }
         // Returns once the menu closed, after the picked item's action.
         menu.popUp(positioning: nil, at: view.convert(window.mouseLocationOutsideOfEventStream, from: nil), in: view)
@@ -160,12 +157,12 @@ extension Bridge {
         return path
     }
 
-    /// An SF Symbol, `size` points tall at 2x, as a PNG data URL: black on clear, for a mask.
+    /// An SF Symbol or the app's own, `size` points tall at 2x, as a PNG data URL: black on clear, for a mask.
     static func symbol(_ name: String, size: Double) -> String? {
         let configuration = NSImage.SymbolConfiguration(pointSize: size * 2, weight: .regular)
-        guard let image = NSImage(systemSymbolName: name, accessibilityDescription: nil)?
-            .withSymbolConfiguration(configuration), let tiff = image.tiffRepresentation,
-            let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) else { return nil }
+        guard let image = NSImage.symbol(name)?.withSymbolConfiguration(configuration),
+              let tiff = image.tiffRepresentation,
+              let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) else { return nil }
         return "data:image/png;base64," + png.base64EncodedString()
     }
 }

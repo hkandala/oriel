@@ -136,6 +136,11 @@ private func failure(_ name: String, _ args: [String: Any], _ calls: PluginCalls
     echo a >'*.txt'; echo b >b.txt
     """#, "sh", folder.path])
     let root = folder.appending(path: "work").path
+    // A folder that is no repository becomes one.
+    let fresh = folder.appending(path: "fresh")
+    try FileManager.default.createDirectory(at: fresh, withIntermediateDirectories: false)
+    _ = try await call("git.init", ["root": fresh.path])
+    #expect(try await call("git.root", ["folder": fresh.path]) as? String == fresh.path)
     func changes() async throws -> [String: [String]] {
         let json = try #require(await call("git.changes", ["root": root]) as? [String: [[String: Any]]])
         return json.mapValues { $0.compactMap { $0["path"] as? String } }

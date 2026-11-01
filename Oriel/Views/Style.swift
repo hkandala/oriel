@@ -283,7 +283,7 @@ struct MenuRow: View {
                 StateIcon(state: state).frame(width: 22)
             } else {
                 // As wide as a program tile, so the titles line up.
-                Image(systemName: item.symbol ?? "circle").opacity(item.symbol == nil ? 0 : 1).frame(width: 22)
+                Image(symbol: item.symbol ?? "circle").opacity(item.symbol == nil ? 0 : 1).frame(width: 22)
                     .accessibilityHidden(true)
             }
             // A long typed name keeps both ends, and takes the free space before the detail does.

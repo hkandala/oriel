@@ -79,7 +79,7 @@ struct TrustPrompt: View {
         let manifest = plugin.manifest, id = "pane.\(plugin.paneID).trust"
         let folder = Registry.package(manifest.id).map { ($0.path as NSString).abbreviatingWithTildeInPath.shown } ?? ""
         VStack(spacing: 12) {
-            Image(systemName: manifest.icon).font(.system(size: 28)).foregroundStyle(.secondary)
+            Image(symbol: manifest.icon).font(.system(size: 28)).foregroundStyle(.secondary)
             VStack(spacing: 6) {
                 Text("Trust “\(manifest.name.shown)”?").font(.system(size: 13, weight: .semibold))
                     .accessibilityIdentifier(id)

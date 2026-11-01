@@ -59,7 +59,7 @@ public struct PluginCalls: Sendable {
 
     /// The git writes, which a card runs one at a time.
     public static let gitWrites: Set = ["git.stage", "git.unstage", "git.commit", "git.fetch", "git.pull", "git.push",
-                                        "git.switch"]
+                                        "git.switch", "git.init"]
 
     /// Runs one call; its JSON reply. Throws `denied` without its permission, `failed` for a call it does not know.
     public func call(_ name: String, _ arguments: Data) async throws(PluginError) -> Data {
@@ -156,8 +156,8 @@ public struct PluginCalls: Sendable {
             return try await Git.branches(root, exec: exec)
                 .map { ["name": $0.name, "remote": $0.remote, "current": $0.current] }
         case "git.log":
-            let commits = try await Git.log(root, exec: exec)
-            return zip(commits, Git.graph(commits)).prefix(args.limit ?? .max).map { commit, row in
+            let commits = try await Git.log(root, limit: args.limit ?? 500, exec: exec)
+            return zip(commits, Git.graph(commits)).map { commit, row in
                 ["hash": commit.hash, "subject": commit.subject, "author": commit.author,
                  "date": commit.date.timeIntervalSince1970 * 1000, "refs": commit.refs, "lane": row.lane,
                  "children": row.children, "parents": row.parents, "through": row.through] as [String: Any]
@@ -184,6 +184,7 @@ public struct PluginCalls: Sendable {
         case "git.fetch": return (["fetch", "--all"], true)
         case "git.pull": return (["pull"], true)
         case "git.push": return (["-c", "push.autoSetupRemote=true", "push"], true)
+        case "git.init": return (["init", "-q"], false)
         default:
             let branch = try args.need(\.branch, "branch")
             guard !branch.hasPrefix("-") else { throw PluginError("failed", "No branch \(branch)") }

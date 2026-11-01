@@ -274,3 +274,20 @@ Files: `Oriel/Views/Sidebar*.swift`, the state capsule in the card header, the a
 - **For the user.** Scroll the tree with the wheel while another pane has the keyboard, then click a row: the click
   opens that row (the tree no longer jumps to its old row first). In Markdown, select text in Read and copy it; switch
   Read ↔ Edit (⌘E) on a long file and see that only the caret's line changes. Type a wrong path in the root field.
+
+### Track C
+
+- **Decisions (home).** No changes is one placeholder (`checkmark.circle`, "No changes"): no lists, no message, no
+  Commit. Stage All and Unstage All are words, not icons: staging was there but hidden, which is why the user asked
+  for it. With none staged the button reads Commit All and runs `git add -A`, then `git commit` (a failed commit
+  leaves the files staged, which the home shows). Show More reads `git log -n 1000`, then 1500: the graph's lanes need
+  every row before, so it asks for the whole longer list again.
+- **Decisions (icons, buttons).** mdi `source-branch` is an app symbolset (`source.branch`, Regular-M from the 24 pt
+  path), so it takes font sizes and weights as SF Symbols do. `Image(symbol:)` and `NSImage.symbol` try SF Symbols
+  first, then the app's own: the plugin icon, the branch menu, the chooser, the palette, the trust prompt, the
+  miniature and the sidebar's branch use it. Fetch, Pull and Push are the system's small bordered buttons
+  (`"style": "bordered"` on a header button).
+- **Not a repository.** The home asks `git.root` only after `git.changes` fails: null shows "Not a Git repository",
+  the short path and Initialize Repository (`git init -q`, a new `git.init` call); another failure still shows git's
+  message.
+- **Pictures.** Before `/tmp/oriel-shots/t49c-home-before.png`, after `/tmp/oriel-shots/t49c-home-after1.png`.

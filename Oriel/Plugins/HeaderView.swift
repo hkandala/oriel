@@ -66,25 +66,34 @@ private struct HeaderItem: View {
     }
 
     /// A 22 pt icon button, as `IconButton` draws one; with a badge, its count after the symbol; busy, a spinner in its
-    /// place (Git's Pull and Push). One view either way, so a click under way keeps its pressed state.
+    /// place (Git's Pull and Push). `bordered`: the system's small bordered button with the symbol and the title (Git's
+    /// Fetch, Pull and Push). One view either way, so a click under way keeps its pressed state.
     private func button(_ id: String) -> some View {
-        let title = control.title ?? ""
-        return Button { plugin.header.pick(id, nil) } label: {
-            HStack(spacing: 2) {
+        let title = control.title ?? "", bordered = control.style == "bordered"
+        let button = Button { plugin.header.pick(id, nil) } label: {
+            HStack(spacing: bordered ? 4 : 2) {
                 if control.busy == true {
                     ProgressView().controlSize(.mini).frame(width: 14)
                 } else {
-                    Image(systemName: control.symbol ?? "questionmark").font(.system(size: 11)).frame(width: 14)
+                    Image(symbol: control.symbol ?? "questionmark").font(.system(size: 11)).frame(width: 14)
+                }
+                if bordered {
+                    Text(title)
                 }
                 if let badge = control.badge {
                     Text(badge).font(.system(size: 11).monospacedDigit())
                 }
             }
-            .padding(.horizontal, 4)
-            .frame(minWidth: 22, minHeight: 22)
+            .padding(.horizontal, bordered ? 0 : 4)
+            .frame(minWidth: 22, minHeight: bordered ? nil : 22)
         }
-        .buttonStyle(ChromeStyle(radius: 5.5))
-        .foregroundStyle(look.paneButton)
+        return Group {
+            if bordered {
+                button.buttonStyle(.bordered).controlSize(.small)
+            } else {
+                button.buttonStyle(ChromeStyle(radius: 5.5)).foregroundStyle(look.paneButton)
+            }
+        }
         .help(title)
         // In the label: XCUITest reads no button's value.
         .accessibilityLabel(control.label ?? control.badge.map { "\(title), \($0)" } ?? title)
@@ -164,7 +173,7 @@ private struct HeaderMenu: View {
                 if control.busy == true {
                     ProgressView().controlSize(.mini)
                 } else if let symbol = control.symbol {
-                    Image(systemName: symbol)
+                    Image(symbol: symbol)
                 }
                 Text(shown).lineLimit(1).truncationMode(.middle)
             }
@@ -269,7 +278,7 @@ private struct OpenWithItems: View {
             }
         }
         ForEach(plugins, id: \.id) { plugin in
-            Button(plugin.name, systemImage: plugin.icon) { pick(plugin) }
+            Button { pick(plugin) } label: { Label { Text(plugin.name) } icon: { Image(symbol: plugin.icon) } }
         }
     }
 

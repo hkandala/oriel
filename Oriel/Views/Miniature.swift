@@ -64,7 +64,7 @@ private struct MiniCard: View {
                             .miniCard(pane.id, pane.plugin.map { $0.manifest?.id ?? $0.plugin } ?? "chat"), content,
                             under: header)
                     } else {
-                        Image(systemName: pane.plugin != nil ? pane.iconID : "bubble.left.and.bubble.right")
+                        Image(symbol: pane.plugin != nil ? pane.iconID : "bubble.left.and.bubble.right")
                             .foregroundStyle(.secondary).frame(maxWidth: .infinity, maxHeight: .infinity)
                             .miniCard(pane.id, "symbol")
                     }

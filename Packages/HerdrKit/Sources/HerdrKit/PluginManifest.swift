@@ -73,7 +73,7 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
         /// A menu's; `"-"` is a divider.
         public var items: [Item]?
         public var placeholder: String?
-        /// A text's: `plain`, `dim` or `path`.
+        /// A text's: `plain`, `dim` or `path`; a button's: `bordered`.
         public var style: String?
         /// A text's `mono`: monospaced digits, so a count (`3 of 12`) keeps its width as it changes.
         public var digits: String?

@@ -66,6 +66,55 @@ extension OrielUITests {
         try await send("cd / && rm -rf \(repo) \(repo).git\r", to: left)
     }
 
+    /// A folder that is no repository offers Initialize Repository; an empty one shows only "No changes"; with none
+    /// staged, Commit All commits every change; a history past 500 commits ends with Show More, which reads the rest.
+    func testGitHomeInitializesCommitsAllAndShowsMore() async throws {
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        let (tab, left) = try await newTab("git-new")
+        try await waitForPrompt(left)
+        let folder = "/tmp/oriel-e2e-git-new", root = "/private/tmp/oriel-e2e-git-new"
+        try await send(
+            "rm -rf \(folder) && mkdir \(folder) && cd \(folder) && clear && echo ready-$((6*7))\r",
+            to: left,
+        )
+        try await waitFor(left) { $0.contains("ready-42") }
+        try await show(tab)
+        let card = try await split(left)
+        try await Self.call(one, "pane.rename", ["pane_id": card, "label": "oriel:git#e2enew \(root)/"])
+        let home = element("git.\(card).page")
+        let initialize = home.buttons["Initialize Repository"]
+        XCTAssertTrue(initialize.has(\.isHittable, true, within: 10))
+        initialize.click()
+        XCTAssertTrue(text("No changes", in: home).exists(within: 10))
+        XCTAssertFalse(home.textViews["Message"].exists)
+        try await expectGit("rev-parse --is-inside-work-tree", "true", in: left, repo: folder)
+
+        // 501 commits, then a new file.
+        try await send("git config user.name e2e && git config user.email e2e@oriel && git config commit.gpgsign false "
+            + "&& seq 501 | awk '{printf \"commit refs/heads/main\\ncommitter e2e <e2e@oriel> %d +0000\\ndata <<E\\n"
+            + "c%d\\nE\\n\\n\", 1000000000+$1, $1}' | git fast-import --quiet && echo a >a.txt && clear\r", to: left)
+        let message = home.textViews["Message"]
+        XCTAssertTrue(message.has(\.isHittable, true, within: 10))
+        message.click()
+        message.typeText("all of it")
+        home.buttons["Commit All"].click()
+        try await expectGit("log -1 --format=%s", "all of it", in: left, repo: folder)
+        XCTAssertTrue(text("No changes", in: home).exists(within: 10))
+
+        let more = home.buttons["Show More"], first = commit("c1", in: home)
+        XCTAssertTrue(more.exists(within: 10))
+        XCTAssertFalse(first.exists)
+        more.click()
+        XCTAssertTrue(first.exists(within: 10))
+        XCTAssertFalse(more.exists)
+        try await send("cd / && rm -rf \(folder)\r", to: left)
+    }
+
+    /// A web page's text, by its value: a plain text's label is empty.
+    private func text(_ value: String, in page: XCUIElement) -> XCUIElement {
+        page.staticTexts.matching(NSPredicate(format: "value == %@", value)).firstMatch
+    }
+
     /// Stage moves b.md to the staged list, Commit commits it with the typed message, Push sends it to the remote.
     private func commitAndPush(_ home: XCUIElement, card: String, shell left: String, repo: String) async throws {
         // Stage shows under the pointer.

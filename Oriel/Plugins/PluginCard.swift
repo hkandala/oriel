@@ -100,7 +100,7 @@ private struct PluginFailure: View {
     var body: some View {
         let id = "pane.\(plugin.paneID)"
         VStack(spacing: 10) {
-            Image(systemName: plugin.manifest.icon).font(.system(size: 28)).foregroundStyle(.secondary)
+            Image(symbol: plugin.manifest.icon).font(.system(size: 28)).foregroundStyle(.secondary)
             Text(problem.title).font(.system(size: 13, weight: .semibold)).accessibilityIdentifier("\(id).failure")
             Text(problem.text).font(.system(size: 12).monospaced()).foregroundStyle(.secondary).lineLimit(12)
                 .multilineTextAlignment(.center).textSelection(.enabled).accessibilityIdentifier("\(id).failure.text")
@@ -158,7 +158,7 @@ struct PluginLoader: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            Image(systemName: plugin.icon).font(.system(size: 28)).foregroundStyle(.secondary)
+            Image(symbol: plugin.icon).font(.system(size: 28)).foregroundStyle(.secondary)
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
                 Text("\(verb) \(plugin.name)…").font(.system(size: 13)).foregroundStyle(.secondary).lineLimit(1)

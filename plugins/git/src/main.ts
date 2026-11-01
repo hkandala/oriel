@@ -16,8 +16,11 @@ export default async function main(oriel: Oriel) {
   bind(oriel)
   // The SF Symbols the rows draw, as masks in the text's color. While the app draws them, the first place reads and
   // draws under the card's loader, which goes once both are done (`main` returns). One the app lacks draws nothing.
-  const names = ["doc", "plus", "minus", "arrow.triangle.branch", "cloud", "tag"]
-  const symbols = Promise.all(names.map((name) => oriel.symbol(name, 12).catch(() => ""))).then((urls) => {
+  // The placeholders' at their size.
+  const big = ["checkmark.circle", "folder.badge.questionmark"]
+  const names = ["doc", "plus", "minus", "source.branch", "cloud", "tag", ...big]
+  const symbols = Promise.all(names.map((name) => oriel.symbol(name, big.includes(name) ? 30 : 12).catch(() => "")))
+  .then((urls) => {
     const sheet = document.createElement("style")
     sheet.textContent = `:root { ${names.map((name, index) => `--sf-${name.replaceAll(".", "-")}: url(${urls[index]});`).join(" ")} }`
     document.head.append(sheet)

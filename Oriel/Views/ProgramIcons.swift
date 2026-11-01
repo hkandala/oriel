@@ -66,7 +66,7 @@ private struct ProgramMark: View {
                 Text(letter).font(.system(size: size * 0.65, weight: .bold, design: .rounded))
             } else if Registry.symbols.contains(icon) {
                 // A browser's or a plugin's (ui/browser): the system's symbol, on the neutral tile.
-                Image(systemName: icon).resizable().scaledToFit().padding(size * 0.12)
+                Image(symbol: icon).resizable().scaledToFit().padding(size * 0.12)
             } else {
                 Image("program.\(icon)").resizable()
             }

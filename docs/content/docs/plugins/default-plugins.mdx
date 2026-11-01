@@ -60,7 +60,9 @@ Side by Side and its file list ([State](/docs/plugins/api#state)).
 - The card's program icon is an SF Symbol on the neutral tile. A File
   Explorer's follows its page: `folder` (the tree), `doc.text` (File),
   `photo` (Preview) or `doc.richtext` (Markdown). Git's is
-  `arrow.triangle.branch`.
+  `source.branch`, the app's own symbol: Material Design Icons'
+  `source-branch`, the shape of pi-footer's branch. The sidebar's branch
+  uses it too.
 
 ## Ways in
 
@@ -374,28 +376,32 @@ app's fonts and `Look` colors. From the top:
 
 - **Row 2** (native): Back and Forward, the branch, then Fetch
   (`arrow.clockwise`), Pull (`arrow.down`, with the number of commits
-  behind) and Push (`arrow.up`, with the number of commits ahead). A button
+  behind) and Push (`arrow.up`, with the number of commits ahead). The three
+  are small bordered buttons with their symbol and word. A button
   shows a spinner while its command runs. The three and the branch are
   disabled while one of them, a switch or Commit runs, and when git cannot
   read the repository.
-- **The branch** is a menu button with `arrow.triangle.branch` and the
+- **The branch** is a menu button with `source.branch` and the
   checked-out branch. Its menu lists the local branches, the current one
   checked, then under "Remote" the remote branches that have no local
   branch. A pick runs `git switch <branch>`, or `git switch --track` for a
   remote one.
 - **The commit message** field ("Message") grows to 5 lines, then scrolls.
-  **Commit** beside it is on the accent when there is a message and at least
-  one staged file, else gray. ⌘↩ commits too. Commit takes the staged
-  changes only (`git commit -m`). The message is in the card's state, so it
+  **Commit** beside it is on the accent when there is a message and a
+  change, else gray. ⌘↩ commits too. Commit takes the staged changes
+  (`git commit -m`). With none staged, the button reads **Commit All**: it
+  stages everything (`git add -A`), then commits. The message is in the card's state, so it
   stays while the card moves to a diff and back, and over a drop, a reload
   and a relaunch. It empties after the commit.
-- **Staged Changes** (only when there are some) and **Changes**: a header
-  with its count and **Unstage All** or **Stage All**, then one row per
-  file: `doc`, its name, its folder in secondary, the Stage (`plus`) or
-  Unstage (`minus`) button that shows under the pointer, and its letter in
-  the tree's colors. "No changes" when there are none. A click opens the
-  Uncommitted diff at that file.
-- **History:** the last 500 commits of every branch, remote branch and tag,
+- **Staged Changes** and **Changes**, each only when it has files: a header
+  with its count and the words **Unstage All** or **Stage All**, then one
+  row per file: `doc`, its name, its folder in secondary, the Stage (`plus`)
+  or Unstage (`minus`) button that shows under the pointer, and its letter
+  in the tree's colors. A click opens the Uncommitted diff at that file.
+- **No changes:** with nothing to commit, the message, Commit and both lists
+  give way to one placeholder: `checkmark.circle` and "No changes".
+- **History**, 26 pt under the changes, after a hairline: the last 500
+  commits of every branch, remote branch and tag,
   and HEAD, as a graph, newest first (`git log --branches --remotes --tags
   HEAD --topo-order`, not `--all`, which adds the stash and notes). Each row
   has its lanes and dot, its branch, remote branch (`cloud`) and tag (`tag`)
@@ -404,9 +410,13 @@ app's fonts and `Look` colors. From the top:
   a ring. The first parent stays in its child's lane, as in `git log
   --graph`. Lane colors cycle through the accent, finished, working,
   needs-you and error colors. A click opens the commit's diff. "No commits
-  yet" before the first commit.
-- When the root is no repository, or git cannot run, the page shows git's
-  message in the middle.
+  yet" before the first commit. A full page ends with **Show More**, which
+  reads 500 more (`git log -n 1000`, and so on).
+- **Not a Git repository:** when the root is in no repository
+  (`git.root` is null), the page shows `folder.badge.questionmark`, "Not a
+  Git repository", the folder's short path (`~/…`) and **Initialize
+  Repository**, which runs `git init` after the click. When git cannot read
+  a repository or cannot run, the page shows git's message in the middle.
 - The home reads again after each change under the root while the card
   shows (on This Mac also `.git`'s own: a commit or a fetch from a
   terminal), and after each write.
@@ -428,10 +438,11 @@ app's fonts and `Look` colors. From the top:
 | Push | `git -c push.autoSetupRemote=true push`: a branch with no upstream is published under its name (git 2.37 or later) |
 | Stage, Stage All | `git --literal-pathspecs add -A -- <path>` (and the old path of a rename), `git add -A` |
 | Unstage, Unstage All | `git --literal-pathspecs reset -q -- <path>`, `git reset -q` (also before the first commit) |
-| Commit | `git commit -m <message>` |
+| Commit | `git commit -m <message>`; Commit All runs `git add -A` first |
+| Initialize Repository | `git init -q` |
 | a branch | `git switch <branch>`, `git switch --track <remote branch>` |
 
-- There is no Discard, because it loses work, and no "stage all and commit".
+- There is no Discard, because it loses work.
 
 ### Diff
 
@@ -571,8 +582,7 @@ the machine. The limits:
 
 - Go to File in ⌘K, search across a project, and ⌘-click on a path in a
   terminal.
-- Discard, stash, merge and rebase in Git, and a Show More row past 500
-  commits.
+- Discard, stash, merge and rebase in Git.
 - Quick Look for other file types: they show the info view.
 - Expandable `N unmodified lines` rows in a diff (they need each file's whole
   text).

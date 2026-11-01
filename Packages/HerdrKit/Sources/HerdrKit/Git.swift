@@ -66,13 +66,15 @@ public enum Git {
                                                    "--porcelain=v1", "-z", "--untracked-files=all"]))
     }
 
-    /// The last 500 commits of every branch, remote branch and tag, and HEAD (also detached), newest first, each child
-    /// before its parents. Not `--all`: the stash, notes and git's own refs would add lanes.
-    /// ponytail: 500 rows; a Show More row when a longer history must show. An orphan branch with no commit yet
-    /// fails on `HEAD` and shows no history; drop `HEAD` there if that matters.
-    public static func log(_ root: String, exec: any Exec) async throws -> [Commit] {
+    /// The last `limit` commits of every branch, remote branch and tag, and HEAD (also detached), newest first, each
+    /// child before its parents. Not `--all`: the stash, notes and git's own refs would add lanes.
+    /// ponytail: Show More asks for the whole longer list again, as the graph's lanes need every row before; ask for
+    /// the rows after a commit if long histories get slow. An orphan branch with no commit yet fails on `HEAD` and
+    /// shows no history; drop `HEAD` there if that matters.
+    public static func log(_ root: String, limit: Int = 500, exec: any Exec) async throws -> [Commit] {
         try await exec.checkedOutput(
-            ["git", "-C", root, "log", "--branches", "--remotes", "--tags", "HEAD", "-n", "500", "--topo-order",
+            ["git", "-C", root, "log", "--branches", "--remotes", "--tags", "HEAD", "-n", String(max(limit, 1)),
+             "--topo-order",
              "--no-show-signature", "--decorate=full",
              // `--`: a file named HEAD is no revision.
              "--format=%H%x1f%P%x1f%an%x1f%at%x1f%D%x1f%s", "--"],

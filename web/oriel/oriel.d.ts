@@ -33,7 +33,8 @@ export interface Oriel {
   /** One line on glass at the top of the card, with `buttons` (the second the default) or OK. Resolves with the title
    *  picked, or undefined when another toast took its place. */
   toast(text: string, buttons?: [other: string, main: string]): Promise<string | undefined>
-  /** An SF Symbol as a PNG data URL, `size` points tall (16 by default), black on clear: use it as a mask. */
+  /** An SF Symbol, or the app's `source.branch`, as a PNG data URL, `size` points tall (16 by default), black on clear:
+   *  use it as a mask. */
   symbol(name: string, size?: number): Promise<string>
 
   /** A header control or a command, as the user changed it: a click (no value), a toggle, a segment, a menu item, a
@@ -106,7 +107,8 @@ export interface Git {
   head(root: string): Promise<{ branch: string; ahead: number; behind: number } | null>
   /** The local branches, then the remote ones with no local branch of their name. */
   branches(root: string): Promise<{ name: string; remote: boolean; current: boolean }[]>
-  /** The last 500 commits of every branch, remote branch and tag, and HEAD, newest first, with the graph's lanes. */
+  /** The last `limit` commits (500 by default) of every branch, remote branch and tag, and HEAD, newest first, with the
+   *  graph's lanes. */
   log(root: string, options?: { limit?: number }): Promise<Commit[]>
   /** The patch as git prints it: "uncommitted" (staged, unstaged and untracked against HEAD) or a commit against its
    *  first parent. Up to 16 MB. */
@@ -122,6 +124,8 @@ export interface Git {
   push(root: string): Promise<void>
   /** A remote branch (`origin/x`) makes a local one that tracks it. */
   switch(root: string, branch: string): Promise<void>
+  /** `git init` in the folder. */
+  init(folder: string): Promise<void>
 }
 
 export interface Change {

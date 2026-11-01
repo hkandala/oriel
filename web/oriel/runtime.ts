@@ -145,6 +145,7 @@ const oriel: Oriel = {
     pull: (root) => call("git.pull", { root }),
     push: (root) => call("git.push", { root }),
     switch: (root, branch) => call("git.switch", { root, branch }),
+    init: (folder) => call("git.init", { root: folder }),
   },
   state: {
     get: <T>() => context.state as T | undefined,

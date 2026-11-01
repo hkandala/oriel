@@ -1,5 +1,6 @@
-// The Git card's home: the commit message and Commit, the staged and the unstaged changes with Stage and Unstage, then
-// the history of every branch as a graph. Row 2 has the branch, Fetch, Pull and Push (`main.ts`).
+// The Git card's home: the commit message and Commit, the staged and the unstaged changes with Stage and Unstage (or
+// "No changes"), then the history of every branch as a graph. Row 2 has the branch, Fetch, Pull and Push (`main.ts`).
+// A folder that is no repository shows Initialize Repository instead.
 import type { Change, Commit } from "@oriel/plugin-api"
 import { control, element, failed, home, how, keep, menu, open, oriel, symbol } from "./lib"
 
@@ -8,18 +9,31 @@ page.id = "home"
 page.hidden = true
 page.innerHTML = `
 <p id="failure" hidden></p>
+<div id="no-repository" class="placeholder" hidden>
+  <span class="symbol" style="--symbol: var(--sf-folder-badge-questionmark)"></span>
+  <h2>Not a Git repository</h2><p class="path"></p>
+  <button id="initialize" type="button">Initialize Repository</button>
+</div>
 <main hidden>
-  <form id="commit">
-    <textarea id="message" rows="1" placeholder="Message" aria-label="Message"></textarea>
-    <button id="commit-button" type="submit" disabled>Commit</button>
-  </form>
-  <section id="staged"></section>
-  <section id="unstaged"></section>
+  <div id="clean" class="placeholder" hidden>
+    <span class="symbol" style="--symbol: var(--sf-checkmark-circle)"></span><h2>No changes</h2>
+  </div>
+  <div id="changes">
+    <form id="commit">
+      <textarea id="message" rows="1" placeholder="Message" aria-label="Message"></textarea>
+      <button id="commit-button" type="submit" disabled>Commit</button>
+    </form>
+    <section id="staged"></section>
+    <section id="unstaged"></section>
+  </div>
   <section id="history"><header class="title"><h2>History</h2></header><div class="rows"></div></section>
 </main>`
 document.body.append(page)
 
 const notice = page.querySelector<HTMLElement>("#failure")!
+const noRepository = page.querySelector<HTMLElement>("#no-repository")!
+const clean = page.querySelector<HTMLElement>("#clean")!
+const changesBox = page.querySelector<HTMLElement>("#changes")!
 const content = page.querySelector("main")!
 const form = page.querySelector<HTMLFormElement>("#commit")!
 const message = page.querySelector<HTMLTextAreaElement>("#message")!
@@ -27,8 +41,11 @@ const commitButton = page.querySelector<HTMLButtonElement>("#commit-button")!
 
 let root = ""
 let staged: Change[] = []
+let unstaged: Change[] = []
 /** git's error when the root is no repository (or git cannot run). */
 let failure: string | undefined
+/** The history's length asked for: Show More adds 500. */
+let limit = 500
 let branches: { name: string; remote: boolean; current: boolean }[] = []
 /** The writes with a spinner (fetch, pull, push, switch, commit) in the order they run: the app runs a card's writes
  *  one at a time. */
@@ -47,6 +64,7 @@ export async function show(next: string, at?: string) {
   if (next !== root) {
     root = next
     drawn = ""
+    limit = 500
     // Not the old repository's rows until the new read draws.
     content.hidden = true
   }
@@ -91,8 +109,10 @@ export async function load() {
 async function read() {
   const at = root
   const [changes, head, list, commits] = await Promise.allSettled([
-    oriel.git.changes(at), oriel.git.head(at), oriel.git.branches(at), oriel.git.log(at),
+    oriel.git.changes(at), oriel.git.head(at), oriel.git.branches(at), oriel.git.log(at, { limit }),
   ])
+  // git's message when git cannot read a repository; none when the folder is no repository: it can become one.
+  const bare = changes.status === "rejected" && (await oriel.git.root(at).catch(() => "")) === null
   if (at !== root) return
   failure = changes.status === "rejected" ? (changes.reason as Error).message : undefined
   branches = list.status === "fulfilled" ? list.value : []
@@ -115,7 +135,7 @@ async function read() {
   // None before the first commit.
   const state = changes.status === "fulfilled"
     ? { ...changes.value, commits: commits.status === "fulfilled" ? commits.value : [] }
-    : { failure }
+    : { failure, bare }
   // Keys sorted: the app's replies come in any key order, and a draw under a click loses the click.
   const json = JSON.stringify(state, (_, value) => value && typeof value === "object" && !Array.isArray(value)
     ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : 1)))
@@ -132,34 +152,45 @@ function buttons() {
   for (const name of ["fetch", "pull", "push"]) control(`git.${name}`, { busy: running[0] === name, enabled: !off })
 }
 
-function draw(state: { staged?: Change[]; unstaged?: Change[]; commits?: Commit[]; failure?: string }) {
-  notice.hidden = !state.failure
+function draw(state: { staged?: Change[]; unstaged?: Change[]; commits?: Commit[]; failure?: string; bare?: boolean }) {
+  noRepository.hidden = !state.bare
+  noRepository.querySelector(".path")!.textContent = root.replace(/^\/(Users|home)\/[^/]+(?=\/|$)/, "~")
+  notice.hidden = !state.failure || Boolean(state.bare)
   notice.textContent = state.failure ?? ""
   content.hidden = Boolean(state.failure)
   if (state.failure) return
   staged = state.staged ?? []
+  unstaged = state.unstaged ?? []
+  // With no changes, the placeholder alone: no lists, no message, no Commit.
+  clean.hidden = Boolean(staged.length || unstaged.length)
+  changesBox.hidden = !clean.hidden
   section("staged", "Staged Changes", staged, true)
-  section("unstaged", "Changes", state.unstaged ?? [], false)
+  section("unstaged", "Changes", unstaged, false)
   const commits = state.commits ?? []
+  const more = element("button", "row more", "Show More")
+  more.onclick = () => {
+    limit += 500
+    void load()
+  }
   page.querySelector("#history .rows")!.replaceChildren(
     ...(commits.length ? graph(commits) : [element("p", "empty", "No commits yet")]),
+    // A full page: there may be more.
+    ...(commits.length >= limit ? [more] : []),
   )
   enable()
 }
 
-/** A list's header with its count and Stage All or Unstage All, then a row per file; the staged list only when it
- * has files. */
+/** A list's header with its count and Stage All or Unstage All, then a row per file; only when it has files. */
 function section(id: string, title: string, changes: Change[], staged: boolean) {
   const node = page.querySelector<HTMLElement>(`#${id}`)!
-  node.hidden = staged && !changes.length
+  node.hidden = !changes.length
   const header = element("header", "title")
-  header.append(element("h2", "", title), element("span", "count", changes.length ? String(changes.length) : ""))
-  if (changes.length) {
-    const all = staged ? "Unstage All" : "Stage All"
-    header.append(button(staged ? "minus" : "plus", all, () => write(staged ? oriel.git.unstage(root) : oriel.git.stage(root))))
-  }
+  header.append(element("h2", "", title), element("span", "count", String(changes.length)))
+  const all = element("button", "all", staged ? "Unstage All" : "Stage All")
+  all.onclick = () => void write(staged ? oriel.git.unstage(root) : oriel.git.stage(root))
+  header.append(all)
   const rows = element("div", "rows")
-  rows.append(...(changes.length ? changes.map((change) => changeRow(change, staged)) : [element("p", "empty", "No changes")]))
+  rows.append(...changes.map((change) => changeRow(change, staged)))
   node.replaceChildren(header, rows)
 }
 
@@ -267,12 +298,12 @@ function commitRow(commit: Commit, width: number) {
 /** A branch, remote branch or tag on its commit; the checked-out branch on the accent. */
 function badge(ref: string) {
   const head = ref.startsWith("HEAD -> "), full = head ? ref.slice(8) : ref
-  const kinds: [string, string][] = [["refs/heads/", "arrow.triangle.branch"], ["refs/remotes/", "cloud"], ["tag: refs/tags/", "tag"]]
+  const kinds: [string, string][] = [["refs/heads/", "source.branch"], ["refs/remotes/", "cloud"], ["tag: refs/tags/", "tag"]]
   const kind = kinds.find(([prefix]) => full.startsWith(prefix))
   // `origin/HEAD` names another one; a detached HEAD is `HEAD`.
   if (full.endsWith("/HEAD") || (!kind && full !== "HEAD")) return []
   const node = element("span", head || full === "HEAD" ? "badge head" : "badge")
-  node.append(symbol(kind?.[1] ?? "arrow.triangle.branch"), element("span", "", kind ? full.slice(kind[0].length) : "HEAD"))
+  node.append(symbol(kind?.[1] ?? "source.branch"), element("span", "", kind ? full.slice(kind[0].length) : "HEAD"))
   return [node]
 }
 
@@ -294,11 +325,14 @@ export function pick(id: string, value?: string) {
   else if (id === "git.push") void write(oriel.git.push(root), "push")
 }
 
+page.querySelector<HTMLButtonElement>("#initialize")!.onclick = () => void write(oriel.git.init(root))
+
 // The message grows to five lines, then scrolls; the card keeps it (`state`). Commit is on the accent when it can
-// commit: a message and staged files. ⌘↩ commits.
+// commit: a message and changes. With none staged it is Commit All, which stages everything first. ⌘↩ commits.
 let committing = false
 function enable() {
-  commitButton.disabled = committing || !message.value.trim() || !staged.length
+  commitButton.textContent = staged.length ? "Commit" : "Commit All"
+  commitButton.disabled = committing || !message.value.trim() || !(staged.length || unstaged.length)
 }
 function grow() {
   message.style.height = "auto"
@@ -321,7 +355,8 @@ form.addEventListener("submit", async (event) => {
   const text = message.value
   committing = true
   enable()
-  const done = await write(oriel.git.commit(root, text), "commit")
+  const done = await write((staged.length ? Promise.resolve() : oriel.git.stage(root)).then(() => oriel.git.commit(root, text)),
+    "commit")
   committing = false
   // Not a message typed meanwhile.
   if (done && message.value === text) {
