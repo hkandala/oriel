@@ -113,7 +113,8 @@ In `~/code/pi-hkandala` on the local branch `oriel-skill` (never pushed until Or
 
 - One `oriel-shown` for all devices (no per-device tokens).
 - Agent notifications get a third switch, "From agents", on by default.
-- A stale `$HERDR_PANE_ID` answers `pane_not_found`; the caller passes `--pane`.
+- A stale `$HERDR_PANE_ID` fails at herdr before Oriel hears it: the script exits 5 and says to pass `--pane`.
+  `pane_not_found` is for a pane argument Oriel cannot find.
 - `plugins install` is This Mac only; `plugins new` trusts the plugin, as the panel does.
 - `chat` on the asking pane is `self`.
 - Oriel keeps reading `oriel-float` and `oriel-copy` in this phase.
