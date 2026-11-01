@@ -1,0 +1,173 @@
+# Phase 49: Fourteenth feedback: full chat turns, File Explorer and Git polish, statuses, tab pills
+
+Goal: the fixes from the user's fourteenth round. The chat shows every agent message with collapsed tool calls that
+load only when opened. File Explorer gets a path bar, lazy folders, icons, hidden files off by default and keys
+back. Git gets staging, a live view of pending changes, better headers and empty states. The sidebar's agent
+states follow t3code. Tab pills animate on open and close as in Rex. The palette groups its commands.
+
+Design: [Chat view](../../docs/content/docs/ui/chat-view.mdx), [Plugins](../../docs/content/docs/plugins/index.mdx),
+[Sidebar](../../docs/content/docs/ui/sidebar.mdx), [Window](../../docs/content/docs/ui/window.mdx). The user's
+words are quoted; the decisions under them are the orchestrator's. Where this file and a design page disagree,
+this file wins (each track updates the pages it changes; the docs pass checks them).
+
+Tracks push straight to main (the user's word: "you can push directly to main"), each change after its own review
+and green checks on its exact head (`make lint build test`, a chosen-tests CI run of the classes it touches).
+
+## Track A: the chat (items 1–2)
+
+Files: `Oriel/Chat/**`, the chat's tests.
+
+1. **Every agent message, tool calls folded.** "chat loads much better now, one improvement, i think right now we
+   show only last assistant message and do not show any intermediate messages, let's change that to show all
+   assistant messages, and let's actually drop the dropdown to select detail level replies only etc. so how it
+   should work is we show all assistant messages and tool calls in between are collapsed with summary and arrow to
+   expand like how we show in activity view right now and lazy load the tool calls when its expanded. so by
+   default only assistant messages and tool call summaries are shown and tool calls can be expanded, the lazy load
+   of tool calls is important to prevent load on chat view for large transcript, coz including all tool calls by
+   default in chat view even if its collapsed will add load to the chat view and makes it laggy".
+   - The `Replies only ⌄` pill and its levels go, with their setting and code.
+   - A turn shows each agent text message as its bubble, in order. Each run of tool calls between two messages is
+     one summary row ("Ran 3 commands, read 2 files ›", the activity view's words and chevron).
+   - A summary row holds only its counts. Its tool rows are made (parsed and laid out) only when it is opened,
+     and dropped again when it closes. Measure the first layout and the scroll p95 on the 115 MB transcript
+     before and after; they must not get worse than today's replies-only numbers by more than 10%.
+2. **Show Earlier.** "show earlier button is overlapping on the message, let's make it such that there is space
+   between last message and show earlier and also let's show a loader when show earlier is clicked and things are
+   loading". The button sits in its own row with the chat's row gap above and below. While the earlier rows load
+   it shows a small spinner in place of its words.
+
+## Track B: File Explorer (items 3–15)
+
+Files: `plugins/explorer/**`, its manifest, the header code it needs (`Oriel/Plugins/Header*.swift`), its tests.
+Owner of the shared syntax colors (item 11) and the sidebar slide (item 14) that Git also uses.
+
+3. **Folder color.** "can we change the colors of folders in file explorer plugin, let's make it similar to macos
+   folder icon blue color". Folder icons in the tree take the Finder folder blue (light and dark).
+4. **Double-click a folder.** "double clicking on a folder should make it root".
+5. **Path bar.** "the root selection view is not good, can we show like a path address or something where user can
+   type in the path or remove the path to go back etc so they can navigate easier instead of dropdown, when not
+   highlighted it should show some short view of path instead of full absolute path like how browser address bar
+   currently does yk, also lets add at the top .. thing and double clicking on that should take to parent folder
+   and make it root". The root control becomes a field like the browser's address bar: at rest it shows the short
+   path (`~/code/oriel`, the last parts when long); clicked, the full path, editable, with Return to go and Escape
+   to cancel; a path that is not a folder shakes and stays. The tree's first row is `..`; double-click makes the
+   parent the root (at `/` it is not shown).
+6. **⌘F.** "clicking cmd+f in file explorer should activate filter input".
+7. **Gap under the header.** "let's add some padding between first folder and the header".
+8. **Hidden files.** "by default hide the hidden folders and have a option on the top right beside the collapse all
+   button to toggle between showing and hiding hidden files with default as hidden". A header toggle (eye icon)
+   beside Collapse All; the choice persists in the card's state.
+9. **Speed.** "file explorer still takes good amount of time to load certain directory, is it possible to cache the
+   data or may be optimise it better, may be we can load nested folders info dynamically if that's the reason
+   loading is taking time, from what i see pretty much entire folder tree is loaded, we can optimise with lazy
+   loading any nested folders". Load one folder level at a time: a folder's children are listed when it opens.
+   Git status for the tree stays one call. Measure the tree's open time on a big repository (this repo, and a
+   folder with node_modules) before and after.
+10. **File icons.** "also i don't see file icons anymore now, before i remember seeing icons based on file types,
+    can we bring that back". Find where they were lost (phase 47's move) and bring back the per-type icons.
+11. **Syntax colors.** "for files and diff syntax coloring, what coloring are we using? can we use default pierre
+    diffs shiki style or something? let's go with whatever syntax coloring it provides by default, regular file view
+    and diff view should have same syntax coloring btw". The diff's colors are `@pierre/diffs`' default Shiki themes
+    (light and dark). The File view's CodeMirror takes the same token colors. Write which themes in the Findings.
+12. **Markdown edit keeps its look.** "in markdown edit mode, i understand on selecting certain line we show its
+    syntax, but for other lines can't we keep regular markdown rendering? like when i go to edit view from read
+    view, everything should look same other than whatever active line i am if that makes sense. right now i see all
+    markdown styling is lost and for active line i see additional syntax stuff, btw i notice this more with bullets
+    and lists". Edit mode is a live preview: every line except the one with the caret looks as in read mode
+    (headings, bold, links, code, bullets and numbers, task boxes, quotes, tables); the caret's line shows its
+    Markdown marks. Switching modes moves nothing on screen.
+13. **Open With.** "open with button in file previews should show the system default app for that file type first,
+    with other apps in dropdown, verify if that's the case or not". The button opens in the default app
+    (`NSWorkspace.urlForApplication(toOpen:)`), shows its icon and name; the menu lists the others. Write in the
+    Findings what it did before.
+14. **Sidebar slide.** "in markdown sidebar, can we have slide in and out animations?". The Markdown outline
+    sidebar slides in and out (about 0.25 s, the system ease). Git's sidebar uses the same code (item 26).
+15. **Arrow keys.** "another one in file explorer, as soon as file explorer is opened, with arrow keys i should be
+    able to navigate across tree, with border showing on highlighted one, i remember it used to be shown before now
+    i can't move around file tree using arrow keys". The tree has the keyboard when the card opens or is clicked;
+    ↑↓ move, → opens, ← closes or goes to the parent, Return opens the file, and the focused row shows its ring.
+
+## Track C: Git (items 16–28)
+
+Files: `plugins/git/**`, its manifest, its tests (header changes go through Track B's header owner if they touch
+Swift; coordinate by message).
+
+16. **More commits.** "git commits should have show more button to load more commits".
+17. **Space between sections.** "let's have some separation between history and current changes section".
+18. **No changes.** "also when no changes are there, let's just show no changes, right now it shows like Changes and
+    No changes in the next line" and "actually don't even show message input and commit when no changes, we can
+    just show like some placeholder with some icon or something and says no changes or something similar". With no
+    changes the section is one placeholder: an icon and "No changes". No header, no message box, no Commit.
+19. **Fetch, Pull, Push.** "for fetch pull and push, along with icons let's include text and make them like
+    buttons". Bordered buttons with icon and word.
+20. **Staging.** "we should have option to stage unstage etc and then commit". Staged and Unstaged groups; each row
+    stages or unstages on a hover button, each group has Stage All / Unstage All; Commit commits the staged files
+    (or all when none are staged, as today, saying so on the button).
+21. **Branch icon.** "can we change the git branch icon in general, i don't like the current icon we have its used
+    for both plugin icon and for the branch selection, use the one similar to what we use for branches in pi-footer
+    branch icon". pi-footer uses Material Design Icons' `source-branch` (U+F062C). Use that shape (an SVG of
+    `mdi-source-branch`) for Git's plugin icon and its branch control.
+22. **Diff file headers.** "diff view file headers are not very good, can we improve it and make it fit to our ui
+    design better". Match the card headers: the file icon, the name, the folder dimmed, +/− counts in the system
+    green and red, the glass row height and corner radius of our design. Show a before/after picture in the
+    Findings.
+23. **Word wrap.** "can we also have word wrap toggle beside unified and side by side". Persists in state.
+24. **Commit page.** "when a certain commit is opened, let's show commit message in its title, also better to show
+    commit data and time, description and other metadata may be". The card's title is the commit's subject; the
+    top of the diff shows the subject, the body, author, date and time (relative and absolute), the hash (copy on
+    click) and the parents.
+25. **Live pending changes.** "we should have a way to see current diff of pending changes in working tree which
+    reloads automatically, basically with that view open when agent is running and making changes i should see
+    live view of what changes are being done if that makes sense". A "Working Tree" place shows every uncommitted
+    file's diff, one under another. It reloads while in view: poll `git status` cheaply (every 2 s, only while the
+    card shows), and redraw only the files whose content changed, keeping the scroll position.
+26. **Sidebar slide.** "let's have similar slide in and out animations for sidebar". Same code as item 14.
+27. **Not a repository.** "for git plugin when you open in folder which is not git repo it throws fatal error,
+    let's show proper message its not git repo instead of throwing fatal error". A clear empty state: an icon,
+    "Not a Git repository", the folder's short path, and an Initialize Repository button (runs `git init` after a
+    click).
+28. **Header buttons as buttons.** Covered by 19; the controls stay in the manifest header.
+
+## Track D: the window and the app (items 29–33)
+
+Files: `Oriel/Views/TabBar.swift`, the chooser, the palette, `Oriel/Plugins/PluginsPanel*` and the herdr side of
+plugin panes, their tests.
+
+29. **Chooser wraps.** "in the new pane can we cycle the selection like if i am at terminal and press up arrow i
+    should be at Git". ↑ on the first row goes to the last, ↓ on the last to the first.
+30. **Show a plugin in New Pane.** "for new plugins user should have option to choose if they want it to be shown in
+    new pane or not by default". The Plugins panel gets a "Show in New Pane" switch per plugin, and the trust prompt
+    of a new plugin has the same checkbox, on by default when the plugin declares a chooser entry. Stored in
+    `settings.json`.
+31. **Placeholders always there.** "when i open the herdr in regular terminal for these sessions with plugin panes,
+    i should see placeholder all the time, for some panes i see, and for some i don't. we should make sure to show
+    the placeholder all the time, if that process is quit or something let's rerun and show it again, i think this
+    would especially if herdr session is stopped and restarted ig". Every browser and plugin pane runs the
+    placeholder. On each snapshot, a browser or plugin pane whose foreground is not the placeholder (a fresh shell
+    after a herdr restart, an ended process) gets it again (`pane run`, once per pane per process; never into a pane
+    whose foreground is another program). Find why some panes lack it today.
+32. **Palette groups.** "now that we have too many commands in cmd+k, can we group them better based on their
+    category or type". Sections with headers (for example: Tabs, Panes, Sessions, View, Plugins, Go To, Help;
+    choose the set from the actual commands). Typing a query shows the best matches first across groups, each with
+    its group's name dimmed.
+33. **Tab pills on open and close.** "check the above scrawl, check the original video instead of snapshots, i
+    showed animation of tabs for cmd+t and cmd+w like opening new tab and closing tab, right now we don't have any
+    animations with tab pills on create and close, let's try to inspire from this and include it in ours". The
+    recording (`~/Library/Application Support/scrawl/captures/scrawl-1793524714590-1c27.scrawl/recording.mp4`,
+    0:12–0:27; a strip of frames at `/tmp/sc49/tabs1.png`) shows Rex: on ⌘T the selected pill glides from the old
+    tab to the new slot at the end while the new tab's pill grows in; on ⌘W the tab's pill shrinks away, the tabs
+    after it slide left, and the selection glides to its neighbor. About 0.2 s, a spring without bounce. Only the
+    tab bar animates; the page still swaps at once (phase 48). Study the video frame by frame before building.
+
+## Track E: agent states (item 34)
+
+Files: `Oriel/Views/Sidebar*.swift`, the state capsule in the card header, the agents view, their tests.
+
+34. **States as in t3code.** "i don't see any changes to agent statuses changes similar to t3code, you mentioned
+    you made changes earlier, can we fix that, let's check t3code and inspire from it on how it shows agent
+    statuses on sidebar etc and improve it". Read t3code's source (github.com/pingdotgg/t3code: the sidebar's thread
+    rows and their status) and record in the Findings how it shows working, waiting for input, done and error (shape,
+    color, motion, words, where). Then make Oriel's sidebar rows, the card header and the agents view follow it.
+    Show the user a picture of the result before pushing.
+
+## Findings
