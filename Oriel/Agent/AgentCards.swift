@@ -5,11 +5,12 @@ import SwiftUI
 /// user's view.
 extension AgentCommand {
     static let open = AgentCommand(
-        name: "open", usage: "open <kind> [<arg>...] | <path-or-url> [<place>] [--new]",
+        name: "open", usage: "open <kind-or-path> [<arg>...] [<place>] [--new]",
         summary: "Opens a browser or plugin card beside this pane",
         help: """
-        <kind> is an id from `oriel plugins`; write a path of the same name as ./name. A path or URL alone opens with \
-        its default plugin. Relative paths are from the working folder.
+        A kind is an id from `oriel plugins`; write a path of the same name as ./name. A path or URL alone opens with \
+        its default plugin. Relative paths are from the working folder; `browser ./report.html` opens a file on This \
+        Mac.
         <place>: --beside <pane> [--down] (a split, right or below; this pane by default), --tab (after this pane's \
         tab, not selected), --float (as --tab, then floats it), --replace <pane> (that browser or plugin card shows it).
         A card of the same kind and argument in the session is the answer ("reused": true) unless --new.
@@ -195,8 +196,11 @@ extension AgentCall {
             throw AgentError.usage("extra argument \(words[opens.git ? 2 : 1])")
         }
         if !opens.urls.isEmpty, !takes || web(first) {
+            // A path is a file URL, which the browser opens on This Mac only.
+            let path = !first.contains("://") && ["/", "."].contains(first.prefix(1))
             let url = plugin.id == Registry.browser.id
-                ? Browser.url(first, local: !store.machine.isRemote)?.absoluteString
+                ? Browser.url(path ? URL(filePath: absolute(first)).absoluteString : first,
+                              local: !store.machine.isRemote)?.absoluteString
                 : plugin.opens(url: first) ? first : nil
             guard let url
             else { throw AgentError(code: "bad_argument", message: "\(plugin.id) does not open \(first)") }

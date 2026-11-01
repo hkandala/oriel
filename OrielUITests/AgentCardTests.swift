@@ -22,7 +22,7 @@ extension OrielUITests {
         let again = try await open("explorer notes.md", from: first, "again", ["reused: true"])
         XCTAssertEqual(again, file)
 
-        let below = try await open("browser http://127.0.0.1:65530 --beside \(file) --down", from: first, "down",
+        let below = try await open("http://127.0.0.1:65530 --beside \(file) --down", from: first, "down",
                                    ["kind: browser"])
         XCTAssertTrue(element("pane.\(below)").exists(within: 3))
         XCTAssertLessThan(element("pane.\(file)").frame.maxY, element("pane.\(below)").frame.minY)
@@ -57,8 +57,9 @@ extension OrielUITests {
         try await expectOpen("w2")
         let folder = try await cardsFolder(in: first), oriel = Self.orielCommand
 
-        let browser = try await open("http://127.0.0.1:65530", from: first, "web", ["kind: browser"])
-        let iid = try await paneLabel(browser).prefix { $0 != " " }.dropFirst("oriel:browser".count)
+        let browser = try await open("browser ./notes.md", from: first, "web", ["kind: browser"])
+        let web = try await paneLabel(browser), iid = web.prefix { $0 != " " }.dropFirst("oriel:browser".count)
+        XCTAssertTrue(web.hasSuffix(" file://\(folder)/notes.md"), web)
         try await run("\(oriel) open git . --replace \(first)", in: first, "terminal", 1,
                       "oriel: pane \(first) is no browser or plugin card")
         _ = try await open("git . --replace \(browser)", from: first, "replace", ["kind: git"])

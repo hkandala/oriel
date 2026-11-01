@@ -171,6 +171,35 @@ simple and brief."
 - **For the user.** A float from `oriel float` (and its `existing` bring-to-front) should open without activating
   Oriel: check it with Oriel in the background.
 
+### Track B
+
+- **Spike (herdr 0.9.5).** `layout.apply` (`focus:false`, a label and the placeholder's argv) makes a new tab without
+  moving herdr's focus; `pane.move {destination:{type:"tab", tab_id, split:"right"|"down", target_pane_id},
+  focus:false}` puts it beside any pane, also in a tab that is not focused, and closes the temporary tab;
+  `tab.move {tab_id, insert_index}` places a tab (ids keep their numbers); `pane.rename` changes no focus.
+- **Decisions.** Every place goes through one sequence (a new tab with the label, then moved), shared with linked
+  opens (`HostStore.newPane`), so a split shows the temporary tab for one snapshot, as linked opens always did.
+  `--replace` renames the card's label with its own iid: the card follows it as a label from elsewhere (a browser
+  as a new history entry, a plugin with Back), a new kind makes the card again; a card with unsaved edits answers
+  `dirty`. A card that is not in view after `open` (a tab, a reuse, a split beside a hidden pane) gets the notice:
+  "opened" for a new card, the reveal wording "points to" for a reused one. Reuse looks only in the session the
+  card would open in. ‹agent› is the asking pane's agent name, else its program ("zsh"), else its card's title.
+- **Arguments.** A path whose name is no kind must exist on the asking machine (`bad_argument`); a word after an
+  unknown first word is `plugin_not_found` (with the registry's reason when there is one). Git takes a folder of a
+  repository (its root) and `uncommitted` or a hex commit; `browser ./page.html` is a `file://` URL, This Mac only.
+  The default plugin is track C's `Registry.openers(for:)`, the one rule `oriel.open` uses too.
+- **`card` and `shown`.** A terminal's or an agent's `arg` is its folder; `error` comes only when there is one (a
+  missing plugin's reason, a plugin page's failure). `shown` lists the tab panes in view and, apart, the floats;
+  `windows` counts the visible windows with the session's page in view. A floating card flashes in its own window.
+- **The place parser for track D.** `var call: AgentCall`, `let place = try call.place()` reads
+  `--beside <pane> [--down]`, `--tab`, `--float` or `--replace <pane>` (at most one; else `usage`), then
+  `try await call.newPane(place)` (no label: a shell) makes the pane in the request's folder and returns
+  `(store, pane)` once a snapshot has it; `.tab(float: true)` floats it as `oriel float` does; `.replace` is
+  `usage` there, so `agent` rejects it before.
+- **For the user.** Run `oriel open git . --tab` and `oriel reveal <pane of another tab>` from an agent with Oriel
+  in the background: the notice shows in each window of the session, Show selects the card there, and Oriel does not
+  come to the front. `oriel open … --float` should open its window without activating Oriel (track A's float).
+
 ### Track C
 
 - **Decisions.** `plugins` is one command with the subcommands `new`, `reload`, `install`; a first word that is none
