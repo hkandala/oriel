@@ -171,3 +171,22 @@ Files: `Oriel/Views/Sidebar*.swift`, the state capsule in the card header, the a
     Show the user a picture of the result before pushing.
 
 ## Findings
+
+### Track E
+
+- **t3code (b50d8a1b, `SidebarThreadRow.tsx`, `Sidebar.logic.ts`).** A thread row's first line ends in a status slot:
+  a 16 px lucide icon and the word, 12 px medium, in the status color, no fill. Working: `circle-dashed`, info blue,
+  with its time counting each second ("Working 42s", "3m", "1h 5m"). Waiting for input: `message-circle-question`,
+  indigo, "Input"; approval: `shield-question`, amber, "Approval". Done (a finish not seen): `circle-check`, emerald,
+  "Done". Error: `circle-alert`, red, "Failed" (amber "Limited" for a usage limit). A settled thread shows no status,
+  only its age ("5m"). No motion in the sidebar; only the compact pill (the palette) pulses its dot (opacity 1 → 0.5,
+  2 s, stepped). Rows that need nothing recede (normal weight, 75 % text, working rows at 0.7 opacity); rows that
+  call for the user stay medium and full strength. The chat header shows no status.
+- **Fix.** One `StateLabel` (symbol, word, Working's time) replaces the 6 pt dot of the card header, the capsules of
+  the Agents view, popover, hover card and overview, and the workspace row's leading state slot: the label now ends
+  the row's first line, as t3code's status slot. Idle shows nothing (the Agents view shows the age). Needs you and
+  Done rows have their name in medium weight. The tab bar keeps Rex's working dots and badges (phase 33).
+- **Decisions.** herdr has one "blocked" for both input and approval, so Oriel keeps its word "Needs you" and its
+  amber, with t3code's question bubble. herdr reports no error, so "Error" stays the chat card's own. The symbol
+  does not move, as in t3code's sidebar: the counting time shows the work. The card header shows no time (its row is
+  full). A workspace's time is its longest-working agent's.

@@ -12,6 +12,12 @@ extension OrielUITests {
         try await waitForValue("tab.\(tab)", containing: "codex, working")
         try await waitForValue("workspace.w1", containing: "working")
         keepScreenshot("working dots")
+        // As t3code's thread rows: the state right of the name, Working with its time counting.
+        let state = element("workspace.w1.state")
+        XCTAssertTrue(state.exists(within: 2))
+        let first = state.stringValue
+        XCTAssertTrue(first.hasPrefix("Working "), first)
+        XCTAssertTrue(until(3) { state.stringValue != first }, first)
 
         // The selected tab shows them too; the × takes their place while hovered.
         element("tab.\(tab)").click()
@@ -20,6 +26,10 @@ extension OrielUITests {
         element("workspace.w1").hover()
         XCTAssertTrue(dots.exists(within: 2))
         keepScreenshot("working dots, selected tab")
+        // Idle and seen: no state.
+        try await report(pane, "idle")
+        try await waitForValue("workspace.w1", containing: "idle")
+        XCTAssertTrue(state.vanishes(within: 2))
     }
 
     func testBlockedAgentNeedsYouAndThePopoverGoesToIt() async throws {

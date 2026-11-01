@@ -1,13 +1,14 @@
 import HerdrKit
 import SwiftUI
 
-/// A workspace: its state slot and name, and its branch with ahead and behind on a second line in a repository.
-/// A linked worktree sits indented under its repository's row, on a guide line.
+/// A workspace: its name and its state on the right as t3code's thread rows show it, and its branch with ahead and
+/// behind on a second line in a repository. A linked worktree sits indented under its repository's row, on a guide
+/// line.
 struct WorkspaceRow: View {
     let workspace: HostStore.Workspace
     let parent: HostStore.Workspace?
     let page: Page
-    /// A worktree row follows: the guide line starts under this row's state slot.
+    /// A worktree row follows: the guide line starts under this row.
     let guideBelow: Bool
     /// The first and the last group's workspace: they cannot move up or down.
     let ends: (first: String?, last: String?)
@@ -20,6 +21,7 @@ struct WorkspaceRow: View {
         let selected = workspace.id == page.selectedWorkspaceID
         let git = workspace.git
         let state = workspace.state
+        let label = state.flatMap { $0 == .idle ? nil : $0.label(look, since: workspace.since) }
         let height: CGFloat = git == nil ? 30 : 44
         Button {
             page.select(workspace)
@@ -31,13 +33,15 @@ struct WorkspaceRow: View {
         } label: {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
-                    StateIcon(state: state)
-                    Text(workspace.label).font(.system(size: 13)).lineLimit(1).opacity(renaming ? 0 : 1)
+                    Text(workspace.label).font(.system(size: 13, weight: state?.calls == true ? .medium : .regular))
+                        .lineLimit(1).opacity(renaming ? 0 : 1)
                         .foregroundStyle(selected ? look.selected : look.chrome)
-                    // The keycap's room: the name gives way to it.
+                    Spacer(minLength: 0)
+                    // The room of the keycap, else of the state: the name gives way to it.
                     if let keycap {
-                        Spacer(minLength: 0)
                         Keycap(text: "⌃⌘\(keycap)").hidden()
+                    } else {
+                        label.hidden()
                     }
                 }
                 if let git {
@@ -53,7 +57,6 @@ struct WorkspaceRow: View {
                     }
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
-                    .padding(.leading, 20)
                 }
             }
             .padding(.horizontal, 8)
@@ -71,6 +74,9 @@ struct WorkspaceRow: View {
                 Keycap(text: "⌃⌘\(keycap)").frame(height: 30).padding(.trailing, 8)
                     .transition(Keycap.transition)
                     .accessibilityIdentifier("workspace.\(workspace.id).keycap")
+            } else if let label, !renaming {
+                label.frame(height: 30).padding(.trailing, 8).allowsHitTesting(false)
+                    .accessibilityIdentifier("workspace.\(workspace.id).state")
             }
         }
         .overlay(alignment: .leading) {
@@ -80,7 +86,7 @@ struct WorkspaceRow: View {
                     Task { await page.store.rename(workspace: workspace.id, label: label) }
                 }, end: stopRenaming)
                     .font(.system(size: 13))
-                    .padding(.leading, 8 + 14 + 6)
+                    .padding(.leading, 8)
                     .padding(.trailing, 8)
                     .frame(height: 30, alignment: .leading)
                     .frame(maxHeight: .infinity, alignment: .top)
@@ -90,11 +96,11 @@ struct WorkspaceRow: View {
         // Writes only while the session runs: a stopped one keeps its last rows.
         .contextMenu { menu.disabled(page.store.state != .live) }
         .padding(.leading, parent == nil ? 0 : 14)
-        // From the repository's state slot (8 + 7 pt in) down along its worktrees.
+        // From under the repository's row, 15 pt in, down along its worktrees.
         .background(alignment: .topLeading) {
             if parent != nil || guideBelow {
                 Rectangle().fill(.separator).frame(width: 1)
-                    .padding(.top, parent == nil ? 22 : 0)
+                    .padding(.top, parent == nil ? height : 0)
                     .padding(.bottom, guideBelow ? -2 : height / 2)
                     .padding(.leading, 15)
             }

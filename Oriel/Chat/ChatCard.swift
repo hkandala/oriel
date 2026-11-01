@@ -89,8 +89,8 @@ extension ChatLevel {
     }
 }
 
-/// An agent card's state as t3code draws a thread's: a dot and the word, in the state's color. A chat's follows its
-/// phase and shows none while idle; another agent's is herdr's.
+/// An agent card's state as t3code draws a thread's (`StateLabel`). A chat's follows its phase and shows none while
+/// idle; another agent's is herdr's.
 struct CardState: View {
     let chat: Chat?
     let state: AgentState?
@@ -98,30 +98,21 @@ struct CardState: View {
     @Environment(\.look) private var look
 
     var body: some View {
-        if let (text, color) = label {
-            HStack(spacing: 5) {
-                Circle().fill(color).frame(width: 6, height: 6)
-                Text(text).font(.system(size: 11, weight: .medium)).foregroundStyle(color)
-            }
-            .fixedSize()
-            .accessibilityElement(children: .ignore)
-            .accessibilityAddTraits(.isStaticText)
-            .accessibilityValue(text)
-            .accessibilityIdentifier("pane.\(paneID).state")
+        if let label {
+            label.accessibilityIdentifier("pane.\(paneID).state")
         }
     }
 
-    private var label: (String, Color)? {
-        guard let chat else { return state.map { ($0.capsule, $0.color(look)) } }
+    private var label: StateLabel? {
+        guard let chat else { return state.flatMap { $0 == .idle ? nil : $0.label(look) } }
         // Only while the chat shows: nothing follows the agent behind its terminal, so nothing would clear it.
         if chat.problem != nil, chat.showsChat {
-            return ("Error", look.error)
+            return StateLabel(text: "Error", symbol: "exclamationmark.circle", color: look.error)
         }
         switch chat.phase {
-        case .working: return (AgentState.working.capsule, look.working)
-        case .waiting: return (AgentState.needsYou.capsule, look.needsYou)
-        case .ready, .starting:
-            return state == .finishedUnseen ? (AgentState.finishedUnseen.capsule, look.finished) : nil
+        case .working: return AgentState.working.label(look)
+        case .waiting: return AgentState.needsYou.label(look)
+        case .ready, .starting: return state == .finishedUnseen ? AgentState.finishedUnseen.label(look) : nil
         }
     }
 }

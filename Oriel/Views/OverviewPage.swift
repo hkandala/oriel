@@ -102,6 +102,7 @@ private struct Tile: View, Equatable {
     let size: CGSize
     let open: () -> Void
     @State private var hovering = false
+    @Environment(\.look) private var look
 
     var body: some View {
         let selected = page.selectedTabIDs[workspace.id] == tab.id
@@ -119,7 +120,7 @@ private struct Tile: View, Equatable {
                     }
                     .accessibilityIdentifier("overview.tab.\(tab.id).close")
                 } else if let state, state != .idle {
-                    StateCapsule(state: state)
+                    state.label(look)
                 }
             }
             .padding(.leading, 11)

@@ -49,6 +49,11 @@ extension HostStore {
         init(id: String) {
             self.id = id
         }
+
+        /// Since when its first agent with `state` has had it, for Working's time.
+        var since: Date? {
+            tabs.compactMap(\.agent).filter { $0.state == state }.compactMap(\.since).min()
+        }
     }
 
     @MainActor @Observable

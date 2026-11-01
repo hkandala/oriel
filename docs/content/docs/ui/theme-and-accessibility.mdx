@@ -57,10 +57,10 @@ the Agents view and popover, the hover card, notifications):
 
 | Shown as | Word | Dark | Light | herdr status |
 |---|---|---|---|---|
-| three working dots | working | `#58a6ff` | `#0667d8` | `working` |
-| an amber badge on the program icon, an amber dot on a workspace row | needs you | `#d29922` | `#9d5c00` | `blocked` |
-| a green badge on the program icon, a green dot on a workspace row | finished | `#3fb950` | `#116329` | finished and not yet seen by this device |
-| ↓behind on a workspace row, the error tone of a notice | error | `#f85149` | `#cf222e` | — |
+| three working dots on a tab; a dashed circle and "Working" with its time | working | `#58a6ff` | `#0667d8` | `working` |
+| an amber badge on the program icon; a question bubble and "Needs you" | needs you | `#d29922` | `#9d5c00` | `blocked` |
+| a green badge on the program icon; a check circle and "Done" | finished | `#3fb950` | `#116329` | finished and not yet seen by this device |
+| ↓behind on a workspace row, the error tone of a notice; an alert circle and "Error" on a chat card | error | `#f85149` | `#cf222e` | — |
 
 - **Working dots.** Three dots, 3.5 pt, 5.5 pt apart, in a 14 pt box. Each
   dot's opacity goes 0.3 → 0.85 → 0.3 over 1.2 s, each dot 0.2 s after the
@@ -69,11 +69,21 @@ the Agents view and popover, the hover card, notifications):
   per frame (a SwiftUI timeline per dots laid the window out at every tick).
 - **Badges.** A 7 pt dot on the top right of a tab's front program icon and
   of an Agents row's tile, cut out of the tile by a 1.5 pt ring.
-- In the Agents view and popover and the hover card, status is a capsule:
-  the word in the color, on a 0.15 fill of it. The Agents view also shows
-  "Idle" in gray.
-- A workspace row shows an idle agent as a 7 pt gray ring. Tabs show nothing
-  for idle agents.
+- **State label.** Workspace rows, the Agents view and popover, the hover
+  card, the overview and the agent card's header show a state as t3code's
+  sidebar shows a thread's: an SF Symbol and the word, both 11 pt medium in
+  the status color, with no fill. The symbols follow t3code's: `circle.dashed`
+  (Working), `questionmark.bubble` (Needs you), `checkmark.circle` (Done) and
+  `exclamationmark.circle` (Error). Working adds the time since the agent
+  started, counted each second: "Working 42s", "Working 3m", "Working 1h 5m".
+  The symbol does not move; the counting time shows that the agent works.
+- An idle agent shows no state label. In the Agents view its row shows the
+  age instead ("5m"), as t3code shows a settled thread's time. Tabs show
+  nothing for idle agents. A workspace menu row shows an idle agent as a 7 pt
+  gray ring.
+- A row that calls for the user (needs you, or done and not seen) has its
+  name in medium weight; other rows are regular, as t3code's rows that need
+  nothing recede.
 
 ## Accessibility
 

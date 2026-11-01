@@ -89,7 +89,9 @@ Shown only while the sidebar is collapsed, after the machine button.
   16 pt.
 - The menu starts with a filter field ("Filter or create…"). Then one group
   per page open in this window, in page order, under the session's name. A
-  row shows the workspace's state icon, its name and its branch on the right.
+  row shows the workspace's state icon (the state label's symbol, a gray
+  ring for an idle agent, a quiet dot without an agent), its name and its
+  branch on the right.
   At the end, under the list and always in view: New Workspace, then "Open
   Session…" (⌥⌘T).
 - The menu is a glass panel under the button, 300 pt wide, its workspace list
@@ -267,14 +269,14 @@ The sidebar never shows tabs, and its bottom never shows agent activity.
 
 One row per herdr workspace of the session, in herdr's order, like herdr's
 Spaces panel.
-- **Line 1.** A 14 pt state slot and the name (13 pt). The state icon is the
-  strongest state of the workspace's panes: a 7 pt amber dot (needs you), the
-  three working dots (working), a 7 pt green dot (finished, not seen), a 7 pt
-  gray ring with a 1.5 pt stroke (an idle agent), or a quiet 4 pt dot in the
-  tertiary color (no agent), so the slot never looks empty. The
-  workspace menu rows show the same icons. VoiceOver adds the state word to
-  the row's value.
-- **Line 2**, only for a git repository: a branch glyph, the branch, then
+- **Line 1.** The name (13 pt), then at the line's end the strongest state
+  of the workspace's panes as a state label, as t3code shows a thread's
+  status: "Working 42s", "Needs you" or "Done"
+  ([Status](/docs/ui/theme-and-accessibility#status)). An idle agent, or no
+  agent, shows nothing there. The name is medium weight while the row calls
+  for the user (needs you or done). VoiceOver adds the state word to the
+  row's value.
+- **Line 2**, only for a git repository, under the name: a branch glyph, the branch, then
   ↑ahead in the finished color and ↓behind in the error color when they are
   not zero. All 11 pt, secondary. There is no changed-file count. A workspace
   that is not a git repository has one line and no text about git (D67,
@@ -284,12 +286,13 @@ Spaces panel.
 - **Worktrees.** A workspace that herdr marks as a linked git worktree
   (`worktree.is_linked_worktree`) sits right after the workspace with the same
   `repo_key` that is not a linked worktree. It is indented 14 pt, with a 1 pt
-  guide line in the separator color from its repository's state slot down.
+  guide line in the separator color, 15 pt in, from under its repository's
+  row down.
   With no such workspace in the session, it is a normal row.
 - **Keycap hints.** If the user holds ⌘ (with the tabs' keycaps) or ⌃⌘ for 0.7 s while the window is key,
   each of the first nine rows (in the order ⌃⌘1–9 jumps) shows a keycap
-  "⌃⌘1"… at the end of its first line; the name gives way to it and never runs
-  under it. Same look and fades as the tabs' keycaps.
+  "⌃⌘1"… at the end of its first line, in the state label's place; the name
+  gives way to it and never runs under it. Same look and fades as the tabs' keycaps.
 - **Click** selects the workspace in the app only ([Selection and "seen" are
   the app's own](/docs/layout#selection-and-seen-are-the-apps-own)).
 - **Context menu.** New Tab, Rename Workspace, Move Up, Move Down, Close
@@ -340,10 +343,11 @@ or below ([Swiping](/docs/ui/swiping)). The page dots and the footer stay.
   lines, 4 pt apart; the program tile with its badge centers on both. Line 1,
   on one centered line: the pane's name (its label, else its session's title,
   else "Untitled": [Session titles](/docs/ui/chat-view#session-titles)),
-  then on the right the status
-  capsule, "Needs you" (amber), "Working" (blue), "Done" (green) or "Idle"
-  (gray), the text in the color on a 0.15 fill of it, and the age ("now", "3m", "2h", "4d"), counted from the
-  time the app saw the change. Line 2: "‹workspace› · ‹tab title›" in
+  then on the right, as t3code's thread rows, the state label: "Needs you"
+  (amber), "Working 42s" (blue) or "Done" (green). An idle agent shows its
+  age instead ("now", "3m", "2h", "4d"), counted from the time the app saw
+  the change, in secondary text. The name is medium weight for needs you and
+  done. Line 2: "‹workspace› · ‹tab title›" in
   secondary text (the tab bar's title, D65); only the tab title in Workspace
   order, where the group names the workspace.
 - The row of the shown tab's keyboard card is lit like the selected
@@ -424,10 +428,10 @@ tabs.
   [Theme](/docs/ui/theme-and-accessibility)), radius 12, 280 pt wide. It fades and grows
   in from 0.97 over 0.13 s.
 - **Content**, top to bottom:
-  - The tab title (folder part dimmed) and the tab's status capsule, if any.
+  - The tab title (folder part dimmed) and the tab's state label, if any.
   - One row per pane, at most 6 and then "+N more": the program glyph, the
-    program or agent name, the folder in secondary text, and the status
-    capsule or the working dots on the right.
+    program or agent name, the folder in secondary text, and the state label
+    on the right (none for an idle agent).
   - For a pane that needs you: the last 3 non-empty lines of its screen, in
     secondary monospaced text. The app reads them with `pane.read` when the
     card opens, one call per such pane, and shows nothing if the read fails.
@@ -489,8 +493,8 @@ How it works: [Layout and sizing](/docs/layout).
   - Agent: row 1 has the pane's name: its label, else its session's title
     ([Session titles](/docs/ui/chat-view#session-titles)). Row 2 has the
     program glyph, the agent's name and the folder in secondary text
-    ("Claude Code ~/code/oriel"), then the agent's state as a 6 pt dot and
-    its word in the status color (herdr's, or the chat's own on a chat
+    ("Claude Code ~/code/oriel"), then the agent's state label (its
+    symbol and word in the status color, without the time) (herdr's, or the chat's own on a chat
     card; none while idle), then on the right the level pill
     (`Replies only ⌄`) and Chat | TUI
     ([Chat view](/docs/ui/chat-view#what-it-looks-like)), or Relaunch with
@@ -690,7 +694,7 @@ clients see it there.
   quieter than the pane's folder, on one line (the
   session as the sidebar names it, so `default` shows the machine's name; a
   long one gives way first, in its middle). The quick info is the pane's
-  icon, its title and its agent's state (a dot and its word). The title is
+  icon, its title and its agent's state label. The title is
   the program and folder or the label, an agent's name and its pane's name,
   "Browser" and the page, a plugin's name and title with its Edited dot, or "New Pane" while
   the chooser shows, with the second part in

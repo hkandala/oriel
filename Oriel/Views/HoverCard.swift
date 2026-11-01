@@ -235,6 +235,7 @@ struct HoverCard: View {
     let close: () -> Void
     /// Each blocked pane's last 3 non-empty screen lines.
     @State private var lines: [String: [String]] = [:]
+    @Environment(\.look) private var look
 
     var body: some View {
         let store = page.store
@@ -249,7 +250,7 @@ struct HoverCard: View {
                         FadeText(text: page.titleLabel(tab)).fontWeight(.medium)
                         Spacer(minLength: 0)
                         if let state = tab.agent?.state, state != .idle {
-                            StateCapsule(state: state)
+                            state.label(look)
                         }
                     }
                     .padding(.horizontal, 6)
@@ -294,10 +295,8 @@ struct HoverCard: View {
                     Text(name).lineLimit(1).layoutPriority(1)
                     Text(pane.folder ?? "").foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                     Spacer(minLength: 0)
-                    if pane.state == .working {
-                        WorkingDots()
-                    } else if let state = pane.state {
-                        StateCapsule(state: state)
+                    if let state = pane.state, state != .idle {
+                        state.label(look, since: pane.since)
                     }
                 }
                 ForEach(shown.indices, id: \.self) { index in
@@ -312,6 +311,6 @@ struct HoverCard: View {
         .buttonStyle(ChromeStyle(radius: 6))
         .accessibilityIdentifier("hovercard.\(pane.id)")
         .accessibilityLabel([name, pane.folder].compactMap(\.self).joined(separator: ", "))
-        .accessibilityValue(([pane.state?.capsule].compactMap(\.self) + shown).joined(separator: "\n"))
+        .accessibilityValue(([pane.state?.title].compactMap(\.self) + shown).joined(separator: "\n"))
     }
 }

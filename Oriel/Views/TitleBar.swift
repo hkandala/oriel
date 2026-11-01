@@ -180,9 +180,9 @@ private struct AgentsPanel: View {
                         let group = agents.filter { $0.state == state }
                         if !group.isEmpty {
                             // The Agents view's group label, without its fold.
-                            Text("\(state.capsule) \(group.count)")
+                            Text("\(state.title) \(group.count)")
                                 .font(.system(size: 10, weight: .semibold)).foregroundStyle(.secondary)
-                                .accessibilityIdentifier("agents.popover.group.\(state.capsule)")
+                                .accessibilityIdentifier("agents.popover.group.\(state.title)")
                                 .padding(.horizontal, 8).padding(.top, 8)
                             ForEach(group) { AgentButton(pane: $0, page: page, picked: close) }
                         }

@@ -12,14 +12,34 @@ extension AgentState {
         }
     }
 
-    /// The Agents view's capsule.
-    var capsule: String {
+    /// Its word in a `StateLabel` and the Agents view's group labels.
+    var title: String {
         switch self {
         case .needsYou: "Needs you"
         case .working: "Working"
         case .finishedUnseen: "Done"
         case .idle: "Idle"
         }
+    }
+
+    /// t3code's status icons (lucide's circle-dashed, message-circle-question and circle-check) as SF Symbols.
+    var symbol: String {
+        switch self {
+        case .needsYou: "questionmark.bubble"
+        case .working: "circle.dashed"
+        case .finishedUnseen: "checkmark.circle"
+        case .idle: "circle"
+        }
+    }
+
+    /// Its `StateLabel`; Working counts its time from `since`.
+    func label(_ look: Look, since: Date? = nil) -> StateLabel {
+        StateLabel(text: title, symbol: symbol, color: color(look), since: self == .working ? since : nil)
+    }
+
+    /// Needs you or done and not seen: its row's name is medium, as t3code's rows that do not recede.
+    var calls: Bool {
+        self >= .finishedUnseen
     }
 
     func color(_ look: Look) -> Color {
@@ -36,73 +56,8 @@ enum AgentSort: String {
     case priority, workspace
 }
 
-/// Rex's three working dots: each fades 0.3 → 0.85 → 0.3 over 1.2 s, 0.2 s after the one before, from the wall
-/// clock so every tab is in step. Core Animation runs them, at most 15 frames a second, so the app does no work per
-/// frame (a TimelineView per dots made SwiftUI lay out the window at every tick). Still under Reduce
-/// Motion (but with `-forceMotion`) and on a sidebar page off to the side.
-struct WorkingDots: NSViewRepresentable {
-    @Environment(\.look) private var look
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.offscreen) private var offscreen
-
-    /// One dot, repeated 5.5 pt and 0.2 s apart: as an HStack of 3.5 pt squares 2 pt apart, centered in 14 pt.
-    func makeNSView(context _: Context) -> NSView {
-        let view = Dots(), dots = CAReplicatorLayer(), dot = CALayer()
-        view.wantsLayer = true
-        dot.frame = CGRect(x: -0.25, y: 5.25, width: 3.5, height: 3.5)
-        dot.cornerRadius = 1.75
-        dot.opacity = 0.6
-        dots.instanceCount = 3
-        dots.instanceTransform = CATransform3DMakeTranslation(5.5, 0, 0)
-        dots.instanceDelay = 0.2
-        dots.addSublayer(dot)
-        view.layer?.addSublayer(dots)
-        return view
-    }
-
-    func updateNSView(_ view: NSView, context: Context) {
-        guard let dot = view.layer?.sublayers?.first?.sublayers?.first else { return }
-        dot.backgroundColor = look.working.resolve(in: context.environment).cgColor
-        if reduceMotion && !Animation.forceMotion || offscreen {
-            dot.removeAllAnimations()
-        } else if dot.animation(forKey: "working") == nil {
-            dot.add(Self.fade(in: dot), forKey: "working")
-        }
-    }
-
-    func sizeThatFits(_: ProposedViewSize, nsView _: NSView, context _: Context) -> CGSize? {
-        CGSize(width: 14, height: 14)
-    }
-
-    /// Clicks go through to the row's button.
-    final class Dots: NSView {
-        override func hitTest(_: NSPoint) -> NSView? {
-            nil
-        }
-    }
-
-    /// Key times 0, 0.25 and 0.5 of the cycle, eased in and out; rests at 0.3 for the second half. Its phase is
-    /// the wall clock's.
-    private static func fade(in layer: CALayer) -> CAAnimation {
-        let fade = CAKeyframeAnimation(keyPath: "opacity")
-        fade.values = [0.3, 0.85, 0.3, 0.3]
-        fade.keyTimes = [0, 0.25, 0.5, 1]
-        fade.timingFunctions = [.init(name: .easeInEaseOut), .init(name: .easeInEaseOut), .init(name: .linear)]
-        fade.duration = 1.2
-        fade.repeatCount = .infinity
-        fade.preferredFrameRateRange = CAFrameRateRange(minimum: 8, maximum: 15, preferred: 15)
-        let phase = Date.now.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 1.2)
-        fade.beginTime = layer.convertTime(CACurrentMediaTime(), from: nil) - phase
-        return fade
-    }
-}
-
-extension EnvironmentValues {
-    /// A sidebar page off to the side: its dots stand still.
-    @Entry var offscreen = false
-}
-
-/// A workspace's state: an amber dot, the working dots, a green dot or a gray ring; a faint dot without an agent.
+/// A workspace's state in a menu row: its `StateLabel` icon, or a gray ring for an idle agent; a faint dot without
+/// an agent.
 struct StateIcon: View {
     let state: AgentState?
     @Environment(\.look) private var look
@@ -110,9 +65,10 @@ struct StateIcon: View {
     var body: some View {
         Group {
             switch state {
-            case .working: WorkingDots()
             case .idle: Circle().strokeBorder(.secondary, lineWidth: 1.5).frame(width: 7, height: 7)
-            case let .some(state): Circle().fill(state.color(look)).frame(width: 7, height: 7)
+            case let .some(state):
+                Image(systemName: state.symbol).font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(state.color(look))
             // A workspace with no agent: a quiet dot, so the slot does not look missing.
             case nil: Circle().fill(.tertiary).frame(width: 4, height: 4)
             }
@@ -121,15 +77,38 @@ struct StateIcon: View {
     }
 }
 
-struct StateCapsule: View {
-    let state: AgentState
-    @Environment(\.look) private var look
+/// A state as t3code's sidebar draws a thread's: its icon and word in the state's color, 11 pt medium. Working adds
+/// its time, counted each second ("Working 42s", "3m", "1h 5m").
+struct StateLabel: View {
+    let text: String, symbol: String, color: Color
+    var since: Date?
 
     var body: some View {
-        Text(state.capsule).font(.system(size: 11, weight: .medium))
-            .foregroundStyle(state.color(look))
-            .padding(.horizontal, 6).padding(.vertical, 1)
-            .background(state.color(look).opacity(0.15), in: .rect(cornerRadius: 4))
+        if let since {
+            TimelineView(.periodic(from: since, by: 1)) { context in
+                row("\(text) \(Self.elapsed(context.date.timeIntervalSince(since)))")
+            }
+        } else {
+            row(text)
+        }
+    }
+
+    private func row(_ words: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: symbol)
+            Text(words).monospacedDigit()
+        }
+        .font(.system(size: 11, weight: .medium)).foregroundStyle(color)
+        .fixedSize()
+        .accessibilityElement(children: .ignore)
+        .accessibilityAddTraits(.isStaticText)
+        .accessibilityValue(words)
+    }
+
+    /// t3code's working time: seconds, then minutes, then hours and minutes.
+    static func elapsed(_ interval: TimeInterval) -> String {
+        let seconds = max(0, Int(interval)), minutes = seconds / 60
+        return seconds < 60 ? "\(seconds)s" : minutes < 60 ? "\(minutes)m" : "\(minutes / 60)h \(minutes % 60)m"
     }
 }
 
@@ -170,7 +149,7 @@ struct AgentButton: View {
         .buttonStyle(ChromeStyle(selected: lit, radius: 10))
         .accessibilityIdentifier("agent.\(pane.id)")
         .accessibilityLabel("\(title), \(line2)")
-        .accessibilityValue(pane.state?.capsule ?? "")
+        .accessibilityValue(pane.state?.title ?? "")
         .accessibilityAddTraits(lit ? .isSelected : [])
     }
 
@@ -191,14 +170,16 @@ struct AgentButton: View {
             ProgramTile(icon: pane.iconID, letter: pane.letter)
                 .overlay(alignment: .topTrailing) { StatusBadge(state: state) }
                 .compositingGroup()
-            // Line 1 the name, the capsule and the age on one centered line; line 2 the place.
+            // Line 1 the name and, as t3code's thread rows, the state or (idle) the age on one centered line; line 2
+            // the place.
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
-                    Text(title).font(.system(size: 13)).lineLimit(1)
+                    Text(title).font(.system(size: 13, weight: state.calls ? .medium : .regular)).lineLimit(1)
                         .foregroundStyle(lit ? look.selected : look.chrome)
                     Spacer(minLength: 0)
-                    StateCapsule(state: state)
-                    if let since = pane.since {
+                    if state != .idle {
+                        state.label(look, since: pane.since)
+                    } else if let since = pane.since {
                         TimelineView(.everyMinute) { context in Text(age(since, context.date)) }
                             .font(.system(size: 11)).foregroundStyle(.secondary)
                     }
@@ -286,7 +267,7 @@ struct AgentsList: View {
         let groups = switch sort {
         case .priority:
             [AgentState.needsYou, .working, .finishedUnseen, .idle].map { state in
-                Group(label: state.capsule, key: key("\(state)"), id: "agents.group.\(state.capsule)",
+                Group(label: state.title, key: key("\(state)"), id: "agents.group.\(state.title)",
                       rows: rows.filter { $0.state == state })
             }
         case .workspace:
