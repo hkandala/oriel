@@ -73,6 +73,7 @@ private struct SplitLayout: View {
                     let entering = placed != nil && views[card.id] == nil
                     let rect = zoomed == card.id ? area : entering ? card.start : card.rect
                     PaneCard(id: card.id, page: page, away: away)
+                        .overlay { CardFlash(store: page.store, id: card.id) }
                         .place(rect)
                         // Under the zoomed card, which covers it, so its terminal views get no clicks.
                         .opacity(away ? 0 : 1)

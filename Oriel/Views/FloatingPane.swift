@@ -224,6 +224,7 @@ struct FloatingWindow: View {
             }
             .background(CardSurface(keyboard: terminal?.hasKeyboard == true || chat?.showsChat == true))
             .clipShape(CardSurface.shape)
+            .overlay { CardFlash(store: page.store, id: pane?.id ?? "") }
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("float.\(pane?.id ?? "")")
             .padding([.horizontal, .bottom], gap)

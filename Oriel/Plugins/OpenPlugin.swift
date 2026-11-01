@@ -62,31 +62,60 @@ extension Page {
         // A path with a control character or over 1024 characters makes no plugin label.
         guard PaneLabel(label.text) != nil else { return }
         await store.write { client in
-            guard let id = try await client.newTab(workspace: workspace.id, cwd: cwd, label: label.text,
-                                                   command: label.placeholder)
-            else { throw HerdrError.failed("herdr named no pane") }
-            var pane = try await client.pane(id)
-            // ponytail: herdr makes no split with a command, so the new tab shows for a snapshot before its pane
-            // moves beside the card; hide it as Replace Pane does if that flash shows.
-            if how == .side, let card {
-                do {
-                    pane = try await client.move(pane: id, to: .tab(card.tabID, beside: card.id)) ?? pane
-                } catch {
-                    try? await client.close(pane: id)
-                    throw error
-                }
+            let spot = if how == .side, let card {
+                PanePlace.split(tab: card.tabID, pane: card.id, .right)
+            } else {
+                PanePlace.tab(after: index)
             }
+            let pane = try await store.newPane(client, in: workspace.id, cwd: cwd, label: label, spot)
             // ponytail: a card made from a snapshot before this line misses its landing; hand it over in the label
             // if that shows.
             if let place, let terminalID = pane.terminalID {
                 terminals.landings[terminalID] = place
             }
-            // herdr adds it last: before the tab now after the card's.
-            if how != .side || card == nil {
-                try await client.move(tab: pane.tabID, to: index + 1)
-            }
             follow(pane, pane.terminalID)
         }
+    }
+}
+
+/// Where a new pane goes: a new tab right after the workspace's tab at `after`, or a split of a pane.
+enum PanePlace {
+    case tab(after: Int)
+    case split(tab: String, pane: String, SplitNode.Direction)
+}
+
+extension HostStore {
+    /// A new pane in the workspace, with herdr's focus left alone: a browser or plugin card with its label and
+    /// placeholder in one call (plugins/labels#create), else a shell, made in a new tab and then moved into place.
+    func newPane(_ client: any Multiplexer, in workspaceID: String, cwd: String, label: PaneLabel?,
+                 _ place: PanePlace) async throws -> HerdrKit.Pane
+    {
+        var pane: HerdrKit.Pane?
+        if let label {
+            if let id = try await client.newTab(workspace: workspaceID, cwd: cwd, label: label.text,
+                                                command: label.placeholder)
+            {
+                pane = try await client.pane(id)
+            }
+        } else {
+            pane = try await client.newTab(workspace: workspaceID, cwd: cwd)
+        }
+        guard var pane else { throw HerdrError.failed("herdr named no pane") }
+        switch place {
+        case let .tab(index):
+            // herdr adds it last.
+            try await client.move(tab: pane.tabID, to: index + 1)
+        case let .split(tabID, target, direction):
+            // ponytail: herdr makes no split with a command, so the new tab shows for a snapshot before its pane
+            // moves beside the card; hide it as Replace Pane does if that flash shows.
+            do {
+                pane = try await client.move(pane: pane.id, to: .tab(tabID, beside: target, split: direction)) ?? pane
+            } catch {
+                try? await client.close(pane: pane.id)
+                throw error
+            }
+        }
+        return pane
     }
 }
 

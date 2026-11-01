@@ -10,6 +10,8 @@ struct Notice {
 
     let text: String
     var tone = Tone.error
+    /// The pane that Show selects in the window (an agent's notice, agent-control/cli).
+    var show: String?
     let id = UUID()
 }
 
@@ -124,6 +126,15 @@ struct Detail: View {
         VStack(spacing: gap) {
             if let notice = store.notice {
                 NoticeCapsule(tone: notice.tone, text: notice.text) {
+                    if let id = notice.show {
+                        Button("Show") {
+                            store.notice = nil
+                            if let pane = store.pane(id) {
+                                page.go(to: pane)
+                            }
+                        }
+                        .accessibilityIdentifier("notice.show")
+                    }
                     Button("Close", systemImage: "xmark") { store.notice = nil }
                         .labelStyle(.iconOnly).buttonStyle(.plain).foregroundStyle(.secondary)
                         .accessibilityIdentifier("notice.close")

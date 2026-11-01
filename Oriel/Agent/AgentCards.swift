@@ -1,9 +1,312 @@
 import HerdrKit
+import SwiftUI
+
+/// `open`, `reveal`, `card` and `shown` (agent-control/cli): cards an agent opens and points at, never moving the
+/// user's view.
+extension AgentCommand {
+    static let open = AgentCommand(
+        name: "open", usage: "open <kind> [<arg>...] | <path-or-url> [<place>] [--new]",
+        summary: "Opens a browser or plugin card beside this pane",
+        help: """
+        <kind> is an id from `oriel plugins`; write a path of the same name as ./name. A path or URL alone opens with \
+        its default plugin. Relative paths are from the working folder.
+        <place>: --beside <pane> [--down] (a split, right or below; this pane by default), --tab (after this pane's \
+        tab, not selected), --float (as --tab, then floats it), --replace <pane> (that browser or plugin card shows it).
+        A card of the same kind and argument in the session is the answer ("reused": true) unless --new.
+        """,
+    ) { call in
+        let new = call.flag("--new"), place = try call.place()
+        let first = try call.argument("kind or path")
+        var words: [String] = []
+        while let word = try call.optionalArgument() {
+            words.append(word)
+        }
+        try call.done()
+        let (plugin, arg) = try await call.opening(first, words)
+        if case let .replace(target) = place {
+            return try await call.replace(target, plugin, arg)
+        }
+        // A card of that kind and argument where the new one would go.
+        let store = if case let .beside(target, _) = place {
+            target.store ?? call.store
+        } else {
+            call.store
+        }
+        let same = store.panes.first { $0.plugin.map { $0.manifest?.id == plugin.id && $0.place == arg } == true }
+        if !new, let same {
+            return call.opened(same.id, in: store, reused: true)
+        }
+        let label = store.newLabel(plugin, arg: arg)
+        guard PaneLabel(label.text) != nil else {
+            throw AgentError(code: "bad_argument", message: "\(first) makes a label over 1024 characters")
+        }
+        let (made, id) = try await call.newPane(place, label: label)
+        return call.opened(id, in: made, reused: false)
+    }
+
+    static let reveal = AgentCommand(
+        name: "reveal", usage: "reveal <pane>", summary: "Points the user at a pane, without moving their view",
+        help: "In view, its card's border flashes; else each window that shows the session says so, with Show.",
+    ) { call in
+        let target = try call.target(call.argument("pane"))
+        try call.done()
+        let (store, pane) = try call.found(target)
+        let shown = store.inView.contains(pane.id)
+        if shown {
+            store.flash(pane.id)
+        } else {
+            store.notice("\(call.agent) points to \(pane.name)", show: pane.id)
+        }
+        return AgentOutput(["pane": pane.id, "shown": shown])
+    }
+
+    static let card = AgentCommand(
+        name: "card", usage: "card <pane>", summary: "What a card shows: kind, argument, title, unsaved edits",
+        help: """
+        kind is a browser or plugin id, terminal or agent; an agent card adds agent and chat. arg is a card's \
+        argument, a terminal's folder.
+        """,
+    ) { call in
+        let target = try call.target(call.argument("pane"))
+        try call.done()
+        let (store, pane) = try call.found(target)
+        var json: [String: Any] = ["pane": pane.id, "title": pane.name, "floating": target.floating != nil,
+                                   "shown": store.inView.contains(pane.id)]
+        if let label = pane.plugin {
+            let card = pane.card
+            json["kind"] = label.manifest?.id ?? label.plugin
+            json["arg"] = label.place
+            json["dirty"] = card?.dirty == true
+            json["error"] = label.manifest == nil ? Registry.problem(label.plugin) ?? "no plugin \(label.plugin)"
+                : card?.web.bridge?.failure.map { "\($0.title): \($0.text)" }
+        } else {
+            json["kind"] = pane.agent == nil ? "terminal" : "agent"
+            json["arg"] = pane.cwd ?? ""
+            json["dirty"] = false
+            if let agent = pane.agent {
+                json["agent"] = agent
+                json["chat"] = pane.terminalID.flatMap { store.chats[$0] }?.showsChat == true
+            }
+        }
+        return AgentOutput(json)
+    }
+
+    static let shown = AgentCommand(
+        name: "shown", usage: "shown", summary: "The panes of this session that this Oriel shows now",
+        help: "shown: in a tab in view; floating: in windows of their own; windows: the windows that show it.",
+    ) { call in
+        try call.done()
+        let store = call.store, floating = store.floatingPanes
+        return AgentOutput([
+            "shown": store.inView.subtracting(floating).sorted(),
+            "floating": floating.sorted(),
+            "windows": store.windows.count(where: { $0.visible && $0.current?.store === store }),
+        ])
+    }
+}
 
 extension AgentCall {
-    /// The asking pane as the user knows it, for a notice or a prompt: its agent's name ("Claude Code"), else the
-    /// card's title.
+    /// The asking pane as the user knows it, for a notice or a prompt: its agent's name ("Claude Code"), else its
+    /// program's ("zsh"), else its card's title.
     var agent: String {
-        store.pane(pane).map { $0.agentLabel ?? $0.cardTitle } ?? pane
+        store.pane(pane).map { $0.agentLabel ?? $0.programName ?? $0.cardTitle } ?? pane
+    }
+
+    /// A pane argument's store and pane, in a session that Oriel shows.
+    func found(_ target: PaneTarget) throws -> (HostStore, HostStore.Pane) {
+        guard let store = target.store else {
+            throw AgentError(code: "failed", message: "Oriel does not show herdr session \(target.session)")
+        }
+        guard let pane = store.pane(target.id) else {
+            throw AgentError(
+                code: "pane_not_found",
+                message: "pane \(target.id) is not in herdr session \(target.session)",
+            )
+        }
+        return (store, pane)
+    }
+
+    /// `open`'s answer; a card out of view gets the notice, with Show.
+    func opened(_ id: String, in store: HostStore, reused: Bool) -> AgentOutput {
+        let pane = store.pane(id), label = pane?.plugin, shown = store.inView.contains(id)
+        if !shown, let label {
+            let title = label.title == label.manifest?.name ? "" : " \(label.title)"
+            store.notice(reused ? "\(agent) points to \(pane?.name ?? label.title)"
+                : "\(agent) opened \(label.manifest?.name ?? label.plugin)\(title)", show: id)
+        }
+        return AgentOutput(["pane": id, "kind": label?.manifest?.id ?? "", "arg": label?.place ?? "",
+                            "label": pane?.label ?? "", "reused": reused, "shown": shown])
+    }
+
+    /// `--replace`: the card's label names the new kind and argument with its iid, so the card shows it as a label
+    /// from elsewhere (a browser as a new page of its history). Never over a terminal or unsaved edits.
+    func replace(_ target: PaneTarget, _ plugin: PluginManifest, _ arg: String) async throws -> AgentOutput {
+        let (store, pane) = try found(target)
+        guard let old = pane.plugin else {
+            throw AgentError(code: "bad_argument", message: "pane \(pane.id) is no browser or plugin card")
+        }
+        if pane.card?.dirty == true {
+            throw AgentError(code: "dirty", message: "pane \(pane.id) has unsaved edits")
+        }
+        let label = PaneLabel(plugin: plugin.id, iid: old.iid, arg: arg)
+        guard PaneLabel(label.text) != nil else {
+            throw AgentError(code: "bad_argument", message: "the argument makes a label over 1024 characters")
+        }
+        try await store.request { try await $0.rename(pane: pane.id, label: label.text) }
+        let end = ContinuousClock.now + .seconds(5)
+        while store.pane(pane.id)?.label != label.text, end > .now {
+            try await Task.sleep(for: .milliseconds(50))
+        }
+        return opened(pane.id, in: store, reused: false)
+    }
+
+    /// The kind and the label's argument of `open`'s words (agent-control/cli, Kind or path).
+    func opening(_ first: String, _ words: [String]) async throws -> (PluginManifest, String) {
+        if let plugin = Registry.plugin(first) {
+            return try await (plugin, arg(plugin, words))
+        }
+        if let problem = Registry.problem(first) {
+            throw AgentError(code: "plugin_not_found", message: problem)
+        }
+        guard words.isEmpty else {
+            throw AgentError(code: "plugin_not_found", message: "no plugin \(first); `oriel plugins` lists them")
+        }
+        if web(first) {
+            let plugin = Registry.openers(for: first).first ?? Registry.browser
+            return try await (plugin, arg(plugin, [first]))
+        }
+        let path = absolute(first), folder = try await isFolder(path)
+        guard let plugin = Registry.openers(for: folder ? path + "/" : path).first else {
+            throw AgentError(code: "bad_argument", message: "no plugin opens \(first)")
+        }
+        return try await (plugin, arg(plugin, path: path, folder: folder, source: nil))
+    }
+
+    /// A kind's argument from its words: a URL, or a path and for Git its source; none for a kind that opens nothing.
+    private func arg(_ plugin: PluginManifest, _ words: [String]) async throws -> String {
+        let opens = plugin.opens, takes = !opens.files.isEmpty || opens.folders || opens.git
+        guard let first = words.first else {
+            guard !takes, opens.urls.isEmpty else {
+                throw AgentError(code: "bad_argument", message: "\(plugin.id) needs a \(takes ? "path" : "URL")")
+            }
+            return ""
+        }
+        guard words.count <= (opens.git ? 2 : 1) else {
+            throw AgentError.usage("extra argument \(words[opens.git ? 2 : 1])")
+        }
+        if !opens.urls.isEmpty, !takes || web(first) {
+            let url = plugin.id == Registry.browser.id
+                ? Browser.url(first, local: !store.machine.isRemote)?.absoluteString
+                : plugin.opens(url: first) ? first : nil
+            guard let url
+            else { throw AgentError(code: "bad_argument", message: "\(plugin.id) does not open \(first)") }
+            return url
+        }
+        let path = absolute(first)
+        return try await arg(plugin, path: path, folder: isFolder(path), source: words.dropFirst().first)
+    }
+
+    /// A folder's or a file's argument: a repository's root (`/repo/`, then a Git source), a folder as Open File
+    /// Explorer Here takes it, or the file.
+    private func arg(_ plugin: PluginManifest, path: String, folder: Bool, source: String?) async throws -> String {
+        let name = (path as NSString).lastPathComponent
+        if plugin.opens.git {
+            guard folder, await store.gitRuns(), let root = await Git.root(path, exec: store.machine.exec()) else {
+                throw AgentError(code: "bad_argument", message: "\(path) is no folder of a git repository")
+            }
+            guard let source else { return root + "/" }
+            guard source == "uncommitted" || (4 ... 40).contains(source.count) && source.allSatisfy(\.isHexDigit) else {
+                throw AgentError(code: "bad_argument", message: "\(source) is not uncommitted or a commit hash")
+            }
+            return "\(root)/ \(source)"
+        }
+        if let source {
+            throw AgentError.usage("extra argument \(source)")
+        }
+        if folder {
+            guard plugin.opens.folders else {
+                throw AgentError(code: "bad_argument", message: "\(plugin.id) does not open folders")
+            }
+            return await store.arg(plugin, in: path)
+        }
+        guard plugin.rank(file: path) != nil else {
+            throw AgentError(code: "bad_argument", message: "\(plugin.id) does not open \(name)")
+        }
+        return path
+    }
+
+    private func web(_ text: String) -> Bool {
+        ["http", "https"].contains(URL(string: text)?.scheme?.lowercased() ?? "")
+    }
+
+    /// A path from the request's working folder, without `.` and `..`.
+    private func absolute(_ path: String) -> String {
+        URL(filePath: path, relativeTo: URL(filePath: cwd, directoryHint: .isDirectory)).standardized.path
+    }
+
+    /// Whether the path is a folder, on the asking pane's machine; a missing one is `bad_argument`.
+    private func isFolder(_ path: String) async throws -> Bool {
+        let exec = await store.machine.exec()
+        async let exists = exec.succeeds(#"[ -e "$1" ]"#, [path]), folder = exec.succeeds(#"[ -d "$1" ]"#, [path])
+        guard await exists else { throw AgentError(code: "bad_argument", message: "no file or folder \(path)") }
+        return await folder
+    }
+}
+
+extension HostStore {
+    /// Its panes in view of a visible window: in the shown tab of its page in view there, or floating.
+    var inView: Set<String> {
+        Set(windows.filter { $0.visible && $0.current?.store === self }.compactMap(\.current)
+            .flatMap { panes(in: $0.selectedTab?.id).map(\.id) }).union(floatingPanes)
+    }
+
+    /// Its panes that float in a window of their own, over a visible window.
+    var floatingPanes: Set<String> {
+        Set(windows.filter(\.visible).flatMap(\.withFloats).filter { $0.store === self }
+            .flatMap { page in panes.filter(page.floats).map(\.id) })
+    }
+
+    /// An agent's notice in each window that shows the session, in the information tone, with Show.
+    func notice(_ text: String, show pane: String) {
+        Task { await show(Notice(text: text, tone: .info, show: pane)) }
+    }
+
+    /// The card's border flashes in the accent color once (`reveal`).
+    func flash(_ pane: String) {
+        flashing = pane
+        Task {
+            try? await Task.sleep(for: .milliseconds(600))
+            if flashing == pane {
+                flashing = nil
+            }
+        }
+    }
+}
+
+extension HostStore.Pane {
+    /// Its card's title in a notice or an answer: a card's, an agent's, else the terminal's.
+    var name: String {
+        plugin?.title ?? agentTitle ?? cardTitle
+    }
+
+    /// Its plugin card, in the first window that made one.
+    var card: Plugin? {
+        terminalID.flatMap { id in WindowPages.windows.lazy.compactMap { $0.terminals.plugins[id] }.first }
+    }
+}
+
+/// `oriel reveal`: the card's border lights in the accent color once.
+struct CardFlash: View {
+    let store: HostStore
+    let id: String
+
+    var body: some View {
+        ZStack {
+            if store.flashing == id {
+                CardSurface.shape.strokeBorder(Color.accentColor, lineWidth: 2).transition(.opacity)
+                    .accessibilityElement().accessibilityIdentifier("pane.\(id).flash")
+            }
+        }
+        .animation(.easeOut(duration: 0.25), value: store.flashing == id)
     }
 }

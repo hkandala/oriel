@@ -30,6 +30,8 @@ final class HostStore {
     private(set) var focusedWorkspaceID: String?
     /// The last failed write, shown for a few seconds; ✕ clears it.
     var notice: Notice?
+    /// The card whose border flashes now (`oriel reveal`).
+    var flashing: String?
     /// New panes' choosers (ui/new-pane) and agent panes' chats by terminal id: the app's own, for every window.
     var choosers: [Chooser] = []
     @ObservationIgnored var chats: [String: Chat] = [:]
