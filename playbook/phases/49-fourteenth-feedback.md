@@ -379,8 +379,16 @@ Files: `Oriel/Views/Sidebar*.swift`, the state capsule in the card header, the a
 - **Tests.** PluginTests waits for the card's shell title, not `sleep 2`; FollowTests' `pgrep` loop fails after 20 s;
   FilesTests waits for the tree's keyboard before the arrows; GitTests clicks row 2's Working Tree.
 - **Runs.** Chosen tests on ff27bf22, green on the first try: 41307651798 (FilesTests, MarkdownTests, FileTests) and
-  41307657905 (GitTests, PluginTests, HeaderTests). The checks on every push since phase 47 (27c1b915) fail in
-  HerdrClientTests' three pacing tests (wall-clock reads and spacing), also on ff27bf22 (41307637835); they pass here.
+  41307657905 (GitTests, PluginTests, HeaderTests).
+- **Cause (red checks since phase 47).** Phase 47 took HerdrKit from 122 to 140 tests, many of them spawning git,
+  npm, esbuild and sh, all started at once beside the rest. On CI's 3 cores a client's first reads then took over
+  3 s, and every wall-clock bound flaked: HerdrClientTests' pacing (a first read under 100 ms, 3–6 spaced reads a
+  second, a write's read within 120 ms) on every push, the 8 MB line's 6 s now and then. **Fix:** HerdrClient takes
+  its spaced read's wait as a closure; the pacing tests hold it in a gate and count reads (no wait before an event's
+  read, one read while the wait holds, its deadline the read's start plus the spacing, a write's read with the gate
+  shut); `eventually`'s bound is 20 s (a failure's limit only); the line split is `LineBuffer`, timed against a ten
+  times shorter line (it fails with the old scan put back). A lint rule (`wall_clock_bounds`) rejects a time bound
+  in HerdrKit's tests. 83912e9a carries the pacing fix under a wrong subject (an amend after a failed hook).
 - **Decisions (nits left).** The page's view id stays herdr's tab id (keying it by `Ahead.born` keeps placed and held
   state across the stand-in's swap: a layout motion risk for no visible gain). `fitHidden` keeps its copy of the card's
   terminal room (PaneCard lays out with padding, not a function), and fits only the selected workspace. A working
