@@ -50,6 +50,8 @@ public actor HerdrClient {
     nonisolated let session: String
     nonisolated let exec: any Exec
     nonisolated let timeout: Duration
+    /// The wait for a spaced read's start; a test holds it to count reads without the wall clock.
+    nonisolated let wait: @Sendable (ContinuousClock.Instant) async -> Void
 
     private var out: AsyncStream<Update>.Continuation?
     /// When the last good snapshot was read; nil since the start or the last failure.
@@ -70,10 +72,16 @@ public actor HerdrClient {
     private var copied: Set<String> = []
 
     /// `timeout` bounds each request.
-    public init(session: String, exec: any Exec, timeout: Duration = .seconds(10)) {
+    public init(
+        session: String,
+        exec: any Exec,
+        timeout: Duration = .seconds(10),
+        wait: @escaping @Sendable (ContinuousClock.Instant) async -> Void = { try? await Task.sleep(until: $0) },
+    ) {
         self.session = session
         self.exec = exec
         self.timeout = timeout
+        self.wait = wait
     }
 
     // MARK: Requests
@@ -200,7 +208,7 @@ public actor HerdrClient {
                 // Events during the read: the next one starts `spacing` after this one did, so a hundred agents'
                 // titles and states (an event each) are not reads back to back, each a 280 KB snapshot at 400 panes.
                 if readAgain, !hurry {
-                    let pause = Task { _ = try? await Task.sleep(until: started + Self.spacing) }
+                    let pause = Task { [wait] in await wait(started + Self.spacing) }
                     self.pause = pause
                     await pause.value
                 }

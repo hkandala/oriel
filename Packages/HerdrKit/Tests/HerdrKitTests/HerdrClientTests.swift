@@ -99,19 +99,60 @@ func eventually(within timeout: Duration = .seconds(3), _ condition: () async ->
     return true
 }
 
-private func client(_ exec: FakeExec) -> HerdrClient {
-    HerdrClient(session: "s", exec: exec, timeout: .seconds(1))
+/// The spaced reads' wait, held until the test opens it: the pacing tests count reads, not milliseconds, so a busy
+/// Mac (CI's runner with the plugin tests' npm and git beside them) cannot fail them.
+final class Gate: Sendable {
+    struct State {
+        /// Each wait's end, as the client asked for it.
+        var deadlines: [ContinuousClock.Instant] = []
+        var waiting = 0
+        /// The waits begun so far that `open` let go.
+        var opened = 0
+    }
+
+    let state = Mutex(State())
+
+    subscript<T: Sendable>(_ key: KeyPath<State, T> & Sendable) -> T {
+        state.withLock { $0[keyPath: key] }
+    }
+
+    func wait(_ until: ContinuousClock.Instant) async {
+        let ticket = state.withLock {
+            $0.deadlines.append(until)
+            $0.waiting += 1
+            return $0.deadlines.count
+        }
+        defer { state.withLock { $0.waiting -= 1 } }
+        // A write's refresh cancels the wait.
+        while !Task.isCancelled, state.withLock({ $0.opened < ticket }) {
+            try? await Task.sleep(for: .milliseconds(5))
+        }
+    }
+
+    /// Lets every wait begun so far go.
+    func open() {
+        state.withLock { $0.opened = $0.deadlines.count }
+    }
+}
+
+private func client(_ exec: FakeExec, _ gate: Gate? = nil) -> HerdrClient {
+    guard let gate else { return HerdrClient(session: "s", exec: exec, timeout: .seconds(1)) }
+    return HerdrClient(session: "s", exec: exec, timeout: .seconds(1), wait: gate.wait)
 }
 
 /// Starts updates and waits for the opening reads (one before and one after subscribing).
-private func started(_ client: HerdrClient, _ exec: FakeExec) async -> AsyncStream<Update> {
+private func started(_ client: HerdrClient, _ exec: FakeExec, _ gate: Gate? = nil) async -> AsyncStream<Update> {
     let updates = await client.updates()
     // At least two: timing on a loaded machine can add a read; the tests count from the reset below.
-    #expect(await eventually { exec[\.subscribes].count == 1 && exec[\.reads] >= 2 && exec[\.inFlight] == 0 })
+    #expect(await eventually {
+        gate?.open()
+        return exec[\.subscribes].count == 1 && exec[\.reads] >= 2 && exec[\.inFlight] == 0
+    })
     // Start-up reads have settled once none came for 150 ms; a late one would count as the test's.
     var reads = -1
-    while reads != exec[\.reads] {
+    while reads != exec[\.reads] || gate?[\.waiting] ?? 0 > 0 {
         reads = exec[\.reads]
+        gate?.open()
         try? await Task.sleep(for: .milliseconds(150))
     }
     exec.state.withLock {
@@ -159,66 +200,72 @@ private func snapshot(version: String) -> String {
 
 // MARK: Pacing
 
-@Test func `reads at once, one at a time, with one read again`() async throws {
+@Test func `reads at once, one at a time, with one read again`() async {
     let exec = FakeExec(readDelay: .milliseconds(300))
-    let client = client(exec)
-    let updates = await started(client, exec)
-    let sent = ContinuousClock.now
+    let gate = Gate()
+    let client = client(exec, gate)
+    let updates = await started(client, exec, gate)
+    let waits = gate[\.deadlines].count
     exec.event()
+    // No debounce: the read starts with no wait before it.
     #expect(await eventually { exec[\.inFlight] == 1 })
-    #expect(try #require(exec[\.firstRead]) - sent < .milliseconds(100)) // no debounce
+    #expect(gate[\.deadlines].count == waits)
     for _ in 0 ..< 5 {
         exec.event()
     }
     await client.refresh()
     #expect(await eventually { exec[\.reads] == 2 && exec[\.inFlight] == 0 })
-    try? await Task.sleep(for: .milliseconds(400))
+    // The events during the first read made one read again, at once for the write; any other waits at the gate.
+    try? await Task.sleep(for: .milliseconds(300))
     #expect(exec[\.reads] == 2)
     #expect(exec[\.maxInFlight] == 1)
     withExtendedLifetime(updates) {}
 }
 
-@Test func `events that keep coming read at most every spacing, writes at once`() async throws {
-    let exec = FakeExec(readDelay: .milliseconds(10))
-    let client = client(exec)
-    let updates = await started(client, exec)
-    let start = ContinuousClock.now
-    while ContinuousClock.now - start < .seconds(1) {
-        exec.event()
-        try await Task.sleep(for: .milliseconds(10))
-    }
-    #expect(await eventually { exec[\.inFlight] == 0 })
-    // The first at once, then one each 250 ms: about 5, where back to back they were about 50.
-    #expect((3 ... 6).contains(exec[\.reads]), "\(exec[\.reads]) reads")
-    // A write's refresh is read right after the read in flight, not spaced.
-    exec.state.withLock { $0.reads = 0 }
-    let writes = ContinuousClock.now
-    while ContinuousClock.now - writes < .seconds(1) {
-        await client.refresh()
-        try await Task.sleep(for: .milliseconds(10))
-    }
-    #expect(await eventually { exec[\.inFlight] == 0 })
-    #expect(exec[\.reads] > 15, "\(exec[\.reads]) reads")
-    withExtendedLifetime(updates) {}
-}
-
-@Test func `a write while events keep coming is read at once, not spaced`() async throws {
-    let exec = FakeExec(readDelay: .milliseconds(10))
-    let client = client(exec)
-    let updates = await started(client, exec)
-    let events = Task {
+/// Events every 10 ms until the task is cancelled.
+private func keepComing(_ exec: FakeExec) -> Task<Void, Never> {
+    Task {
         while !Task.isCancelled {
             exec.event()
             try? await Task.sleep(for: .milliseconds(10))
         }
     }
+}
+
+@Test func `events that keep coming wait the spacing from one read's start to the next`() async throws {
+    let exec = FakeExec(readDelay: .milliseconds(10))
+    let gate = Gate()
+    let client = client(exec, gate)
+    let updates = await started(client, exec, gate)
+    let sent = ContinuousClock.now, waits = gate[\.deadlines].count
+    let events = keepComing(exec)
     defer { events.cancel() }
-    // Most refreshes land in the 250 ms wait between spaced reads; one spaced read in time for all five is unlikely.
+    // The first read at once, then a wait to its start plus the spacing, however many events come meanwhile.
+    #expect(await eventually { gate[\.waiting] == 1 })
+    let first = try #require(exec[\.firstRead]), deadline = gate[\.deadlines][waits]
+    #expect(deadline >= sent + HerdrClient.spacing && deadline <= first + HerdrClient.spacing)
+    try? await Task.sleep(for: .milliseconds(200))
+    #expect(exec[\.reads] == 1, "\(exec[\.reads]) reads")
+    // Its end: one read more, then the next wait.
+    gate.open()
+    #expect(await eventually { exec[\.reads] == 2 && gate[\.waiting] == 1 })
+    #expect(exec[\.maxInFlight] == 1)
+    withExtendedLifetime(updates) {}
+}
+
+@Test func `a write while events keep coming is read at once, not spaced`() async {
+    let exec = FakeExec(readDelay: .milliseconds(10))
+    let gate = Gate()
+    let client = client(exec, gate)
+    let updates = await started(client, exec, gate)
+    let events = keepComing(exec)
+    defer { events.cancel() }
+    // Each write's read comes while the spaced read still waits: the gate never opens.
     for _ in 0 ..< 5 {
-        try await Task.sleep(for: .milliseconds(130))
+        #expect(await eventually { gate[\.waiting] == 1 })
         let reads = exec[\.reads]
         await client.refresh()
-        #expect(await eventually(within: .milliseconds(120)) { exec[\.reads] > reads })
+        #expect(await eventually { exec[\.reads] > reads })
     }
     withExtendedLifetime(updates) {}
 }
