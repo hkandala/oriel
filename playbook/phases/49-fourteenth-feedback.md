@@ -192,5 +192,7 @@ Files: `Oriel/Views/Sidebar*.swift`, the state capsule in the card header, the a
   full). A workspace's time is the longest of its tabs' front agents'.
 - **Cost.** Each working label ticks once a second for its first minute, then once a minute, all on the same
   wall-clock second, so a hundred working agents make one update a second at most, not a hundred.
+- **Pictures.** Before and after, the same four states: `/tmp/oriel-shots/t49e/before-sidebar-crop.png` →
+  `after-sidebar-crop.png`, `before-agents-crop.png` → `after-agents-crop.png`.
 - **For the user.** The time counts from when this app saw the agent start working: after a relaunch, or on
   another Mac, an agent that has worked for 20 minutes starts at 0s.
