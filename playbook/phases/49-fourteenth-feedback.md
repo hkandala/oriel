@@ -196,3 +196,25 @@ Files: `Oriel/Views/Sidebar*.swift`, the state capsule in the card header, the a
   `after-sidebar-crop.png`, `before-agents-crop.png` → `after-agents-crop.png`.
 - **For the user.** The time counts from when this app saw the agent start working: after a relaunch, or on
   another Mac, an agent that has worked for 20 minutes starts at 0s.
+### Track D
+
+- **Decisions, palette (32):** the groups are `Command.Group`, the Keyboard Shortcuts panel's: Tabs, Workspaces,
+  Sessions, Panes, View, Edit, plus Plugins (Plugins…, Reload Plugins, a plugin card's Reload Plugin, Web Inspector,
+  Show Log). On an empty field each group's places (the tabs, workspaces, sessions) come first in it, then its
+  commands, so there is no Commands header and no header twice. A few keyless commands got their group (Close Other
+  Tabs, Rename Tab, Rename Workspace, Detach Pane, Copy, Paste, Save under Edit). Typed rows keep their order and show
+  the group dimmed after the title; it is the row's accessibility value, not part of its label. The Shortcuts panel
+  shows Plugins only over a plugin card. Pictures: `/tmp/oriel-shots/t49d/palette-{root,typed}-{before,after}.png`.
+- **Decisions, chooser (29):** ↑ and ↓ wrap, also when held.
+- **Decisions, Show in New Pane (30):** `settings.json` keeps the ids the chooser leaves out (`hideInNewPane`), so a
+  plugin with a chooser row is shown until the user turns it off. The panel's switch sits on each such row; the
+  install dialog has it as the NSAlert's checkbox (`suppressionButton`), the card's trust prompt as a checkbox that
+  writes at once. ⌘K's Open ‹chooser› Here stays. Picture: `/tmp/oriel-shots/t49d/plugins-panel-after.png`.
+- **Cause, placeholders (31):** after a cold restart herdr brings each pane back as a login shell under its label
+  (spiked on 0.9.5: `-zsh`, a new terminal id); a pane an agent labels with the oriel-panes skill keeps its shell
+  unless the agent runs the optional `placeholder.sh`. When the placeholder process ends, herdr closes the pane, so
+  that case needs nothing. **Fix:** each `pane.process_info` answer for a browser or plugin pane with only its shell
+  in front types ` exec <envelope of exec + placeholder argv>` and Return, once per shell pid; a label change asks
+  again, and a labeled pane running another program gets one more look 5 s later (a slow startup).
+- **For the user:** the pi-hkandala `oriel-panes` skill's optional `pane run placeholder.sh` step now races with the
+  app's own (harmless: the second line goes into the placeholder's `cat`); drop the step there.
