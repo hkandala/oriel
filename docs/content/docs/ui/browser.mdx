@@ -183,9 +183,12 @@ card (a browser's or a plugin's) keeps a picture of its page:
 ## What stays in memory
 
 - The web cards of the shown tab and of every floating window stay, plus
-  the 20 most recently shown other web cards, browsers and plugins together,
+  the 25 most recently shown other web cards, browsers and plugins together,
   over all windows (`spareWebCards`, D46). Each kept card costs about 28 MB,
   mostly its WebKit process, and no CPU at rest.
+- At the full bound, all of the app's processes take at worst about
+  190 MB + 25 × 30 MB + 25 × 41 MB + ~290 MB ≈ 2.3 GB (25 kept terminals and
+  25 kept web cards, D46).
 - An older one is dropped: its web view and its process go, and its last
   picture stays for its tile and its next card. When it shows again, the
   card is made from its label, under that picture. A browser comes back
@@ -415,7 +418,7 @@ Open.
 | The SOCKS port is open to other accounts on the Mac | another account can reach the machine's network | accepted for a single-user Mac; a random port, open only while a card needs it |
 | A server with `AllowTcpForwarding no` | remote pages cannot load | the card says "cannot reach"; Tailscale or LAN addresses still load; a bigger server helper later |
 | `_WKInspector` is private | the Web Inspector button can break on a macOS update | Safari's Develop menu still reaches every card |
-| Web view memory | memory grows with many browser cards | at most 20 web cards kept out of view, half on a memory-pressure warning ([What stays in memory](#what-stays-in-memory)) |
+| Web view memory | memory grows with many browser cards | at most 25 web cards kept out of view, half on a memory-pressure warning ([What stays in memory](#what-stays-in-memory)) |
 
 ## Choices
 

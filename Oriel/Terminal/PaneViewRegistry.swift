@@ -18,11 +18,11 @@ final class PaneViewRegistry {
     /// Retina: 405 MB with 16 terminals in splits, 653 MB with 33 full-window tabs (190 MB before,
     /// with 4). One evicted comes back under its last picture if the system kept it, else it fades in.
     /// `-spareTerminals N` (defaults `spareTerminals`).
-    static let spare = UserDefaults.standard.string(forKey: "spareTerminals").flatMap { Int($0) } ?? 20
+    static let spare = UserDefaults.standard.string(forKey: "spareTerminals").flatMap { Int($0) } ?? 25
     /// The bound on web cards kept out of view, over all windows: each keeps its web view and WebKit's process for
     /// it. Floating windows' cards and cards with unsaved edits are never dropped. `-spareWebCards N` (defaults
     /// `spareWebCards`).
-    static let spareWeb = UserDefaults.standard.string(forKey: "spareWebCards").flatMap { Int($0) } ?? 20
+    static let spareWeb = UserDefaults.standard.string(forKey: "spareWebCards").flatMap { Int($0) } ?? 25
     /// Kept web cards of every window, the most recently shown last.
     static var recentWeb: [Kept] = []
     /// Every card's picture in the app (a kept or dropped web card's, a chat's), the most recently taken last: past

@@ -46,7 +46,7 @@ Each library has its entry, with its license, in the app's `Acknowledgements.txt
    view, and a container removes it only if it still owns it. Stream lifetime
    follows the HostStore, never whether a view is in a window. Off-screen
    surfaces stop drawing but keep reading their stream (herdr drops a watcher
-   that reads nothing for 30 s). At most 20 streaming terminals and 20 web
+   that reads nothing for 30 s). At most 25 streaming terminals and 25 web
    cards out of view (D46), least recently used first out; an evicted card
    frees its surface or its web view and keeps its last image.
    A lazy stack whose pages change under it can lay

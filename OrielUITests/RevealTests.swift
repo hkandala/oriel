@@ -203,7 +203,7 @@ extension OrielUITests {
         }
     }
 
-    /// A card past the kept set lets go of its stream and its surface (4 kept here, 16 by default),
+    /// A card past the kept set lets go of its stream and its surface (4 kept here, 25 by default),
     /// and comes back under its last picture: never empty, then herdr's text.
     func testAnEvictedCardComesBackWithItsPicture() async throws {
         relaunch(one, ["-spareTerminals", "4"])
