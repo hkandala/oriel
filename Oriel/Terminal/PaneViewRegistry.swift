@@ -58,10 +58,7 @@ final class PaneViewRegistry {
     var webInView: Set<String> = []
     /// Dropped web cards' and chats' last pictures (`pictured`), until made again.
     var pictures: [(id: String, picture: CGImage)] = []
-    var prewarming: Task<Void, Never>?
-    /// The tab whose neighbors `prewarming` makes.
-    var prewarmed: String?
-    /// The tab's page, for web cards made before they show (`prewarm`) and hidden terminals' sizes (`fitHidden`).
+    /// The tab's page, for hidden terminals' sizes (`fitHidden`).
     var pageSize = CGSize.zero {
         didSet {
             guard pageSize != oldValue else { return }
@@ -240,7 +237,6 @@ final class PaneViewRegistry {
         streaming.forEach { $0.show() }
         // The window closes: its web cards go with it, with no picture, and the other windows' kept cards stay.
         guard !alive.isEmpty else {
-            prewarming?.cancel()
             Self.recentWeb.removeAll { $0.registry === self }
             (browsers, plugins, webInView) = ([:], [:], [])
             return

@@ -3,15 +3,14 @@ import HerdrKit
 
 /// The web cards' budget and the cards' pictures.
 extension PaneViewRegistry {
-    /// The web cards in view now: the ones that left keep a picture, the ones that came show theirs until drawn; past
-    /// the `spareWeb` most recently shown others, the oldest are dropped.
+    /// The web cards in view now: the ones that left keep a picture; past the `spareWeb` most recently shown others,
+    /// the oldest are dropped.
     func showWeb(_ shown: Set<String>) {
         for id in webInView.subtracting(shown) {
             webView(id)?.takePicture()
             plugins[id]?.web.bridge?.shown(false)
         }
         for id in shown.subtracting(webInView) {
-            webView(id)?.coverUntilDrawn()
             plugins[id]?.web.bridge?.shown(true)
         }
         // Also the ones made since the last call (a card is made as its page draws).
@@ -20,47 +19,12 @@ extension PaneViewRegistry {
         Self.recentWeb.removeAll { kept in
             kept.registry == nil || kept.registry === self && (touched.contains(kept.id) || webView(kept.id) == nil)
         }
-        // A card made out of view (made ahead): the oldest.
+        // A card made before it showed (`Page.focusKeyboardCard`): the oldest.
         let tracked = Set(Self.recentWeb.filter { $0.registry === self }.map(\.id)).union(touched)
         let untracked = Set(browsers.keys).union(plugins.keys).subtracting(tracked)
         Self.recentWeb = untracked.map { Kept(registry: self, id: $0) } + Self.recentWeb
             + touched.sorted { shown.contains($1) && !shown.contains($0) }.map { Kept(registry: self, id: $0) }
         Self.trim(terminals: Self.spare, web: Self.spareWeb)
-        prewarm()
-    }
-
-    /// The selected tab's neighbors' web cards, made 0.5 s after a tab shows (not under the overview) while the kept
-    /// bound has room for the cards in view too, one a turn 0.1 s apart, at their size in the page: a key to them
-    /// finds them made and drawn (making one took 40 ms of a frame). They count as the least recently shown.
-    /// Snapshots of the same tab do not start it again.
-    func prewarm() {
-        let selected = pages?.current?.selectedTab?.id
-        guard selected != prewarmed else { return }
-        prewarmed = selected
-        prewarming?.cancel()
-        prewarming = Task { [weak self] in
-            try? await Task.sleep(for: .milliseconds(500))
-            guard let self, let page = pages?.current, let workspace = page.selectedWorkspace, pageSize != .zero,
-                  let index = workspace.tabs.firstIndex(where: { $0.id == page.selectedTab?.id }) else { return }
-            let area = TabPage.area(pageSize)
-            for tab in [index - 1, index + 1].filter(workspace.tabs.indices.contains).map({ workspace.tabs[$0] }) {
-                for card in tab.tree.map({ Parts($0, in: area, held: [:]).cards }) ?? [] {
-                    guard !Task.isCancelled, pages?.overview != true,
-                          Self.recentWeb.count(where: { $0.registry?.droppable($0.id) == true }) + webInView.count
-                          < Self.spareWeb else { return }
-                    guard let pane = page.store.pane(card.id), pane.plugin != nil, let id = pane.terminalID,
-                          webView(id) == nil, !page.floats(pane),
-                          let made = pane.browser != nil ? page.browser(pane)?.view : page.plugin(pane)?.web.view
-                    else { continue }
-                    let inset = pane.browser != nil ? 6 : PaneCard.inset
-                    made.frame = CGRect(x: 0, y: 0, width: max(card.rect.width - 2 * inset, 1),
-                                        height: max(card.rect.height - page.headerHeight(pane) - inset, 1))
-                    made.pictureLoadsOutOfWindow()
-                    Self.recentWeb.insert(Kept(registry: self, id: id), at: 0)
-                    try? await Task.sleep(for: .milliseconds(100))
-                }
-            }
-        }
     }
 
     /// Down to these many kept cards out of view: the least recently shown go.

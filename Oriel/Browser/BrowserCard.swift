@@ -166,7 +166,6 @@ struct WebHost: NSViewRepresentable {
         view.frame = box.bounds
         view.autoresizingMask = [.width, .height]
         box.addSubview(view)
-        (view as? BrowserView)?.coverUntilDrawn()
         host.addSubview(box)
         return host
     }
