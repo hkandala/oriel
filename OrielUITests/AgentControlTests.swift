@@ -27,9 +27,9 @@ extension OrielUITests {
         try await run("\(oriel) unfloat \(second)", in: first, "unfloat", 0, "floating: false")
         XCTAssertTrue(window.vanishes(within: 3))
         try await run("\(oriel) unfloat \(second)", in: first, "not", 1, "oriel: pane \(second) does not float")
-        // `tr`: the JSON is wider than the pane.
-        try await run("\(oriel) --json unfloat \(second) | tr , '\\n'", in: first, "json", 0,
-                      #"{"error":{"code":"not_floating""#)
+        // `tr`: the JSON is wider than the pane. `exit`: the command's code, not tr's.
+        try await run("j=$(\(oriel) --json unfloat \(second)); s=$?; echo \"$j\" | tr , '\\n'; (exit $s)", in: first,
+                      "json", 1, #"{"error":{"code":"not_floating""#)
         try await run("\(oriel) float \(two)/w1:p1", in: first, "other", 0, "floating: true")
         try await expectOpen("w1", in: two)
         try await run("\(oriel) unfloat \(two)/w1:p1", in: first, "back", 0, "floating: false")
@@ -53,8 +53,10 @@ extension OrielUITests {
     /// from that machine's mailbox and floats the pane in this Mac's window.
     func testTheOrielCommandWorksOnARemoteMachine() async throws {
         try await skipWithoutSSH()
-        // CI's sshd has this Mac's home: an older script that only the Key Host store can replace.
+        // CI's sshd has this Mac's home: an older script that only the Key Host store can replace, written once this
+        // Mac's Oriel, which may still be writing its own, is gone.
         try await waitForPrompt("w1:p1")
+        app.terminate()
         try await run("printf '#!/bin/sh\\n# oriel-cli 0\\n' >\(Self.orielCommand)", in: "w1:p1", "old", 0)
         relaunch(one, ["-machines", Self.keyHost, "-machine", "e2e-key"])
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))

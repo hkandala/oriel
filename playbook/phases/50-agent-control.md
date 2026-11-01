@@ -141,10 +141,12 @@ simple and brief."
   without the token, when it expires. `workspace.report_metadata` takes `tokens` and `ttl_ms` like the pane call, a
   `null` clears, and `workspace.metadata_updated` carries the workspace's `tokens`. `pane get` and `workspace get` print
   compact JSON on one line, so the script's `sed` reads `workspace_id`, `oriel-shown` and `oriel-open`.
-- **Round trip.** This Mac, `oriel info --json` with the app in use: 0.34 s at best, 0.47 s median, 0.69 s at worst
-  (10 calls, load average 130–200 from other agents' builds); `oriel status` 0.18 s. With no Oriel, exit 3 after
-  2.4–3.0 s. Each step forks (the ring, the take, the answer, `date` and `sleep` in each 50 ms poll), so a busy Mac
-  costs more than the design's 0.1 s.
+- **Round trip.** `oriel info`, typed in a pane, to its exit. This Mac, by hand: 0.34 s at best, 0.47 s median,
+  0.69 s at worst (10 calls, load average 130–200 from other agents' builds); `oriel status` 0.18 s. CI's VM: 0.23 s
+  at best, 0.5 s median, 1.55 s at worst. Over CI's sshd on localhost (Key Host): 0.18 s at best, 0.36 s median,
+  0.48 s at worst, faster than This Mac because the relay is one long-lived process, while This Mac starts a
+  `Process` for the take and another for the answer. With no Oriel, exit 3 after 2.4–3.0 s. The script's own forks
+  (the ring, `date` and `sleep` in each 50 ms poll) cost the rest, so a busy Mac is above the design's 0.1 s.
 - **Decisions.** A stale or unknown asking pane never reaches Oriel: the ring fails at herdr, so the script exits 5
   and says to pass `--pane`; `pane_not_found` is only for a pane argument. A pane argument is always read on the
   asking pane's machine (the syntax cannot name another), so no pane argument answers `other_machine`; a
@@ -159,6 +161,10 @@ simple and brief."
   `AgentError(code:message:)` (any other error answers `failed`), and returns `AgentOutput(json, text:)`.
 - **Two Oriels.** Away is no key press or click in the app for 60 s, the screen locked, or no visible window with the
   session's page in view; an away Oriel waits 500 ms before its take.
+- **The script's version.** Line 2 is `# oriel-cli ‹protocol›.‹revision›` (`1.1` now). Oriel compares the
+  machine's line 2 with its bundled script's, as numbers, and writes only over a lower one, so a fixed script
+  replaces an older one without a new protocol. For the docs pass: protocol.mdx, cli.mdx and remote.mdx say
+  `# oriel-cli 1`. No command is `help`; `help status` answers from a help-only `status` entry.
 - **Tests.** The remote case sits in `AgentControlTests.swift`, not `RemoteTests.swift`, which is at the 400-line
   limit; it skips without CI's sshd as the others do. The e2e test writes the script and the mailbox in the real
   `~/.cache/oriel` (a cache, as the chat state is), never over a newer script.
