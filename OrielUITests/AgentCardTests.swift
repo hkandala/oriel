@@ -65,11 +65,13 @@ extension OrielUITests {
         try await expectOpen("w2")
         let folder = try await cardsFolder(in: first), oriel = Self.orielCommand
 
-        let browser = try await open("browser ./notes.md", from: first, "web", ["kind: browser"])
+        let browser = try await open("browser ./one.html", from: first, "web", ["kind: browser"])
         let web = try await paneLabel(browser), iid = web.prefix { $0 != " " }.dropFirst("oriel:browser".count)
-        XCTAssertTrue(web.hasSuffix(" file://\(folder)/notes.md"), web)
-        // Another page in the same card: Back returns.
-        _ = try await open("browser ./b.md --replace \(browser)", from: first, "page", ["kind: browser"])
+        XCTAssertTrue(web.hasSuffix(" file://\(folder)/one.html"), web)
+        // Another page in the same card, after the first loaded: Back returns.
+        XCTAssertTrue(pageText("oriel-cards-one").exists(within: 10))
+        _ = try await open("browser ./two.html --replace \(browser)", from: first, "page", ["kind: browser"])
+        XCTAssertTrue(pageText("oriel-cards-two").exists(within: 10))
         XCTAssertTrue(element("browser.\(browser).back").has(\.isEnabled, true, within: 5))
         try await run("\(oriel) open git . --replace \(first)", in: first, "terminal", 1,
                       "oriel: pane \(first) is no")
@@ -101,11 +103,11 @@ extension OrielUITests {
     /// An agent's notices and flashes last 30 s: a query on CI can take seconds.
     static let agentHold = ["-agentHoldSeconds", "30"]
 
-    /// A git repository with two files, the pane's shell in it; its path as the shell has it.
+    /// A git repository with a file and two pages, the pane's shell in it; its path as the shell has it.
     private func cardsFolder(in pane: String) async throws -> String {
         let folder = "/tmp/oriel-e2e-cards"
         try await run("rm -rf \(folder) && mkdir \(folder) && cd \(folder) && git init -q && echo hi >notes.md "
-            + "&& echo b >b.md",
+            + "&& echo '<p>oriel-cards-one</p>' >one.html && echo '<p>oriel-cards-two</p>' >two.html",
             in: pane, "folder", 0)
         return folder
     }
