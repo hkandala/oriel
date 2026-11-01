@@ -16,7 +16,6 @@ never calls herdr's focus methods. A design gets decision numbers on the
 [Decisions](/docs/decisions) page when it is built.
 
 <Cards>
-  <Card title="Agent control" href="/docs/future-work/agent-control" description="Proposed: agents float panes, open plugin cards, list plugins and learn whether Oriel shows them, through an oriel command" />
   <Card title="Changes panel" href="/docs/future-work/changes-panel" description="What the agents changed: git diffs in a drawer, a git chip, the last turn" />
   <Card title="Floating pills" href="/docs/future-work/pills" description="Agent status on the Mac screen edge while you work in another app" />
   <Card title="iPhone and iPad" href="/docs/future-work/iphone-and-ipad" description="One pane per page on iPhone, the Mac layout on iPad" />
@@ -102,12 +101,12 @@ never calls herdr's focus methods. A design gets decision numbers on the
   - OpenCode 2.x, with its shared service and `/api/*` routes.
   - A Codex fork with its parent's lines up to the fork
     (`forked_from_ordinal_exclusive`). Today it shows only its own lines.
-- **Agents use a browser card.** Today an agent can open a browser pane and
-  change its address, nothing more. An agent that needs to drive a page runs
+- **Agents use a browser card.** An agent can open a browser card and
+  change its address (`oriel open browser`), nothing more. An agent that needs to drive a page runs
   its own browser on its machine (Playwright, chrome-devtools-mcp).
   WKWebView has no automation protocol. A later design lets an agent ask the
   app, through the `oriel` command
-  ([Agent control](/docs/future-work/agent-control)), to read, run script in
+  ([Agent control](/docs/agent-control)), to read, run script in
   or capture one browser card it is allowed to. It needs its own consent
   design.
 - **Terminal keys to check against libghostty** (herdr-gpui's defaults,
@@ -163,7 +162,7 @@ never calls herdr's focus methods. A design gets decision numbers on the
   The ask: a `terminal.clipboard` event on the control stream, sent to the
   client that streams the pane. Then the app puts it on the clipboard, and
   every program's copy works from a remote machine, as pi-hkandala's
-  [copy requests](/docs/talking-to-herdr#copy-requests) do today
+  copy does through [`oriel copy`](/docs/agent-control/cli#copy)
   ([Scrolling, queries and links](/docs/talking-to-herdr#scrolling-queries-and-links)).
 - **Named keys on the terminal stream.** The ask: herdr accepts named keys on
   `terminal.input` (`{"type":"terminal.input","keys":["up"]}`), encoded as

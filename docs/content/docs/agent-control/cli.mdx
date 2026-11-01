@@ -1,0 +1,483 @@
+---
+title: "CLI"
+description: "The oriel command: every subcommand with examples, its JSON output and errors, and the script itself"
+---
+
+`oriel` is a POSIX `sh` script of about 60 lines
+([Agent control](/docs/agent-control)). It carries its arguments to Oriel and
+prints the answer ([Protocol](/docs/agent-control/protocol)). Oriel parses
+every command except `status`, which the script answers from herdr alone.
+
+## Where it is
+
+- `~/.cache/oriel/bin/oriel` on each machine where Oriel opened a session,
+  This Mac included. Oriel writes it when it opens a session on the machine
+  and the file there is missing or older
+  ([How the command gets there](/docs/agent-control/remote#how-the-command-gets-there)).
+- It is not on `PATH`. Agents use the full path (the `oriel` skill in
+  pi-hkandala names it). A user who wants the short name adds
+  `export PATH="$HOME/.cache/oriel/bin:$PATH"` to their shell.
+- No file means that no Oriel ever opened a session on this machine.
+- It needs `sh`, `sed`, `date`, `mv`, `head`, `tail`, `tr`, `uuidgen` or
+  `/proc/sys/kernel/random/uuid`, and herdr at `$HERDR_BIN_PATH` (herdr sets
+  it in each pane) or on `PATH`.
+
+## Usage
+
+```text
+oriel [--pane <pane>] [--timeout <seconds>] <command> [<args>] [--json]
+```
+
+- `--pane` rings another pane of the session than `$HERDR_PANE_ID`. Use it
+  for a caller outside a pane, or after the pane moved to another workspace:
+  herdr then gives it a new id, and the environment keeps the old one.
+- `--timeout` is how long the command waits for Oriel's answer once Oriel
+  took the request, in whole seconds. The default is 10. Give `plugins new`,
+  `reload` and `install` a longer one: they install and build.
+- `--json` prints one JSON value on standard output, also for an error that
+  Oriel answers. It counts anywhere in the arguments. The keys are sorted.
+- Without `--json`, a command prints its text. A command with no text of its
+  own prints its JSON fields as `name: value` lines, sorted by name.
+- An error goes to standard error as `oriel: ‹message›`
+  ([Error codes](/docs/agent-control/protocol#error-codes)). With `--json`,
+  an error from Oriel also prints
+  `{"error":{"code":"…","message":"…"}}` on standard output. The script's own
+  errors (exit 2 for its own options, 3, 4 and 5) print only the text.
+- A `<pane>` is a pane id of the asking session (`w1:p3`) or
+  `‹session›/‹pane id›` of another session on the same machine
+  (`pi-herd/w1:p1`). It is always on the asking pane's machine. A session
+  that herdr does not run there, or a pane that is not in it, is
+  `pane_not_found`. Text that is not a pane is `bad_argument`.
+- Exit codes: 0 done, 1 failed, 2 usage, 3 no Oriel, 4 no answer, 5 not in
+  herdr ([Exit codes](/docs/agent-control/protocol#exit-codes)).
+
+## status
+
+Whether Oriel shows the asking pane, from herdr's tokens alone. It never
+asks Oriel, so it answers fast, also when no Oriel runs. It exits 0 when an
+Oriel follows the session, 3 when none does, and 5 when herdr has no such
+pane ([Is my pane in Oriel?](/docs/agent-control#is-my-pane-in-oriel)).
+
+```sh
+$ oriel status
+Shown in Oriel
+$ oriel status --json
+{"session":"default","pane":"w1:p2","open":true,"shown":true,"remote":false,"protocol":1}
+$ oriel status --watch        # the JSON line again each time it changes; reads every 2 s
+```
+
+The text is "Shown in Oriel", "Open in Oriel, not shown" or "Not in Oriel".
+
+## help
+
+```sh
+oriel help                    # every command with its synopsis, status too
+oriel help open               # the synopsis and the details of one
+```
+
+Oriel writes the help from its commands, so it lists what that Oriel has.
+`oriel` with no command is `oriel help`. With `--json`, `help` answers
+`{"commands":[{"name","usage","summary"}…]}`, and `help <command>` answers
+its `name`, `usage`, `summary` and `help`.
+
+## info
+
+What the Oriel that takes the request offers.
+
+```sh
+$ oriel info --json
+{"agents":["claude","codex","pi","opencode"],"app":"0.1","appearance":"dark",
+ "commands":["help","info","float","unfloat","copy","plugins","open","reveal","card","shown"],
+ "machine":"This Mac","protocol":1}
+```
+
+| Field | Meaning |
+|---|---|
+| `app` | Oriel's version |
+| `protocol` | the protocol version it speaks |
+| `machine` | Oriel's name for the asking pane's machine: `This Mac`, or the name in the machine list |
+| `appearance` | `light` or `dark`, as Oriel draws now (for an HTML report that matches) |
+| `commands` | the commands this Oriel parses (`status` is the script's) |
+| `agents` | the agents Oriel knows, by command |
+
+## plugins
+
+The kinds an agent can open: the browser and every plugin, from the app's
+plugin registry ([Where the registry looks](/docs/plugins/packages#where-the-registry-looks),
+[The manifest](/docs/plugins/manifest)). Terminal and agent panes are
+herdr's and not in the list.
+
+```text
+oriel plugins [--for <path or URL>]
+oriel plugins new <name>
+oriel plugins reload [<id>]
+oriel plugins install <source>
+```
+
+```sh
+$ oriel plugins
+browser    Browser        urls                   app
+explorer   File Explorer  files,folders          app
+git        Git            git                    app
+csv-table  CSV Table      files                  ~/.config/oriel/plugins/csv-table
+broken     not loaded                            ~/.config/oriel/plugins/broken  package.json: oriel.entry is missing
+$ oriel plugins --for data.csv      # the plugins that open this file, folder or URL, the default first
+csv-table  CSV Table      files                  ~/.config/oriel/plugins/csv-table  default
+explorer   File Explorer  files,folders          app
+```
+
+```json
+[
+  { "id": "csv-table", "name": "CSV Table", "icon": "tablecells",
+    "description": "A CSV or TSV file as a table you can sort.", "version": "0.1.0",
+    "opens": { "files": ["*.csv", "*.tsv"] }, "chooser": null,
+    "source": "~/.config/oriel/plugins/csv-table",
+    "log": "/Users/me/Library/Logs/Oriel/plugins/csv-table.log" },
+  { "id": "broken", "source": "~/.config/oriel/plugins/broken",
+    "error": "package.json: oriel.entry is missing" }
+]
+```
+
+- `id`, `name`, `icon`, `opens` and `chooser` are the manifest's fields, as
+  written: `opens` has only the keys the manifest gives (`files`, `folders`,
+  `git`, `urls`, `priority`). `description` and `version` are the package's.
+- `source` is the Plugins panel's row text: `app` for the browser and the
+  default plugins (the row says "Comes with Oriel"), the `npm:` or `git:`
+  source, the local path, or the folder
+  ([The Plugins panel](/docs/plugins/packages#the-plugins-panel)).
+- `log` is the full path of the plugin's log
+  ([Errors and logs](/docs/plugins/errors)). It shows only for a pane on
+  This Mac, where the file is, and not for the browser.
+- A package that did not load shows only `id`, `source` (its folder) and
+  `error`. In the text, its row says `not loaded`.
+- With `--for`, the list holds only the plugins that open the argument, in
+  the order of
+  [Which plugin opens a file](/docs/plugins/manifest#which-plugin-opens-a-file),
+  each with `"default": true` or `false`. End a folder with `/`. A relative
+  path is read from the command's folder. `open` picks its default plugin by
+  the same order.
+
+### plugins new
+
+```sh
+$ oriel --timeout 120 plugins new "CSV Table"
+folder: /Users/me/.config/oriel/plugins/csv-table
+id: csv-table
+log: /Users/me/Library/Logs/Oriel/plugins/csv-table.log
+```
+
+New Plugin… with the name as an argument: Oriel copies the template into the
+plugins folder, installs its dependencies, builds it and trusts it, as the
+Plugins panel does ([Start from the template](/docs/plugins/building#start-from-the-template)).
+It answers `id`, `folder` and `log`. A name with no letter or digit, or a
+name that is taken, is `failed` with the panel's words. The panel shows
+Creating… meanwhile.
+
+### plugins reload
+
+```sh
+$ oriel plugins reload csv-table --json
+{"built":true,"cards":1,"id":"csv-table","ms":840}
+$ oriel plugins reload                # every plugin with an open card
+csv-table built in 840 ms, 1 card(s)
+```
+
+Reload Plugin for one id, or Reload Plugins with none
+([Reload](/docs/plugins/building#reload)). Oriel reads the registry again
+first, so a folder made by hand loads.
+- One id answers `id`, `built`, `ms` (the time of the build and the reload)
+  and `cards` (the plugin's cards in every window: a pane shown in two
+  windows counts twice). No id answers `{"plugins":[…]}`, one entry per
+  plugin.
+- `built` is false for a plugin that is not trusted: it builds nothing, and
+  its cards still ask the user.
+- A card with unsaved edits stops it with `dirty`, which names the pane.
+  Oriel never discards edits for an agent. It looks before anything builds
+  and again before each plugin, and the message names the plugins reloaded
+  before it.
+- A failed build is `build_failed`. Its message is the card's toast title and
+  the build's last 20 lines.
+- An unknown id is `plugin_not_found`, with the reason when its manifest did
+  not load. The browser is `bad_argument`: it has nothing to build. A plugin
+  that is not trusted yet is `failed`: its card asks the user first.
+
+### plugins install
+
+```sh
+$ oriel --timeout 300 plugins install npm:oriel-csv-table
+csv-table  CSV Table  files  npm:oriel-csv-table
+```
+
+Install from the Plugins panel, for an agent
+([Install](/docs/plugins/packages#install)). The source is
+`npm:<package>`, `git:<repository>` or a folder (a relative one from the
+command's folder).
+- Oriel shows the trust prompt on the window of the asking session, with
+  "‹agent› in pane ‹pane› asks to install it." first
+  ([The trust prompt](/docs/plugins/security#the-trust-prompt)). Oriel does
+  not come to the front: it asks for attention in the Dock. Return does not
+  press Install, so keys typed elsewhere cannot consent.
+- It answers after the install and the build, with the plugin's entry as in
+  the list. **Cancel** is `declined`.
+- A source that is not one, or one already listed, is `bad_argument`.
+  Update stays in the Plugins panel: it asks only when the permissions grew.
+- If the command's `--timeout` ends first, the prompt stays, and the install
+  goes on after the user's answer.
+- The panel shows Installing… and any failure, as for its own install.
+
+`new`, `reload` and `install` from a pane on a remote machine are
+`other_machine`: the plugins are on the Mac.
+
+## open
+
+Makes a browser or plugin card: a herdr pane with the label
+`oriel:<kind>#<iid> <arg>` and its placeholder, as the app's own commands do
+([Labels and instance ids](/docs/plugins/labels)).
+
+```text
+oriel open <kind> [<arg>...] [<place>] [--new]
+oriel open <path-or-url> [<place>] [--new]
+
+<place>:  --beside <pane> [--down]     a split of that pane, right (or below). The default: beside the asking pane
+          --down                       below the asking pane
+          --tab                        a new tab right after the asking pane's tab, not selected
+          --float                      as --tab, then floats it
+          --replace <pane>             that browser or plugin card shows the new kind and argument
+```
+
+```sh
+oriel open git . uncommitted                      # the Uncommitted diff of this repository, beside me
+oriel open git . 4f2a91c --tab                    # a commit, in a new tab
+oriel open browser http://localhost:3000 --down   # a browser card below me
+oriel open ./docs/report.md                       # the default plugin: File Explorer, its Markdown page
+oriel open https://github.com/o/r/pull/7          # a plugin for that URL, else the browser
+oriel open browser ./report.html                  # a file in the browser, This Mac only
+oriel open browser http://localhost:3000/settings --replace w1:p7   # navigate, Back returns
+oriel open explorer . --float                     # a file tree in a floating window
+```
+
+```json
+{"arg":"/repo/ uncommitted","kind":"git","label":"oriel:git#k3x9q2 /repo/ uncommitted",
+ "pane":"w1:p7","reused":false,"shown":true}
+```
+
+- **Kind or path.** A first word that is a kind's id (from `oriel plugins`)
+  is the kind. The words of the kinds before the plugins (`file`, `preview`,
+  `markdown`, `files`, `diff`) open File Explorer or Git, as labels do. A
+  path with the same name as a kind is written `./name`. A word that is not a
+  kind, with more words after it, is `plugin_not_found`.
+- **A path or URL alone** opens with its default plugin, by the order of
+  `oriel plugins --for`. An `http` or `https` URL opens with a plugin whose
+  `urls` match it, else in the browser. A `file://` URL opens in the
+  browser. A path must exist on the asking machine. A missing one is
+  `bad_argument`, and so is a file that no plugin opens.
+- **Paths** are read from the command's folder, and the card gets the
+  absolute path.
+- **The argument** follows the kind's `opens`: a URL, a file's path or a
+  folder. Git takes a folder of a repository (the card gets its root) and
+  then `uncommitted` or a commit hash (4 to 40 hex digits). File Explorer
+  takes a folder as Open File Explorer Here does: the git root when there is
+  one. `browser ./page.html` is a `file://` URL, which the browser opens only
+  on This Mac. A missing or wrong argument, or one that makes no label (a
+  control character, over 1024 characters), is `bad_argument`.
+- **Reuse.** Without `--new`, a card of the same kind and argument already in
+  the session where the card would open is the answer (`"reused": true`), and
+  nothing new opens. When it is not in view, Oriel shows the notice
+  "‹agent› points to ‹title›" with **Show**.
+- **The view.** A split of the asking pane shows where the agent is. A new
+  tab is not selected. A new card out of view gets the notice "‹agent›
+  opened ‹Kind› ‹title›" with **Show**, in each window that shows the session
+  ([Notice](/docs/ui/window#notice)). A float opens its window without
+  activating Oriel.
+- **One place at most.** Two places are `usage`.
+- **Replace** takes only a browser or plugin card. Oriel renames its label
+  with the card's own iid, so the card follows it as a label from elsewhere:
+  a browser card as a new history entry, a plugin card with Back. A new kind
+  makes the card again. A terminal or agent pane is `bad_argument`, so an
+  agent never ends a shell through Oriel. A card with unsaved edits is
+  `dirty`. `--replace` with `--new` is `usage`.
+- **A failed float** of `--float` closes the new pane.
+- `shown` says whether the card is in view in a window of this Oriel. Oriel
+  answers once a snapshot has the new pane in its place.
+
+‹agent› is the asking pane's agent name ("Claude Code"), else its program
+("zsh"), else its card's title. ‹title› is the card's title as its window
+shows it (a browser card's page title).
+
+## float and unfloat
+
+```sh
+oriel float w1:p3              # over the window where the user last worked in this session
+oriel float pi-herd/w1:p1 --on-top
+oriel unfloat w1:p3            # Detach: back into its tab
+```
+
+```json
+{"existing":false,"floating":true,"onTop":false,"pane":"w1:p3"}
+```
+
+- The float goes over the window of this Oriel where the user last typed or
+  clicked in a card of the asking session
+  ([Floating pane](/docs/ui/window#floating-pane)). A pane of a session with
+  no page gets a float-only page. A session that no window shows is
+  `failed`.
+- The window comes to the front without activating Oriel, and the keyboard
+  stays in the window that had it.
+- A pane that floats already comes to the front (`"existing": true`).
+  `--on-top` turns on Stay on Top.
+- `unfloat` answers `{"floating":false,"pane":"w1:p3"}`. Of a pane that does
+  not float, it is `not_floating`.
+
+## reveal
+
+Points the user at a pane, without moving their view.
+
+```sh
+$ oriel reveal w1:p3 --json
+{"pane":"w1:p3","shown":false}
+```
+
+- In view: the card's border flashes in the accent color once (0.6 s). A
+  floating card flashes in its own window.
+- Not in view: a [notice](/docs/ui/window#notice) in the information tone,
+  "‹agent› points to ‹title›", with **Show**, in each window that shows the
+  session. Show selects the pane's workspace, tab and card in that window.
+- A pane of a session that Oriel does not show is `failed`.
+
+## card
+
+What a card shows.
+
+```sh
+$ oriel card w1:p3 --json
+{"arg":"/repo/Sources/main.swift","dirty":true,"floating":false,"kind":"explorer",
+ "pane":"w1:p3","shown":true,"title":"main.swift"}
+```
+
+- `kind` is a browser or plugin id, `terminal` or `agent`. An agent card adds
+  `"agent": "claude"` and `"chat": true` when it shows the chat view.
+- `arg` is the label's argument. For a terminal or an agent, it is the
+  folder.
+- `title` is the card's title
+  ([How it shows](/docs/plugins/manifest#how-it-shows)), `dirty` is the
+  unsaved-edits dot. A plugin's own state is not in the answer.
+- `error` comes only when there is one: why a plugin is missing or did not
+  load, or a plugin page's failure.
+
+## shown
+
+The panes of the asking session that this Oriel shows now.
+
+```sh
+$ oriel shown --json
+{"floating":["w3:p1"],"shown":["w1:p2","w1:p3"],"windows":1}
+```
+
+`shown` lists the panes in a tab in view, `floating` the panes in windows of
+their own, and `windows` counts the visible windows with the session's page
+in view.
+
+## copy
+
+Puts its standard input on the Mac's clipboard (at most 1 MiB, else
+`bad_argument`). It prints nothing and answers `{"bytes": n}` with `--json`.
+It never reads the clipboard.
+
+```sh
+git diff | oriel copy
+```
+
+## From a program
+
+A program runs the script like any command:
+
+```ts
+import { execFile } from "node:child_process";
+import { homedir } from "node:os";
+import { join } from "node:path";
+
+const ORIEL = join(homedir(), ".cache", "oriel", "bin", "oriel");
+
+/** Runs `oriel <args> --json`; code 5 also when the script is missing. */
+export const oriel = (args: string[]) =>
+  new Promise<{ code: number; json: any; err: string }>((ok) =>
+    execFile(ORIEL, [...args, "--json"], { timeout: 15_000 }, (e, out, err) =>
+      ok({
+        code: e ? (typeof e.code === "number" ? e.code : 5) : 0,
+        json: out ? JSON.parse(out) : undefined,
+        err,
+      }),
+    ),
+  );
+```
+
+## The script
+
+The whole client, as Oriel carries it (`Oriel/Agent/oriel.sh`). Line 2 is
+its version, `# oriel-cli ‹protocol›.‹revision›`
+([Versions](/docs/agent-control/protocol#versions)).
+
+```sh
+#!/bin/sh
+# oriel-cli 1.1
+# Written by Oriel: asks the Oriel that follows this herdr session. Oriel parses the arguments.
+# https://github.com/hkandala/oriel/blob/main/docs/content/docs/future-work/agent-control/cli.mdx
+herdr=${HERDR_BIN_PATH:-herdr} session=${HERDR_SESSION:-default} pane=${HERDR_PANE_ID:-} timeout=10 json=
+dir=$HOME/.cache/oriel/rpc
+usage() { echo "oriel: $1" >&2 && exit 2; }
+while :; do
+    case ${1:-} in
+    --pane) [ $# -ge 2 ] || usage "--pane needs a pane"; pane=$2 && shift 2 ;;
+    --timeout) [ $# -ge 2 ] || usage "--timeout needs whole seconds"; timeout=$2 && shift 2 ;;
+    --json) json=--json && shift ;;
+    *) break ;;
+    esac
+done
+case $timeout in '' | *[!0-9]*) usage "--timeout takes whole seconds" ;; esac
+# A --json before the command goes after it, so $1 is the command.
+set -- "$@" $json
+[ -n "$pane" ] || { echo "oriel: run me in a herdr pane, or pass --pane" >&2 && exit 5; }
+h() { "$herdr" --session "$session" "$@" 2>/dev/null; }
+
+# status: herdr's tokens only, so it answers with no Oriel.
+token() { printf %s "$1" | sed -n "s/.*\"$2\":\"\\([^\"]*\\)\".*/\\1/p"; }
+status() {
+    p=$(h pane get "$pane") || { echo "oriel: herdr has no pane $pane in session $session; pass --pane" >&2 && return 5; }
+    w=$(h workspace get "$(token "$p" workspace_id)")
+    shown=$(token "$p" oriel-shown) open=$(token "$w" oriel-open)
+    printf '{"session":"%s","pane":"%s","open":%s,"shown":%s,"remote":%s,"protocol":%s}\n' "$session" "$pane" \
+        "$([ -n "$open" ] && echo true || echo false)" "$([ -n "$shown" ] && echo true || echo false)" \
+        "$([ "$shown" = remote ] && echo true || echo false)" "${open:-null}"
+    [ -n "$open" ] || return 3
+}
+if [ "${1:-}" = status ]; then
+    case ${2:-} in
+    --json) status ;;
+    --watch) last= && while s=$(status); c=$?; [ $c -le 3 ]; do
+        [ "$s" = "$last" ] || echo "$s"; last=$s; sleep 2; done ;;
+    *) s=$(status); c=$?; case $s in
+        *'"shown":true'*) echo "Shown in Oriel" ;; *'"open":true'*) echo "Open in Oriel, not shown" ;;
+        ?*) echo "Not in Oriel" ;; esac; exit $c ;;
+    esac
+    exit
+fi
+
+umask 077 && mkdir -p "$dir" || exit 5
+id=$( (cat /proc/sys/kernel/random/uuid || uuidgen) 2>/dev/null | tr A-F a-f) f=$dir/$id
+[ -n "$id" ] || { echo "oriel: no uuidgen" >&2 && exit 5; }
+[ "${1:-}" = copy ] && cat >"$f.in"
+printf '%s\000' oriel-req 1 "$PWD" "$@" >"$f.tmp" && mv "$f.tmp" "$f.req" || exit 5
+h pane report-metadata "$pane" --source oriel-cli --token "oriel-req=$id" --ttl-ms 3000 >/dev/null ||
+    { rm -f "$f".* && echo "oriel: herdr refused the request on pane $pane; pass --pane" >&2 && exit 5; }
+# Waits until $1 holds, for $2 seconds by the clock (1 s less at worst).
+until_() { end=$(($(date +%s) + $2)) && until eval "$1"; do [ "$(date +%s)" -lt $end ] || return 1; sleep 0.05; done; }
+if ! until_ '[ ! -e "$f.req" ]' 3 && mv "$f.req" "$f.dead" 2>/dev/null; then
+    rm -f "$f".* && echo "oriel: no Oriel shows herdr session $session" >&2 && exit 3
+fi
+until_ '[ -e "$f.exit" ]' "$timeout" ||
+    { rm -f "$f".* && echo "oriel: Oriel did not answer within $timeout s" >&2 && exit 4; }
+cat "$f.out" 2>/dev/null
+code=$(head -n 1 "$f.exit") && tail -n +2 "$f.exit" >&2
+rm -f "$f".*
+exit "${code:-1}"
+```

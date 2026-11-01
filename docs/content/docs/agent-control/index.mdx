@@ -1,0 +1,163 @@
+---
+title: "Agent control"
+description: "The oriel command: agents float panes, open browser and plugin cards, manage plugins and learn whether Oriel shows them, on This Mac and on remote machines"
+---
+
+An agent in a herdr pane can do everything herdr does: make tabs, workspaces
+and splits, run commands, rename and close panes. It asks Oriel for the
+things only Oriel has: a floating window, a browser or plugin card, the list
+of plugins, a new plugin, and the answer to "does Oriel show me?". It asks
+with one command, `oriel`, which works the same on This Mac and on every
+remote machine that Oriel connects to (D104).
+
+- **The command, `oriel`,** is a small `sh` script at
+  `~/.cache/oriel/bin/oriel` on each machine where Oriel opened a session.
+  Oriel writes it there ([CLI](/docs/agent-control/cli)).
+- **herdr is the bus.** The command writes its arguments to a file on its own
+  machine and rings a doorbell: a herdr metadata token on its own pane. Each
+  Oriel that follows the session hears the token on its event stream. One of
+  them takes the file, does the work and writes the answer back as files
+  ([Protocol](/docs/agent-control/protocol)).
+- **Oriel parses the arguments, not the script.** The script only carries
+  argv and prints what comes back. A new command needs no new script on any
+  machine.
+- **Two presence tokens** say whether Oriel shows a pane (`oriel-shown`) and
+  whether an Oriel follows the session (`oriel-open`). `oriel status` reads
+  them from herdr, with no Oriel involved
+  ([Is my pane in Oriel?](#is-my-pane-in-oriel)).
+- **An agent never moves the user's view.** It can add a card or a floating
+  window. To point at something, it shows a notice with **Show**.
+
+## What Oriel does, and what stays herdr
+
+| Operation | Who | Command |
+|---|---|---|
+| New tab, workspace, split; run a command; rename, move, close a pane; read output; send keys; agent status | herdr | `herdr pane split …`, `herdr tab create …` |
+| Is my pane shown in Oriel? Does an Oriel follow my session? | herdr tokens that Oriel writes | `oriel status` (no Oriel needed) |
+| Oriel's version, protocol, commands, appearance | Oriel | `oriel info` |
+| List the kinds an agent can open (the browser and every plugin) | Oriel (the plugins live on the Mac) | `oriel plugins` |
+| Make, build and install a plugin | Oriel, for a pane on This Mac | `oriel plugins new`, `oriel plugins reload`, `oriel plugins install` |
+| Open a browser or plugin card: beside a pane, in a new tab, floating, or in place of a card | Oriel | `oriel open git . uncommitted` |
+| Open a file or URL with its default plugin | Oriel | `oriel open ./README.md` |
+| Float and unfloat a pane, Stay on Top | Oriel | `oriel float w1:p3 --on-top`, `oriel unfloat w1:p3` |
+| Point the user at a pane, without moving their view | Oriel | `oriel reveal w1:p3` |
+| What a card shows: kind, argument, title, unsaved edits, floating | Oriel | `oriel card w1:p3` |
+| Which panes of my session show now, and which float | Oriel | `oriel shown` |
+| Copy text to the Mac's clipboard | Oriel | `echo hi \| oriel copy` |
+
+Every command, its options and its JSON output:
+[CLI](/docs/agent-control/cli).
+
+## Is my pane in Oriel?
+
+An agent wants to know if a person sees its pane in Oriel now, and to keep
+knowing as that changes. Two tokens answer it. Oriel writes both, herdr keeps
+them, and any process in the session reads them with herdr calls.
+
+| Token | On | Value | Written | Means |
+|---|---|---|---|---|
+| `oriel-shown` | each pane in view | `1`, or `remote` when the pane's machine is not the Mac that runs that Oriel | when the pane comes into view, every 10 s while it stays, cleared when it leaves; `ttl_ms` 30000 | an Oriel window shows the pane now: it is in the shown tab of the page in view of a visible window, or it floats |
+| `oriel-open` | each workspace of the session | the protocol version, `1` | while any window of that Oriel has the session open (a float-only page too): on each snapshot with a new workspace, every 10 s; cleared when the last window lets the session go and on quit; `ttl_ms` 30000 | an Oriel follows the session, so it takes requests, also when the pane is in a hidden tab |
+
+`oriel status --json` reads them with `pane get` and `workspace get` and
+prints:
+
+```json
+{"session":"default","pane":"w1:p2","open":true,"shown":true,"remote":false,"protocol":1}
+```
+
+| Field | Type | Meaning |
+|---|---|---|
+| `session` | string | `$HERDR_SESSION` |
+| `pane` | string | the asking pane, `$HERDR_PANE_ID` or `--pane` |
+| `open` | boolean | the pane's workspace has `oriel-open`: an Oriel takes requests for this session |
+| `shown` | boolean | the pane has `oriel-shown`: at least one Oriel window, on any Mac, shows it now |
+| `remote` | boolean | `oriel-shown` is `remote`: the Oriel that marked it last runs on another machine, so the agent's own `pbcopy` does not reach that Mac |
+| `protocol` | integer or null | the value of `oriel-open`; null when `open` is false |
+
+- **Once per action** is the rule. pi-herd reads `shown` at each click. An
+  agent reads `open` before it calls `oriel`, or it calls and handles exit
+  code 3.
+- **Keep knowing.** A process that shows the state (a footer, a status line)
+  subscribes to herdr's `pane.updated` for its own pane and
+  `workspace.metadata_updated` for its workspace. herdr sends them on each
+  write and when a token expires. `oriel status --watch` prints the JSON line
+  again each time it changes. It reads every 2 s, because a shell script
+  cannot hold a herdr subscription.
+- **Several windows and Macs** share one `oriel-shown` per pane. `shown` is
+  true while any window of any Oriel shows the pane. A window that hides the
+  tab clears the mark, and another window or Mac that still shows it writes
+  it again within 10 s. So `shown` can read false for up to 10 s while a
+  second Mac shows the pane. A floating pane counts as shown.
+- **Oriel quits:** it clears its marks, `oriel-open` first. It waits up to
+  1 s. A crash leaves the marks until `ttl_ms` ends, 30 s at most.
+
+## The user's view
+
+An agent adds and offers. It never moves the view:
+- Oriel never comes to the front for a request, never selects a tab or a
+  page, and never moves herdr's focus or the keyboard.
+- A new card beside the asking pane shows where the agent is.
+- A card out of view (in a new tab, or a card that already existed), and
+  `oriel reveal` of a pane out of view, show a notice with **Show** in each
+  window that shows the session
+  ([Notice](/docs/ui/window#notice)). Show selects the pane's workspace, tab
+  and card in that window.
+- `oriel reveal` of a pane in view flashes its card's border once.
+- A float from an agent orders its window to the front without activating
+  Oriel. The keyboard stays in the window that had it.
+- The trust prompt for `oriel plugins install` shows on the session's window
+  and asks for attention in the Dock. Oriel does not come to the front, and
+  Return does not press Install.
+
+## Security
+
+Any process that can reach a session's herdr socket (the same user on that
+machine) can ring the doorbell. That process can already type into every pane
+of the session, so Oriel gives it nothing on that machine that herdr does not.
+What is new is what lands on the Mac, so the rules limit that:
+- A request acts only on its own machine: panes of its own session, or
+  `‹session›/‹pane›` of a session on the same machine. A pane argument cannot
+  name another machine.
+- No file, app or clipboard read on the Mac. `copy` only writes the
+  clipboard. A browser card for a site that is not local still asks
+  **Open this page?** ([Browser](/docs/ui/browser#when-a-page-loads-by-itself)).
+- `plugins new`, `reload` and `install` work only from a pane on This Mac,
+  where the plugins are. An install waits for the user's **Install** in the
+  trust prompt.
+- No focus steal and no view change (above).
+- Oriel builds every file path itself from the request id, which must be a
+  UUID.
+
+Details: [Protocol](/docs/agent-control/protocol#security).
+
+## Why this design
+
+- **herdr as the bus** reaches every machine that Oriel follows and every
+  Oriel that follows the session, with no new connection. Oriel's own socket
+  forwarded over SSH would open a door from the machine to the Mac, which the
+  SSH link keeps shut on purpose
+  ([Why not a forwarded socket](/docs/agent-control/remote#why-not-a-forwarded-socket)).
+  The `oriel://float` URL works only on This Mac and gives no answer.
+  Escape sequences go to herdr, which owns the terminal, not to Oriel.
+- **argv in, Oriel parses** keeps the script small and the same on every
+  machine. Structured JSON requests would make the script know every command.
+- **A command, not an MCP server,** works for every agent and shell script
+  with no configuration per agent. An MCP server can wrap it.
+- **Fail fast with exit 3** when no Oriel takes a request. The caller picks
+  its fallback: pi-herd opens herdr's popup, an agent tells the user.
+
+## Not built
+
+- Agents that drive a browser card's page (read it, run script, capture it):
+  it needs its own consent design
+  ([Future work](/docs/future-work#smaller-items)).
+- Update and Remove of a plugin from an agent: they stay the user's, in the
+  Plugins panel.
+- The size and position of a floating window from an agent: it keeps the
+  frame of the pane's last float.
+- Changing the theme: agents can read the appearance only (`oriel info`).
+- Callers outside herdr panes (cron, Mac apps): `oriel://float` covers This
+  Mac.
+- Presence tokens per Mac, which would close the 10 s gap above.
+- iPhone and iPad.

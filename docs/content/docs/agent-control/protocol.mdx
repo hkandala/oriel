@@ -1,0 +1,232 @@
+---
+title: "Protocol"
+description: "The doorbell token, the mailbox files, request ids, answers, error and exit codes, versions and the security rules"
+---
+
+The protocol of the `oriel` command ([Agent control](/docs/agent-control))
+has two parts, both on the asking pane's machine:
+- **The mailbox:** the folder `~/.cache/oriel/rpc/` (mode 0700). A request and
+  its answer are small files there, named by the request id.
+- **The doorbell:** the herdr pane token `oriel-req`, whose value is the
+  request id. Each Oriel that follows the session hears it on the event
+  stream that it already has open
+  ([Talking to herdr](/docs/talking-to-herdr#agent-requests)).
+
+Oriel reaches the mailbox with `run`: a `Process` on This Mac, the relay on a
+remote machine
+([Running commands](/docs/talking-to-herdr#running-commands)). Nothing
+listens on a port, and nothing new runs on the machine.
+
+## One request
+
+| Step | Who | What |
+|---|---|---|
+| 1. Write | the command | makes an id, then writes `‹id›.req` (to `‹id›.tmp`, then `mv`). For `copy` it writes its standard input to `‹id›.in` first |
+| 2. Ring | the command | `herdr pane report-metadata ‹pane› --source oriel-cli --token oriel-req=‹id› --ttl-ms 3000` on the asking pane |
+| 3. Hear | each Oriel that follows the session | the `pane.updated` event carries the pane and its tokens; Oriel acts once per id |
+| 4. Wait | an Oriel whose user is away | 500 ms, so that an Oriel in use takes it first ([Two Oriels](#two-oriels)) |
+| 5. Take | the Oriel | one run on the machine: `mv` of `‹id›.req` to `‹id›.run`, then `base64` of the file. A failed `mv` means that another Oriel took it, or the command gave up: Oriel stops |
+| 6. Do | the Oriel | parses the argv, checks it ([Security](#security)), acts. `copy` reads `‹id›.in` with one more run |
+| 7. Answer | the Oriel | one run writes `‹id›.out`, then `‹id›.exit` (each to a temporary name, then `mv`), and removes `‹id›.run` and `‹id›.in` |
+| 8. Read | the command | prints `‹id›.out` to standard output and the rest of `‹id›.exit` to standard error, removes `‹id›.*` and exits with the code |
+
+The command looks for the files every 50 ms:
+- **Taken:** `‹id›.req` must be gone within 3 s (2 to 3 s, because the
+  command counts whole seconds of the clock). Else the command renames it to
+  `‹id›.dead` itself. One `mv` wins, so an Oriel that is late finds nothing.
+  The command removes its files and exits 3.
+- **Answered:** `‹id›.exit` must exist within the timeout (10 s by default,
+  `--timeout ‹seconds›`). Else exit 4. An answer that comes later lands in the
+  folder, and Oriel removes it on a later connect.
+
+The take, as Oriel runs it (the limit is 64 KiB and one byte, so a request
+that is too large shows):
+
+```sh
+sh -c 'cd "$HOME/.cache/oriel/rpc" && mv -- "$1.req" "$1.run" && head -c "$2" "$1.run" | base64' \
+    sh 7f9c2b1e-4d0a-4c55-9a51-0b6c3e2d8f10 65537
+```
+
+## Ids
+
+- A request id is a lowercase UUID version 4 that the command makes, from
+  `/proc/sys/kernel/random/uuid` or `uuidgen`. With neither, the command
+  exits 5.
+- Oriel takes only a value that matches
+  `^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`, and
+  builds every path from it. So a token can never name another file.
+- herdr sends the pane's tokens again on every change of the pane until the
+  token expires. Oriel remembers the last 256 ids per session and acts once
+  per id.
+- One pane rings one request at a time: a second ring replaces the token's
+  value. The command waits for the answer before it returns, so calls in a
+  row from one pane never overlap. Parallel calls from one pane can lose the
+  first ring, which then exits 3.
+- Oriel acts only on events. A ring while its stream opens again (after a
+  link drop, or when the set of agent panes changes) is not taken: exit 3.
+
+## The request
+
+`‹id›.req` holds NUL-separated fields, each ended by a NUL, so no field needs
+quoting:
+
+```text
+oriel-req ␀ 1 ␀ /Users/me/repo ␀ open ␀ git ␀ . ␀ uncommitted ␀
+```
+
+| Field | Value |
+|---|---|
+| 1 | `oriel-req` |
+| 2 | the protocol version, `1` |
+| 3 | the command's working folder (`$PWD`), for relative paths |
+| 4… | the arguments, as typed after `oriel` and its own options |
+
+- At most 64 KiB and 64 fields. `‹id›.in` holds at most 1 MiB.
+- The asking pane is the pane that carries the token. Oriel knows its machine
+  and session from the stream that heard it, so the request does not repeat
+  them.
+- `--pane`, `--timeout` and `status` are the command's own and are not sent.
+  A `--json` before the command is sent after it.
+- A file that is not a request, or one over the limits, is `usage`. A newer
+  protocol than Oriel's is `protocol`.
+
+## The answer
+
+- `‹id›.out`: what the command prints, as text, or as JSON with `--json`.
+- `‹id›.exit`: the exit code on the first line, then the text for standard
+  error.
+
+```text
+1
+oriel: pane w1:p9 is not in herdr session default
+```
+
+With `--json`, a failure also writes the error to `‹id›.out`:
+
+```json
+{"error":{"code":"pane_not_found","message":"pane w1:p9 is not in herdr session default"}}
+```
+
+A failed answer run is logged in Oriel, and the command exits 4.
+
+### Exit codes
+
+| Code | Meaning | Who |
+|---|---|---|
+| 0 | done | Oriel |
+| 1 | the command failed; the error says why | Oriel |
+| 2 | usage: an unknown command, a bad option, a missing or extra argument | Oriel, or the script for its own options |
+| 3 | no Oriel took the request within 3 s: no Oriel follows this session, or its stream was opening again. `oriel status`: no Oriel follows the session | the script |
+| 4 | an Oriel took it but did not answer within the timeout | the script |
+| 5 | not in herdr: no `$HERDR_PANE_ID` and no `--pane`, herdr refused the ring (a stale or unknown pane: pass `--pane`), or the mailbox could not be written | the script |
+
+A stale `$HERDR_PANE_ID` never reaches Oriel: herdr refuses the ring, so the
+script exits 5 and says to pass `--pane`.
+
+### Error codes
+
+Oriel's errors, in `{"error":{"code","message"}}` with `--json`. The script's
+own failures (exit 2 for its options, 3, 4, 5) print only text on standard
+error.
+
+| Code | Exit | When |
+|---|---|---|
+| `usage` | 2 | an unknown option, a missing or extra argument, two places for `open`; a file that is not a request, or over 64 KiB or 64 fields |
+| `unknown_command` | 2 | a command this Oriel does not have (`oriel help` lists them) |
+| `protocol` | 2 | the request's version is newer than this Oriel speaks |
+| `pane_not_found` | 1 | a pane argument: no such pane, or no such session running on the asking pane's machine |
+| `plugin_not_found` | 1 | no browser or plugin with that id; with the reason when its manifest did not load |
+| `bad_argument` | 1 | the argument does not fit: not a pane, a missing path, a kind that does not open it, a label over 1024 characters or with a control character, a source that is not one, standard input over 1 MiB |
+| `other_machine` | 1 | `plugins new`, `reload` or `install` from a pane on a remote machine |
+| `not_floating` | 1 | `unfloat` of a pane that does not float |
+| `dirty` | 1 | `open --replace` of a card with unsaved edits; `plugins reload` while a card of the plugin has them (the message names the pane) |
+| `declined` | 1 | the user pressed Cancel in the trust prompt of `plugins install` |
+| `build_failed` | 1 | `plugins reload`: the build failed; the message ends with the build's last 20 lines |
+| `failed` | 1 | anything else: a herdr call or a run failed, no window shows the session, the Plugins panel's own refusal; the message is herdr's, the shell's or the panel's |
+
+A pane argument is always read on the asking pane's machine, because its
+syntax cannot name another one. So no pane argument is `other_machine`.
+
+## Versions
+
+- **The protocol version** (`1`) is in each request, in `oriel-open` and in
+  the script's second line. It changes only when the files, the token or the
+  exit codes change. The format of `‹id›.exit` never changes, so any Oriel can
+  answer `protocol` to any command.
+- **Commands change without a version.** A new Oriel adds commands, options
+  and JSON fields. A field is never renamed or removed. A change that breaks
+  a command gets a new command name. `oriel info --json` lists `commands`, so
+  a caller can look for one first.
+- **The script's version** is its second line,
+  `# oriel-cli ‹protocol›.‹revision›` (`# oriel-cli 1.1`). Oriel compares the
+  machine's line with its own script's, as numbers, and writes the script
+  only over a lower one. A fixed script gets a new revision and replaces the
+  old one without a new protocol. Oriel never writes an older script, so two
+  Oriels of different versions do not take turns
+  ([How the command gets there](/docs/agent-control/remote#how-the-command-gets-there)).
+
+## Two Oriels
+
+Two windows of one Oriel share one store per session, so they hear one event
+([Open sessions](/docs/machines#open-sessions)). Two Oriels (two Macs, or two
+builds on one Mac) both hear it.
+- The take is one `mv` on the asking machine: exactly one Oriel wins.
+- An Oriel waits 500 ms before it takes when its user is away: no key press
+  or click in the app for 60 s, the screen is locked, or no visible window
+  has the session's page in view. So the Oriel in use answers first.
+- Each command runs in the Oriel that took it. A float opens over that
+  Oriel's window, and the clipboard is that Mac's.
+
+## Presence
+
+| Token | Writer | Notes |
+|---|---|---|
+| `oriel-shown` on a pane | each Oriel, source `oriel`, with `pane.report_metadata` | `1` or `remote`, which pi's copy reads ([Agent requests](/docs/talking-to-herdr#agent-requests)) |
+| `oriel-open` on a workspace | each Oriel, source `oriel`, with `workspace.report_metadata` | `1`; `ttl_ms` 30000; on each workspace while a window has the session open, every 10 s and on a snapshot with a new workspace; cleared (`null`) when the last window lets the session go and on quit, which waits up to 1 s |
+
+Both go in the same burst as the 10 s refresh, over the same bridge,
+`oriel-open` first. A session with 8 workspaces adds 8 small calls every
+10 s.
+
+## Security
+
+Who can ring: any process that reaches the session's herdr socket, which is
+the user who owns herdr on that machine. That process can already type into
+any pane of the session. So the command gives nothing new on that machine.
+The rules guard the Mac and the user's attention:
+
+1. **Own machine only.** A pane argument is a pane of the asking session, or
+   `‹session›/‹pane›` of a session that herdr runs on the same machine.
+   Anything else is `pane_not_found` or `bad_argument`.
+2. **Nothing read or started on the Mac.** No Mac file, no Mac app (Open With
+   is not in the command), no read of the clipboard. `copy` only writes it.
+   `browser ./file.html` opens a file only for a pane on This Mac.
+3. **Plugins change only from This Mac.** `plugins new`, `reload` and
+   `install` from a remote pane are `other_machine`. An install shows the
+   trust prompt, and Return does not press Install.
+4. **Pages load by the browser's rule.** `oriel open browser
+   https://example.com` makes the card. A site that is not local and not
+   approved shows **Open this page?** until the user clicks
+   ([Browser](/docs/ui/browser#when-a-page-loads-by-itself)).
+5. **No focus, no view change.** Oriel never activates itself for a request,
+   never switches a window's tab or page, never moves the keyboard. A float
+   opens its window without activating the app.
+6. **Paths built by Oriel.** The mailbox path comes from the id that matched
+   the pattern. The request's size is checked before it is decoded.
+7. **No secrets in tokens or labels.** A token holds only the id. Every
+   device that follows the session sees tokens and labels.
+
+## In Oriel
+
+- **HerdrKit.** `HerdrClient`'s event loop decodes `oriel-req` off
+  `pane.updated` and yields `Update.request(id:pane:)`. `AgentRequest` reads
+  `‹id›.req`, and its `Exec` runs are `prepareAgent` (on connect), `take`,
+  `input` (for `copy`) and `answer`, each one run.
+- **The store.** `HostStore` hears `.request`, waits when its user is away,
+  takes the request, runs `AgentCommands.run` and answers. `markShown` writes
+  both presence tokens.
+- **The commands.** Each command is an `AgentCommand` (`name`, `usage`,
+  `summary`, `help`, `run`) in a file under `Oriel/Agent/`, listed in
+  `AgentCommands.all`. `run` reads its arguments off an `AgentCall`, throws
+  `AgentError(code:message:)` (any other error answers `failed`) and returns
+  `AgentOutput`. The one parser writes the text of `oriel help`.
