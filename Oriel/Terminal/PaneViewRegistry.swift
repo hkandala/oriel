@@ -61,8 +61,22 @@ final class PaneViewRegistry {
     var prewarming: Task<Void, Never>?
     /// The tab whose neighbors `prewarming` makes.
     var prewarmed: String?
-    /// The tab's page, for web cards made before they show (`prewarm`).
-    var pageSize = CGSize.zero
+    /// The tab's page, for web cards made before they show (`prewarm`) and hidden terminals' sizes (`fitHidden`).
+    var pageSize = CGSize.zero {
+        didSet {
+            guard pageSize != oldValue else { return }
+            // Once the size settles, as a shown card's host does: a sidebar's motion gives a size at every frame.
+            hiddenFitting?.cancel()
+            hiddenFitting = Task { [weak self] in
+                try? await Task.sleep(for: .milliseconds(150))
+                if !Task.isCancelled {
+                    self?.fitHidden()
+                }
+            }
+        }
+    }
+
+    private var hiddenFitting: Task<Void, Never>?
     /// Chat cards' pictures from their views in the window (`ChatProbe`), by terminal id.
     var chatViews: [String: () -> CGImage?] = [:]
     /// The terminals in view at the last `show`: a chat among them that left takes its picture.
@@ -271,6 +285,31 @@ final class PaneViewRegistry {
         let views = terminals.mapValues { $0.view as NSView }.merging(browsers.mapValues(\.view)) { first, _ in first }
             .merging(plugins.mapValues(\.web.view)) { first, _ in first }
         return views.first { pages?.floats($0.key) != true && $0.value.window?.firstResponder === $0.value }?.key
+    }
+}
+
+extension PaneViewRegistry {
+    /// The selected workspace's other tabs' kept terminals take their card's size while hidden, as Ghostty's hidden
+    /// tabs do: their programs hear of a new window size at once, and a switch to the tab shows no reflow.
+    func fitHidden() {
+        guard let pages, let page = pages.current, let workspace = page.selectedWorkspace, pageSize != .zero
+        else { return }
+        let area = TabPage.area(pageSize)
+        for tab in workspace.tabs where tab.id != page.selectedTab?.id {
+            let cards = tab.tree.map { Parts($0, in: area, held: [:]).cards } ?? []
+            for (terminalID, paneID) in pages.tileCards(page, tab.id) {
+                guard let view = terminals[terminalID]?.view, view.window == nil,
+                      let card = page.zoomedPaneID == paneID ? area : cards.first(where: { $0.id == paneID })?.rect
+                else { continue }
+                // The terminal's room in its card (`PaneCard`): under the header, inset at the sides and bottom.
+                let size = CGSize(width: max(card.width - 2 * PaneCard.inset, 1),
+                                  height: max(card.height - page.headerHeight(page.store.pane(paneID)) - gap, 1))
+                if view.frame.size != size {
+                    view.terminal?.hold()
+                    view.frame.size = size
+                }
+            }
+        }
     }
 }
 
