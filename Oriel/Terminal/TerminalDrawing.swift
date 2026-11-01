@@ -16,6 +16,8 @@ extension PaneTerminal {
     func hold() {
         guard ready, !observing else { return }
         ready = false
+        // Its picture over it until it drew again (`dropStill`): libghostty can draw during the hold.
+        view.keepPicture()
         settle()
     }
 
@@ -178,14 +180,22 @@ extension PaneSurfaceView {
     }
 
     /// The new surface draws again: the old picture goes once it drew (its layer's contents changed; libghostty
-    /// draws when it stops being occluded). One that never draws keeps showing the old picture.
+    /// draws when it stops being occluded). One that never draws keeps showing the old picture. Not for an empty
+    /// frame (a swap chain made again at a new size can show one first), unless three come: the screen is empty.
     func dropStill() {
         // Over a new surface only: not the old layer itself, before its rebuild.
         guard let still, still !== layer, still.superlayer != nil else { return }
         let id = ObjectIdentifier(still)
+        stillFrames = 0
         // libghostty sets the contents on the main thread: gone in the same transaction as the new picture.
         stillWatch = layer?.observe(\.contents) { [weak self] _, _ in
-            MainActor.assumeIsolated { self?.drop(id) }
+            MainActor.assumeIsolated {
+                guard let view = self else { return }
+                view.stillFrames += 1
+                if (view.layer?.contents as? IOSurface)?.drawn == true || view.stillFrames >= 3 {
+                    view.drop(id)
+                }
+            }
         }
     }
 
@@ -305,6 +315,21 @@ extension CALayer {
 }
 
 extension IOSurface {
+    /// Some pixel differs from its first (the background): text or a cursor. Every other line, up to the first hit.
+    var drawn: Bool {
+        guard bytesPerElement == 4, width > 0, height > 0 else { return false }
+        lock(options: .readOnly, seed: nil)
+        defer { unlock(options: .readOnly, seed: nil) }
+        let background = baseAddress.load(as: UInt32.self)
+        for line in stride(from: 0, to: height, by: 2) {
+            let pixels = (baseAddress + line * bytesPerRow).assumingMemoryBound(to: UInt32.self)
+            if (0 ..< width).contains(where: { pixels[$0] != background }) {
+                return true
+            }
+        }
+        return false
+    }
+
     /// libghostty freed it (`kIOSurfacePurgeableEmpty`), or the system took back a volatile one: its pixels are
     /// gone.
     var emptied: Bool {

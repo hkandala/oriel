@@ -29,6 +29,8 @@ final class PaneSurfaceView: AppTerminalView {
     /// The surface's last picture while it has none (`free`), and over a new surface until that draws.
     var still: CALayer?
     var stillWatch: NSKeyValueObservation?
+    /// The layer's pictures since `dropStill` began to wait.
+    var stillFrames = 0
 
     override init(frame: NSRect) {
         super.init(frame: frame)
