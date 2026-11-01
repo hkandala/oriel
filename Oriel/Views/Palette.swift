@@ -73,14 +73,18 @@ struct Palette: View {
         command.title.replacing("…", with: "")
     }
 
-    /// Empty field: Tabs, Workspaces, Sessions, then Commands, under headers. Typed: one list, best match first; a
+    /// Empty field: each group under its header, in `Command.Group`'s order: the tabs, workspaces and sessions
+    /// first in theirs, then its commands. Typed: one list, best match first, each row with its group's name; a
     /// tie goes to a title that starts with the filter ("font size": Font Size › before Increase Font Size), then
     /// to commands before places, then to the earlier row (the menu's and the sidebar's order). A keyword match
     /// ranks under a title match.
     private func rootItems(_ filter: String, _ list: [Command]) -> [FilterList.Item] {
         // A floating window's palette lists only its commands (D50).
         let commands = commandRows(list), places = self.commands.floating == nil ? placeRows() : []
-        guard !filter.trimmingCharacters(in: .whitespaces).isEmpty else { return (places + commands).map(\.item) }
+        guard !filter.trimmingCharacters(in: .whitespaces).isEmpty else {
+            let rows = (places + commands).map(\.item)
+            return Command.Group.allCases.flatMap { group in rows.filter { $0.section == group.rawValue } }
+        }
         return (commands + places).enumerated().compactMap { index, row in
             [row.item.title.fuzzyScore(filter), row.keywords.fuzzyScore(filter).map { $0 + 3 }].compactMap(\.self)
                 .min().map { score in
@@ -92,7 +96,7 @@ struct Palette: View {
         .sorted { ($0.score, $0.rest, $0.index) < ($1.score, $1.rest, $1.index) }
         .map { row in
             var item = row.item
-            item.section = nil
+            (item.note, item.section) = (item.section, nil)
             return item
         }
     }
@@ -109,7 +113,8 @@ struct Palette: View {
                     .flatMap { command.setting ? "Turn \($0 ? "Off" : "On") \(command.title)" : nil }
                     ?? (opens ? Self.pageTitle(command) : command.title)
                 let item = FilterList.Item(id: "command.\(command.title)", symbol: command.symbol, title: title,
-                                           detail: command.key?.glyphs ?? "", section: "Commands", opens: opens,
+                                           detail: command.key?.glyphs ?? "",
+                                           section: (command.group ?? command.section.group).rawValue, opens: opens,
                                            act: {
                                                if opens {
                                                    sub = command.title
@@ -127,7 +132,7 @@ struct Palette: View {
     private func placeRows() -> [(item: FilterList.Item, keywords: String)] {
         let tabs = (page.selectedWorkspace?.tabs ?? []).map { tab in
             FilterList.Item(id: "tab.\(tab.id)", pane: page.stack(tab).first, title: page.titleText(tab),
-                            section: "Tabs", act: {
+                            section: Command.Group.tabs.rawValue, act: {
                                 if let workspace = page.selectedWorkspace {
                                     page.select(workspace, tab: tab.id)
                                 }
@@ -136,7 +141,8 @@ struct Palette: View {
         let workspaces = pages.list.flatMap { other in
             other.store.workspaces.map { workspace in
                 FilterList.Item(id: "workspace.\(other.id).\(workspace.id)", symbol: "folder",
-                                title: workspace.label, detail: other.id, section: "Workspaces", act: {
+                                title: workspace.label, detail: other.id,
+                                section: Command.Group.workspaces.rawValue, act: {
                                     pages.show(other)
                                     other.select(workspace)
                                 })
@@ -144,7 +150,7 @@ struct Palette: View {
         }
         let sessions = pages.list.map { other in
             FilterList.Item(id: "session.\(other.id)", symbol: "rectangle.stack", title: other.id,
-                            section: "Sessions", act: { pages.show(other) })
+                            section: Command.Group.sessions.rawValue, act: { pages.show(other) })
         }
         // A workspace also matches its session's name.
         return tabs.map { ($0, "") } + workspaces.map { ($0, $0.detail) } + sessions.map { ($0, "") }

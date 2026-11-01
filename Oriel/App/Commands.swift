@@ -203,10 +203,10 @@ struct Command {
         }
     }
 
-    /// The Keyboard Shortcuts panel's groups, in its order.
-    enum Group: String {
-        case panes = "Panes", tabs = "Tabs", workspaces = "Workspaces", sessions = "Sessions", view = "View"
-        case edit = "Edit"
+    /// The palette's and the Keyboard Shortcuts panel's groups: what a command acts on. In the palette's order.
+    enum Group: String, CaseIterable {
+        case tabs = "Tabs", workspaces = "Workspaces", sessions = "Sessions", panes = "Panes", view = "View"
+        case edit = "Edit", plugins = "Plugins"
     }
 
     let section: Section
@@ -214,7 +214,7 @@ struct Command {
     /// The palette row's id when the title may repeat (a move's target tabs); else the title.
     var id: String?
     var key: KeyboardShortcut?
-    /// The Keyboard Shortcuts panel's group, when not its section's.
+    /// The palette's and the Keyboard Shortcuts panel's group, when not its section's.
     var group: Group?
     /// The Keyboard Shortcuts panel's one row for a set of commands that differ by the key: "Select Pane" and
     /// one keycap for the keys, "←→↑↓", after the modifiers'.

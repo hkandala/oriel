@@ -57,7 +57,7 @@ extension OrielUITests {
         XCTAssertEqual(old, text, "the Return went to the old shell")
     }
 
-    /// ⌘D on a pane made outside the app (no chooser): the split's card shows it. ↑ ↓ move the selection and stop at
+    /// ⌘D on a pane made outside the app (no chooser): the split's card shows it. ↑ ↓ move the selection and wrap at
     /// the ends, → opens Agent's agents under it and ← closes them; Esc gives the terminal.
     func testSplitShowsTheChooserArrowsMoveAndEscGivesATerminal() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
@@ -83,14 +83,15 @@ extension OrielUITests {
         app.typeKey(.leftArrow, modifierFlags: [])
         XCTAssertTrue(selected(1))
         XCTAssertTrue(options[5].vanishes(within: 2))
-        for _ in 0 ..< 4 {
-            app.typeKey(.downArrow, modifierFlags: [])
+        // The ends wrap.
+        for (key, count, index) in [(XCUIKeyboardKey.downArrow, 3, 4), (.downArrow, 1, 0), (.upArrow, 1, 4),
+                                    (.upArrow, 4, 0)]
+        {
+            for _ in 0 ..< count {
+                app.typeKey(key, modifierFlags: [])
+            }
+            XCTAssertTrue(selected(index), "\(key) ×\(count)")
         }
-        XCTAssertTrue(selected(4))
-        for _ in 0 ..< 5 {
-            app.typeKey(.upArrow, modifierFlags: [])
-        }
-        XCTAssertTrue(selected(0))
         // The card's menu over the list too.
         options[1].rightClick()
         let main = app.windows.matching(NSPredicate(format: "identifier BEGINSWITH 'main-'")).firstMatch

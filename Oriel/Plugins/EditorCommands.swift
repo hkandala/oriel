@@ -35,8 +35,14 @@ extension CommandList {
         let finder = { editor().flatMap { $0.handles("find") ? $0 : nil } }
         let save = editor()?.handles("save") == true, over = finder() != nil, find = page?.find != nil
         return [
-            Command(section: .file, title: "Save", key: save ? .save : nil, symbol: "square.and.arrow.down",
-                    enabled: save) { editor()?.command("save") },
+            Command(
+                section: .file,
+                title: "Save",
+                key: save ? .save : nil,
+                group: .edit,
+                symbol: "square.and.arrow.down",
+                enabled: save,
+            ) { editor()?.command("save") },
             Command(section: .edit, title: "Find…", key: .init("f"), symbol: "magnifyingglass",
                     keywords: "search scrollback", enabled: terminal || over, action: {
                         if let editor = finder() {

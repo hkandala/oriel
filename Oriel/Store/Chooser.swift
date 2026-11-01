@@ -128,7 +128,7 @@ extension HostStore {
         }
     }
 
-    /// ↑ ↓ move through the rows and stop at the ends, Return picks at once, → opens Agent, ← and Esc close it, Esc on
+    /// ↑ ↓ move through the rows and wrap at the ends, Return picks at once, → opens Agent, ← and Esc close it, Esc on
     /// a closed list picks Terminal. The number keys pick the top rows, or the agents while Agent is open. Other keys
     /// do nothing, also while the loader shows.
     func key(_ event: NSEvent, _ chooser: Chooser, page: Page?) {
@@ -137,7 +137,7 @@ extension HostStore {
               !event.isARepeat || [125, 126].contains(event.keyCode) else { return }
         let rows = chooser.rows, index = rows.firstIndex(of: chooser.selected) ?? 0
         switch event.keyCode {
-        case 125, 126: chooser.selected = rows[max(0, min(index + (event.keyCode == 125 ? 1 : -1), rows.count - 1))]
+        case 125, 126: chooser.selected = rows[(index + (event.keyCode == 125 ? 1 : rows.count - 1)) % rows.count]
         // → on a closed Agent opens it; ← and Esc close an open one.
         case 124 where chooser.selected == .agent && !chooser.open, 123 where chooser.open, 53 where chooser.open:
             pick(chooser, .agent, page: page)

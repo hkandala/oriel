@@ -121,7 +121,7 @@ extension CommandList {
             }
         }
         let list = [
-            Command(section: .close, title: "Detach Pane", key: .closePane, symbol: "pip.exit") {
+            Command(section: .close, title: "Detach Pane", key: .closePane, group: .panes, symbol: "pip.exit") {
                 page.floating[terminalID] = nil
             },
             Command(section: .view, title: "Command Palette", key: .palette, symbol: "command",

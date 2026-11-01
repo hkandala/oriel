@@ -10,7 +10,7 @@ struct Shortcuts: View {
         let rows = Self.rows(commands)
         let panel = HStack(alignment: .top, spacing: 48) {
             column([.panes, .tabs, .workspaces], rows)
-            column([.sessions, .view, .edit], rows)
+            column([.sessions, .view, .edit, .plugins], rows)
         }
         .padding(.horizontal, 28).padding(.vertical, 24)
         // A short window scrolls the panel. ponytail: a window under about 870 pt wide clips its sides; a scroll
@@ -31,7 +31,9 @@ struct Shortcuts: View {
     }
 
     private func column(_ groups: [Command.Group], _ rows: [Row]) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
+        // Plugins only over a plugin card.
+        let groups = groups.filter { group in rows.contains { $0.group == group } }
+        return VStack(alignment: .leading, spacing: 0) {
             ForEach(groups, id: \.self) { group in
                 Text(group.rawValue).font(.system(size: 11, weight: .medium)).foregroundStyle(.secondary)
                     .padding(.top, group == groups.first ? 0 : 18).padding(.bottom, 4)

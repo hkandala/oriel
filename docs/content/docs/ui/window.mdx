@@ -791,12 +791,17 @@ A window that watches a session another window controls (D66).
 - **Rows.** 28 pt: a symbol, the title, and on the right the shortcut in
   secondary glyphs, or › for a row that opens a sub-page. The selected row is
   an accent pill, radius 8; the arrows or the pointer move it.
-- **Sections.** On the first page with an empty field: Tabs (of the selected
-  workspace), Workspaces (of every page in the window, with the session's
-  name), Sessions, then Commands, each under a header. A typed filter gives one
-  list, best match first. A sub-page shows only its own rows, under its title.
-  Sessions lists the pages open in this window; Open Session… opens the
-  [Open Session](#open-session) panel.
+- **Groups.** On the first page with an empty field, the rows sit in groups,
+  each under a header, in this order: Tabs, Workspaces, Sessions, Panes, View,
+  Edit and Plugins. A group holds the commands that act on that thing. Tabs
+  lists the selected workspace's tabs first, then the tab commands. Workspaces
+  lists the workspaces of every page in the window, with the session's name,
+  then the workspace commands. Sessions lists the pages open in this window,
+  then the session commands; Open Session… opens the
+  [Open Session](#open-session) panel. A group with no enabled command and no
+  place does not show. A typed filter gives one list, best match first, and
+  each row shows its group's name, dimmed, after its title. A sub-page shows
+  only its own rows, under its title.
 - **Matching.** Fuzzy, in the order of the typed letters, over titles and
   keywords: "split" finds Split Right, "dark" finds Appearance ▸ Dark. On a
   tie, a title that starts with the filter comes first ("font size" gives

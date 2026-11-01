@@ -288,6 +288,10 @@ struct MenuRow: View {
             }
             // A long typed name keeps both ends, and takes the free space before the detail does.
             Text(item.title).lineLimit(1).truncationMode(.middle).layoutPriority(1)
+            if let note = item.note {
+                Text(note).font(.system(size: 12)).lineLimit(1)
+                    .foregroundStyle(selected ? AnyShapeStyle(Color.white.opacity(0.6)) : AnyShapeStyle(.tertiary))
+            }
             Spacer(minLength: 4)
             if item.busy {
                 ProgressView().controlSize(.small)

@@ -37,7 +37,7 @@ struct CommandList {
         let page = pages?.current, pages = pages, workspace = page?.selectedWorkspace, tab = page?.selectedTab
         let live = page?.store.state == .live, editor = page?.editor
         let file = [
-            Command(section: .app, title: "Plugins…", symbol: Registry.missing,
+            Command(section: .app, title: "Plugins…", group: .plugins, symbol: Registry.missing,
                     keywords: "install update remove packages npm git settings",
                     enabled: plugins != nil) { plugins?.wrappedValue = true },
             Command(section: .file, title: "New Window", key: .init("n"), symbol: "macwindow.badge.plus") {
@@ -68,13 +68,14 @@ struct CommandList {
                             page.close(.tab(tab.id))
                         }
                     }),
-            Command(section: .close, title: "Close Other Tabs", symbol: "xmark.rectangle.fill",
+            Command(section: .close, title: "Close Other Tabs", group: .tabs, symbol: "xmark.rectangle.fill",
                     enabled: (workspace?.tabs.count ?? 0) > 1, action: {
                         if let page, let tab = page.selectedTab {
                             page.closeTabs(besides: tab.id, right: false)
                         }
                     }),
-            Command(section: .close, title: "Close Tabs to the Right", symbol: "arrow.right.to.line.compact",
+            Command(section: .close, title: "Close Tabs to the Right", group: .tabs,
+                    symbol: "arrow.right.to.line.compact",
                     enabled: tab != nil && workspace?.tabs.last?.id != tab?.id, action: {
                         if let page, let tab = page.selectedTab {
                             page.closeTabs(besides: tab.id, right: true)
@@ -172,11 +173,12 @@ struct CommandList {
         let tab = page?.selectedTab, workspace = page?.selectedWorkspace
         let fullScreen = NSApp.keyWindow?.styleMask.contains(.fullScreen) == true
         return [
-            Command(section: .palette, title: "Rename Tab", symbol: "pencil", enabled: tab != nil,
+            Command(section: .palette, title: "Rename Tab", group: .tabs, symbol: "pencil", enabled: tab != nil,
                     name: tab.map { tab in
                         (tab.label, { await page?.store.rename(tab: tab.id, label: $0) })
                     }),
-            Command(section: .palette, title: "Rename Workspace", symbol: "pencil", enabled: workspace != nil,
+            Command(section: .palette, title: "Rename Workspace", group: .workspaces, symbol: "pencil",
+                    enabled: workspace != nil,
                     name: workspace.map { workspace in
                         (workspace.label, { await page?.store.rename(workspace: workspace.id, label: $0) })
                     }),

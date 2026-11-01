@@ -10,17 +10,19 @@ extension CommandList {
         let id = plugin.manifest.id, view = plugin.web.view
         return [
             Command(section: .pane, title: "Reload Plugin", key: .init("r", modifiers: [.command, .option]),
-                    symbol: "arrow.clockwise", keywords: "plugin build refresh") { Task { await Plugin.reload(id) } },
+                    group: .plugins, symbol: "arrow.clockwise", keywords: "plugin build refresh",
+                    action: { Task { await Plugin.reload(id) } }),
             Command(section: .pane, title: view.inspectorShown ? "Hide Web Inspector" : "Show Web Inspector",
-                    symbol: "hammer", keywords: "plugin developer tools devtools console",
+                    group: .plugins, symbol: "hammer", keywords: "plugin developer tools devtools console",
                     action: view.toggleInspector),
-            Command(section: .pane, title: "Show Log", symbol: "doc.text.magnifyingglass",
+            Command(section: .pane, title: "Show Log", group: .plugins, symbol: "doc.text.magnifyingglass",
                     keywords: "plugin build errors console debug") { PluginLog.show(id) },
         ]
     }
 
     /// ⌘K's: every plugin read and built again.
-    static let reloadPlugins = Command(section: .palette, title: "Reload Plugins", symbol: "arrow.clockwise",
+    static let reloadPlugins = Command(section: .palette, title: "Reload Plugins", group: .plugins,
+                                       symbol: "arrow.clockwise",
                                        keywords: "plugin build refresh packages") { Task { await Plugin.reloadAll() } }
 }
 

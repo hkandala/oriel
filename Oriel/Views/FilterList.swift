@@ -16,6 +16,8 @@ struct FilterList: View {
         var detail = ""
         /// Where it changes from the row before: a header above the row, or a divider when empty.
         var section: String?
+        /// A dimmed word after the title: a typed palette row's group.
+        var note: String?
         /// A spinner in place of the detail.
         var busy = false
         /// Opens a sub-page: a › on the right, and the list stays open.
@@ -163,7 +165,7 @@ struct FilterList: View {
         }
         .buttonStyle(ChromeStyle(selected: offset == index, tint: .accentColor))
         .accessibilityIdentifier("\(name).\(item.id)")
-        .accessibilityValue(item.state??.word ?? "")
+        .accessibilityValue(item.state??.word ?? item.note ?? "")
         .accessibilityAddTraits(offset == index ? .isSelected : [])
         // After the row's accessibility, which would name this button too.
         .overlay(alignment: .trailing) {

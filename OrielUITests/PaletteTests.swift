@@ -2,8 +2,8 @@ import XCTest
 
 /// The command palette and the key map.
 extension OrielUITests {
-    /// ⌘K lists the places, then the commands, under headers; "split r" ranks Split Right first, and Enter splits
-    /// the keyboard card.
+    /// ⌘K lists each group under its header, the places first in theirs; "split r" ranks Split Right first with
+    /// its group's name, and Enter splits the keyboard card.
     func testPaletteSplitsTheKeyboardCardRight() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, pane) = try await newTab("palette")
@@ -12,16 +12,19 @@ extension OrielUITests {
         element("terminal.\(pane)").click()
         XCTAssertTrue(hasKeyboard("terminal.\(pane)"))
         openPalette()
-        let headers = ["Tabs", "Workspaces", "Sessions", "Commands"].map { element("palette.section.\($0)").frame.minY }
-        XCTAssertEqual(headers, headers.sorted())
-        XCTAssertEqual(Set(headers).count, 4)
-        XCTAssertTrue(element("palette.workspace.\(one).w1").exists)
-        // The Commands section's first row: a lazy list builds only the rows in view, and CI's screen is small.
-        XCTAssertTrue(element("palette.command.New Window").exists)
+        // The first group, its places, then its commands: a lazy list builds only the rows in view, and CI's screen
+        // is small.
+        let tabs = element("palette.section.Tabs")
+        XCTAssertTrue(tabs.exists(within: 2))
+        let rows = [tabs, element("palette.tab.\(tab)"), element("palette.command.New Tab"),
+                    element("palette.command.Close Other Tabs")].map(\.frame.minY)
+        XCTAssertEqual(rows, rows.sorted(), "\(rows)")
+        XCTAssertEqual(Set(rows).count, 4, "\(rows)")
         keepScreenshot("palette root")
         app.typeText("split r")
         XCTAssertTrue(element("palette.command.Split Right").has(\.isSelected, true, within: 2))
-        XCTAssertFalse(element("palette.section.Commands").exists)
+        XCTAssertEqual(element("palette.command.Split Right").value as? String, "Panes")
+        XCTAssertFalse(element("palette.section.Panes").exists)
         keepScreenshot("palette filtered")
         app.typeKey(.return, modifierFlags: [])
         let panes = try await poll("a second pane in the tab") { () async throws -> [[String: Any]]? in
@@ -43,7 +46,7 @@ extension OrielUITests {
         app.typeText("rename tab")
         app.typeKey(.return, modifierFlags: [])
         XCTAssertTrue(filter.has(\.stringValue, "before", within: 2))
-        XCTAssertFalse(element("palette.section.Commands").exists)
+        XCTAssertFalse(element("palette.section.Tabs").exists)
         keepScreenshot("palette rename")
         app.typeKey("a", modifierFlags: .command)
         app.typeText("after")
@@ -62,7 +65,7 @@ extension OrielUITests {
         app.typeKey(.delete, modifierFlags: [])
         XCTAssertTrue(filter.has(\.stringValue, "", within: 2))
         app.typeKey(.delete, modifierFlags: [])
-        XCTAssertTrue(element("palette.section.Commands").exists(within: 2))
+        XCTAssertTrue(element("palette.section.Tabs").exists(within: 2))
     }
 
     /// Rename Workspace › and Rename Pane… › hold the current name; Enter saves it to herdr. Reset Pane Name clears
