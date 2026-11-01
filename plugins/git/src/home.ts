@@ -1,8 +1,9 @@
 // The Git card's home: the commit message and Commit, the staged and the unstaged changes with Stage and Unstage (or
-// "No changes"), then the history of every branch as a graph. Row 2 has the branch, Fetch, Pull and Push (`main.ts`).
+// "No changes"), then the history of every branch as a graph. Row 2 has the branch, Working Tree, Fetch, Pull and Push
+// (`main.ts`).
 // A folder that is no repository shows Initialize Repository instead.
 import type { Change, Commit } from "@oriel/plugin-api"
-import { control, element, failed, home, how, keep, menu, open, oriel, symbol } from "./lib"
+import { control, element, failed, home, how, keep, menu, nameAndFolder, open, oriel, symbol } from "./lib"
 
 const page = element("div")
 page.id = "home"
@@ -182,6 +183,7 @@ function draw(state: {
   if (state.more) {
     const more = element("button", "row more", "Show More")
     more.onclick = () => {
+      more.disabled = true
       limit += 500
       void load()
     }
@@ -247,15 +249,14 @@ function row(label: string, arg: string, at?: string) {
 }
 
 function changeRow(change: Change, staged: boolean) {
-  const name = change.path.replace(/\/$/, ""), slash = name.lastIndexOf("/") + 1
+  const name = change.path.replace(/\/$/, ""), [base, folder] = nameAndFolder(name)
   const { node, open } = row(`${WORDS[change.letter] ?? change.letter}: ${name}`, `${home(root)} uncommitted`, change.path)
   node.id = `${staged ? "staged" : "change"}.${change.path}`
   node.title = change.oldPath ? `${change.oldPath} → ${name}` : name
   const toggle = staged ? "Unstage" : "Stage", letter = element("span", `letter ${change.letter}`, change.letter)
   // The label says it.
   letter.ariaHidden = "true"
-  open.append(symbol("doc"), element("span", "name", name.slice(slash)),
-    element("span", "folder", name.slice(0, Math.max(slash - 1, 0))))
+  open.append(symbol("doc"), element("span", "name", base), element("span", "folder", folder))
   const paths = [change.path, ...(change.oldPath ? [change.oldPath] : [])]
   node.append(
     button(staged ? "minus" : "plus", `${toggle} ${name}`, () =>

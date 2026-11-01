@@ -35,7 +35,7 @@
   .about:not(:empty) { padding: 14px 16px 10px; border-bottom: 0.5px solid var(--divider); font: 13px system-ui;
     color: var(--text); user-select: text; -webkit-user-select: text; cursor: auto }
   .about h1 { margin: 0 0 6px; font-size: 15px; font-weight: 600; line-height: 1.35 }
-  .about .body { margin: 0 0 10px; white-space: pre-wrap; line-height: 1.45; color: var(--dim) }
+  .about .body { margin: 0 0 10px; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.45; color: var(--dim) }
   .about dl { display: grid; grid-template-columns: max-content 1fr; gap: 3px 12px; margin: 0; font-size: 12px }
   .about dt { color: var(--dim) }
   .about dd { margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }

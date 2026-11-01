@@ -41,6 +41,12 @@ export function element<K extends keyof HTMLElementTagNameMap>(tag: K, className
   return node
 }
 
+/** A path's name and its folder ("" at the top). */
+export function nameAndFolder(path: string): [string, string] {
+  const slash = path.lastIndexOf("/")
+  return [path.slice(slash + 1), path.slice(0, Math.max(slash, 0))]
+}
+
 /** An SF Symbol as a mask in the text's color (`--sf-<name>`, set by `main`). */
 export function symbol(name: string, className = "symbol") {
   const node = element("span", className)

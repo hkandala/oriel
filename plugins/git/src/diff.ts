@@ -8,7 +8,7 @@ import {
   type FileDiffMetadata,
   parsePatchFiles,
 } from "@pierre/diffs"
-import { control, element, failed as toast, home, type How, how, keep, open, oriel, symbol } from "./lib"
+import { control, element, failed as toast, home, type How, how, keep, nameAndFolder, open, oriel, symbol } from "./lib"
 
 const letters = { change: "M", "rename-pure": "R", "rename-changed": "R", new: "A", deleted: "D" }
 const page = element("div")
@@ -88,11 +88,10 @@ const options: CodeViewOptions<undefined, undefined> = {
       const row = element("div", "file"), disclosure = element("button", "disclosure", "›")
       disclosure.ariaLabel = "Show or hide the file"
       disclosure.onclick = () => collapse(diff.name, !item(diff.name).collapsed)
-      const slash = diff.name.lastIndexOf("/")
-      const name = element("span", "name", diff.name.slice(slash + 1))
+      const [base, dir] = nameAndFolder(diff.name)
+      const name = element("span", "name", base)
       // A rename names its old path in the folder's place.
-      const folder = element("span", "folder", diff.prevName && diff.prevName !== diff.name
-        ? `from ${diff.prevName}` : diff.name.slice(0, Math.max(slash, 0)))
+      const folder = element("span", "folder", diff.prevName && diff.prevName !== diff.name ? `from ${diff.prevName}` : dir)
       row.title = diff.name
       row.append(disclosure, symbol("doc"), name, folder, ...counts(diff), letter(diff), actions(diff))
       return row
@@ -110,15 +109,14 @@ const options: CodeViewOptions<undefined, undefined> = {
   },
 }
 /**
- * A file's header controls, made once per text: pierre asks for them at every render of the file (a scroll, the
- * highlighter's answer), and a click whose press and release land on two different nodes does nothing.
+ * A file's header controls, made once per file diff (`draw` keeps an unchanged file's): pierre asks for them at every
+ * render of the file (a scroll, the highlighter's answer), and a click whose press and release land on two different
+ * nodes does nothing.
  */
-const headers = new Map<string, { text: string; node: HTMLElement }>()
+const headers = new WeakMap<FileDiffMetadata, HTMLElement>()
 function header(diff: FileDiffMetadata, make: (diff: FileDiffMetadata) => HTMLElement) {
-  const body = text(diff), made = headers.get(diff.name)
-  if (made?.text === body) return made.node
-  const node = make(diff)
-  headers.set(diff.name, { text: body, node })
+  const node = headers.get(diff) ?? make(diff)
+  headers.set(diff, node)
   return node
 }
 
@@ -234,7 +232,6 @@ function clear() {
   changes = []
   change = -1
   viewed.clear()
-  headers.clear()
   viewer.setItems([])
   nav.replaceChildren()
   empty.textContent = ""
@@ -270,7 +267,6 @@ function draw(next: string) {
     return { id: fileDiff.name, type: "diff", fileDiff, collapsed, version }
   }))
   changes = files.flatMap(blocks)
-  change = -1
   empty.textContent = files.length ? "" : "No changes"
   // As the Git home's lists: a title, its count after it.
   const title = element("header", "title")
@@ -279,11 +275,11 @@ function draw(next: string) {
   for (const file of files) {
     const button = element("button", viewed.has(file.name) ? "row viewed" : "row")
     button.dataset.id = file.name
-    const slash = file.name.lastIndexOf("/")
+    const [name, folder] = nameAndFolder(file.name)
     button.append(
       symbol("doc"),
-      element("span", "name", file.name.slice(slash + 1)),
-      element("span", "folder", file.name.slice(0, Math.max(slash, 0))),
+      element("span", "name", name),
+      element("span", "folder", folder),
       ...counts(file),
       letter(file),
     )
@@ -396,7 +392,7 @@ oriel.on("theme", (theme) => {
 let asking: Promise<void> | undefined
 let again = false
 
-/** The patch again, drawn only when its text changed: Uncommitted follows the work tree. */
+/** The patch again, drawn only when its text changed: Working Tree follows the work tree. */
 export async function refresh() {
   if (asking) {
     again = true
@@ -446,11 +442,11 @@ export function toggleList() {
   nav.toggleAttribute("data-closed", !list)
   keep({ list })
   control("diff.file-list", { title: list ? "Hide File List" : "Show File List" })
-  // Once the viewer has its new width (at once with Reduce Motion): Side by Side wraps lines to it.
-  requestAnimationFrame(() => requestAnimationFrame(keepChange))
+  // Once the viewer has its new width: Side by Side wraps lines to it. With Reduce Motion there is no slide.
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) requestAnimationFrame(() => requestAnimationFrame(keepChange))
 }
-// After the slide.
-nav.addEventListener("transitionend", (event) => event.target === nav && keepChange())
+// After the slide: once, not for each of its properties.
+nav.addEventListener("transitionend", (event) => event.target === nav && event.propertyName === "visibility" && keepChange())
 
 export function step(by: 1 | -1) {
   if (!changes.length) return
