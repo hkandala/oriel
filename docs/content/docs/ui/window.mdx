@@ -567,6 +567,10 @@ How it works: [Layout and sizing](/docs/layout).
   dialog's default button, so the app gives Return to the red button itself.
 - ⌘-click on a link in a terminal opens it in the default browser, `http` and
   `https` only.
+- **Reveal.** When an agent runs `oriel reveal` on a card in view, the card's
+  border lights in the accent color, 2 pt, for 0.6 s, and fades out over
+  0.25 s ([CLI](/docs/agent-control/cli#reveal)). A floating card flashes in
+  its own window. A card out of view gets a [notice](#notice) instead.
 
 ## Find bar
 
@@ -763,16 +767,21 @@ clients see it there.
   float does not come back after a relaunch). Open again for the same pane,
   it brings the window forward. A session or pane that is not there shows a
   notice and no window.
-- **From a pane, on any machine:** a
-  [float request](/docs/talking-to-herdr#float-requests) on a pane of a
-  session the app follows floats the pane it names the same way, over a main
-  window of that machine. The app marks the panes it shows, so pi-herd asks
-  it only for a click in one of them; herdr's own popups do not show in
-  Oriel.
+- **From a pane, on any machine:** `oriel float <pane>`
+  ([CLI](/docs/agent-control/cli#float-and-unfloat)), run in a pane of a
+  session the app follows, floats the pane it names the same way, over the
+  window where the user last typed or clicked in a card of that session.
+  The window comes to the front without activating Oriel, and the keyboard
+  stays in the window that had it. A pane that floats already comes to the
+  front. `--on-top` turns on Stay on Top, and `oriel unfloat` detaches it.
+  The app marks the panes it shows, so pi-herd asks it only for a click in
+  one of them; herdr's own popups do not show in Oriel. The older
+  [float request](/docs/talking-to-herdr#float-requests) still works the
+  same way.
 
 ## Notice
 
-A short message after a failed action or a refused move.
+A short message after a failed action or a refused move, or from an agent.
 - A capsule at the bottom center of the tab's page, 30 pt above its bottom, 36 pt
   tall: glass, a leading symbol in a tone color (red `xmark.octagon.fill` for
   an error, amber `exclamationmark.triangle.fill` for a warning, blue for
@@ -780,6 +789,13 @@ A short message after a failed action or a refused move.
 - A failed write's notice has no action: after a timeout the write may have
   happened, so a retry is not safe. The Open Session panel's "Could not
   start" notice has **Retry**.
+- **From an agent** ([Agent control](/docs/agent-control#the-users-view)):
+  "‹agent› opened ‹Kind› ‹title›" for a card that `oriel open` made out of
+  view, and "‹agent› points to ‹title›" for `oriel reveal` of a pane out of
+  view or a card that `oriel open` found already open. It is in the
+  information tone, with **Show**, in each window that shows the session.
+  Show selects the pane's workspace, tab and card in that window. Oriel does
+  not come to the front for it.
 - It goes after 4 s, or at ×. A newer notice replaces it.
 
 ## Control capsule

@@ -36,6 +36,7 @@ One rule decides where each new thing goes (D57):
 | The files a plugin card shows and saves | the pane's machine | the files themselves; a save killed halfway leaves a `.oriel-save.*` beside the file ([Edits, saves and reloads](/docs/plugins/default-plugins#edits-saves-and-reloads)) |
 | A chat per agent pane, by terminal id: its history, marks (how far each file was read), draft, messages on their way, and Chat or TUI | app, per device | memory, on the session's `HostStore` ([Chat view](/docs/ui/chat-view)) |
 | A chat's side files: hooks and state lines, OpenCode's password, pi-oriel, OpenCode's plugin | the pane's machine | `~/.cache/oriel/` ([Side files](/docs/ui/chat-view#side-files)); files untouched for 30 days go |
+| The `oriel` command and its mailbox | each machine where Oriel opened a session | `~/.cache/oriel/bin/oriel` and `~/.cache/oriel/rpc/` ([Agent control](/docs/agent-control/remote#how-the-command-gets-there)); mailbox files older than 60 minutes go on connect |
 | An agent's transcript, session record and server | the agent | its own files and server on the pane's machine |
 | An agent session's title | the agent; the app keeps the last one read per pane in memory | the agent's own files on the pane's machine ([Session titles](/docs/ui/chat-view#session-titles)) |
 | ControlMaster sockets | app | `~/Library/Caches/oriel/`, while running |

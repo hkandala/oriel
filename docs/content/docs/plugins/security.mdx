@@ -70,7 +70,8 @@ grow.
 |---|---|---|
 | An install from npm or git | always, for a new source, before its dependencies install. An update asks only when the permissions grew | a dialog over the window, with **Install** and **Cancel** |
 | A local path from the Plugins panel | when it is added | the same dialog |
-| New Plugin… | never: you made it | |
+| An agent's `oriel plugins install` | as for the panel's install | the same dialog, on the window of the agent's session ([An agent's install](#an-agents-install)) |
+| New Plugin…, or an agent's `oriel plugins new` on This Mac | never: you or your agent made it | |
 | A folder put in the plugins folder by hand, or a path written in `settings.json` | in its first card | the card's middle |
 | Any plugin whose manifest gained a permission | in its next card, and on Reload Plugin | the card's middle |
 
@@ -105,12 +106,27 @@ The prompt in the card sits under the plugin's icon:
 - `trust.json` is a file that anything able to write the plugins folder can
   also write. That fits the model above.
 
+### An agent's install
+
+`oriel plugins install` ([CLI](/docs/agent-control/cli#plugins-install))
+shows the same dialog, with one more line first: "‹agent› in pane ‹pane›
+asks to install it." ‹agent› is the asking pane's agent name, else its
+program, else its card's title.
+- The dialog goes on the window that shows the agent's session. Oriel does
+  not come to the front: it asks for attention in the Dock.
+- Return does not press **Install**, so keys typed for another window cannot
+  consent. The user clicks it.
+- **Cancel** answers the agent `declined`.
+- The command works only from a pane on This Mac. A pane on a remote machine
+  cannot install a plugin on the Mac.
+
 ## What a machine can do
 
 A machine writes labels. So any process on a machine (a script, an agent)
 can open a card of any trusted plugin on that machine. That gives it only
 what the plugin does there, on its own files. It cannot open a card on
-another machine.
+another machine. `oriel open` writes the same label, so it gives nothing more
+([Agent control](/docs/agent-control#security)).
 
 ## Not built
 

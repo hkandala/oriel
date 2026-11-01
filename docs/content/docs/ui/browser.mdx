@@ -356,27 +356,41 @@ connection. Nothing is installed on the machine.
 
 ## Agents open browser panes
 
-Any agent that can run herdr opens a browser pane next to itself, on any
-machine. The `oriel-panes` skill in pi-hkandala
-([`skills/oriel-panes/SKILL.md`](https://github.com/hkandala/pi-hkandala/blob/master/skills/oriel-panes/SKILL.md))
-has the exact commands:
+Any agent in a herdr pane opens a browser card next to itself, on any
+machine, with the `oriel` command
+([CLI](/docs/agent-control/cli#open)):
 
+```sh
+oriel open browser http://localhost:3000            # beside the agent's pane
+oriel open browser http://localhost:3000 --tab      # in a new tab, with a notice that offers Show
+oriel open browser http://localhost:3000/x --replace w1:p7   # the card at w1:p7 goes to a new address
+oriel open browser ./report.html                    # a file, on This Mac only
+```
+
+- Oriel makes the pane as Open Browser Here does, with the label
+  `oriel:browser#<iid> <url>` and its placeholder, and answers with the
+  pane, the label and whether the card shows.
+- `--replace` renames the card's label with its own iid. The open card loads
+  the new address as a new history entry, by the load rule, and Back
+  returns. Oriel removes the card's saved state first, so a card made later
+  loads the new address, not the saved one.
+- A card with the same address already in the session is the answer, unless
+  `--new`.
+- An address from an agent that is not approved or safe waits for Open
+  ([When a page loads by itself](#when-a-page-loads-by-itself)).
+
+The label is still how it works: any process that labels a pane by hand
+gets the same card.
 1. `herdr pane split "$HERDR_PANE_ID" --direction right --no-focus` makes a
-   pane beside the agent's own.
+   pane beside its own.
 2. `herdr pane rename <pane> "oriel:browser#<iid> <url>"` makes it a browser
    pane, with a fresh iid.
-3. `herdr pane report-metadata <pane> --source oriel-panes --token oriel-label=1
-   --ttl-ms 1000` on that pane. herdr sends no event
-   for a rename, so this token's `pane.updated` event makes the app read the
-   snapshot at once. Without it the card shows at the next event or the 30 s
-   health check.
-4. Nothing more: the app types the placeholder into the labeled pane's shell
+3. `herdr pane report-metadata <pane> --source <name> --token oriel-label=1
+   --ttl-ms 1000` on that pane. herdr sends no event for a rename, so this
+   token's `pane.updated` event makes the app read the snapshot at once.
+   Without it the card shows at the next event or the 30 s health check.
+4. The app types the placeholder into the labeled pane's shell
    ([The placeholder](/docs/plugins/labels#the-placeholder)).
-
-To change the address, the agent renames the pane with the same iid and runs
-step 3 again. The open card loads the new page as a new history entry, by the
-load rule. An address from an agent that is not approved or safe waits for
-Open.
 
 ## Security
 

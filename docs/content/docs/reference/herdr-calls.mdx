@@ -23,15 +23,20 @@ description: "Every herdr call and command the app uses, and the ones it never u
 | `pane.process_info` | close and Replace Pane check, Go to Directory's shell check, program icons, the agent loader's failure check, a chat agent's launch marker in the foreground argv, Relaunch with Chat's wait for the shell | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls), [Program icons](/docs/ui/program-icons#when-the-app-asks-herdr) |
 | `pane.get` | the keyboard card's fresh folder for New Tab, Go to Directory and Insert Path, and for a browser or plugin pane's create; the new pane of a plugin card's open; the viewport's offset after a find scroll; the agent loader's ready check, every 250 ms ([New pane](/docs/ui/new-pane#agent)); Relaunch with Chat's check that herdr let go of the agent | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
 | `agent.prompt` | a chat's Send: `{target, text}`; herdr pastes it with bracketed paste and presses Enter | [Sending and stopping](/docs/ui/chat-view#sending-and-stopping) |
-| `pane.report_metadata` | the `oriel-shown` mark on each pane in view, for float requests | [Float requests](/docs/talking-to-herdr#float-requests) |
+| `pane.report_metadata` | the `oriel-shown` mark on each pane in view, for `oriel status`, pi-herd and pi's copy | [Agent requests](/docs/talking-to-herdr#agent-requests) |
+| `workspace.report_metadata` | the `oriel-open` mark on each workspace of a session a window has open, for `oriel status` | [Agent requests](/docs/talking-to-herdr#agent-requests) |
 | `pane.scroll` | find in a pane: scroll herdr's viewport to a match, and back to the bottom | [Find bar](/docs/ui/window#find-bar) |
 | `layout.set_split_ratio` | divider drag, double-click, balance (⌥⌘=), equal splits after a split or move, divider accessibility | [Layout](/docs/layout) |
 | `layout.export` | fallback when the leaf count is wrong | [Rebuilding the tree](/docs/layout#rebuilding-the-tree) |
 
-An agent's `pane.report_metadata` with the token `oriel-label`, after it
-renames a browser pane, is not the app's call: it only makes herdr send the
-event that the rename does not
+Two `pane.report_metadata` calls are not the app's: the `oriel` command's
+ring (`oriel-req`, [Protocol](/docs/agent-control/protocol)), and the token
+`oriel-label` after a process renames a browser pane by hand, which only
+makes herdr send the event that the rename does not
 ([Agents open browser panes](/docs/ui/browser#agents-open-browser-panes)).
+An agent's `oriel open` uses the app's own `layout.apply`, `tab.move`,
+`pane.move` and `pane.rename`, as a plugin card's open does
+([CLI](/docs/agent-control/cli#open)).
 
 ## Commands
 
@@ -59,7 +64,18 @@ launchctl bootstrap gui/<uid> <plist>
 sh -c 'command -v git'                              # once at launch: is git usable
 xcode-select -p                                     # only when git is the /usr/bin/git stub
 git --no-optional-locks -C <root> status --porcelain=v2 --branch --untracked-files=no   # git state of a workspace row (D67)
-sh -c 'f=/tmp/oriel-copy-$1; base64 <"$f" && rm -f "$f"' sh <id>   # each machine: a copy request (talking-to-herdr#copy-requests)
+sh -c 'f=/tmp/oriel-copy-$1; base64 <"$f" && rm -f "$f"' sh <id>   # each machine: an older copy request (talking-to-herdr#copy-requests)
+```
+
+The `oriel` command's mailbox, on each machine
+([Protocol](/docs/agent-control/protocol)):
+
+```sh
+sh -c 'd=$HOME/.cache/oriel; mkdir -p "$d/bin" "$d/rpc" && chmod 700 "$d/rpc" && find "$d/rpc" -type f -mmin +60 -exec rm -f {} + ; sed -n 2p "$d/bin/oriel"'   # once on connect
+sh -c 'f=$HOME/.cache/oriel/bin/oriel; base64 -d >"$f.$$" && chmod 755 "$f.$$" && mv "$f.$$" "$f"'   # the script, when missing or older
+sh -c 'cd "$HOME/.cache/oriel/rpc" && mv -- "$1.req" "$1.run" && head -c "$2" "$1.run" | base64' sh <id> 65537   # take a request
+sh -c 'f=$HOME/.cache/oriel/rpc/$1.in; [ ! -f "$f" ] || head -c "$2" "$f" | base64' sh <id> 1048577   # oriel copy's input
+sh -c 'cd "$HOME/.cache/oriel/rpc" && base64 -d >"$1.o" && mv "$1.o" "$1.out" && printf "%s\n%s" "$2" "$3" >"$1.e" && mv "$1.e" "$1.exit"; s=$?; rm -f "$1.run" "$1.in"; exit $s' sh <id> <code> <err>   # the answer
 ```
 
 A browser or plugin card's ([Browser](/docs/ui/browser), [State](/docs/plugins/api#state)):

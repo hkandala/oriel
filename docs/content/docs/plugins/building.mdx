@@ -22,6 +22,8 @@ The template is a plugin package with everything a build needs. It is
   is `csv-table`), and puts the name and the id in `package.json`. Then it
   installs the dependencies, runs the build, and trusts the plugin, because
   you made it. Its row in the panel shows its folder.
+- **From an agent:** `oriel plugins new <name>` does the same
+  ([An agent makes a plugin](#an-agent-makes-a-plugin)).
 - **By hand, or by an agent:** copy the template folder to
   `~/.config/oriel/plugins/<id>/`, set `name` and the `oriel` key's `id` and
   `name`, then run `npm install` and `npm run build` in it.
@@ -275,22 +277,32 @@ for every plugin with an open card.
 
 ## An agent makes a plugin
 
-An agent on This Mac makes a plugin with plain files and commands:
-1. It copies the template to `~/.config/oriel/plugins/<id>/`, edits it
-   following these pages and the types in `@oriel/plugin-api`, then runs
-   `npm install` and `npm run build` in it.
-2. It opens a card: a pane labeled `oriel:<id>#<iid> <arg>` beside its own,
-   as the `oriel-panes` skill does for a browser pane
-   ([Labels and instance ids](/docs/plugins/labels)).
-3. The user presses Reload Plugins once, so the app reads the new folder,
-   and clicks **Allow** in the card.
-4. The agent reads the log for its build output and `console` lines. After
-   each edit it runs `npm run build`, and the user presses Reload Plugin.
-   Install and reload commands for agents come with
-   [Agent control](/docs/future-work/agent-control).
+An agent in a pane on This Mac makes a plugin with the `oriel` command
+([CLI](/docs/agent-control/cli#plugins)):
+1. `oriel --timeout 120 plugins new "CSV Table"` does what New Plugin…
+   does: it copies the template to `~/.config/oriel/plugins/csv-table/`,
+   installs and builds it, and trusts it. It answers the plugin's `id`, its
+   `folder` and its `log`.
+2. The agent edits the folder, following these pages and the types in
+   `@oriel/plugin-api`.
+3. `oriel open csv-table ./data.csv` opens a card beside the agent's pane.
+   `oriel plugins --for data.csv` says which plugin opens a file by default.
+4. After each edit, `oriel plugins reload csv-table` builds it and loads its
+   cards again. It answers `built`, `ms` and `cards`. A failed build is
+   `build_failed`, with the build's last 20 lines. A card with unsaved edits
+   stops it with `dirty`: the agent asks the user to save.
+5. The agent reads the log for its `console` lines and errors
+   ([Errors and logs](/docs/plugins/errors)).
 
-An agent on a remote machine cannot reach the Mac's folder, so it cannot
-make a plugin there.
+A plugin folder that the agent makes by hand loads with
+`oriel plugins reload <id>`. Its first card asks the user for trust. To
+install from npm, git or a folder, the agent runs
+`oriel plugins install <source>`, and the user answers the trust prompt on
+the Mac.
+
+An agent on a remote machine cannot reach the Mac's plugins folder: `plugins
+new`, `reload` and `install` answer `other_machine` there. It can open cards
+of the plugins the Mac has.
 
 ## File Explorer and Git in the same layout
 

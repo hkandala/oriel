@@ -52,7 +52,9 @@ description: "The words these docs use"
 | hover card | the panel that shows a tab's panes when the pointer rests on a title-bar tab or an Agents row |
 | overview | every tab of the session as a miniature of its page, drawn from pictures, grouped by workspace (⌃⌘O) |
 | floating pane | a pane shown in a small window of its own; herdr keeps it in its tab |
-| float request | a tool in a pane asks Oriel to float a pane, through herdr's pane metadata tokens |
+| float request | the older way a tool in a pane asks Oriel to float a pane, through herdr's pane metadata tokens; kept for older callers |
+| `oriel` command | the script at `~/.cache/oriel/bin/oriel` on each machine, through which an agent asks Oriel for cards, floats and plugins |
+| agent request | one run of the `oriel` command: a file in the machine's mailbox and the `oriel-req` token on the asking pane |
 | notice | the short capsule at the bottom of the tab page after a failed action |
 | Glass / Classic | the two interface styles: a window with a behind-window blur / an opaque window |
 | Appearance | Auto, Light or Dark |
