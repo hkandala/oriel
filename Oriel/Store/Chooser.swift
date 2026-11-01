@@ -38,6 +38,8 @@ final class Chooser {
     var starting: Agent?
     /// A kind was picked: the card shows its loader while its pane takes this one's place.
     var opening: PluginManifest?
+    /// The agent's line went into the shell: `oriel agent` and `oriel chat` answer then.
+    @ObservationIgnored var typed = false
 
     init(standIn: String? = nil) {
         self.standIn = standIn
@@ -196,6 +198,7 @@ extension HostStore {
                         }
                         line = next
                         sent = clock.now
+                        chooser.typed = true
                         continue
                     }
                     if let pane = try? await client.pane(id), pane.agent != nil,

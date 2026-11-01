@@ -1,0 +1,107 @@
+import Foundation
+import HerdrKit
+
+extension AgentCommand {
+    /// When each asking pane (machine, session, pane) last notified.
+    @MainActor private static var notified: [String: ContinuousClock.Instant] = [:]
+
+    static let notify = AgentCommand(
+        name: "notify", usage: "notify <title> [<body>] [--pane <pane>]",
+        summary: "Posts a notification on the Mac; a click shows the pane",
+        help: """
+        A click shows this pane, or --pane's, and brings Oriel to the front. One per pane every 10 s. None while the \
+        user turned off Notifications ▸ From Agents ("notified": false).
+        """,
+    ) { call in
+        let target = try call.value("--pane").map(call.target)
+            ?? PaneTarget(session: call.store.session, id: call.pane, machine: call.store.machine)
+        let title = try call.argument("title"), body = try call.optionalArgument() ?? ""
+        try call.done()
+        let (store, pane) = try call.found(target)
+        guard UserDefaults.standard.bool(forKey: Notifications.fromAgents) else {
+            return AgentOutput(["pane": target.id, "notified": false])
+        }
+        let now = ContinuousClock.now, from = "\(call.store.machine.id)|\(call.store.session)|\(call.pane)"
+        notified = notified.filter { now - $0.value < .seconds(10) }
+        guard notified[from] == nil else {
+            throw AgentError(code: "rate_limited", message: "one notification per pane every 10 s")
+        }
+        notified[from] = now
+        try await Notifications.post(title, body, from: call.agent, for: pane, of: store)
+        return AgentOutput(["pane": target.id, "notified": true])
+    }
+
+    static let agent = AgentCommand(
+        name: "agent", usage: "agent <name> [<place>]", summary: "Starts an agent with the chat view in a new pane",
+        help: """
+        <name>: claude, codex, pi or opencode. <place> as for open, but not --replace. It types the agent's line \
+        with Oriel's chat flags, as Start Agent Here does, and answers then, not when the agent is ready.
+        """,
+    ) { call in
+        let place = try call.place()
+        let name = try call.argument("name")
+        try call.done()
+        guard let agent = Chooser.agents.first(where: { $0.command == name }) else {
+            throw AgentError(code: "bad_argument", message: """
+            no agent \(name); there are \(Chooser.agents.map(\.command).joined(separator: ", "))
+            """)
+        }
+        if case .replace = place {
+            throw AgentError.usage("--replace takes a browser or plugin card")
+        }
+        let (store, id) = try await call.newPane(place)
+        let chooser = Chooser()
+        chooser.paneID = id
+        chooser.terminalID = store.pane(id)?.terminalID
+        store.choosers.append(chooser)
+        store.start(agent, chooser)
+        try await store.typed(chooser, "pane \(id) closed before \(agent.name) started")
+        return AgentOutput(["pane": id, "agent": name])
+    }
+
+    static let chat = AgentCommand(
+        name: "chat", usage: "chat <pane>", summary: "Starts an idle agent again with the chat view",
+        help: """
+        Relaunch with Chat: the agent quits and starts again in the same session, with Oriel's flags. It answers when \
+        the line is typed. An agent that works or waits for the user is busy; this pane is self.
+        """,
+    ) { call in
+        let target = try call.target(call.argument("pane"))
+        try call.done()
+        guard target.session != call.store.session || target.id != call.pane else {
+            throw AgentError(code: "self", message: "pane \(target.id) is the asking one: its agent would end first")
+        }
+        let (store, pane) = try call.found(target)
+        let name = pane.agentLabel ?? "the agent"
+        let busy = AgentError(
+            code: "busy",
+            message: "\(name) in pane \(target.id) is \(pane.state == .needsYou ? "waiting for you" : "working")",
+        )
+        guard EnableChat.offered(pane, store) else {
+            if store.chooser(pane.id) != nil {
+                throw busy
+            }
+            let why = ChatAdapters.adapter(pane.agent) == nil ? "runs no agent with a chat view"
+                : ChatAdapters.recognize(pane.program) != nil ? "shows the chat view already"
+                : "has no agent session that herdr knows"
+            throw AgentError(code: "bad_argument", message: "pane \(target.id) \(why)")
+        }
+        guard pane.state != .working, pane.state != .needsYou else { throw busy }
+        // Before it quits: herdr then lets go of the agent.
+        let agent = pane.agent ?? ""
+        store.enableChat(pane)
+        try await store.typed(store.chooser(pane.id), "\(name) did not start again with chat")
+        return AgentOutput(["pane": target.id, "agent": agent])
+    }
+}
+
+extension HostStore {
+    /// Waits until the chooser typed its agent's line; one that ended first (its pane closed, the agent did not quit)
+    /// fails with `failure`.
+    func typed(_ chooser: Chooser?, _ failure: String) async throws {
+        while let chooser, !chooser.typed, choosers.contains(where: { $0 === chooser }) {
+            try await Task.sleep(for: .milliseconds(50))
+        }
+        guard chooser?.typed == true else { throw AgentError(code: "failed", message: failure) }
+    }
+}

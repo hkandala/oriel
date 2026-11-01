@@ -30,6 +30,9 @@ enum AgentCommands {
         .reveal,
         .card,
         .shown,
+        .notify,
+        .agent,
+        .chat,
     ]
 
     /// The script Oriel writes to `~/.cache/oriel/bin/oriel` on each machine it opens a session on.
