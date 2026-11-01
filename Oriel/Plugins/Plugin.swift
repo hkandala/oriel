@@ -277,6 +277,18 @@ extension HostStore.Pane {
 }
 
 extension HostStore {
+    /// A browser or plugin pane with only its shell in front gets its placeholder again, typed into that shell once
+    /// per shell process (plugins/labels#the-placeholder): herdr starts a fresh shell under the label after a restart,
+    /// and a pane labeled outside the app may have none. Never into a pane that runs another program.
+    func keepPlaceholder(_ pane: Pane) {
+        guard let label = pane.plugin, let program = pane.program, program.isShell, !pane.starting,
+              let shell = program.foreground.first?.pid, pane.placed != shell, let client else { return }
+        pane.placed = shell
+        // In place of the shell, so the pane runs only the placeholder; base64, which any login shell passes on.
+        let line = "exec " + SSHExec.envelope(["exec"] + label.placeholder)
+        Task { try? await client.sendInput(line, keys: ["enter"], pane: pane.id) }
+    }
+
     /// A new plugin pane's label, its iid unique in the session.
     func newLabel(_ plugin: PluginManifest, arg: String = "") -> PaneLabel {
         let taken = Set(panes.compactMap { PaneLabel($0.label)?.iid })

@@ -94,6 +94,8 @@ extension HostStore {
         var program: Program?
         /// The card of a plugin not on this Mac shows the pane's placeholder terminal: the user asked for it.
         var placeholder = false
+        /// The shell process the placeholder was typed into (`keepPlaceholder`).
+        @ObservationIgnored var placed: Int?
         /// Relaunch with Chat restarted its agent: the user asked for the chat, so it shows first.
         @ObservationIgnored var relaunched = false
         /// herdr was asked for the program at least once.
@@ -262,6 +264,7 @@ extension HostStore {
             let program = try await client.program(paneID)
             if ask == pane.asks {
                 pane.program = program
+                keepPlaceholder(pane)
             }
         } catch {
             if ask == pane.asks, pane.program == nil {
@@ -305,6 +308,7 @@ extension HostStore {
                     // Its last answer, before it stops starting: a tab title shows "New Tab" until then.
                     pane.program = program ?? pane.program
                     pane.starting = false
+                    keepPlaceholder(pane)
                     if program != nil {
                         return
                     }

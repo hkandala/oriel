@@ -378,8 +378,8 @@ has the exact commands:
    for a rename, so this token's `pane.updated` event makes the app read the
    snapshot at once. Without it the card shows at the next event or the 30 s
    health check.
-4. Optional: `herdr pane run <pane> …` starts the skill's `placeholder.sh` for
-   herdr TUI users.
+4. Nothing more: the app types the placeholder into the labeled pane's shell
+   ([The placeholder](/docs/plugins/labels#the-placeholder)).
 
 To change the address, the agent renames the pane with the same iid and runs
 step 3 again. The open card loads the new page as a new history entry, by the

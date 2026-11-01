@@ -91,16 +91,28 @@ app never passes it.
 
 <Callout title="The label is the truth">
 The placeholder is cosmetic, and the app relies on nothing in it. It shows
-herdr TUI users and devices without the plugin what the pane is. The app never
-types into a shell.
-
-After a cold restart herdr brings the pane back as a plain shell with its
-label: it saves the command but runs it again only after a live update. The
-card works anyway. A fix is an upstream ask
-([Future work](/docs/future-work)). If the placeholder process is killed,
-herdr closes the pane. Closing a browser or plugin pane never asks, because it
-runs only its placeholder (the app knows it by its label).
+herdr TUI users and devices without the plugin what the pane is. If the
+placeholder process is killed, herdr closes the pane. Closing a browser or
+plugin pane never asks, because it runs only its placeholder (the app knows it
+by its label).
 </Callout>
+
+## The placeholder
+
+Every browser and plugin pane runs the placeholder. Two kinds of pane come
+without it: after a cold restart herdr brings each pane back as a plain shell
+with its label (it saves the command, but runs it again only after a live
+update), and a pane that an agent or a person labels by hand has the shell it
+was made with.
+
+- Each time the app learns what a pane runs (`pane.process_info`), a browser
+  or plugin pane with only its shell in front gets the placeholder: the app
+  types `exec` and the placeholder's argv, in the base64 envelope that every
+  login shell passes on ([Running commands](/docs/talking-to-herdr#running-commands)),
+  and Return. The placeholder takes the shell's place, so the pane runs only
+  the placeholder.
+- Once per shell process (its pid). A pane that runs any other program gets
+  nothing typed.
 
 ## Choices
 

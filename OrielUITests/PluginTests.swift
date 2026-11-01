@@ -55,6 +55,24 @@ extension OrielUITests {
         XCTAssertTrue(element("git.\(diff).card").exists)
     }
 
+    /// A plugin pane with only a shell (as herdr brings one back after a restart, or as a pane labeled by hand) gets
+    /// its placeholder typed in, in place of the shell.
+    func testAPluginPaneWithAShellGetsItsPlaceholder() async throws {
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        let reply = try await Self.call(one, "layout.apply", ["workspace_id": "w2", "focus": false, "root": [
+            "type": "pane", "cwd": "/tmp", "label": "oriel:explorer#e2epla /tmp/", "command": ["sh"],
+        ]])
+        let layout = reply["layout"] as? [String: Any]
+        let tab: String = try field(layout?["tab_id"], "layout's tab")
+        let pane: String = try field((layout?["root"] as? [String: Any])?["pane_id"], "layout's pane")
+        closeAfter("tab", tab)
+        try await waitFor(pane, in: nil) { $0.contains("File Explorer") && $0.contains("Shown in Oriel") }
+        let info = try await Self.call(one, "pane.process_info", ["pane_id": pane])
+        let names = ((info["process_info"] as? [String: Any])?["foreground_processes"] as? [[String: Any]] ?? [])
+            .compactMap { $0["name"] as? String }
+        XCTAssertTrue(names.contains("cat"), "\(names)")
+    }
+
     /// A tab per file page made as Oriel makes one (`layout.apply` with the label and a placeholder): its card and
     /// page, Open With on This Mac, the tab's title.
     private func fileCards(in repo: String, root: String) async throws {
