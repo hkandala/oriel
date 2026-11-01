@@ -72,6 +72,18 @@ struct PluginsPanel: View {
     }
 }
 
+/// Whether the New Pane chooser shows a plugin's row, in `settings.json`.
+struct NewPaneSwitch: View {
+    let manifest: PluginManifest
+
+    var body: some View {
+        Toggle("Show in New Pane", isOn: Binding { Registry.inNewPane(manifest) } set: {
+            Registry.show(manifest.id, inNewPane: $0)
+        })
+        .font(.system(size: 11)).foregroundStyle(.secondary).toggleStyle(.switch).controlSize(.mini)
+    }
+}
+
 /// A plugin's icon, name and version, its source, and what it can do here.
 private struct PluginRow: View {
     let row: InstalledPlugin
@@ -92,6 +104,9 @@ private struct PluginRow: View {
                     .accessibilityIdentifier("\(id).source")
             }
             Spacer(minLength: 8)
+            if let manifest = row.manifest, manifest.chooser != nil {
+                NewPaneSwitch(manifest: manifest).accessibilityIdentifier("\(id).new-pane")
+            }
             if let busy = installs.busy[row.id]
                 ?? (DefaultPlugins.shared.installing.contains(row.id) ? "Installing…" : nil)
             {

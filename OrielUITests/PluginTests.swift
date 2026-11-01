@@ -118,8 +118,31 @@ extension OrielUITests {
         app.typeText("open kanban here")
         XCTAssertTrue(element("palette.command.Open Kanban Here").exists(within: 2))
         app.typeKey(.escape, modifierFlags: [])
+        try await hidesFromNewPane(pane, config: config)
         try await missingCard()
         try await send("rm -rf \(config)\r", to: pane)
+    }
+
+    /// The Plugins panel's Show in New Pane, turned off: the chooser has no Kanban row, and settings.json says so.
+    private func hidesFromNewPane(_ shell: String, config: String) async throws {
+        app.menuBars.menuBarItems["Oriel"].click()
+        app.menuBars.menuItems["Plugins…"].click()
+        let toggle = element("plugins.kanban.new-pane")
+        XCTAssertTrue(toggle.exists(within: 5))
+        XCTAssertTrue(element("plugins.explorer.new-pane").exists)
+        keepScreenshot("plugins panel new pane switches")
+        toggle.click()
+        try await send("clear; tr -d ' \\n' < \(config)/settings.json | grep -q '\"hideInNewPane\":\\[\"kanban\"\\]' "
+            + "&& echo hidden-$((6*7))\r", to: shell)
+        try await waitFor(shell) { $0.contains("hidden-42") }
+        app.typeKey(.escape, modifierFlags: [])
+        let before = try await tabIDs()
+        closeNew("tab", besides: before)
+        app.typeKey("t", modifierFlags: .command)
+        let new = try await pane(of: newTabID(after: before))
+        XCTAssertTrue(element("pane.\(new).chooser.notes").exists(within: 3))
+        XCTAssertFalse(element("pane.\(new).chooser.kanban").exists)
+        app.typeKey(.escape, modifierFlags: [])
     }
 
     /// A shell line that writes the config folder: two good packages (one from the settings' local path), a bad

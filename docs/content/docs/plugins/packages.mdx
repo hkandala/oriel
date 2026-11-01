@@ -35,6 +35,9 @@ entry is a source string, or an object with a `source` (pi's form):
   author's: run `npm install` and `npm run build` in its folder.
 - A folder that the user or an agent puts in `~/.config/oriel/plugins/` by
   hand also loads. It is not in `settings.json`.
+- `hideInNewPane` lists the ids of the plugins that the
+  [New pane](/docs/ui/new-pane) chooser leaves out, for example
+  `"hideInNewPane": ["git"]`. The Plugins panel and the trust prompt write it.
 
 ## Install
 
@@ -84,6 +87,10 @@ panel over the window, like Open Session. Esc or a click outside closes it.
   it: "Comes with Oriel", the `npm:` or `git:` source, the local path, or the
   folder. A source in `settings.json` whose folder is missing shows "Not
   installed" with an install button.
+- **Show in New Pane:** a switch on the row of each plugin whose manifest
+  has a `chooser` row. It is on until the user turns it off. Off, the New
+  pane chooser leaves the plugin out, and `settings.json` keeps its id in
+  `hideInNewPane`. ⌘K's Open ‹chooser› Here stays.
 - **The row's buttons:**
 
   | Button | On | Does |

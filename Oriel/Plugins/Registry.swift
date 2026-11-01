@@ -26,6 +26,7 @@ enum Registry {
     /// Observed, so the chooser and the menus show a list read again.
     @Observable final class Current {
         var loaded = load()
+        var hidden = Registry.hidden()
     }
 
     private static let current = Current()
@@ -33,6 +34,24 @@ enum Registry {
     /// Reads every package again: after an install, a removal, or Reload Plugins.
     static func reload() {
         current.loaded = load()
+        current.hidden = hidden()
+    }
+
+    /// Whether the New Pane chooser has a row for it: it declares one, and the user did not turn it off (the Plugins
+    /// panel, the trust prompt).
+    static func inNewPane(_ manifest: PluginManifest) -> Bool {
+        manifest.chooser != nil && !current.hidden.contains(manifest.id)
+    }
+
+    static func show(_ id: String, inNewPane: Bool) {
+        try? PluginPackages.list(id, in: settings, add: !inNewPane, key: hideKey)
+        current.hidden = hidden()
+    }
+
+    private static let hideKey = "hideInNewPane"
+
+    private static func hidden() -> Set<String> {
+        Set(PluginPackages.sources(settings, key: hideKey))
     }
 
     /// File Explorer's extensions by place, read again with every package.
@@ -59,6 +78,8 @@ enum Registry {
     /// `~/.config/oriel`; a test points it elsewhere (`-configFolder`).
     static let config = UserDefaults.standard.string(forKey: "configFolder").map { URL(filePath: $0) }
         ?? FileManager.default.homeDirectoryForCurrentUser.appending(path: ".config/oriel")
+
+    static let settings = config.appending(path: "settings.json")
 
     /// A label's plugin; the words of the five kinds before File Explorer and Git still open.
     static func plugin(_ id: String) -> PluginManifest? {
@@ -191,7 +212,7 @@ enum Registry {
 
     /// The local paths in `settings.json`'s `packages`; npm and git sources install into the plugins folder.
     private static func paths() -> [URL] {
-        PluginPackages.sources(config.appending(path: "settings.json"))
+        PluginPackages.sources(settings)
             .filter { ["/", "~", "."].contains($0.prefix(1)) }.map(local)
     }
 

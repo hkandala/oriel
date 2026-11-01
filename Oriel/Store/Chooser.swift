@@ -24,7 +24,7 @@ final class Chooser {
     }
 
     static var plugins: [Row] {
-        Registry.all.filter { $0.chooser != nil }.map { Row.plugin($0.id) }
+        Registry.all.filter(Registry.inNewPane).map { Row.plugin($0.id) }
     }
 
     @ObservationIgnored let standIn: String?

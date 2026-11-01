@@ -94,6 +94,9 @@ struct TrustPrompt: View {
             }
             .multilineTextAlignment(.center)
             .frame(maxWidth: 360)
+            if manifest.chooser != nil {
+                NewPaneSwitch(manifest: manifest).toggleStyle(.checkbox).accessibilityIdentifier("\(id).new-pane")
+            }
             HStack(spacing: 8) {
                 Button("Don’t Allow") { page.closePane(page.store.pane(plugin.paneID)) }
                     .buttonStyle(.glass).accessibilityIdentifier("\(id).deny")

@@ -238,23 +238,24 @@ public enum PluginPackages {
 
     // MARK: settings.json
 
-    /// The `packages` of `settings.json`: strings, or objects with their `source` (pi's form).
-    public static func sources(_ settings: URL) -> [String] {
-        (read(settings)["packages"] as? [Any] ?? []).compactMap {
+    /// A list of `settings.json`: the `packages`, strings or objects with their `source` (pi's form); or
+    /// `hideInNewPane`, the ids of the plugins the New Pane chooser leaves out.
+    public static func sources(_ settings: URL, key: String = "packages") -> [String] {
+        (read(settings)[key] as? [Any] ?? []).compactMap {
             $0 as? String ?? ($0 as? [String: Any])?["source"] as? String
         }
     }
 
     /// Adds the source to the list (once), or takes it out; the file's other keys stay.
-    public static func list(_ source: String, in settings: URL, add: Bool) throws {
+    public static func list(_ source: String, in settings: URL, add: Bool, key: String = "packages") throws {
         var json = read(settings)
-        var packages = (json["packages"] as? [Any] ?? []).filter {
+        var packages = (json[key] as? [Any] ?? []).filter {
             ($0 as? String ?? ($0 as? [String: Any])?["source"] as? String) != source
         }
         if add {
             packages.append(source)
         }
-        json["packages"] = packages
+        json[key] = packages
         try FileManager.default.createDirectory(at: settings.deletingLastPathComponent(),
                                                 withIntermediateDirectories: true)
         try JSONSerialization.data(withJSONObject: json, options: [.prettyPrinted, .sortedKeys,

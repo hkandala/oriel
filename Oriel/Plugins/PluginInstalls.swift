@@ -12,16 +12,12 @@ final class PluginInstalls {
     /// The last install, update or remove that failed: its text, and the same again.
     var failure: (text: String, retry: (() -> Void)?)?
 
-    static var settings: URL {
-        Registry.config.appending(path: "settings.json")
-    }
-
     static var plugins: URL {
         Registry.config.appending(path: "plugins")
     }
 
     var rows: [InstalledPlugin] {
-        let sources = PluginPackages.sources(Self.settings)
+        let sources = PluginPackages.sources(Registry.settings)
         let pairs = sources.compactMap { text in PluginSource(text)?.folder.map { ($0, text) } }
         let installed = Dictionary(pairs) { first, _ in first }
         let plugins = Registry.all.filter { $0.id != Registry.browser.id }.map { manifest -> InstalledPlugin in
@@ -50,7 +46,7 @@ final class PluginInstalls {
             failure = ("Enter npm:<package>, git:<repository> or a folder’s path", nil)
             return
         }
-        if let folder = source.folder, !PluginPackages.sources(Self.settings).contains(text),
+        if let folder = source.folder, !PluginPackages.sources(Registry.settings).contains(text),
            FileManager.default.fileExists(atPath: Self.plugins.appending(path: folder).path)
         {
             failure = ("A plugin folder named \(folder) is already installed", nil)
@@ -85,12 +81,12 @@ final class PluginInstalls {
         guard await ask("Remove “\((row.manifest?.name ?? row.id).shown)”?", text, button: "Remove") else { return }
         await run(row.id, "Removing…") {
             if case let .installed(text) = row.kind {
-                try PluginPackages.list(text, in: Self.settings, add: false)
+                try PluginPackages.list(text, in: Registry.settings, add: false)
             }
             if case let .local(path) = row.kind {
-                let listed = PluginPackages.sources(Self.settings).first { Registry.local($0).path == path }
+                let listed = PluginPackages.sources(Registry.settings).first { Registry.local($0).path == path }
                 if let listed {
-                    try PluginPackages.list(listed, in: Self.settings, add: false)
+                    try PluginPackages.list(listed, in: Registry.settings, add: false)
                 }
             } else if let folder = Registry.package(row.id) {
                 try FileManager.default.trashItem(at: folder, resultingItemURL: nil)
@@ -198,7 +194,7 @@ final class PluginInstalls {
 
     /// Listed and trusted once it is in place, then its cards load again.
     private func installed(_ manifest: PluginManifest, _ source: String) throws {
-        try PluginPackages.list(source, in: Self.settings, add: true)
+        try PluginPackages.list(source, in: Registry.settings, add: true)
         PluginTrust.shared.allow(manifest)
         Task { await Plugin.reload(manifest.id, build: false) }
     }
@@ -206,15 +202,26 @@ final class PluginInstalls {
     /// The trust prompt at install: the source and what the plugin can do. A new source always asks; an update only
     /// when its permissions grew.
     private func trusts(_ manifest: PluginManifest, from source: String, folder: URL) async -> Bool {
-        let new = !PluginPackages.sources(Self.settings).contains(source)
+        let new = !PluginPackages.sources(Registry.settings).contains(source)
         guard new || !PluginTrust.shared.allows(manifest) else { return true }
         let text = ["\(manifest.id) \(manifest.version.shown) from \(source)", manifest.description.shown,
                     PluginTrust.words(manifest, folder: folder).joined(separator: " ")].filter { !$0.isEmpty }
-        return await ask("Trust “\(manifest.name.shown)”?", text.joined(separator: "\n\n"), button: "Install")
+        let alert = NSAlert()
+        // Its row in the New Pane chooser, on unless the user turned it off before.
+        if manifest.chooser != nil {
+            alert.showsSuppressionButton = true
+            alert.suppressionButton?.title = "Show in New Pane"
+            alert.suppressionButton?.state = Registry.inNewPane(manifest) ? .on : .off
+        }
+        guard await ask("Trust “\(manifest.name.shown)”?", text.joined(separator: "\n\n"), button: "Install",
+                        alert: alert) else { return false }
+        if let box = alert.suppressionButton, alert.showsSuppressionButton {
+            Registry.show(manifest.id, inNewPane: box.state == .on)
+        }
+        return true
     }
 
-    private func ask(_ title: String, _ text: String, button: String) async -> Bool {
-        let alert = NSAlert()
+    private func ask(_ title: String, _ text: String, button: String, alert: NSAlert = NSAlert()) async -> Bool {
         alert.messageText = title
         alert.informativeText = text
         alert.addButton(withTitle: button)

@@ -124,6 +124,9 @@ private func package(_ folder: URL, version: String, extra: [String: Any] = [:])
     #expect(PluginPackages.sources(settings) == ["./b", "npm:a"])
     try PluginPackages.list("./b", in: settings, add: false)
     #expect(PluginPackages.sources(settings) == ["npm:a"])
+    try PluginPackages.list("git", in: settings, add: true, key: "hideInNewPane")
+    #expect(PluginPackages.sources(settings, key: "hideInNewPane") == ["git"])
+    #expect(PluginPackages.sources(settings) == ["npm:a"])
     let json = try JSONSerialization.jsonObject(with: Data(contentsOf: settings)) as? [String: Any]
     #expect(json?["theme"] as? String == "x")
 }
