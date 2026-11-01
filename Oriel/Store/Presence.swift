@@ -2,7 +2,7 @@ import AppKit
 import HerdrKit
 
 /// Oriel marks the panes it shows, so a tool in one knows a click there came through Oriel and asks it to float a
-/// pane instead of opening herdr's popup (talking-to-herdr#float-requests), and each workspace of a session it follows
+/// pane instead of opening herdr's popup (talking-to-herdr#agent-requests), and each workspace of a session it follows
 /// (`oriel-open`), so `oriel status` knows an Oriel takes its requests (agent-control#is-my-pane-in-oriel).
 extension HostStore {
     /// The app quits: no pane is shown any more.
@@ -30,18 +30,23 @@ extension HostStore {
             || !windows.contains { $0.visible && $0.current?.store === self }
     }
 
-    /// Marks its panes in view of a visible window, the shown tab of its page in view there and its floats, and
-    /// clears the ones no longer so: the changes, or every one again (`refresh`; a mark lasts 30 s, so an app
-    /// that crashed stops claiming its panes). One batch after the other, so a quick hide and show of a pane
-    /// cannot land out of order.
-    func markShown(refresh: Bool = false) {
-        _ = (Self.refresh, Self.inputs, Self.input)
-        guard let client else { return }
-        let shown = Self.quitting ? [] : Set(windows.filter(\.visible).flatMap { window in
+    /// Its panes in view of a visible window: the shown tab of its page in view there, and its floats. What
+    /// `oriel-shown` marks and what agents are told.
+    var inView: Set<String> {
+        Set(windows.filter(\.visible).flatMap { window in
             window.withFloats.filter { $0.store === self }.flatMap { page in
                 page === window.current ? Array(page.shownTerminals.values) : panes.filter(page.floats).map(\.id)
             }
         })
+    }
+
+    /// Marks its panes in view, and clears the ones no longer so: the changes, or every one again (`refresh`; a
+    /// mark lasts 30 s, so an app that crashed stops claiming its panes). One batch after the other, so a quick hide
+    /// and show of a pane cannot land out of order.
+    func markShown(refresh: Bool = false) {
+        _ = (Self.refresh, Self.inputs, Self.input)
+        guard let client else { return }
+        let shown = Self.quitting ? [] : inView
         let changes = (refresh ? shown : shown.subtracting(marked)).map { ($0, true) }
             + marked.subtracting(shown).map { ($0, false) }
         marked = shown

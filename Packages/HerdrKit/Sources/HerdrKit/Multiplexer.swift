@@ -22,7 +22,7 @@ public protocol Multiplexer: Sendable {
 
     /// One pane now: its cwd follows a `cd` that no event reports.
     func pane(_ paneID: String) async throws -> Pane
-    /// Marks the pane as shown to the user, for 30 s, or clears the mark (talking-to-herdr#float-requests).
+    /// Marks the pane as shown to the user, for 30 s, or clears the mark (talking-to-herdr#agent-requests).
     func mark(_ paneID: String, shown: Bool) async throws
     /// Marks the workspace as followed by Oriel, for 30 s, or clears the mark (agent-control#is-my-pane-in-oriel).
     func mark(workspace workspaceID: String, open: Bool) async throws

@@ -23,7 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         Task { await DefaultPlugins.shared.install() }
     }
 
-    /// Oriel's marks on the panes it shows go first (talking-to-herdr#float-requests).
+    /// Oriel's marks on the panes it shows go first (talking-to-herdr#agent-requests).
     func applicationShouldTerminate(_ app: NSApplication) -> NSApplication.TerminateReply {
         Task {
             await HostStore.unmarkAll()

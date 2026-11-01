@@ -266,15 +266,6 @@ extension AgentCall {
 }
 
 extension HostStore {
-    /// Its panes in view of a visible window: in the shown tab of its page in view there, or floating.
-    var inView: Set<String> {
-        Set(windows.filter { $0.visible && $0.current?.store === self }.compactMap(\.current).flatMap { page in
-            // A zoomed card hides the others.
-            page.zoomedPaneID.flatMap { pane($0)?.tabID == page.selectedTab?.id ? [$0] : nil }
-                ?? panes(in: page.selectedTab?.id).map(\.id)
-        }).union(floatingPanes)
-    }
-
     /// Its panes that float in a window of their own, over a visible window.
     var floatingPanes: Set<String> {
         Set(windows.filter(\.visible).flatMap(\.withFloats).filter { $0.store === self }

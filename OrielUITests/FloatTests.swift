@@ -296,7 +296,7 @@ extension OrielUITests {
         XCTAssertFalse(left.isEmpty)
     }
 
-    /// talking-to-herdr#float-requests: the panes in view carry `oriel-shown`; a float request on one, as pi-herd
+    /// talking-to-herdr#agent-requests: the panes in view carry `oriel-shown`; a float request on one, as pi-herd
     /// sends it, floats the pane it names (of a session with no page), which is marked too; panes out of view, a
     /// detached float's and, at quit, every pane lose their mark. The remote one:
     /// testARemoteMachinesPanesAreMarkedAndFloatThere.
