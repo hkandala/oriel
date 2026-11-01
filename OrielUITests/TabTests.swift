@@ -56,6 +56,7 @@ extension OrielUITests {
     /// two-finger swipe and a wheel turned sideways (XCUITest's scroll).
     func testSidewaysScrollsReachAWidePage() async throws {
         let (tab, pane) = try await newTab("wide")
+        element("tab.\(tab)").click()
         try await waitForPrompt(pane)
         // The title tells the page's sideways scroll.
         let file = "/tmp/oriel-e2e-wide.html"
