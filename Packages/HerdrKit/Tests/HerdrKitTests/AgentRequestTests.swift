@@ -70,17 +70,20 @@ private func mailbox() throws -> (ProcessExec, URL) {
     let (exec, home) = try mailbox()
     defer { try? FileManager.default.removeItem(at: home) }
     let script = home.appending(path: ".cache/oriel/bin/oriel")
-    let ours = Data("#!/bin/sh\n# oriel-cli \(AgentRequest.version)\necho ours\n".utf8)
+    let ours = Data("#!/bin/sh\n# oriel-cli 1.2\necho ours\n".utf8)
     await exec.prepareAgent(script: ours)
     #expect(try Data(contentsOf: script) == ours)
     #expect(FileManager.default.isExecutableFile(atPath: script.path))
 
-    let newer = Data("#!/bin/sh\n# oriel-cli \(AgentRequest.version + 1)\n".utf8)
-    try newer.write(to: script)
-    await exec.prepareAgent(script: ours)
-    #expect(try Data(contentsOf: script) == newer)
-
-    try Data("#!/bin/sh\n# oriel-cli 0\n".utf8).write(to: script)
-    await exec.prepareAgent(script: ours)
-    #expect(try Data(contentsOf: script) == ours)
+    for newer in ["1.3", "2", "2.0"] {
+        let theirs = Data("#!/bin/sh\n# oriel-cli \(newer)\n".utf8)
+        try theirs.write(to: script)
+        await exec.prepareAgent(script: ours)
+        #expect(try Data(contentsOf: script) == theirs, "\(newer)")
+    }
+    for older in ["1", "1.1", "0.9", "x"] {
+        try Data("#!/bin/sh\n# oriel-cli \(older)\n".utf8).write(to: script)
+        await exec.prepareAgent(script: ours)
+        #expect(try Data(contentsOf: script) == ours, "\(older)")
+    }
 }

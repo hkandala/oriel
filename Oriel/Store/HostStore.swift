@@ -172,13 +172,18 @@ final class HostStore {
                     notice = nil
                     // State files of plugin panes closed elsewhere (plugins/api#state), and the `oriel` command.
                     Task { [machine, session] in await machine.exec().pruneState(session: session) }
-                    Task { await prepareAgent() }
+                    Task { [machine] in
+                        if let script = AgentCommands.script {
+                            await machine.exec().prepareAgent(script: script)
+                        }
+                    }
                     await loadSessions()
                 }
             case let .copy(text):
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(text, forType: .string)
             case let .request(id, pane):
+                // ponytail: not cancelled with the store; its runs' timeouts and the float's 8 s wait end it.
                 Task { await answer(request: id, from: pane) }
             case let .float(request):
                 WindowPages.float(session: request.session, pane: request.pane, machine: machine.id,

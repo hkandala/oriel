@@ -47,17 +47,18 @@ public struct AgentRequest: Equatable, Sendable {
 public extension Exec {
     /// When a session opens on the machine: makes the folders, removes mailbox files older than 60 minutes and reads
     /// the script's version; a second run writes `script` when the machine's is missing or older, never over a newer
-    /// one (agent-control/remote).
+    /// one (agent-control/remote). The version is the second line's `# oriel-cli ‹protocol›.‹revision›`: a fixed
+    /// script gets a new revision and replaces the old one without a new protocol.
     func prepareAgent(script: Data) async {
         let line = try? await output(["sh", "-c", #"""
         d=$HOME/.cache/oriel; mkdir -p "$d/bin" "$d/rpc" && chmod 700 "$d/rpc" &&
         find "$d/rpc" -type f -mmin +60 -exec rm -f {} + ; sed -n 2p "$d/bin/oriel" 2>/dev/null
         """#])
-        guard let line else { return }
-        let theirs = line.hasPrefix("# oriel-cli ") ? Int(line.dropFirst(12)) ?? 0 : 0
-        guard theirs < AgentRequest.version else { return }
-        await succeeds(#"f=$HOME/.cache/oriel/bin/oriel; base64 -d >"$f.$$" && chmod 755 "$f.$$" && mv "$f.$$" "$f""#,
-                       [], input: base64Lines(script))
+        let ours = String(decoding: script, as: UTF8.self).split(separator: "\n").dropFirst().first.map(String.init)
+        guard let line, scriptVersion(line).lexicographicallyPrecedes(scriptVersion(ours ?? "")) else { return }
+        await succeeds(#"""
+        f=$HOME/.cache/oriel/bin/oriel; base64 -d >"$f.$$" && chmod 755 "$f.$$" && mv "$f.$$" "$f" || rm -f "$f.$$"
+        """#, [], input: base64Lines(script))
     }
 
     /// Takes the request: renames `‹id›.req` to `‹id›.run` and reads it, at most one byte over the limit. Nil when
@@ -90,4 +91,10 @@ public extension Exec {
         printf '%s\n%s' "$2" "$3" >"$1.e" && mv "$1.e" "$1.exit"; s=$?; rm -f "$1.run" "$1.in"; exit $s
         """#, "sh", id, "\(code)", err], input: base64Lines(out), timeout: .seconds(30))
     }
+}
+
+/// `# oriel-cli 1.1` as [1, 1]; none for another line.
+private func scriptVersion(_ line: String) -> [Int] {
+    guard line.hasPrefix("# oriel-cli ") else { return [] }
+    return line.dropFirst(12).split(separator: ".").map { Int($0) ?? 0 }
 }

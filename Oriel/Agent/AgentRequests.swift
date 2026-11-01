@@ -33,10 +33,4 @@ extension HostStore {
             Self.log.error("answer to \(id) failed: \(error.localizedDescription)")
         }
     }
-
-    /// The script and the mailbox on the store's machine, when its session opens.
-    func prepareAgent() async {
-        guard let script = AgentCommands.script else { return }
-        await machine.exec().prepareAgent(script: script)
-    }
 }

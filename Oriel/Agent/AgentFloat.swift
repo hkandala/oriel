@@ -16,14 +16,17 @@ extension AgentCommand {
         guard let window = call.store.windows.first else {
             throw AgentError(code: "failed", message: "no window shows herdr session \(call.store.session)")
         }
-        let existing = target.floating(on: machine) != nil
+        let existing = target.floating != nil
         WindowPages.float(session: target.session, pane: target.id, machine: machine.id, over: window)
         // A session with no page opens a float-only one, which floats the pane once it connects.
-        var floating = target.floating(on: machine)
+        var floating = target.floating
         let end = ContinuousClock.now + .seconds(8)
         while floating == nil, window.floatPending != nil, end > .now {
             try await Task.sleep(for: .milliseconds(50))
-            floating = target.floating(on: machine)
+            floating = target.floating
+        }
+        if floating == nil, case let .failed(error) = target.store?.state {
+            throw error
         }
         guard let (page, terminalID) = floating else {
             throw AgentError(
@@ -43,7 +46,7 @@ extension AgentCommand {
     ) { call in
         let target = try call.target(call.argument("pane"))
         try call.done()
-        guard let (page, terminalID) = target.floating(on: call.store.machine) else {
+        guard let (page, terminalID) = target.floating else {
             throw AgentError(code: "not_floating", message: "pane \(target.id) does not float")
         }
         page.floating[terminalID] = nil
@@ -65,10 +68,9 @@ extension AgentCommand {
     }
 }
 
-@MainActor
 extension PaneTarget {
     /// The page whose window floats the pane, and its terminal.
-    func floating(on machine: Machine) -> (Page, String)? {
+    var floating: (Page, String)? {
         for page in WindowPages.windows.flatMap(\.withFloats)
             where page.store.session == session && page.store.machine.id == machine.id
         {

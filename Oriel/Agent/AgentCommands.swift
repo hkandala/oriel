@@ -38,13 +38,11 @@ enum AgentCommands {
         let json = argv.contains("--json")
         var call = AgentCall(store: store, pane: pane, cwd: cwd, id: id, args: argv.filter { $0 != "--json" })
         do {
-            guard let name = call.args.first else {
-                throw AgentError.usage("no command; `oriel help` lists them")
-            }
+            // No command is `help`.
+            let name = call.args.isEmpty ? "help" : call.args.removeFirst()
             guard let command = all.first(where: { $0.name == name }) else {
                 throw AgentError(code: "unknown_command", message: "no command \(name); `oriel help` lists them")
             }
-            call.args.removeFirst()
             let output = try await command.run(&call)
             return AgentAnswer(code: 0, out: json ? output.jsonData : Data(output.text.utf8), err: "")
         } catch {
@@ -87,10 +85,10 @@ struct AgentOutput {
     let json: Any
     let text: String
 
-    /// The text is `json`'s fields as `name: value` lines when none is given.
-    init(_ json: [String: Any], text: String? = nil) {
+    /// Without a text, a dictionary's fields as `name: value` lines.
+    init(_ json: Any, text: String? = nil) {
         self.json = json
-        self.text = text ?? json.sorted { $0.key < $1.key }.map { key, value in
+        self.text = text ?? (json as? [String: Any] ?? [:]).sorted { $0.key < $1.key }.map { key, value in
             "\(key): \((value as? [Any])?.map { "\($0)" }.joined(separator: ", ") ?? "\(value)")\n"
         }.joined()
     }
@@ -154,19 +152,17 @@ struct AgentCall {
     func target(_ argument: String) throws -> PaneTarget {
         let parts = argument.split(separator: "/", maxSplits: 1, omittingEmptySubsequences: false).map(String.init)
         let (session, id) = parts.count == 2 ? (parts[0], parts[1]) : (store.session, argument)
-        guard !id.isEmpty, !id.hasPrefix("-"), !id.contains("/"),
+        guard !id.isEmpty, !id.hasPrefix("-"), !id.contains("/"), Session.isValidName(session),
               !id.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains)
         else { throw AgentError(code: "bad_argument", message: "\(argument) is not a pane") }
-        guard session == store.session || Session.isValidName(session) && store.sessions.contains(where: {
-            $0.name == session && $0.running
-        }) else {
+        guard session == store.session || store.sessions.contains(where: { $0.name == session && $0.running }) else {
             throw AgentError(
                 code: "pane_not_found",
                 message: "no herdr session \(session) runs on \(store.machine.name)",
             )
         }
-        let target = PaneTarget(session: session, id: id)
-        if let found = target.store(on: store.machine), found.state == .live, found.pane(id) == nil {
+        let target = PaneTarget(session: session, id: id, machine: store.machine)
+        if let found = target.store, found.state == .live, found.pane(id) == nil {
             throw AgentError(code: "pane_not_found", message: "pane \(id) is not in herdr session \(session)")
         }
         return target
@@ -174,12 +170,14 @@ struct AgentCall {
 }
 
 /// A pane that a command names, on the asking pane's machine.
+@MainActor
 struct PaneTarget {
     let session: String
     let id: String
+    let machine: Machine
 
     /// Its session's store, when Oriel follows it.
-    @MainActor func store(on machine: Machine) -> HostStore? {
+    var store: HostStore? {
         HostStore.all.first { $0.session == session && $0.machine.id == machine.id }
     }
 }
@@ -190,8 +188,10 @@ extension AgentCommand {
     ) { call in
         let name = try call.optionalArgument()
         try call.done()
+        // `status` too, which the script answers by itself.
+        let all = [.status] + AgentCommands.all
         if let name {
-            guard let command = AgentCommands.all.first(where: { $0.name == name }) else {
+            guard let command = all.first(where: { $0.name == name }) else {
                 throw AgentError(code: "unknown_command", message: "no command \(name); `oriel help` lists them")
             }
             let text = "usage: oriel \(command.usage)\n\n\(command.summary).\n"
@@ -199,8 +199,7 @@ extension AgentCommand {
             return AgentOutput(["name": command.name, "usage": command.usage, "summary": command.summary,
                                 "help": command.help], text: text)
         }
-        let commands = [("status [--json | --watch]", "Says if Oriel shows this pane, from herdr alone")]
-            + AgentCommands.all.map { ($0.usage, $0.summary) }
+        let commands = all.map { ($0.usage, $0.summary) }
         let width = commands.map(\.0.count).max() ?? 0
         let text = """
         usage: oriel [--pane <pane>] [--timeout <seconds>] <command> [<args>] [--json]
@@ -215,6 +214,12 @@ extension AgentCommand {
             ["name": $0.name, "usage": $0.usage, "summary": $0.summary]
         }], text: text)
     }
+
+    /// Only for `help`: the script answers it from herdr's tokens and never sends it.
+    static let status = AgentCommand(
+        name: "status", usage: "status [--json | --watch]", summary: "Says if Oriel shows this pane, from herdr alone",
+        help: "Exit 0 when an Oriel follows the session, 3 when none does. --watch prints a line on each change.",
+    ) { _ in throw AgentError.usage("the script answers status") }
 
     static let info = AgentCommand(
         name: "info", usage: "info", summary: "What this Oriel offers: version, protocol, commands, agents",

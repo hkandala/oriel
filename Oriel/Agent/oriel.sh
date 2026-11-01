@@ -1,16 +1,21 @@
 #!/bin/sh
-# oriel-cli 1
+# oriel-cli 1.1
 # Written by Oriel: asks the Oriel that follows this herdr session. Oriel parses the arguments.
 # https://github.com/hkandala/oriel/blob/main/docs/content/docs/future-work/agent-control/cli.mdx
-herdr=${HERDR_BIN_PATH:-herdr} session=${HERDR_SESSION:-default} pane=${HERDR_PANE_ID:-} timeout=10
+herdr=${HERDR_BIN_PATH:-herdr} session=${HERDR_SESSION:-default} pane=${HERDR_PANE_ID:-} timeout=10 json=
 dir=$HOME/.cache/oriel/rpc
+usage() { echo "oriel: $1" >&2 && exit 2; }
 while :; do
     case ${1:-} in
-    --pane) pane=$2 && shift 2 ;;
-    --timeout) timeout=$2 && shift 2 ;;
+    --pane) [ $# -ge 2 ] || usage "--pane needs a pane"; pane=$2 && shift 2 ;;
+    --timeout) [ $# -ge 2 ] || usage "--timeout needs whole seconds"; timeout=$2 && shift 2 ;;
+    --json) json=--json && shift ;;
     *) break ;;
     esac
 done
+case $timeout in '' | *[!0-9]*) usage "--timeout takes whole seconds" ;; esac
+# A --json before the command goes after it, so $1 is the command.
+set -- "$@" $json
 [ -n "$pane" ] || { echo "oriel: run me in a herdr pane, or pass --pane" >&2 && exit 5; }
 h() { "$herdr" --session "$session" "$@" 2>/dev/null; }
 

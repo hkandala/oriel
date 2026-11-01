@@ -35,7 +35,7 @@ extension HostStore {
     /// that crashed stops claiming its panes). One batch after the other, so a quick hide and show of a pane
     /// cannot land out of order.
     func markShown(refresh: Bool = false) {
-        _ = (Self.refresh, Self.inputs)
+        _ = (Self.refresh, Self.inputs, Self.input)
         guard let client else { return }
         let shown = Self.quitting ? [] : Set(windows.filter(\.visible).flatMap { window in
             window.withFloats.filter { $0.store === self }.flatMap { page in
@@ -53,11 +53,12 @@ extension HostStore {
         guard !changes.isEmpty || !opens.isEmpty else { return }
         marking = Task { [marking] in
             await marking?.value
-            for (pane, shown) in changes {
-                try? await client.mark(pane, shown: shown)
-            }
+            // First: at quit, `oriel status` reads them, and the 1 s wait may cut the rest.
             for (workspace, open) in opens {
                 try? await client.mark(workspace: workspace, open: open)
+            }
+            for (pane, shown) in changes {
+                try? await client.mark(pane, shown: shown)
             }
         }
     }

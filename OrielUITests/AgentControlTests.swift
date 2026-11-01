@@ -6,8 +6,9 @@ extension OrielUITests {
     /// The script that Oriel writes on each machine it opens a session on.
     static let orielCommand = "~/.cache/oriel/bin/oriel"
 
-    /// status from herdr's tokens, float and unfloat with their windows, copy onto the clipboard, a usage error; once
-    /// Oriel quits, its marks go and the command exits 3.
+    /// status from herdr's tokens, float and unfloat with their windows (also of a session with no page, whose
+    /// workspaces are marked while it floats), errors as text and JSON, copy onto the clipboard; once Oriel quits, its
+    /// marks go and the command exits 3.
     func testTheOrielCommandFloatsCopiesAndSaysWhereItIs() async throws {
         let (tab, first) = try await newTab("oriel")
         let second = try await split(first)
@@ -26,6 +27,13 @@ extension OrielUITests {
         try await run("\(oriel) unfloat \(second)", in: first, "unfloat", 0, "floating: false")
         XCTAssertTrue(window.vanishes(within: 3))
         try await run("\(oriel) unfloat \(second)", in: first, "not", 1, "oriel: pane \(second) does not float")
+        // `tr`: the JSON is wider than the pane.
+        try await run("\(oriel) --json unfloat \(second) | tr , '\\n'", in: first, "json", 0,
+                      #"{"error":{"code":"not_floating""#)
+        try await run("\(oriel) float \(two)/w1:p1", in: first, "other", 0, "floating: true")
+        try await expectOpen("w1", in: two)
+        try await run("\(oriel) unfloat \(two)/w1:p1", in: first, "back", 0, "floating: false")
+        try await expectOpen("w1", false, in: two)
         try await run("\(oriel) float", in: first, "usage", 2, "oriel: missing <pane>")
 
         keepClipboard()
@@ -37,7 +45,7 @@ extension OrielUITests {
         XCTAssertTrue(app.wait(for: .notRunning, timeout: 5))
         try await expectOpen("w2", false)
         try await run("\(oriel) status", in: first, "gone", 3, "Not in Oriel")
-        try await run("\(oriel) info", in: first, "none", 3, "oriel: no Oriel shows herdr session \(one)")
+        try await run("\(oriel) info", in: first, "none", 3, "oriel: no Oriel shows")
     }
 
     /// The `oriel` command on Key Host (RemoteTests' sshd, CI only): Oriel writes the script there, hears the ring over
@@ -45,6 +53,9 @@ extension OrielUITests {
     /// from that machine's mailbox and floats the pane in this Mac's window.
     func testTheOrielCommandWorksOnARemoteMachine() async throws {
         try await skipWithoutSSH()
+        // CI's sshd has this Mac's home: an older script that only the Key Host store can replace.
+        try await waitForPrompt("w1:p1")
+        try await run("printf '#!/bin/sh\\n# oriel-cli 0\\n' >\(Self.orielCommand)", in: "w1:p1", "old", 0)
         relaunch(one, ["-machines", Self.keyHost, "-machine", "e2e-key"])
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         try await waitForPrompt("w1:p1")
@@ -60,7 +71,7 @@ extension OrielUITests {
     }
 
     /// Types the command in the pane, then `echo ‹marker›-$?`: waits for the marker with the exit code, and checks the
-    /// lines the command printed.
+    /// lines the command printed, each by its start: a line wider than the pane wraps (CI's are about 50 columns).
     func run(_ command: String, in pane: String, _ marker: String, _ code: Int, _ lines: String...) async throws {
         try await send("\(command); echo \(marker)-$((6*7))-$?\r", to: pane)
         // Exit 3 comes after the 3 s the command waits for a take.
@@ -73,9 +84,9 @@ extension OrielUITests {
     }
 
     /// The workspace carries Oriel's `oriel-open` mark, or not.
-    func expectOpen(_ workspace: String, _ open: Bool = true) async throws {
+    func expectOpen(_ workspace: String, _ open: Bool = true, in session: String? = nil) async throws {
         try await expect("\(workspace) marked \(open ? "" : "not ")open") {
-            let info = try await Self.call(one, "workspace.get", ["workspace_id": workspace])["workspace"]
+            let info = try await Self.call(session ?? one, "workspace.get", ["workspace_id": workspace])["workspace"]
             return ((info as? [String: Any])?["tokens"] as? [String: String])?["oriel-open"] == (open ? "1" : nil)
         }
     }
