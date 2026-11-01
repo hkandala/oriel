@@ -34,7 +34,7 @@ public enum Files {
     /// `git status --ignored` walked the whole repository (seconds in a big one) at each listing.
     public static func list(_ folder: String, git: Bool, exec: any Exec) async throws -> [FileEntry] {
         // Links to folders are folders; a name may hold a line break. The ignored names come after an empty one; none
-        // outside a repository.
+        // outside a repository. Each name is asked as `./name`: git reads them as pathspecs, so `:foo` would be `foo`.
         let script = #"""
         cd "$1" || exit
         for f in * .[!.]* ..?*; do
@@ -42,14 +42,14 @@ public enum Files {
         done
         [ "$2" ] || exit 0
         printf '\0'
-        for f in * .[!.]* ..?*; do [ -e "$f" ] || [ -h "$f" ] && printf '%s\0' "$f"; done |
+        for f in * .[!.]* ..?*; do [ -e "$f" ] || [ -h "$f" ] && printf './%s\0' "$f"; done |
           git --no-optional-locks check-ignore -z --stdin 2>/dev/null
         exit 0
         """#
         let parts = try await exec.checkedOutput(["sh", "-c", script, "sh", folder, git ? "git" : ""])
             .split(separator: "\0", omittingEmptySubsequences: false)
         let empty = parts.firstIndex(of: "") ?? parts.endIndex
-        let ignored = Set(parts[empty...].filter { !$0.isEmpty })
+        let ignored = Set(parts[empty...].filter { !$0.isEmpty }.map { $0.hasPrefix("./") ? $0.dropFirst(2) : $0 })
         return parts[..<empty].filter { $0 != ".git/" && $0 != ".git" }.map { name in
             let isFolder = name.hasSuffix("/")
             let name = isFolder ? name.dropLast() : name

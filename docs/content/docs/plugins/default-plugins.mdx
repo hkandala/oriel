@@ -249,11 +249,12 @@ selection in the accent at 24 %. A 6 pt gap sits under the header.
 - **Row 2:** Back and Forward, the root, the filter field ("Filter"), then
   **Collapse All** and **Show Hidden Files** (`eye`).
 - **The root** is a path field, like the browser's address. At rest it shows
-  the root's path with the home as `~`, and its last parts when it is long
-  (`…/code/oriel`). A click shows the whole path, selected. Return goes there:
-  the tree rooted at that folder becomes the card's next place. A path that
-  is no folder makes the field shake; the typed path stays. Esc puts the root
-  back. The folder icon before the path is **Choose Folder…**: the folder
+  the root's path with the home as `~`, cut at the start when it is long
+  (`…ode/oriel`). A click shows the whole path, selected. Return goes there,
+  with `.`, `..` and `//` resolved: the tree rooted at that folder becomes the
+  card's next place. A path that is no folder makes the field shake (a beep
+  with Reduce Motion); the typed path stays. Esc puts the root back. On a
+  remote machine the field takes only absolute paths. The folder icon before the path is **Choose Folder…**: the folder
   panel on This Mac, a "Go to Folder" field on a remote machine (`~` is the
   home folder there). A folder's own menu has **Open as Root**.
 - **`..`** is the first row, except at `/`. A double-click on it makes the

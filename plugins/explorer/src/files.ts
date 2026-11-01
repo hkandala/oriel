@@ -10,12 +10,7 @@ const STATUS: Record<string, GitStatus> = {
 const parent = (path: string) => path.slice(0, path.lastIndexOf("/", path.length - 2) + 1)
 
 /** As Finder's list and Xcode's navigator draw them: a thin disclosure chevron (the tree turns it), `folder.fill` in
- *  the Finder's folder blue; files take the tree's own icons by type. */
-const svg = (body: string) =>
-  `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">${body}</svg>`)}")`
-const FOLDER = svg(`<path d="M1.5 4.3c0-.7.6-1.3 1.3-1.3h3.4c.3 0 .6.1.9.4L8.2 4.5h5c.7 0 1.3.6 1.3 1.3v6.4c0 .7-.6 1.3-1.3 1.3H2.8c-.7 0-1.3-.6-1.3-1.3z"/>`)
-/** The Finder's folder icon (`NSWorkspace.icon(for: .folder)`), top to bottom, the same in light and dark. */
-const FOLDER_BLUE = "linear-gradient(#76d0f6, #52b9e8)"
+ *  the Finder's folder blue (files.css); files take the tree's own icons by type. */
 const sprite = `<svg data-icon-sprite aria-hidden="true" width="0" height="0">
   <symbol id="oriel-chevron" viewBox="0 0 16 16"><path d="M4.5 6.25 8 9.75l3.5-3.5" fill="none" stroke="currentColor"
     stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
@@ -52,7 +47,7 @@ const look = {
   [data-type="item"] > [data-item-section="icon"] { width: 34px; justify-content: flex-end; color: var(--dim); }
   [data-item-type="folder"] > [data-item-section="icon"] { justify-content: space-between; }
   [data-item-type="folder"] > [data-item-section="icon"]::after { content: ""; flex: none; width: 16px; height: 16px;
-    background: ${FOLDER_BLUE}; -webkit-mask: ${FOLDER} center / 16px no-repeat; }
+    background: var(--folder-blue); -webkit-mask: var(--folder) center / 16px no-repeat; }
   [data-item-selected="true"] > [data-item-section="icon"] { color: var(--dim); }`,
 }
 /** Whether a name is a dotfile's, which the tree hides unless row 2's Hidden Files is on. */
@@ -70,9 +65,8 @@ export async function show(place: Place): Promise<Reveal> {
   /** A typed path, or the folder Choose Folder… picks (no path: the field's folder button): the tree rooted there,
    *  as the card's next place. A path that is no folder shakes the field. */
   const move = async (path?: string) => {
-    const picked = path ?? (await oriel.pick.folder(top))
-    if (!picked) return
-    const root = picked.replace(/(.)\/+$/, "$1")
+    const root = path ?? (await oriel.pick.folder(top))
+    if (!root) return
     if (!(await oriel.files.info(root).then((info) => info.folder, () => false))) {
       return oriel.controls.set("root", { refused: true })
     }
@@ -99,7 +93,7 @@ export async function show(place: Place): Promise<Reveal> {
   let repository = false
   const rooted = () => oriel.git.root(top).then((found) => found === top, () => false)
 
-  root.innerHTML = `<div id="up" role="button" aria-label="Parent Folder" hidden><span class="icon"></span>..</div><p id="message" hidden></p>
+  root.innerHTML = `<button id="up" aria-label="Parent Folder" hidden><span class="icon"></span>..</button><p id="message" hidden></p>
     <div id="tree"></div><div id="matches" hidden></div>`
   const tree = new FileTree({ paths: [], ...look })
   const results = new FileTree({ paths: [], ...look })
@@ -109,9 +103,8 @@ export async function show(place: Place): Promise<Reveal> {
   // The parent folder as the root, on a double-click of `..`; none at `/`.
   const up = root.querySelector<HTMLElement>("#up")!
   up.hidden = !above
-  up.style.setProperty("--folder", FOLDER)
-  up.style.setProperty("--folder-blue", FOLDER_BLUE)
-  up.ondblclick = () => oriel.card.go(above === "/" ? "/" : `${above}/`)
+  // A double-click's second click, or a press (VoiceOver, a key: no clicks counted).
+  up.onclick = (event) => event.detail !== 1 && oriel.card.go(above === "/" ? "/" : `${above}/`)
   tree.render({ containerWrapper: host })
   results.render({ containerWrapper: matches })
   keep(() => {
@@ -361,9 +354,13 @@ export async function show(place: Place): Promise<Reveal> {
     any?.focus({ preventScroll: true })
     shown.focusPath(path)
   }
-  // The app gives the card the keyboard (also as it opens, from main.ts).
-  addEventListener("focus", take)
-  keep(() => removeEventListener("focus", take))
+  // The app gives the card the keyboard (also as it opens, from main.ts); a frame later, so a click that gave a row
+  // the keyboard keeps it (else the tree scrolls to its old row between the press and the release).
+  const given = () => requestAnimationFrame(() => {
+    if (!(filter ? results : tree).getFileTreeContainer()?.shadowRoot?.activeElement) take()
+  })
+  addEventListener("focus", given)
+  keep(() => removeEventListener("focus", given))
 
   // Whether the root is a repository's with the first listing, so it dims what git ignores (one wait for both, as
   // each starts a process); the rows, then git's letters.

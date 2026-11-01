@@ -243,7 +243,8 @@ Files: `Oriel/Views/Sidebar*.swift`, the state capsule in the card header, the a
   folders keep their own glyph, now in the Finder's folder blue (sampled from `NSWorkspace`'s folder icon: `#76D0F6`
   to `#52B9E8`, the same in light and dark).
 - **Decisions, item 5.** The root is a `field` with `"style": "path"` in the manifest, drawn natively like the
-  browser's address. Return sends the typed path (`~` expanded on This Mac); the page checks it is a folder
+  browser's address. Return sends the typed path, tidied (`..`, `.`, `//`; `~` expanded on This Mac, a remote
+  machine takes only absolute paths); the page checks it is a folder
   (`files.info`) and moves, else `controls.set("root", { refused: true })` shakes the field. Choose Folder… stays, as
   the folder icon before the path. `..` is a row above the tree (not a tree row), so it never moves with the
   keys; `controls.set(id, { focus: true })` gives ⌘F's filter the keyboard.
@@ -253,5 +254,7 @@ Files: `Oriel/Views/Sidebar*.swift`, the state capsule in the card header, the a
 - **Item 11.** `@pierre/diffs` already used its defaults, Pierre Light and Pierre Dark (`@pierre/theme`); File's
   CodeMirror now maps each tag to the same TextMate scope's color (keywords `#D32A61`/`#FF678D`, strings
   `#199F43`/`#5ECC71`, functions `#693ACF`/`#9D6AFB`, types `#A631BE`/`#D568EA`, variables `#D47628`/`#FFA359`, …).
+  CodeMirror has one tag for keys, so JSON keys and CSS properties take the variables' orange, where the diff has
+  `#D5512F`/`#FF855E` and `#08C0EF`.
 - **Item 13.** Open With already opened the default app first, with the others in its menu, but showed only the
   app's icon: it now shows the icon and the app's name.

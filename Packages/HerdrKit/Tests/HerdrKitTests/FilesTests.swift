@@ -80,6 +80,27 @@ private func execs() async throws -> [any Exec] {
     }
 }
 
+@Test func `names git could read as patterns, a line break and an empty folder`() async throws {
+    let folder = try scratchFolder()
+    defer { try? FileManager.default.removeItem(at: folder) }
+    _ = try await localExec.checkedOutput(["sh", "-c", #"""
+    set -e; cd "$1"; GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 git init -q
+    printf 'foo\n*.log\n' >.gitignore; touch ':foo' ':(exclude)x' "$(printf 'a\nb.log')"; mkdir empty
+    """#, "sh", folder.path])
+    for exec in try await execs() {
+        #expect(try await Files.list(folder.path, git: true, exec: exec) == [
+            FileEntry(name: "empty", isFolder: true, ignored: false),
+            FileEntry(name: ":(exclude)x", isFolder: false, ignored: false),
+            FileEntry(name: ":foo", isFolder: false, ignored: false),
+            FileEntry(name: ".gitignore", isFolder: false, ignored: false),
+            FileEntry(name: "a\nb.log", isFolder: false, ignored: true),
+        ])
+        for git in [true, false] {
+            #expect(try await Files.list(folder.path + "/empty", git: git, exec: exec).isEmpty)
+        }
+    }
+}
+
 @Test func `every file for the filter, git's or all`() async throws {
     let repo = try await scratchRepo.value
     for exec in try await execs() {

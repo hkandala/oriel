@@ -84,15 +84,17 @@ extension OrielUITests {
         XCTAssertTrue(field.has(\.stringValue, "\(root)/src", within: 5))
         field.click()
         app.typeText("\(root)/none\r")
-        // Still editing, the root unchanged.
+        // Still editing; Esc puts the root back.
         XCTAssertTrue(field.has(\.stringValue, "\(root)/none", within: 3))
-        try await labelEnds(card, " \(root)/src/")
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(field.has(\.stringValue, "\(root)/src", within: 3))
+        // Tidied: `src/..` is the root. Back comes to src: the refused path made no place.
         field.click()
-        app.typeText("\(root)\r")
+        app.typeText("\(root)/src/..\r")
         try await labelEnds(card, " \(root)/")
         XCTAssertTrue(row("a.txt", in: tree).exists(within: 10))
+        element("pane.\(card).go-back").click()
+        try await labelEnds(card, " \(root)/src/")
     }
 
     /// The tree has the keyboard as its card shows: ↓ moves, → opens a folder, ← closes it, Return opens a file. Hidden

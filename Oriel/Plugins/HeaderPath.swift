@@ -4,8 +4,9 @@ import SwiftUI
 
 /// A `field` with `"style": "path"` (File Explorer's root), as the browser's address: at rest the value with the home
 /// as `~` on This Mac, its last parts when long; a click shows the whole path selected, to edit. Return sends it
-/// (`submit`), Esc puts it back. A path the page refuses shakes the field, which keeps the typed text. Its symbol is a
-/// button that sends no value (Choose Folder…).
+/// (`submit`), tidied (`..`, `.` and `//` resolved; `~` on This Mac), Esc puts it back. A path the page refuses shakes
+/// the field (a beep with Reduce Motion), which keeps the typed text. Its symbol is a button that sends no value
+/// (Choose Folder…).
 struct PathField: View {
     let control: PluginManifest.Control
     let plugin: Plugin
@@ -13,6 +14,25 @@ struct PathField: View {
     let identifier: String
     @State private var draft = ""
     @FocusState private var editing: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private var still: Bool {
+        reduceMotion && !Animation.forceMotion
+    }
+
+    /// An absolute path's text with `.`, `..`, `//` and a last `/` resolved; links stay (`/private/tmp` is no `/tmp`).
+    static func tidy(_ path: String) -> String {
+        guard path.hasPrefix("/") else { return path }
+        var parts: [Substring] = []
+        for part in path.split(separator: "/") where part != "." {
+            if part == ".." {
+                _ = parts.popLast()
+            } else {
+                parts.append(part)
+            }
+        }
+        return "/" + parts.joined(separator: "/")
+    }
 
     var body: some View {
         let id = control.id ?? "", value = control.value?.text ?? "", remote = page.store.machine.isRemote
@@ -35,10 +55,12 @@ struct PathField: View {
                         Text(shown).lineLimit(1).truncationMode(.head)
                             .frame(maxWidth: .infinity, alignment: .leading).contentShape(.rect)
                             .onTapGesture { editing = true }
+                            // The field's value is the whole path already.
+                            .accessibilityHidden(true)
                     }
                 }
                 .onSubmit {
-                    let path = page.store.machine.isRemote ? draft : (draft as NSString).expandingTildeInPath
+                    let path = Self.tidy(remote ? draft : (draft as NSString).expandingTildeInPath)
                     if path == value {
                         editing = false
                     } else {
@@ -54,13 +76,18 @@ struct PathField: View {
         .fieldCapsule()
         .overlay { Capsule().strokeBorder(Color.accentColor, lineWidth: 1.5).opacity(editing ? 1 : 0) }
         .focusEffectDisabled()
-        .keyframeAnimator(initialValue: 0.0, trigger: header.refused[id] ?? 0) { field, shift in
+        .keyframeAnimator(initialValue: 0.0, trigger: still ? 0 : header.refused[id] ?? 0) { field, shift in
             field.offset(x: shift)
         } keyframes: { _ in
             KeyframeTrack {
                 for shift in [-6.0, 6, -4, 4, 0] {
                     LinearKeyframe(shift, duration: 0.06)
                 }
+            }
+        }
+        .onChange(of: header.refused[id]) {
+            if still {
+                NSSound.beep()
             }
         }
         // A new root: the field shows it and lets go.
