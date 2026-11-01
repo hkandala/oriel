@@ -218,6 +218,10 @@ export interface Controls {
     enabled?: boolean
     checked?: boolean
     busy?: boolean
+    /** A field takes the keyboard (the page's ⌘F). */
+    focus?: boolean
+    /** A path field shakes and keeps the typed path: it names no place to go. */
+    refused?: boolean
   }): void
 }
 
@@ -280,7 +284,12 @@ export interface OrielError extends Error {
   `--error`), `--app-text-size` and `color-scheme`. It sets them again on a
   change and then sends `theme`. The app's `card.css` loads before the
   plugin's CSS: system fonts at 13 px (`--font-size`), no margin, a clear
-  background, so the card's fill draws behind the page.
+  background, so the card's fill draws behind the page. It also has the
+  class `oriel-sidebar` for a sidebar that slides in and out as the system's
+  do (0.25 s, the system ease, none with Reduce Motion): put it on a flex
+  child with `--sidebar-width`, and set the attribute `data-closed` to slide
+  it out of its row (its parent clips with `overflow: hidden`). The content
+  beside it takes the room. The class `end` puts it on the right.
 - **Visible.** A card is visible while it is in the shown tab or in a
   floating window. A card that is not gets `visible` false and its watches
   stop. Its `run` calls go on. When it shows again, each watch runs once,

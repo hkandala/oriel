@@ -226,8 +226,8 @@ File and Markdown edit the file. Both use the same editor and the same rules.
 ## Open With
 
 File, Preview and Markdown have **Open With** at the right end of row 2 (the
-manifest's `openWith` control). It is a button with the icon of the file's
-default app: a click opens the file in that app. Its menu lists the default
+manifest's `openWith` control). It is a button with the icon and the name of
+the file's default app: a click opens the file in that app. Its menu lists the default
 app first, then a divider, then the other apps that open the file, each with
 its icon (`NSWorkspace`), then the other plugins that open the file. A pick
 of a plugin turns the card into that plugin's card. A file with no default
@@ -241,32 +241,45 @@ file's repository, else its folder. Back returns to the file.
 
 ### The tree
 
-The whole tree of the root (`@pierre/trees`), in the style of Finder's list
-and Xcode's navigator: a thin disclosure chevron, `folder.fill` in the
-accent, `doc` in secondary, 24 pt rows, the selection in the accent at 24 %.
+The tree of the root (`@pierre/trees`), in the style of Finder's list and
+Xcode's navigator: a thin disclosure chevron, folders in the Finder's folder
+blue (the same in light and dark), files with an icon for their type in its
+color (TypeScript, Swift, Markdown, JSON, images, and so on), 24 pt rows, the
+selection in the accent at 24 %. A 6 pt gap sits under the header.
 - **Row 2:** Back and Forward, the root, the filter field ("Filter"), then
-  **Collapse All**.
-- **The root** is a menu button with the root folder's name. Its menu lists
-  the folders above it, nearest first, then **Choose Folder…**: the folder
+  **Collapse All** and **Show Hidden Files** (`eye`).
+- **The root** is a path field, like the browser's address. At rest it shows
+  the root's path with the home as `~`, and its last parts when it is long
+  (`…/code/oriel`). A click shows the whole path, selected. Return goes there:
+  the tree rooted at that folder becomes the card's next place. A path that
+  is no folder makes the field shake; the typed path stays. Esc puts the root
+  back. The folder icon before the path is **Choose Folder…**: the folder
   panel on This Mac, a "Go to Folder" field on a remote machine (`~` is the
-  home folder there). A path that is no folder there shows the notice "No
-  folder ‹path›". A pick shows the tree rooted there, as the card's next
-  place. A folder's own menu has **Open as Root**.
-- **The tree** shows the root's listing first and lists a folder when it
-  opens. `.git` is hidden, and links to folders are folders. Git's letters
-  come after the first rows, from one `git status`, so a folder never opened
-  still shows a dot for a change inside. Ignored files are dimmed. Modified
-  is the needs-you color, added, untracked and renamed the finished color,
-  and deleted the error color. A root inside a repository, but not its root,
-  shows no letters.
+  home folder there). A folder's own menu has **Open as Root**.
+- **`..`** is the first row, except at `/`. A double-click on it makes the
+  parent folder the root.
+- **The tree** shows the root's listing first and lists a folder only when
+  it opens. `.git` is hidden, and links to folders are folders. Files and
+  folders whose name starts with `.` show only while Show Hidden Files is on.
+  Its value stays with the card. Git's letters come after the first rows,
+  from one `git status`, so a folder never opened still shows a dot for a
+  change inside. A listing asks git only which of its own names git ignores
+  (`git check-ignore`), and those are dimmed. Modified is the needs-you color,
+  added, untracked and renamed the finished color, and deleted the error
+  color. A root inside a repository, but not its root, shows no letters.
 - **The filter** matches file names, case blind, and shows the matches with
   their folders open, at most 5,000. The first letter loads every path under
   the root: in a repository the files git does not ignore (`git ls-files`),
   else every file, up to 8 MB of names. "No matching files" shows when none
-  match. A page that loads again starts with no filter.
+  match. A page that loads again starts with no filter. ⌘F over the tree
+  gives the filter the keyboard.
 - **Opening.** A double-click or Return on a file shows it in the card. A
-  double-click on a folder opens or closes it once. ⌘ and ⌥ open as in
+  double-click on a folder makes it the root. ⌘ and ⌥ open as in
   [Opening](#opening).
+- **Keys.** The tree has the keyboard when the card opens or gets the
+  keyboard. ↑ and ↓ move, → opens a folder, ← closes it or goes to the
+  parent, Return opens a file. The row with the keyboard has a ring in the
+  accent.
 - The tree and the letters update after each change under the root while
   the card shows. The open folders list again. A root that cannot be listed
   shows "Can't list ‹root›".
@@ -284,7 +297,8 @@ An editable text view (CodeMirror 6).
   indent.
 - **Colors** for Swift, TypeScript, JavaScript, Python, Go, Rust, C, C++,
   Java, Kotlin, Ruby, shell, JSON, YAML, TOML, HTML and CSS, by extension.
-  The colors are Xcode's default roles, one pair for light and dark. Each
+  The colors are the diff's: Pierre Light and Pierre Dark, the default
+  Shiki themes of `@pierre/diffs` (`@pierre/theme`). Each
   language loads the first time a card needs it.
 - **Symbols** come from the language's syntax tree (functions, classes,
   types, methods, JSON and YAML keys, CSS rules). Swift, Kotlin, Ruby, shell
