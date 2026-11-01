@@ -52,7 +52,7 @@ struct TabBar: View {
                                 Rectangle().fill(look.divider).frame(width: 1, height: Self.height - 16)
                                     .opacity(quiet ? 0 : 1)
                             }
-                            TabButton(tab: tab, workspace: workspace, page: page, lit: index == selected,
+                            TabButton(tab: tab, workspace: workspace, page: page,
                                       hovering: hovered == tab.id, keycap: hints && index < 9 ? index + 1 : nil,
                                       clicked: { clicked = tab.id })
                                 .onHover { hovered = $0 ? tab.id : hovered == tab.id ? nil : hovered }

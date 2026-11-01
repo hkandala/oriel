@@ -199,7 +199,7 @@ extension OrielUITests {
         XCTAssertLessThan(zip(steps, steps.dropFirst()).map { $1 - $0 }.max() ?? 1000, 100, "\(swipe)")
     }
 
-    /// A swipe into a session of 200 tabs: the window draws its tab bar and strip as the pages arrive, not
+    /// A swipe into a session of 200 tabs: the window draws its tab bar and tab's page as the pages arrive, not
     /// 0.4–0.8 s after the sidebar.
     func testSessionSwipeIntoManyTabsDrawsThemWithTheSidebar() async throws {
         let eight = try env("ORIEL_SESSION8")
@@ -239,107 +239,15 @@ extension OrielUITests {
         XCTAssertLessThan(min(shows[0], shows[2]), 600, "\(shows)")
     }
 
-    /// A two-finger swipe between tabs, and between sessions in the overview: the page moves with the
-    /// fingers, one to one, and from their lift lands on the next page within 400 ms with no jump between frames; a
-    /// short flick does too, and fingers that stop before they lift go back. The system's paging took 0.55 s and sent
-    /// the flick back. Prints the page's move by the lift and the ms from the lift to within 2 pt of the page. The
-    /// overview's swipes remake no tile.
-    func testTabAndOverviewSwipesFollowTheFingersAndLandSoon() async throws {
-        try launchRecordingLatency(["-forceMotion", "YES"])
-        openPage(two)
-        element("sidebar.dot.\(one)").click()
-        XCTAssertTrue(until(3) { header == one })
-        let first = element("tab.w1:t1"), second = element("tab.w1:t2"), window = app.windows.firstMatch
-        // About a page's width: its element's frame is clipped to what shows; the first swipe's rest gives the scroll
-        // view's own.
-        let card = element("terminal.w1:p1").frame, width = element("page.w1:t1").frame.width
-        // 30 pt steps (1875 pt/s), the other way if natural scrolling is off; then a 10 pt flick (625 pt/s) back.
-        let (forward, page) = try await swipeLands(over: card, 30, pages: (0, width)) { second.isSelected }
-        try await swipeLands(over: card, -10 * forward, pages: (page, 0)) { first.isSelected }
-        // 40 pt, then the fingers stop 0.2 s before they lift: back to the same page.
-        try await swipeLands(over: card, 10 * forward, (4, 200), pages: (0, 0)) { first.isSelected }
-
-        app.typeKey("o", modifierFlags: [.command, .control])
-        let overview = element("overview.page.\(one)")
-        XCTAssertTrue(overview.exists(within: 2))
-        let frame = overview.frame
-        let (_, rested) = try await swipeLands(over: frame, 30 * forward, pages: (0, frame.width)) {
-            window.title.hasSuffix(" - \(self.two)")
-        }
-        try await swipeLands(over: frame, -10 * forward, pages: (rested, 0)) {
-            window.title.hasSuffix(" - \(self.one)")
-        }
-        // No tile made while the fingers move ("tiles <count>" at each lift): each move made every tile in view again
-        // (20–40 ms a frame in a session of many tabs), and a swipe's start all of them.
-        let tiles = element("app.latency").stringValue.split(separator: "; ").filter { $0.hasPrefix("tiles ") }
-            .compactMap { Int($0.split(separator: " ")[1]) }
-        XCTAssertFalse(tiles.isEmpty)
-        // A few at most: a tile whose terminal drew meanwhile.
-        XCTAssertTrue(tiles.allSatisfy { $0 < 6 }, "tiles made while the fingers moved, per swipe: \(tiles)")
-        // The tiles take clicks again once the pages rest (none does while they move).
-        element("overview.tab.w1:t1").click()
-        XCTAssertTrue(element("overview").vanishes(within: 2))
-    }
-
-    /// `step` pt over the frame `steps.count` times, 16 ms apart, then momentum (with a `pause`, the fingers stop that
-    /// many ms before they lift, no momentum), the other way too if that did not reach `done` (natural scrolling
-    /// decides). Then the record of the page's slide between the offsets `pages`. Gives the step's sign that went and
-    /// the offset the page came to rest at.
-    @discardableResult
-    private func swipeLands(over frame: CGRect, _ step: Double, _ steps: (count: Int, pause: Int) = (14, 0),
-                            pages: (Double, Double), until done: () -> Bool) async throws -> (Double, Double)
-    {
-        var sign = 1.0
-        for next in [1.0, -1] {
-            sign = next
-            let swipe = "\(frame.midX) \(frame.midY) \(step * sign) \(steps.count) \(steps.pause)"
-            try await Self.post("\(one)/swipe", Data(swipe.utf8))
-            // No accessibility query during the slide.
-            try await Task.sleep(for: .seconds(1))
-            if done() {
-                break
-            }
-        }
-        let (swipe, path, shown) = try XCTUnwrap(swipes("page").last, "no swipe of \(step) moved")
-        let fingers = abs(step) * Double(steps.count), moved = abs(path[0][1] - pages.0)
-        // Where it came to rest: the page's offset, within the strip's 8 pt gap and a page element's clipped frame.
-        let rest = path.last?[1] ?? 0, settled = path.first { abs($0[1] - rest) <= 2 }?[0] ?? -1
-        print("\(fingers) pt swipe: \(Int(moved)) pt by the lift, at rest at \(Int(settled)) ms: \(swipe)")
-        XCTAssertTrue(done(), swipe)
-        XCTAssertEqual(moved, fingers, accuracy: abs(step), swipe)
-        XCTAssertEqual(rest, pages.1, accuracy: 20, swipe)
-        XCTAssertGreaterThan(settled, 0, swipe)
-        // The slide takes at most 280 ms from the fingers' speed (`Paging`).
-        XCTAssertLessThan(settled, 400, swipe)
-        // Smooth. The tab or session is shown once the pages arrived: shown at the lift (the animation's
-        // logicallyComplete, at once for a scroll), it held the slide's first frame for 54–149 ms. And no frame is
-        // faster than the slide needs: the fingers' speed, or what lands in 0.3 s (an ease in and out's top speed is
-        // 1.5 times its mean), with room for CI's frames; the session spring went up to 7.5k pt/s after a 625 pt/s
-        // flick. Both by the slide's own frames and times, so a frame CI's VM skips does not count, and over two
-        // frames: CI's VM reported one frame's offset late, then the next caught up (50 pt in 28 ms, 111
-        // pt in 21 ms, 3.3k pt/s over both, under a 4.9k bound); the spring's jump held over several frames.
-        let landed = path.last { $0[0] <= shown }?[1] ?? path[0][1]
-        XCTAssertEqual(landed, rest, accuracy: 2, "shown at \(Int(shown)) ms, before the pages arrived: \(swipe)")
-        let speed = steps.pause > 0 ? 0 : abs(step) / 0.016, top = 1.5 * max(speed, 1.5 * abs(rest - path[0][1]) / 0.3)
-        for (one, two) in zip(path, path.dropFirst(min(2, path.count - 1))) {
-            XCTAssertLessThanOrEqual(abs(two[1] - one[1]), top * max(two[0] - one[0], 17) / 1000 + 2,
-                                     "a jump at \(Int(two[0])) ms: \(swipe)")
-        }
-        return (sign, rest)
-    }
-
-    /// The "swipe" records (the sidebar's; "page": the strip's or the overview's, a frame each) in which the pages
-    /// moved (a swipe back to the page in view makes one that did not), each with its offsets: [ms, pt], and the ms to
-    /// the session's show (-1: none).
-    private func swipes(_ name: String = "swipe")
-        -> [(String, [[Double]], Double)] // swiftlint:disable:this large_tuple
-    {
-        element("app.latency").stringValue.split(separator: "; ").filter { $0.hasPrefix("\(name) ") }.map { swipe in
+    /// The sidebar's "swipe" records in which the pages moved (a swipe back to the page in view makes one that did
+    /// not), each with its offsets: [ms, pt], and the ms to the session's show (-1: none).
+    private func swipes() -> [(String, [[Double]], Double)] { // swiftlint:disable:this large_tuple
+        element("app.latency").stringValue.split(separator: "; ").filter { $0.hasPrefix("swipe ") }.map { swipe in
             let words = swipe.split(separator: " ")
             let path = words.count > 2
                 ? words[2].split(separator: ",").map { $0.split(separator: ":").compactMap { Double($0) } } : []
             return (String(swipe), path, words.count > 3 ? Double(words[3]) ?? -1 : -1)
-        }.filter { $0.1.count > (name == "page" ? 1 : 4) }
+        }.filter { $0.1.count > 4 }
     }
 
     /// The ms of the slide's last frame before the show's. The window shows the session as the pages look arrived, not

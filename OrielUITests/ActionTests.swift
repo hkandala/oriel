@@ -152,7 +152,7 @@ extension OrielUITests {
         let workspace = workspace(of: tab)
         closeAfter("workspace", workspace)
         XCTAssertTrue(element("workspace.\(workspace)").exists(within: 3))
-        // Only the selected workspace's pages are in the strip.
+        // Only the selected tab's page shows.
         XCTAssertTrue(element("page.\(tab)").exists(within: 3))
         XCTAssertFalse(element("page.w1:t1").exists)
         let pane = "\(workspace):p1"

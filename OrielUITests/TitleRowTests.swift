@@ -180,10 +180,10 @@ extension OrielUITests {
         XCTAssertFalse(app.windows.firstMatch.menuItems["Move Tab Left"].isEnabled)
         app.windows.firstMatch.menuItems["Move Tab Right"].click()
         try await expect("the new order") { try await tabsOf(workspace).map(\.id) == [tabs[1], tabs[0], tabs[2]] }
-        // The moved tab stays selected, and the marker stays on it.
+        // The moved tab stays selected, and its page shows.
         let moved = element("tab.\(tabs[0])")
         XCTAssertTrue(moved.isSelected)
-        try await expect("the marker on the moved tab") { (moved.value as? String)?.hasPrefix("in view") == true }
+        XCTAssertTrue(element("page.\(tabs[0])").exists(within: 2))
         // ⇧⌘← moves it back; in a rename field it selects to the line's start instead.
         app.typeKey(.leftArrow, modifierFlags: [.command, .shift])
         try await expect("the order back") { try await tabsOf(workspace).map(\.id) == tabs }

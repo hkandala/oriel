@@ -53,7 +53,7 @@ extension OrielUITests {
     }
 
     /// With ⌥ held, a swipe anywhere (over a card here) moves between sessions sideways, with the sidebar's pages, and
-    /// between workspaces up or down, one step a gesture, and never pages the strip; so does a wheel.
+    /// between workspaces up or down, one step a gesture, and never changes the tab; so does a wheel.
     func testOptionSwipesMoveBetweenSessionsAndWorkspaces() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         openPage(two)
@@ -70,7 +70,6 @@ extension OrielUITests {
         XCTAssertEqual(header, two)
         try await Self.post("\(one)/swipe", Data("\(center) \(-10 * forward) 14 0 0 1".utf8))
         XCTAssertTrue(until(3) { header == one })
-        // A sideways swipe that reached the strip would have shown t2.
         XCTAssertTrue(element("tab.w1:t1").isSelected)
 
         // Session one has two workspaces: a step either way shows w2, and the other way back w1.
@@ -92,9 +91,10 @@ extension OrielUITests {
         XCTAssertTrue(until(3) { self.app.windows.firstMatch.title.hasSuffix(" - \(two)") })
     }
 
-    /// A sideways swipe over the sidebar pages it and never the strip; over a card it pages the strip and never the
-    /// sidebar. In the Agents view, with its header in the same place, it shows the other page's agents.
-    func testSwipesPageTheSidebarAndTheStripApart() async throws {
+    /// A sideways swipe over the sidebar pages it and never changes the tab; a sideways wheel over a card changes
+    /// neither the tab nor the session. In the Agents view, with its header in the same place, a swipe shows the other
+    /// page's agents.
+    func testSwipesPageTheSidebarAndNotTheTabs() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         openPage(two)
         element("sidebar.dot.\(one)").click()
@@ -102,18 +102,16 @@ extension OrielUITests {
         XCTAssertTrue(header.has(\.stringValue, one, within: 3))
         try await swipe(sidebar, until: header, \.stringValue, two)
         try await swipe(sidebar, until: header, \.stringValue, one)
-        // Page one's strip has two tabs: a swipe that reached it would have left t2 selected.
         XCTAssertTrue(element("tab.w1:t1").isSelected)
-        // Near the card's left edge, where page two of the sidebar lies, off to the side.
+        // Near the card's left edge, where page two of the sidebar lies, off to the side; both ways.
         let edge = element("terminal.w1:p1").coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0.5))
             .withOffset(CGVector(dx: 30, dy: 0))
-        var delta = -Double(element("terminal.w1:p1").frame.width)
-        XCTAssertTrue(until(6) {
+        let width = Double(element("terminal.w1:p1").frame.width)
+        for delta in [-width, width] {
             edge.hover()
             edge.scroll(byDeltaX: delta, deltaY: 0)
-            delta = -delta
-            return self.element("tab.w1:t2").has(\.isSelected, true, within: 0.7)
-        })
+            XCTAssertFalse(until(1) { !self.element("tab.w1:t1").isSelected }, "a wheel of \(delta) changed the tab")
+        }
         XCTAssertEqual(header.stringValue, one)
 
         let place = header.frame.origin
@@ -186,7 +184,7 @@ extension OrielUITests {
             try await Self.call(five, "workspace.close", ["workspace_id": workspace["workspace_id"] ?? ""])
         }
         relaunch(five)
-        // The page shows the button; the strip, no button, only that the session is empty.
+        // The sidebar's page shows the button; the window's content, no button, only that the session is empty.
         let button = element("new-workspace")
         XCTAssertTrue(element("detail.empty").firstMatch.exists(within: connect))
         XCTAssertTrue(app.staticTexts["This session is empty"].exists)

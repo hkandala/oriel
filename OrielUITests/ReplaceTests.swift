@@ -15,7 +15,7 @@ extension OrielUITests {
         try await send("cd /usr/bin\r", to: right)
         try await expect("the pane in /usr/bin") { try await pane(right)["cwd"] as? String == "/usr/bin" }
         element("tab.\(tab)").click()
-        // Where the card rests in its tab's page: the strip slides to the tab.
+        // Where the card rests in its tab's page.
         let card = element("pane.\(right)"), page = element("page.\(tab)")
         func place(_ card: XCUIElement) -> CGRect {
             card.frame.offsetBy(dx: -page.frame.minX, dy: -page.frame.minY)

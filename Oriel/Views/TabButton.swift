@@ -7,8 +7,6 @@ struct TabButton: View {
     let tab: HostStore.Tab
     let workspace: HostStore.Workspace
     let page: Page
-    /// Its page is in view.
-    let lit: Bool
     let hovering: Bool
     /// 1…9 while ⌘ is held: "⌘1" at the end.
     let keycap: Int?
@@ -64,7 +62,7 @@ struct TabButton: View {
         // On the capsule alone: the rename field and the × over it have their own.
         .accessibilityIdentifier("tab.\(tab.id)")
         .accessibilityAddTraits(selected ? .isSelected : [])
-        .accessibilityValue([lit ? "in view" : nil, agent.flatMap { agent in
+        .accessibilityValue([agent.flatMap { agent in
             agent.state == .idle ? nil : "\(agent.agentName ?? "agent"), \(agent.state?.word ?? "")"
         }, "icons: " + stack.map(\.iconID).joined(separator: ", ")].compactMap(\.self).joined(separator: "; "))
         .accessibilityAction(named: "Close Tab") { page.close(.tab(tab.id)) }

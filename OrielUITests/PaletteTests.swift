@@ -7,8 +7,7 @@ extension OrielUITests {
     func testPaletteSplitsTheKeyboardCardRight() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, pane) = try await newTab("palette")
-        // Its page first: a click on a terminal of a page out of view makes XCUITest scroll the strip there, which
-        // selects nothing until the scroll rests, so the click can land before the card takes the keyboard.
+        // Its page first: a tab not selected shows no card to click.
         element("tab.\(tab)").click()
         element("terminal.\(pane)").click()
         XCTAssertTrue(hasKeyboard("terminal.\(pane)"))
@@ -234,8 +233,7 @@ extension OrielUITests {
     /// quoted, without Return.
     func testGoToDirectoryAndInsertPath() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
-        // Shown first: a click on the card of a tab not in view scrolled the strip to it, and the strip went back to
-        // the shown tab before the click landed (on CI).
+        // Shown first: a tab not selected shows no card to click.
         let (tab, pane) = try await newTab("paths")
         element("tab.\(tab)").click()
         XCTAssertTrue(element("terminal.\(pane)").has(\.isHittable, true, within: 3))

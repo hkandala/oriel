@@ -340,9 +340,7 @@ extension OrielUITests {
 
 extension OrielUITests {
     /// Files ⌘-clicked in a File Explorer card open tabs right after the card's tab, one after the other: each new
-    /// tab is selected and the strip shows its page. The strip scrolled to a page the lazy stack laid out in the same
-    /// update by its id, missed it, and its retry with the same id moved nothing: the selected tab showed another
-    /// tab's page (item 28).
+    /// tab is selected and its page shows (item 28: the selected tab showed another tab's page).
     func testEachOpenInANewTabShowsItsOwnPage() async throws {
         let (_, shell) = try await newTab("opens")
         try await waitForPrompt(shell)

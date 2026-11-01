@@ -89,7 +89,6 @@ final class OrielUITests: XCTestCase {
         element("workspace.w1").click()
         XCTAssertTrue(element("pane.w1:p4").has(\.isHittable, true, within: 2))
         XCTAssertTrue(element("tab.w1:t2").isSelected)
-        XCTAssertTrue(until(2) { element("tab.w1:t2").stringValue.hasPrefix("in view") })
     }
 
     func testSidebarFilterNarrowsTheWorkspaces() {

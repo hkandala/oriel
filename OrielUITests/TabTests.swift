@@ -2,60 +2,54 @@ import XCTest
 
 /// Tab switches, closes and drags the user asked for.
 extension OrielUITests {
-    /// A click, +, ⌘T, ⌘1…⌘9, ⇧⌘], the palette and a close show the tab's page at once; only a swipe slides.
-    func testSwitchingTabsShowsTheirPageAtOnce() async throws {
-        relaunch(one, ["-recordStrip", "YES"])
-        let first = element("tab.w1:t1"), second = element("tab.w1:t2"), between = element("strip.between")
+    /// A click, +, ⌘T, ⌘1…⌘9, ⇧⌘], the palette and a close show the tab's page, and only it; a sideways swipe over a
+    /// card leaves the tab as it is.
+    func testSwitchingTabsShowsOnlyTheirPage() async throws {
+        let first = element("tab.w1:t1"), second = element("tab.w1:t2")
         XCTAssertTrue(element("pane.w1:p1").exists(within: connect))
-        // Once the launch's layout has settled.
-        var launched = ""
-        XCTAssertTrue(until(5) {
-            launched = between.stringValue
-            Thread.sleep(forTimeInterval: 1)
-            return between.stringValue == launched
-        })
         let before = try await tabIDs()
         closeNew("tab", besides: before)
+        let pages = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'page.'"))
+        let shows = { (tab: String) in
+            until(2) { pages.allElementsBoundByIndex.map(\.identifier) == ["page.\(tab)"] }
+        }
 
         second.click()
-        XCTAssertTrue(second.has(\.isSelected, true, within: 2))
+        XCTAssertTrue(shows("w1:t2"))
         first.click()
-        XCTAssertTrue(first.has(\.isSelected, true, within: 2))
+        XCTAssertTrue(shows("w1:t1"))
         app.typeKey("2", modifierFlags: .command)
-        XCTAssertTrue(second.has(\.isSelected, true, within: 2))
+        XCTAssertTrue(shows("w1:t2"))
         app.typeKey("]", modifierFlags: [.command, .shift])
-        XCTAssertTrue(first.has(\.isSelected, true, within: 2))
+        XCTAssertTrue(shows("w1:t1"))
         openPalette()
         element("palette.tab.w1:t2").click()
-        XCTAssertTrue(second.has(\.isSelected, true, within: 2))
+        XCTAssertTrue(shows("w1:t2"))
+        XCTAssertTrue(second.isSelected)
 
         // A new tab from +, closed from the menu: back to the tab used before it.
         element("titlebar.new-tab").click()
         let plus = try await newTabID(after: before)
-        XCTAssertTrue(element("tab.\(plus)").has(\.isSelected, true, within: 3))
+        XCTAssertTrue(shows(plus))
         try await settle([plus])
         // Only its shell runs: no dialog.
         app.typeKey("w", modifierFlags: [.command, .shift])
         XCTAssertTrue(element("tab.\(plus)").vanishes(within: 3))
-        XCTAssertTrue(second.has(\.isSelected, true, within: 2))
+        XCTAssertTrue(shows("w1:t2"))
         // One from ⌘T, closed by herdr.
         app.typeKey("t", modifierFlags: .command)
         let made = try await newTabID(after: before)
-        XCTAssertTrue(element("tab.\(made)").has(\.isSelected, true, within: 3))
+        XCTAssertTrue(shows(made))
         try await Self.call(one, "tab.close", ["tab_id": made])
-        XCTAssertTrue(second.has(\.isSelected, true, within: 3))
-        XCTAssertFalse(until(0.5) { between.stringValue != launched }, "the strip slid \(between.stringValue) times")
+        XCTAssertTrue(shows("w1:t2"))
 
-        // A swipe does slide (the pages follow the fingers, even under Reduce Motion): the count sees slides. A
-        // trackpad's swipe: XCUITest's scroll is a wheel's, which turns a page without motion there. The other way
-        // if natural scrolling is off.
+        // A trackpad's sideways swipe over a card, both ways, goes to the card: no tab changes.
         let card = element("terminal.w1:p4").frame
-        for step in [30, -30] where !first.isSelected {
+        for step in [30, -30] {
             try await Self.post("\(one)/swipe", Data("\(card.midX) \(card.midY) \(step) 14".utf8))
-            _ = first.has(\.isSelected, true, within: 1)
+            XCTAssertFalse(until(1) { !second.isSelected }, "a swipe of \(step) changed the tab")
         }
-        XCTAssertTrue(first.isSelected)
-        XCTAssertNotEqual(between.stringValue, launched)
+        XCTAssertTrue(shows("w1:t2"))
     }
 
     /// A closed selected tab gives way to the tab used before it, else to the one on its left.
@@ -153,10 +147,9 @@ extension OrielUITests {
         }
     }
 
-    /// A workspace of 5 tabs on its 4th and one of 1, clicked back and forth, then a session
-    /// shown and left: each strip, made new for its workspace, shows its selected tab. The old empty strip does not
-    /// show under XCUITest: `make strip-check` checks it.
-    func testStripShowsEachWorkspaceClickedBackAndForth() async throws {
+    /// A workspace of 5 tabs on its 4th and one of 1, clicked back and forth, then a session shown and left: each
+    /// shows its selected tab.
+    func testEachWorkspaceShowsItsTabClickedBackAndForth() async throws {
         var shown: [(workspace: String, tab: String)] = []
         for (index, count) in [5, 1].enumerated() {
             let tabs = try await newWorkspace("order\(index)", tabs: count).tabs
@@ -176,12 +169,9 @@ extension OrielUITests {
         try await expectShown(shown[0].tab, "back from the other session")
     }
 
-    /// A zoom from the overview into a middle tab of a workspace of many, the workspace shown again and ⌘4 (a session
-    /// shown again: `testStripShowsEachWorkspaceClickedBackAndForth`): the selection capsule rests on the tab shown,
-    /// not between two (after the zoom, or on a new strip, it sat between the tab and the next one until the
-    /// next click), and after the zoom it never shows on another tab.
-    func testTheCapsuleRestsOnTheTabShownHoweverItShows() async throws {
-        relaunch(one, ["-forceMotion", "YES", "-recordLatency", "YES"])
+    /// A tile of the overview opens a middle tab of a workspace of many, then the workspace shown again and ⌘4: each
+    /// time the tab's page shows with its capsule alone lit.
+    func testTheCapsuleSitsOnTheTabShownHoweverItShows() async throws {
         let tabs = try await newWorkspace("capsule", tabs: 5).tabs
         let workspace = workspace(of: tabs[0])
         app.typeKey("o", modifierFlags: [.command, .control])
@@ -192,30 +182,21 @@ extension OrielUITests {
         XCTAssertTrue(tile.has(\.isHittable, true, within: 2))
         tile.click()
         XCTAssertTrue(element("overview").vanishes(within: 2))
-        try await expectShown(tabs[2], "zoomed into the middle tab")
-        // The pill shown on another tab while the middle one is selected (`TabBar.marker`, "pill <tab> <selected>"):
-        // it showed on the tab selected before through the zoom, then jumped. Now it fades in on the middle one.
-        let astray = element("app.latency").stringValue.split(separator: "; ").filter { $0.hasPrefix("pill ") }
-        XCTAssertFalse(astray.contains { $0.hasSuffix(" 2") }, "the pill on another tab after the overview: \(astray)")
+        try await expectShown(tabs[2], "opened from its tile")
         element("workspace.w2").click()
         element("workspace.\(workspace)").click()
         try await expectShown(tabs[2], "its workspace shown again")
         app.typeKey("4", modifierFlags: .command)
         try await expectShown(tabs[3], "⌘4")
-        // Never drawn on its way from one tab to another ("pill slides <drawn> <place>"): the title row's fade slid it
-        // from the tab selected before, under the zoom.
-        let slides = element("app.latency").stringValue.split(separator: "; ").filter { $0.hasPrefix("pill slides") }
-        XCTAssertEqual(slides, [], "the pill slid")
     }
 
     /// The tab's page is in view: its card takes clicks and its capsule alone is lit.
     private func expectShown(_ tab: String, _ step: String) async throws {
         let pane = try await pane(of: tab)
-        let inView = app.descendants(matching: .any)
-            .matching(NSPredicate(format: "identifier BEGINSWITH 'tab.' AND value BEGINSWITH 'in view'"))
+        let selected = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'tab.' AND selected == true"))
         var lit: [String] = []
         let shown = until(3) {
-            lit = inView.allElementsBoundByIndex.map(\.identifier)
+            lit = selected.allElementsBoundByIndex.map(\.identifier)
             return element("pane.\(pane)").exists && element("pane.\(pane)").isHittable && lit == ["tab.\(tab)"]
         }
         keepScreenshot(step)

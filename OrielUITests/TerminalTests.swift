@@ -46,28 +46,19 @@ extension OrielUITests {
             let offset = try await (pane("w1:p1")["scroll"] as? [String: Any])?["offset_from_bottom"] as? Int ?? 0
             return offset > 0 ? offset : nil
         }
-        // Up and down do not page the strip.
+        // Up and down do not change the tab.
         XCTAssertTrue(element("tab.w1:t1").isSelected)
         keepScreenshot("vertical scroll")
     }
 
-    /// A sideways scroll over a terminal pages the strip, and the new tab's panes attach.
-    func testSwipingOverACardPagesToTheNextTab() async throws {
-        let terminal = element("terminal.w1:p1")
-        XCTAssertTrue(terminal.exists(within: connect))
-        try await waitForPrompt("w1:p1")
-        keepScreenshot("before the swipe")
-        try await swipe(terminal, until: element("tab.w1:t2"), \.isSelected, true)
-        keepScreenshot("after the swipe")
-        XCTAssertTrue(app.windows.firstMatch.has(\.title, "second - \(one)", within: 2))
-        try await expectPTYSize("w1:p4")
-    }
-
-    func testCommandDigitSelectsATab() {
+    /// ⌘2 shows the second tab, whose pane attaches at its card's size; ⇧⌘[ ] step.
+    func testCommandDigitSelectsATab() async throws {
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         app.typeKey("2", modifierFlags: .command)
         XCTAssertTrue(element("tab.w1:t2").has(\.isSelected, true, within: 2))
         XCTAssertTrue(element("pane.w1:p4").has(\.isHittable, true, within: 2))
+        XCTAssertTrue(app.windows.firstMatch.has(\.title, "second - \(one)", within: 2))
+        try await expectPTYSize("w1:p4")
         keepScreenshot("command 2")
         app.typeKey("[", modifierFlags: [.command, .shift])
         XCTAssertTrue(element("tab.w1:t1").has(\.isSelected, true, within: 2))

@@ -4,8 +4,7 @@ extension OrielUITests {
     /// A tab comes into view in every way: from the change on, each of its cards shows its last
     /// picture, then herdr's screen, and nothing between. The app records each commit (`-recordFrames`): no card gone,
     /// blank, fading, with a third picture or moved. Every tab is shown once first: a new card's first reveal fades in
-    /// on purpose. w1's second tab is a middle one (of three), shown whenever a new strip comes (a workspace, a
-    /// session, the overview): an empty strip drew its first page, then jumped there.
+    /// on purpose. w1's second tab is a middle one (of three).
     func testATabComesIntoViewWithoutAFlicker() async throws {
         relaunch(one, ["-recordFrames", "YES", "-forceMotion", "YES"])
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
@@ -46,13 +45,13 @@ extension OrielUITests {
     }
 
     /// A card never shows a picture smaller than its pixels: a tab only the overview showed keeps the overview's small
-    /// snapshot (its tile's picture, D70), and shown in the strip afterwards (by its capsule, or by the zoom from its
-    /// tile), it showed that blurred until it drew. Now it shows its fill and fades in.
+    /// snapshot (its tile's picture, D70), and shown afterwards (by its capsule, or by its tile), it showed that
+    /// blurred until it drew. Now it shows its fill and fades in.
     func testACardNeverShowsTheOverviewsSmallSnapshot() async throws {
         relaunch(one, ["-recordFrames", "YES", "-forceMotion", "YES"])
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         var records: [String] = []
-        for (name, zooms) in [("capsule after the overview", false), ("zoom after the overview", true)] {
+        for (name, byTile) in [("capsule after the overview", false), ("tile after the overview", true)] {
             let (tab, pane) = try await newTab(name, in: "w1")
             try await fill(pane)
             // Its tile streams until it drew, then lets go and shows the snapshot it took.
@@ -63,7 +62,7 @@ extension OrielUITests {
             XCTAssertTrue(element("overview").vanishes(within: 2))
             try await Task.sleep(for: .seconds(2))
             try await records.append(frames(name) {
-                if zooms {
+                if byTile {
                     self.app.typeKey("o", modifierFlags: [.command, .control])
                     XCTAssertTrue(tile.has(\.isHittable, true, within: 3))
                     tile.click()
@@ -102,14 +101,12 @@ extension OrielUITests {
         element("sidebar.dot.\(one)").click()
         try await Task.sleep(for: .seconds(2))
         try await records.append(frames("tab key back", key("1")))
-        for name in ["overview zoom into another tab", "overview zoom into the shown tab"] {
+        for name in ["overview tile of another tab", "overview tile of the shown tab"] {
             try await records.append(frames(name) {
                 self.app.typeKey("o", modifierFlags: [.command, .control])
                 let tile = self.element("overview.tab.w1:t2")
                 XCTAssertTrue(tile.has(\.isHittable, true, within: 3))
                 tile.click()
-                // The zoom's 0.18 s, before the record's 1.5 s.
-                try await Task.sleep(for: .seconds(0.5))
             })
         }
         // The tab's cards take the new size once shown: their terminals hold their grid and redraw at the new one.

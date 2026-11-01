@@ -6,8 +6,8 @@ extension OrielUITests {
     /// workspace, two a row on CI's window, with wide margins; a tab never shown draws live in its tile; × closes a
     /// tab; a click shows that tab, its terminals at their size; Esc and the title row's × leave too.
     func testOverviewShowsEveryTabLiveAndOpensOne() async throws {
-        // The zoom runs, for the recording, and its miniature's sizes are counted.
-        relaunch(nil, ["-forceMotion", "YES", "-recordMotion", "YES", "-recordLatency", "YES"])
+        // The sidebar's makes are counted.
+        relaunch(nil, ["-recordLatency", "YES"])
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (closing, _) = try await newTab("closing", in: "w1")
         let made = sidebarsMade
@@ -46,7 +46,7 @@ extension OrielUITests {
         tile.click()
         XCTAssertTrue(overview.vanishes(within: 2))
         XCTAssertTrue(element("sidebar").exists(within: 2))
-        // The sidebar stayed under the overview and faded in with the zoom; made after it, it came late.
+        // The sidebar stayed under the overview and shows at once; made after it, it came late.
         XCTAssertEqual(sidebarsMade, made)
         XCTAssertTrue(element("tab.w2:t1").has(\.isSelected, true, within: 2))
         XCTAssertTrue(hasKeyboard("terminal.w2:p1"))
@@ -56,8 +56,6 @@ extension OrielUITests {
         XCTAssertTrue(overview.exists(within: 2))
         scrollOverview(to: tile)
         XCTAssertEqual(tile.stringValue, "selected")
-        // The zoom grew its miniature frame by frame (a jump takes one or two sizes).
-        XCTAssertGreaterThanOrEqual(Int(element("overview.motion").stringValue) ?? 0, 4)
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(overview.vanishes(within: 2))
         XCTAssertTrue(hasKeyboard("terminal.w2:p1"))
@@ -69,10 +67,10 @@ extension OrielUITests {
         XCTAssertTrue(element("titlebar.overview").exists(within: 2))
     }
 
-    /// A zoom into a tab the strip never showed, then into the shown one: once the zoom ends, its
-    /// card shows at once and never goes back to loading (the user saw it flicker).
-    func testOverviewZoomIntoAnUnshownTabShowsItSteadily() async throws {
-        relaunch(nil, ["-forceMotion", "YES", "-recordMotion", "YES"])
+    /// A tile of a tab never shown, then of the shown one: once the overview closes, its card shows at once and never
+    /// goes back to loading (the user saw it flicker).
+    func testOverviewTileIntoAnUnshownTabShowsItSteadily() async throws {
+        relaunch(nil, ["-recordMotion", "YES"])
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, pane) = try await newTab("unshown", in: "w1")
         try await send("seq 1 40\r", to: pane)
@@ -88,7 +86,7 @@ extension OrielUITests {
             while Date.now < end {
                 values.append(card.stringValue)
             }
-            print("zoom, \(round): \(values) host \(element("host.\(pane)").label)")
+            print("tile, \(round): \(values) host \(element("host.\(pane)").label)")
             XCTAssertFalse(values.contains { $0.contains("loading") }, "\(round): \(values)")
         }
     }
@@ -139,9 +137,9 @@ extension OrielUITests {
         XCTAssertEqual(title.minY - canvas.minY, 40, accuracy: 2)
     }
 
-    /// Sideways, the overview pages through the window's sessions, and the page it lands on is the window's; a click
-    /// there shows that session's tab.
-    func testOverviewSwipesBetweenSessions() async throws {
+    /// The overview shows the session in view: ⌥⌘] steps to the next one, whose tiles show, and a sideways wheel goes
+    /// nowhere; a click there shows that session's tab.
+    func testOverviewStepsBetweenSessions() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         openSessionPanel()
         app.typeText(two)
@@ -158,7 +156,13 @@ extension OrielUITests {
         app.typeKey("o", modifierFlags: [.command, .control])
         let overview = element("overview"), window = app.windows.firstMatch
         XCTAssertTrue(element("overview.page.\(one)").exists(within: 2))
-        try await swipe(overview, until: element("overview.page.\(two)"), \.exists, true)
+        // Both ways: the sign follows the natural scrolling setting.
+        for delta in [-300.0, 300] {
+            overview.scroll(byDeltaX: delta, deltaY: 0)
+            XCTAssertFalse(until(1) { window.title.hasSuffix(" - \(two)") }, "a wheel of \(delta) changed the session")
+        }
+        app.typeKey("]", modifierFlags: [.command, .option])
+        XCTAssertTrue(element("overview.page.\(two)").exists(within: 2))
         XCTAssertTrue(until(3) { window.title.hasSuffix(" - \(two)") }, window.title)
         XCTAssertFalse(element("overview.page.\(one)").exists)
         keepScreenshot("overview of session two")
@@ -168,7 +172,7 @@ extension OrielUITests {
         XCTAssertTrue(overview.vanishes(within: 2))
         XCTAssertTrue(until(3) { header == two })
 
-        // Without motion (CI's Reduce Motion), Esc leaves at once and the keyboard is back in the card.
+        // Esc leaves at once and the keyboard is back in the card.
         app.typeKey("o", modifierFlags: [.command, .control])
         XCTAssertTrue(overview.exists(within: 2))
         app.typeKey(.escape, modifierFlags: [])
@@ -178,7 +182,7 @@ extension OrielUITests {
 
     /// What the overview costs: a workspace of 6 tabs and 12 panes, 8 of them printing, only its
     /// first tab shown. Open, each tile in view gets a picture: the cards with none stream until they drew, then let
-    /// go (D70: the tiles are pictures), so the streams come back to the strip's while it is still open. Footprint and
+    /// go (D70: the tiles are pictures), so the streams come back to the tab's while it is still open. Footprint and
     /// CPU of each step are in the result bundle.
     func testOverviewCostsAndLetsGoAfter() async throws {
         let (tabs, _) = try await newWorkspace("usage", tabs: 6)
@@ -219,7 +223,7 @@ extension OrielUITests {
         XCTAssertTrue(last.isHittable)
         keepScreenshot("overview of 6 tabs")
         let scrolled = try await measure("overview, scrolled")
-        // The strip's kept terminals, at most 16 cards still drawing their first picture, and a run or two ending.
+        // The kept terminals, at most 16 cards still drawing their first picture, and a run or two ending.
         XCTAssertLessThanOrEqual(helpers(scrolled), helpers(strip) + 16 + 2, scrolled)
         // Back up: the second tab's card shows its snapshot at once, never the bare fill.
         scrollOverview(to: element("overview.tab.\(tabs[1])"), step: 3000, steps: 1)
@@ -242,7 +246,7 @@ extension OrielUITests {
 
     /// The overview of 200 tabs over 8 workspaces, 272 panes, 50 of them agents and half the rest printing
     /// (`scripts/stress.py`): while trackpad scrolls go through it, at most 16 cards stream beside the
-    /// strip's, the tiles that were live keep a snapshot, and the footprint stays bounded. Footprint, CPU, the frames
+    /// tab's, the tiles that were live keep a snapshot, and the footprint stays bounded. Footprint, CPU, the frames
     /// dropped while scrolling (`app.latency`) and the main thread's profile are in the result bundle.
     func testOverviewOfManyTabsStaysBounded() async throws {
         executionTimeAllowance = 600
@@ -279,7 +283,7 @@ extension OrielUITests {
         // "‹live cards› ‹snapshots›".
         let snapshots = element("overview.snapshots").stringValue
         note("overview: most runs \(most), live and snapshots \(snapshots)")
-        // The strip's kept terminals, at most 16 cards, and a run or two ending.
+        // The kept terminals, at most 16 cards, and a run or two ending.
         XCTAssertLessThanOrEqual(most, helpers(strip) + 16 + 2, "\(most) runs")
         XCTAssertGreaterThan(Int(snapshots.split(separator: " ").last ?? "") ?? 0, 8, snapshots)
         // Bounded by the live cap, whatever the tab count: 16 full-window cards are about 1.1 GB on Retina.
@@ -333,7 +337,7 @@ extension OrielUITests {
         let tile = element("overview.tab.\(tab)")
         XCTAssertTrue(until(5) { tile.label.contains("Dark") }, tile.label)
         XCTAssertGreaterThan(mean(shot), 150, "the tile's picture")
-        // The palette closing gives the keyboard card the keyboard, here the browser: it waits for the strip.
+        // The palette closing gives the keyboard card the keyboard, here the browser: it waits for its card.
         app.typeKey("k", modifierFlags: .command)
         XCTAssertTrue(hasKeyboard(element("palette.filter")))
         app.typeKey(.escape, modifierFlags: [])
