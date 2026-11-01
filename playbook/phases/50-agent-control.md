@@ -236,3 +236,32 @@ simple and brief."
   the panel's notice without Retry.
 - **For the user.** The trust prompt with the agent's name: `/tmp/oriel-shots/agent-trust-prompt.png`. Check by hand
   that it shows on the session's window while Oriel is in the background, and that Return does not install.
+
+### Track D
+
+- **Spike (herdr 0.9.5).** Once a pane has an agent session (`report-agent-session`), herdr takes no more state
+  reports for it, from any source. A stand-in that must look busy reports `working` before its session.
+- **The switches.** Oriel had none: needs you and finished were fixed (settings.mdx, status.mdx), and there is no
+  Settings window (D62). So the menu bar has Oriel ▸ Notifications ▸ Needs You, Finished, From Agents. Each is on by
+  default and is a key in app storage (`notifyNeedsYou`, `notifyFinished`, `notifyFromAgents`). The palette shows them
+  as a sub-page. For the docs pass: settings.mdx and status.mdx.
+- **notify.** It answers `{"pane", "notified"}`. With From Agents off, it answers `"notified": false` and exit 0, and
+  does not count toward the limit. The limit is one per asking pane every 10 s, whatever `--pane` names. A pane that
+  macOS does not let Oriel notify gets `failed` with macOS's words. The id is `agent|‹machine›|‹session›|‹terminal›`:
+  a newer one from the same pane replaces it, and the snapshot's sweep of needs-you and finished ones leaves it alone.
+  A click brings Oriel to the front and shows the pane, the same as a needs-you click. The subtitle is
+  "‹agent› · ‹session›".
+- **agent.** It takes B's places, but not `--replace` (`usage`). An unknown name is `bad_argument`. It puts the
+  chooser's loader on the new pane, as Start Agent Here does, and answers `{"pane", "agent"}` once the line is typed
+  (`Chooser.typed`). A pane that closes first is `failed`.
+- **chat.** These checks come first, in this order: the asking pane is `self`; a pane with no chat agent, one that
+  shows the chat already, or an agent session herdr does not know is `bad_argument`; a relaunch already running, or a
+  `working` or `blocked` agent, is `busy`. Then it runs Relaunch with Chat and answers once the new line is typed, so
+  an agent that does not quit is `failed`. That takes about 3 s; pass `--timeout` for a slow agent.
+- **Tests.** The `agent` test checks the errors everywhere. It skips the rest on a Mac that has `claude`: a new pane's
+  shell has no stand-in, and the real one would start (and write `~/.claude`). So the typed line is checked on CI
+  only.
+- **For the user.** Click an agent's banner while Oriel is in the background: Oriel comes to the front and shows the
+  pane. Turn off From Agents and check that `oriel notify` shows nothing. Turn off Needs You or Finished and check
+  that those banners stop. Run `oriel agent claude --tab` and check that the view does not move and that Claude Code
+  starts with the chat view.
