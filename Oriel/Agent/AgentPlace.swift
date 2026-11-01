@@ -50,7 +50,8 @@ extension AgentCall {
                                     split.map { .split(tab: card.tabID, pane: card.id, $0) } ?? .tab(after: index))
         }
         let end = ContinuousClock.now + .seconds(5)
-        while store.pane(made.id) == nil, end > .now {
+        // In its place: a snapshot between the new tab and the move has it in the temporary tab.
+        while store.pane(made.id)?.tabID != made.tabID, end > .now {
             try await Task.sleep(for: .milliseconds(50))
         }
         if case .tab(float: true) = place {
