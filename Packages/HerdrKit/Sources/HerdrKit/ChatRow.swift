@@ -1,91 +1,62 @@
 import Foundation
 
-/// The detail level (ui/chat-view#detail-levels).
-public enum ChatLevel: String, CaseIterable, Sendable {
-    case replies, activity, everything
-}
-
 public enum ChatRow: Equatable, Sendable, Identifiable {
     case user(id: String, text: String)
-    /// A turn's quiet line on top: "Read 2 files, ran 3 commands". `steps`: the turn's tool calls and thinking, which
-    /// it opens to (Activity).
-    case summary(id: String, counts: String, steps: [ChatEntry])
-    /// "Worked 1m 48s" under a finished turn that has its quiet line.
+    /// A run of tool calls, with the thinking between them, between two messages: one line of its counts ("Ran 3
+    /// commands, read 2 files"). `steps`: where the run is in the history's entries; the chat reads them for the
+    /// counts of the rows it shows, and its rows only while it is open.
+    case stack(id: String, steps: Range<Int>)
+    /// "Worked 1m 48s" under a finished turn with tool calls.
     case worked(id: String, seconds: Double?)
     case reply(id: String, text: String)
-    case thinking(id: String)
-    /// A run of tool calls, with the thinking between them, between two replies.
-    case stack(id: String, steps: [ChatEntry])
     case todos(id: String, [ChatTodo])
     case note(id: String, text: String, failed: Bool)
 
     public var id: String {
         switch self {
-        case let .user(id, _), let .summary(id, _, _), let .worked(id, _), let .reply(id, _), let .thinking(id),
-             let .stack(id, _), let .todos(id, _), let .note(id, _, _): id
+        case let .user(id, _), let .stack(id, _), let .worked(id, _), let .reply(id, _), let .todos(id, _),
+             let .note(id, _, _): id
         }
     }
 }
 
 public extension ChatHistory {
-    /// The rows at a level. Replies: the user's messages, each turn's quiet line, its last reply, its notes and how
-    /// long it worked; Activity: the same, the line opening to the turn's steps. Everything: no line; every reply,
-    /// todo list and note, and each run of tool calls and thinking as one stack, as pi-content-layout groups them.
-    /// `working`: the last turn runs on.
-    func rows(_ level: ChatLevel, working: Bool) -> [ChatRow] {
-        var turns: [[ChatEntry]] = []
-        for entry in entries {
-            if turns.isEmpty || entry.user != nil {
-                turns.append([entry])
-            } else {
-                turns[turns.count - 1].append(entry)
+    /// The chat's rows (ui/chat-view#messages): the user's messages; every reply, todo list and note in order; each run
+    /// of tool calls between them as one line, its thinking among its steps; and "Worked" under a finished turn with
+    /// tool calls. Thinking with no tool call in its run has no row. `working`: the last turn runs on.
+    func rows(working: Bool) -> [ChatRow] {
+        var rows: [ChatRow] = [], turn = 0, run = 0 ..< 0
+        func endRun() {
+            if entries[run].contains(where: { $0.tool != nil }) {
+                rows.append(.stack(id: entries[run.lowerBound].id, steps: run))
             }
         }
-        return turns.indices.flatMap { Self.rows(turns[$0], level, running: working && $0 == turns.count - 1) }
-    }
-
-    private static func rows(_ turn: [ChatEntry], _ level: ChatLevel, running: Bool) -> [ChatRow] {
-        var rows: [ChatRow] = [], body = turn[...]
-        if let text = turn[0].user {
-            rows.append(.user(id: turn[0].id, text: text))
-            body = body.dropFirst()
-        }
-        guard level == .everything else {
-            let tools = body.compactMap(\.tool)
-            if !tools.isEmpty {
-                rows.append(.summary(id: "\(turn[0].id).summary", counts: ChatTool.summary(tools),
-                                     steps: level == .activity ? body.filter(\.isStep) : []))
-            }
-            let reply = body.last { $0.row?.isReply == true }?.id
-            rows += body.compactMap { entry in
-                guard let row = entry.row, entry.id == reply || row.isNote else { return nil }
-                return row
-            }
+        func endTurn(at end: Int, running: Bool) {
+            endRun()
+            let body = entries[turn ..< end].drop { $0.user != nil }
             // While it runs, the chat's own loader says "Working ‹time›" there.
-            if !running, !tools.isEmpty {
-                rows.append(.worked(id: "\(turn[0].id).worked", seconds: seconds(body)))
-            }
-            return rows
-        }
-        var run: [ChatEntry] = []
-        // Thinking alone is its own row; with tool calls it is one of the run's steps.
-        func flush() {
-            if run.contains(where: { $0.tool != nil }) {
-                rows.append(.stack(id: run[0].id, steps: run))
-            } else if let first = run.first {
-                rows.append(.thinking(id: first.id))
-            }
-            run = []
-        }
-        for entry in body {
-            if entry.isStep {
-                run.append(entry)
-            } else if let row = entry.row {
-                flush()
-                rows.append(row)
+            if !running, body.contains(where: { $0.tool != nil }) {
+                rows.append(.worked(id: "\(entries[turn].id).worked", seconds: Self.seconds(body)))
             }
         }
-        flush()
+        for (index, entry) in entries.enumerated() {
+            if let text = entry.user {
+                endTurn(at: index, running: false)
+                turn = index
+                rows.append(.user(id: entry.id, text: text))
+            } else if entry.isStep {
+                run = (run.isEmpty ? index : run.lowerBound) ..< index + 1
+                continue
+            } else {
+                // A message, or a turn's end (a run never spans two turns).
+                endRun()
+                if let row = entry.row {
+                    rows.append(row)
+                }
+            }
+            run = index + 1 ..< index + 1
+        }
+        endTurn(at: entries.endIndex, running: working)
         return rows
     }
 
@@ -98,23 +69,5 @@ public extension ChatHistory {
     private static func seconds(_ body: ArraySlice<ChatEntry>) -> Double? {
         body.lazy.compactMap(\.seconds).last
             ?? body.first?.time.flatMap { first in body.last?.time?.timeIntervalSince(first) }
-    }
-}
-
-public extension ChatRow {
-    var isReply: Bool {
-        if case .reply = self {
-            true
-        } else {
-            false
-        }
-    }
-
-    var isNote: Bool {
-        if case .note = self {
-            true
-        } else {
-            false
-        }
     }
 }

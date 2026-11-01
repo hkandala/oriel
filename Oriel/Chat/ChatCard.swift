@@ -33,59 +33,21 @@ extension Page {
     }
 }
 
-/// A chat card's row-2 controls (ui/chat-view#switching-views): the detail level while the chat shows, and the
-/// Chat | TUI switch, which changes only what the card draws.
+/// A chat card's row-2 control (ui/chat-view#switching-views): the Chat | TUI switch, which changes only what the
+/// card draws.
 struct ChatSwitch: View {
     @Bindable var chat: Chat
     let page: Page
-    private var settings = AppSettings()
-    @Environment(\.look) private var look
 
     var body: some View {
         let id = chat.paneID
-        HStack(spacing: 8) {
-            if chat.showsChat {
-                level
+        Segments(id: "pane.\(id).view", options: [("Chat", true), ("TUI", false)], selection: $chat.showsChat)
+            .fixedSize()
+            .onChange(of: chat.showsChat) {
+                // The card keeps the keyboard: the reply box, or the terminal; in a floating window too.
+                guard page.hasKeyboard(id), let terminalID = page.store.pane(id)?.terminalID else { return }
+                Task { page.terminals.focus(terminalID) }
             }
-            Segments(id: "pane.\(id).view", options: [("Chat", true), ("TUI", false)], selection: $chat.showsChat)
-        }
-        .fixedSize()
-        .onChange(of: chat.showsChat) {
-            // The card keeps the keyboard: the reply box, or the terminal; in a floating window too.
-            guard page.hasKeyboard(id), let terminalID = page.store.pane(id)?.terminalID else { return }
-            Task { page.terminals.focus(terminalID) }
-        }
-    }
-
-    /// "Replies only ⌄", a pull-down of the levels in a pill like Chat | TUI's (ui/chat-view#detail-levels).
-    private var level: some View {
-        Menu {
-            Picker("Show", selection: settings.$chatLevel) {
-                ForEach(ChatLevel.allCases, id: \.self) { Text($0.title).tag($0) }
-            }
-            .pickerStyle(.inline)
-            .labelsHidden()
-        } label: {
-            // One text: an image beside it was a second element with the menu's identifier.
-            let chevron = Text(Image(systemName: "chevron.down")).font(.system(size: 8, weight: .semibold))
-            Text("\(settings.chatLevel.title)  \(chevron)")
-                .font(.system(size: 11, weight: .medium)).padding(.horizontal, 8).frame(height: 20)
-        }
-        .menuStyle(.button)
-        .menuIndicator(.hidden)
-        .buttonStyle(ChromeStyle(radius: 6))
-        .fixedSize()
-        .padding(2)
-        .background(look.track, in: .rect(cornerRadius: 8))
-        .accessibilityLabel("Show")
-        .accessibilityValue(settings.chatLevel.title)
-        .accessibilityIdentifier("chat.\(chat.paneID).level")
-    }
-}
-
-extension ChatLevel {
-    var title: String {
-        self == .replies ? "Replies only" : rawValue.capitalized
     }
 }
 

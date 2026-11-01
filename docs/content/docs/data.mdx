@@ -21,7 +21,7 @@ One rule decides where each new thing goes (D57):
 | Agent kind, status, `completion_seq`, session (`agent_session`) | herdr | `agents[]`, `panes[]` |
 | A machine's sessions | herdr | `herdr session list --json`, run on the machine |
 | Remote machines: name, SSH target, icon, id | app, disk | `UserDefaults`, JSON under `machines` |
-| Settings: appearance, interface style, text size and Focus Follows Mouse ([Settings](/docs/ui/settings)); the chat's detail level (`chatLevel`); the Agents view's folded groups (`agentsFolded`); a floating pane's window frame, per pane | app, disk | app storage (`UserDefaults`) |
+| Settings: appearance, interface style, text size and Focus Follows Mouse ([Settings](/docs/ui/settings)); the Agents view's folded groups (`agentsFolded`); a floating pane's window frame, per pane | app, disk | app storage (`UserDefaults`) |
 | Per window: the machine's id (`machine`), the names of its open pages (`pages`), the page in view (`page`), each page's selected workspace and tabs and its floating panes with their Stay on Top (`selection`, one JSON string), sidebar shown or hidden (`sidebar`), sidebar view (workspaces or agents, `agents`) and its sort (`agentSort`), and sidebar width (`sidebarWidth`) | app, disk | `@SceneStorage`, one set per window |
 | Per page of a window: the selected workspace, the tab per workspace, the keyboard card per tab, the zoomed card. Per open session: its `HostStore`, made on first use. Per session: which window controls it ([Control between windows](/docs/talking-to-herdr#control-between-windows)). | app, per device | memory |
 | Seen values and the time of each status change (Agents view), program icons, git state of each workspace, a divider's ratio while it is dragged | app, per device | memory |

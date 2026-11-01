@@ -105,8 +105,8 @@ extension View {
 
 private struct MenuBar: ViewModifier {
     let commands: CommandList
-    /// The settings the commands read (Reset Font Size's state, the chat level's checkmark): their change runs this
-    /// body again, which the menu bar takes its list from. `commands.settings` is no dynamic property of this view.
+    /// The settings the commands read (Reset Font Size's state): their change runs this body again, which the menu bar
+    /// takes its list from. `commands.settings` is no dynamic property of this view.
     private var settings = AppSettings()
 
     func body(content: Content) -> some View {
@@ -168,8 +168,6 @@ struct AppSettings: DynamicProperty {
     @AppStorage("interfaceStyle") var style = InterfaceStyle.glass
     @AppStorage("fontSize") var fontSize = PaneTerminal.fontSize
     @AppStorage("focusFollowsMouse") var followMouse = false
-    /// The chat view's detail level, one for the app (ui/chat-view#detail-levels).
-    @AppStorage("chatLevel") var chatLevel = ChatLevel.replies
 }
 
 /// One command (D48). The menu bar and the palette read the one list of them (`CommandList`).

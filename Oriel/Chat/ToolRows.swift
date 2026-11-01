@@ -1,38 +1,37 @@
 import HerdrKit
 import SwiftUI
 
-/// A run of tool calls as one quiet line (ui/chat-view#detail-levels), so the replies stand out; open, a row per call
-/// and per thinking.
-struct ToolStack<Header: View>: View {
-    let steps: [ChatEntry]
-    let open: Bool
+/// A run of tool calls as one quiet line of its counts and a chevron (ui/chat-view#tool-calls), so the replies stand
+/// out; open, a row per call and per thinking. Its rows are made only while it is open.
+struct ToolStack: View {
+    let counts: String
+    /// Nil: closed.
+    let steps: [ChatEntry]?
     let paneID: String
     let toggle: () -> Void
     /// The calls opened to their input and output.
     let opened: Set<String>
     let toggleTool: (String) -> Void
-    @ViewBuilder let header: Header
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Button(action: toggle) {
                 HStack(spacing: 6) {
-                    header.lineLimit(1).truncationMode(.middle).layoutPriority(1)
-                    Chevron(open: open)
+                    Text(counts).foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle).layoutPriority(1)
+                    Chevron(open: steps != nil)
                     Spacer(minLength: 4)
                 }
                 .padding(.horizontal, 6).frame(height: 24)
             }
             .buttonStyle(ChromeStyle(radius: 6))
-            .accessibilityValue(open ? "open" : "closed")
+            .accessibilityValue(steps != nil ? "open" : "closed")
             .accessibilityIdentifier("chat.\(paneID).stack")
-            if open {
+            if let steps {
                 ForEach(steps) { step in
                     if let tool = step.tool {
                         ToolRow(tool: tool, open: opened.contains(tool.id), paneID: paneID) { toggleTool(tool.id) }
                     } else {
-                        // Lined up with the tool rows around it: their icon and height. A lone thought between
-                        // replies (`ChatRowView`) has neither.
+                        // Lined up with the tool rows around it: their icon and height.
                         HStack(spacing: 6) {
                             Icon(symbol: "text.bubble")
                             Text("Thought").italic().foregroundStyle(.tertiary)
@@ -44,7 +43,7 @@ struct ToolStack<Header: View>: View {
             }
         }
         .font(.system(size: 12))
-        // The header's text lines up with the replies; the hover fill reaches past it.
+        // The line's text lines up with the replies; the hover fill reaches past it.
         .padding(.horizontal, -6)
     }
 }
@@ -150,7 +149,7 @@ private struct Chevron: View {
 }
 
 /// How long it took, from a second on.
-struct Time: View {
+private struct Time: View {
     let start: Date?
     let end: Date?
 

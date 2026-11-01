@@ -8,47 +8,39 @@ extension OrielUITests {
     private static let scripts = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
         .appending(path: "scripts")
 
-    /// Sends, stops, levels, slash text to the terminal, and "Not sent", on This Mac.
-    func testAChatSendsStopsAndShowsItsLevels() async throws {
+    /// Sends, stops, every message with its tool calls folded, slash text to the terminal, and "Not sent", on This Mac.
+    func testAChatSendsStopsAndFoldsItsToolCalls() async throws {
         let pane = try await startChat().pane
         try await say("hello", in: pane)
         XCTAssertTrue(row(pane, "reply", "Echo: **hello**").exists(within: 5))
         try await waitFor(pane) { $0.contains("Echo: **hello**") }
 
         XCTAssertTrue(twoRows(pane, above: "pane.\(pane).view.chat"))
-        // Activity: the turn's quiet line, which a click opens to its command; Replies: the line alone; Everything: no
-        // line, the run open.
-        keepLevel(in: pane)
-        level("Activity", in: pane)
+        // The run's line of counts, closed, and the turn's time under the reply.
         let stacks = app.descendants(matching: .any).matching(identifier: "chat.\(pane).stack")
-        let stack = stacks.element(boundBy: 0)
-        XCTAssertTrue(stack.has(\.stringValue, "closed", within: 2))
-        XCTAssertEqual(stack.label, "Ran 1 command")
-        stack.click()
-        XCTAssertTrue(stack.has(\.stringValue, "open", within: 2))
-        XCTAssertTrue(element("chat.\(pane).tool").exists(within: 2))
-        level("Replies only", in: pane)
-        XCTAssertTrue(stack.vanishes(within: 2))
-        // The counts on top, the time under the reply.
-        XCTAssertEqual(element("chat.\(pane).summary").stringValue, "Ran 1 command")
+        XCTAssertTrue(stacks.element(boundBy: 0).has(\.stringValue, "closed", within: 2))
+        XCTAssertEqual(stacks.element(boundBy: 0).label, "Ran 1 command")
         XCTAssertTrue(element("chat.\(pane).worked").stringValue.hasPrefix("Worked "))
         keepScreenshot("chat")
-        // Clicked open, it stays open.
-        level("Activity", in: pane)
-        XCTAssertTrue(stack.has(\.stringValue, "open", within: 2))
-        try await say("again", in: pane)
-        XCTAssertTrue(row(pane, "reply", "Echo: **again**").exists(within: 5))
-        level("Everything", in: pane)
-        XCTAssertTrue(element("chat.\(pane).summary").vanishes(within: 2))
-        XCTAssertEqual(stacks.count, 2)
-        XCTAssertTrue(stacks.element(boundBy: 1).label.hasPrefix("Ran 1 command"))
-        XCTAssertEqual(stacks.element(boundBy: 1).stringValue, "open")
-        // Clicked closed, a run stays closed.
-        stacks.element(boundBy: 0).click()
-        XCTAssertTrue(stacks.element(boundBy: 0).has(\.stringValue, "closed", within: 2))
-        level("Replies only", in: pane)
-        level("Everything", in: pane)
-        XCTAssertTrue(stacks.element(boundBy: 0).has(\.stringValue, "closed", within: 2))
+
+        // Every message of a turn, each run of tool calls between them one closed line; a run's calls are made only
+        // while it is open.
+        try await say("steps", in: pane)
+        XCTAssertTrue(row(pane, "reply", "Done.").exists(within: 5))
+        XCTAssertTrue(row(pane, "reply", "First, a look.").exists)
+        XCTAssertTrue(row(pane, "reply", "Then two more.").exists)
+        XCTAssertEqual(stacks.count, 3)
+        let run = stacks.element(boundBy: 2)
+        XCTAssertEqual(run.label, "Ran 2 commands")
+        XCTAssertEqual(run.stringValue, "closed")
+        let tools = app.descendants(matching: .any).matching(identifier: "chat.\(pane).tool")
+        XCTAssertEqual(tools.count, 0)
+        run.click()
+        XCTAssertTrue(run.has(\.stringValue, "open", within: 2))
+        XCTAssertTrue(until(2) { tools.count == 2 }, "\(tools.count)")
+        keepScreenshot("open run")
+        run.click()
+        XCTAssertTrue(tools.firstMatch.vanishes(within: 2))
 
         // Esc anywhere in the chat stops it while it works, as Stop does.
         try await say("slow", in: pane)
@@ -84,11 +76,10 @@ extension OrielUITests {
         try await say("long", in: pane)
         XCTAssertTrue(empty.vanishes(within: 2))
         XCTAssertTrue(row(pane, "reply", "Counted.").exists(within: 5))
-        keepLevel(in: pane)
-        level("Everything", in: pane)
         // More room under the user's message than between a turn's rows.
         let user = row(pane, "user", "long"), stack = element("chat.\(pane).stack")
         XCTAssertGreaterThanOrEqual(stack.frame.minY - user.frame.maxY, 16, "\(user.frame) \(stack.frame)")
+        stack.click()
         let tool = element("chat.\(pane).tool")
         tool.click()
         let output = element("chat.\(pane).tool.output")
@@ -154,8 +145,7 @@ extension OrielUITests {
         try await say("hello", in: pane)
         let reply = row(pane, "reply", "Echo: **hello**")
         XCTAssertTrue(reply.exists(within: 5))
-        keepLevel(in: pane)
-        level("Everything", in: pane)
+        element("chat.\(pane).stack").click()
         let tool = element("chat.\(pane).tool")
         XCTAssertTrue(tool.has(\.stringValue, "closed", within: 2))
         tool.click()
@@ -324,24 +314,6 @@ extension OrielUITests {
         XCTAssertTrue(composer.exists(within: 3))
         XCTAssertTrue(hasKeyboard(composer))
         return (tab, pane)
-    }
-
-    /// The user's detail level comes back after the test (the tests share the app's defaults).
-    func keepLevel(in pane: String) {
-        let before = element("chat.\(pane).level").stringValue
-        addTeardownBlock { @MainActor in
-            if !before.isEmpty, self.element("chat.\(pane).level").exists {
-                self.level(before, in: pane)
-            }
-        }
-    }
-
-    /// Picks the detail level in the card's Show pull-down.
-    func level(_ title: String, in pane: String) {
-        let menu = element("chat.\(pane).level")
-        menu.click()
-        menu.menuItems[title].click()
-        XCTAssertTrue(menu.has(\.stringValue, title, within: 2))
     }
 
     /// Types a message into the reply box and waits until the transcript has it (the bubble on its way is `sending`).

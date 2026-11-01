@@ -14,8 +14,6 @@ struct ChatMessages: View, Equatable {
     @State private var top: String?
     /// The newest message is in view.
     @State private var atBottom = true
-    /// The oldest row shown is in view: Show Earlier shows over it.
-    @State private var atTop = false
     /// A row holds the place: the scroll view named one since the chat left the bottom. Until then the bottom does,
     /// also scrolled up inside a newest reply taller than the view.
     @State private var held = false
@@ -25,14 +23,19 @@ struct ChatMessages: View, Equatable {
     /// The oldest row shown, once the chat left the bottom (new rows then do not move it) or Show Earlier was
     /// clicked; nil: the newest `block` rows.
     @State private var first: String?
-    /// Show Earlier's rows are on their way: the row at the top goes back there once they are in.
+    /// Show Earlier's rows are on their way: its spinner shows.
     @State private var earlier = false
+    /// The scroll view's place as it last named it, or one asked of it; and its offset, kept for Show Earlier.
+    @State private var position = ScrollPosition(idType: String.self)
+    // ponytail: written at every scroll frame, read only by Show Earlier's click, never in a body, so nothing is
+    // built again for it.
+    @State private var offset: CGFloat = 0
     @Environment(\.look) private var look
-    private var settings = AppSettings()
     private static let end = "end"
-    /// The rows a long chat shows at a time, and Show Earlier adds: about 10 turns. A split lays them out once, at its
-    /// end: 40 rows of long replies took one frame of 40–50 ms, 100 rows one of 110–160 ms.
-    private static let block = 40
+    /// The rows a long chat shows at a time, and Show Earlier adds. A split lays them out once, at its end: 40 rows of
+    /// long replies took one frame of 40–50 ms, 100 rows one of 110–160 ms. With every reply shown, 34 rows lay out in
+    /// the time 40 rows of last replies did (the open's worst frame on a 117 MB session: 120 ms; 40 rows: 141 ms).
+    private static let block = 34
 
     init(chat: Chat, page: Page, floats: Bool, composing: FocusState<Bool>.Binding) {
         self.chat = chat
@@ -94,59 +97,72 @@ struct ChatMessages: View, Equatable {
         // The next scroll view starts at the bottom, with the newest rows (a new session too).
         .onAppear {
             hold(nil)
-            (atBottom, atTop, first) = (true, false, nil)
+            (atBottom, first, earlier, position) = (true, nil, false, ScrollPosition(idType: String.self))
         }
     }
 
     private var messages: some View {
-        let level = settings.chatLevel
-        let rows = chat.history.rows(level, working: chat.phase == .working)
-        let start = first.flatMap { id in rows.firstIndex { $0.id == id } } ?? Self.start(rows[...], level)
+        let rows = chat.history.rows(working: chat.phase == .working)
+        let start = first.flatMap { id in rows.firstIndex { $0.id == id } } ?? Self.start(rows[...])
+        // The view's state and environment the reader's content draws with, read here: a change of either read inside
+        // it does not build it again, only a change of what its closure holds (the Scroll to Bottom button never
+        // showed). The chat's observed values are tracked inside.
+        let (scrolledUp, follows, loading, laidOut, error) = (!atBottom, !held, earlier, width, look.error)
         return ScrollViewReader { proxy in
             ScrollView {
                 // Not lazy: a lazy stack guessed the height of the rows it had not built, by up to four times, and
                 // after a split showed a blank where it guessed wrong. `block` keeps the layout short.
                 VStack(alignment: .leading, spacing: 10) {
-                    Rows(chat: chat, rows: rows[start...], level: level)
+                    if start > 0 {
+                        earlierButton(loading: loading) { showEarlier(rows, before: start) }
+                    }
+                    Rows(chat: chat, rows: rows[start...])
                     ForEach(chat.outgoing) { message in
-                        outgoing(message)
+                        outgoing(message, error: error)
                     }
                     if chat.phase == .working {
                         // A message on its way starts a turn the history does not have yet.
                         WorkingRow(since: chat.outgoing.isEmpty ? chat.history.lastTurnStart : nil)
                     }
                     if let problem = chat.problem {
-                        problemCard(problem)
+                        problemCard(problem, error: error)
                     }
                     // The end, with the room above the reply box (with the stack's spacing): Scroll to Bottom lands
                     // where a chat opens.
                     Color.clear.frame(height: 22).id(Self.end)
                 }
                 .scrollTargetLayout()
-                // None above a long chat's oldest row shown: the place goes back with the top row's top at the top, so
-                // earlier rows come above it without moving what is in view.
+                // While earlier rows exist, Show Earlier's row holds the top padding.
                 .padding(.horizontal, 32).padding(.top, start > 0 ? 0 : floats ? 28 : 16)
                 .frame(maxWidth: ChatView.column)
                 .frame(maxWidth: .infinity)
             }
-            // The scroll view names the row at the top as it scrolls: not at the bottom, which follows new rows. Set
-            // here, not in an onChange, so the body is not built again per row scrolled past.
-            .scrollPosition(id: Binding(get: { top }, set: { row in
-                hold(atBottom ? nil : row)
+            // Only kept, for Show Earlier's offset: the scroll view named a row in it seldom (on CI, only as a scroll
+            // began).
+            .scrollPosition(Binding(get: { position }, set: { position = $0 }), anchor: .top)
+            // The row at the top (any part of it in view) as the rows in view change: not at the bottom, which follows
+            // new rows. Kept here, not in an onChange, so the body is not built again per row scrolled past.
+            .onScrollTargetVisibilityChange(idType: String.self, threshold: 0.01) { visible in
+                hold(atBottom ? nil : visible.first)
                 if !atBottom, first == nil, rows.indices.contains(start) {
                     first = rows[start].id
                 }
-            }), anchor: .top)
+            }
             .defaultScrollAnchor(.bottom)
-            .defaultScrollAnchor(held ? nil : .bottom, for: .sizeChanges)
-            .onScrollGeometryChange(for: Bool.self) { $0.visibleRect.minY < 8 } action: { atTop = $1 }
+            .defaultScrollAnchor(follows ? .bottom : nil, for: .sizeChanges)
             // A plain stack's scroll keeps its offset when the rows above change height (a new width) or come (Show
-            // Earlier): the row that was at the top goes back there. Not for rows below, which move nothing in view.
-            .onScrollGeometryChange(for: CGSize.self) { $0.contentSize } action: { old, new in
-                if let top, old.width != new.width || earlier {
+            // Earlier): the row that was at the top goes back there; the offset grows by the earlier rows' height. Not
+            // for rows below, which move nothing in view.
+            .onScrollGeometryChange(for: CGRect.self) { geometry in
+                CGRect(origin: CGPoint(x: 0, y: geometry.contentOffset.y), size: geometry.contentSize)
+            } action: { old, new in
+                offset = new.minY
+                if let top, old.width != new.width {
                     proxy.scrollTo(top, anchor: .top)
+                } else if earlier, old.height != new.height {
+                    position.scrollTo(y: new.minY + new.height - old.height)
                 }
-                if earlier {
+                if old.size != new.size {
                     earlier = false
                 }
             }
@@ -166,10 +182,8 @@ struct ChatMessages: View, Equatable {
             // a terminal's (SettlingHost): the rows wrap again once, not at every frame. Meanwhile the card clips
             // them, or its fill shows beside them; the reply box, the button and the glyph follow the card at once.
             // At once while the reading column keeps its width.
-            .frame(width: width)
+            .frame(width: laidOut)
             .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
-            // From the newest block: a block of another level can be many more rows.
-            .onChange(of: level) { first = nil }
             .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { new in
                 settling?.cancel()
                 guard let old = width, min(old, new) < ChatView.column + 64 else {
@@ -185,34 +199,16 @@ struct ChatMessages: View, Equatable {
             }
             // After the messages' id, which would replace its own.
             .overlay(alignment: .bottom) {
-                if !atBottom {
+                if scrolledUp {
                     bottomButton { proxy.scrollTo(Self.end, anchor: .bottom) }
-                }
-            }
-            .overlay(alignment: .top) {
-                if start > 0, atTop {
-                    earlierButton {
-                        hold(rows[start].id)
-                        earlier = true
-                        first = rows[Self.start(rows[..<start], level)].id
-                    }
-                    .padding(.top, floats ? 28 : 16)
                 }
             }
         }
     }
 
-    /// The first of the newest `block` rows, at a user's message near there so its turn shows whole. A run open at
-    /// Everything counts its steps too: each is a row.
-    private static func start(_ rows: ArraySlice<ChatRow>, _ level: ChatLevel) -> Int {
-        var cut = rows.endIndex, count = 0
-        while cut > rows.startIndex, count < block {
-            cut -= 1
-            if case let .stack(_, steps) = rows[cut], level == .everything {
-                count += steps.count
-            }
-            count += 1
-        }
+    /// The first of the newest `block` rows, at a user's message near there so its turn shows whole.
+    private static func start(_ rows: ArraySlice<ChatRow>) -> Int {
+        let cut = max(rows.startIndex, rows.endIndex - block)
         guard cut > rows.startIndex else { return cut }
         let user = rows[cut...].prefix(block / 2).firstIndex {
             if case .user = $0 {
@@ -246,23 +242,54 @@ struct ChatMessages: View, Equatable {
         .padding(.bottom, 10)
     }
 
-    /// The next block of rows above, over the messages' top.
-    private func earlierButton(_ action: @escaping () -> Void) -> some View {
+    /// The block of rows before `start`. The spinner draws first: the run loop turn after its commit lays the rows
+    /// out, which holds the main thread.
+    private func showEarlier(_ rows: [ChatRow], before start: Int) {
+        guard !earlier else { return }
+        // Held by its offset while they come, not by the row at the top: the scroll view would put that row at the very
+        // top, under the button's place. The scroll view gets a new position only with a new body: `earlier` changes
+        // with it here and where the rows come.
+        position.scrollTo(y: offset)
+        earlier = true
+        let id = rows[Self.start(rows[..<start])].id
+        // Once, after this turn's commit, as `afterCommit` but before waiting only: a click's tracking loop can exit
+        // before the commit. The wake-up runs the next turn without waiting for an event.
+        let activity = CFRunLoopActivity.beforeWaiting.rawValue
+        let observer = CFRunLoopObserverCreateWithHandler(nil, activity, false, Int.max) { _, _ in
+            MainActor.assumeIsolated { first = id }
+            CFRunLoopWakeUp(CFRunLoopGetMain())
+        }
+        CFRunLoopAddObserver(CFRunLoopGetMain(), observer, .commonModes)
+    }
+
+    /// The next block of rows above, in its own row at the top of the messages; a spinner while they load.
+    private func earlierButton(loading: Bool, _ action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text("Show Earlier").font(.system(size: 12, weight: .medium)).padding(.horizontal, 12).frame(height: 28)
+            Text("Show Earlier").opacity(loading ? 0 : 1)
+                .overlay {
+                    if loading {
+                        ProgressView().controlSize(.small)
+                    }
+                }
+                .font(.system(size: 12, weight: .medium)).padding(.horizontal, 12).frame(height: 28)
                 .glassEffect(.regular.interactive(), in: .capsule)
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("Show Earlier")
+        .accessibilityValue(loading ? "loading" : "")
         .accessibilityIdentifier("chat.\(chat.paneID).earlier")
+        .frame(maxWidth: .infinity)
+        // The messages' top padding, in the button's row.
+        .padding(.top, floats ? 28 : 16)
     }
 
     /// Sending, dimmed; or "Not sent" with Show TUI.
-    private func outgoing(_ message: Chat.Outgoing) -> some View {
+    private func outgoing(_ message: Chat.Outgoing, error: Color) -> some View {
         VStack(alignment: .trailing, spacing: 4) {
             UserBubble(text: message.text, paneID: chat.paneID, sending: true).opacity(message.notSent ? 0.5 : 0.7)
             if message.notSent {
                 HStack(spacing: 8) {
-                    Text("Not sent").font(.system(size: 11)).foregroundStyle(look.error)
+                    Text("Not sent").font(.system(size: 11)).foregroundStyle(error)
                         .accessibilityIdentifier("chat.\(chat.paneID).not-sent")
                     Button("Show TUI") { chat.showsChat = false }.buttonStyle(.glass).controlSize(.small)
                 }
@@ -272,10 +299,10 @@ struct ChatMessages: View, Equatable {
         .padding(.vertical, 8)
     }
 
-    private func problemCard(_ problem: String) -> some View {
+    private func problemCard(_ problem: String, error: Color) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Label("The chat cannot read this session", systemImage: "xmark.circle.fill")
-                .font(.system(size: 13, weight: .semibold)).foregroundStyle(look.error)
+                .font(.system(size: 13, weight: .semibold)).foregroundStyle(error)
             Text(problem).font(.system(size: 12)).foregroundStyle(.secondary)
                 .accessibilityIdentifier("chat.\(chat.paneID).problem")
             Button("Show TUI") { chat.showsChat = false }.buttonStyle(.glass).controlSize(.small)
@@ -283,25 +310,39 @@ struct ChatMessages: View, Equatable {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(look.error.opacity(0.1), in: .rect(cornerRadius: 10))
+        .background(error.opacity(0.1), in: .rect(cornerRadius: 10))
     }
 }
 
-/// The history's rows shown at the level, with the stacks and tool calls clicked open.
+/// The history's rows, with the runs and tool calls clicked open.
 private struct Rows: View {
     let chat: Chat
     let rows: ArraySlice<ChatRow>
-    let level: ChatLevel
-    /// Stacks clicked open or closed: they stay so at every level (else open at Everything only).
-    @State private var opened: [String: Bool] = [:]
+    /// Runs clicked open.
+    @State private var opened: Set<String> = []
     /// Tool calls opened to their input and output.
     @State private var openTools: Set<String> = []
 
     var body: some View {
         ForEach(rows) { row in
-            let open = opened[row.id] ?? (level == .everything)
-            ChatRowView(row: row, paneID: chat.paneID, open: open, toggle: { opened[row.id] = !open },
-                        opened: openTools, toggleTool: { openTools.formSymmetricDifference([$0]) })
+            ChatRowView(row: row, paneID: chat.paneID, counts: counts(row), steps: steps(row),
+                        toggle: { opened.formSymmetricDifference([row.id]) }, opened: openTools,
+                        toggleTool: { openTools.formSymmetricDifference([$0]) })
         }
+    }
+
+    /// An open run's steps, copied: a slice would hold the history's entries, and each new entry would copy them all.
+    /// Kept in bounds, though the rows come from the same history.
+    private func steps(_ row: ChatRow) -> [ChatEntry]? {
+        guard case let .stack(id, steps) = row, opened.contains(id) else { return nil }
+        let entries = chat.history.entries
+        return Array(entries[steps.clamped(to: entries.indices)])
+    }
+
+    /// Worked out for the rows shown only: a long history has thousands of runs.
+    private func counts(_ row: ChatRow) -> String {
+        guard case let .stack(_, steps) = row else { return "" }
+        let entries = chat.history.entries
+        return ChatTool.summary(entries[steps.clamped(to: entries.indices)].compactMap(\.tool))
     }
 }

@@ -1,6 +1,6 @@
 ---
 title: "Chat view"
-description: "An agent pane drawn as messages with a reply box: launch flags, the transcript followers, sending, waiting, detail levels"
+description: "An agent pane drawn as messages with a reply box: launch flags, the transcript followers, sending, waiting, messages and tool calls"
 ---
 
 An agent pane that Oriel started can show its agent as messages with a reply
@@ -317,32 +317,32 @@ and **Show TUI**, and the header's capsule says Error:
   "OpenCode's server did not answer" or "did not give the session".
 - "The transcript is not in a format the chat knows".
 
-## Detail levels
+## Messages
 
-One setting for the app (`chatLevel`, Replies only by default):
-**Replies only**, **Activity** and **Everything**. The level pill left of
-Chat | TUI reads the current level (`Replies only ⌄`) in the same pill as
-Chat | TUI. A click opens the menu of the three levels. It shows only while
-the chat does. A saved `steps` or `all` reads as Replies only.
+The chat shows every message of a turn, in order. There is one view, with no
+setting.
 
-- **Replies only:** the user's messages, and for each turn its quiet line on
-  top, its last reply, its notes and, once the turn ends, "Worked 1m 48s"
-  under them in 12 pt secondary text. The quiet line counts every tool call
-  of the turn and does not open: "Read 9 files, ran 4 commands, 1 failed".
-  It has no state and no time: while the turn runs, the loader under it
-  says "Working" and the time. A turn with no tool calls has neither line.
-- **Activity:** the same rows, at the same place and height. Only here the
-  turn's line has a chevron and opens to every step of the turn: its tool
-  calls and its thinking.
-- **Everything:** no turn line and no "Worked". Every reply, todo list and note, each run of
-  tool calls between two replies as one quiet line, open, and thinking alone
-  as a "Thought" row.
-- A line or run clicked open or closed stays so at every level.
-- No line or run has working dots: the loader is the chat's last row. While
-  a turn streams, a closed line changes only its counts.
+- The user's message, then each reply of the agent as its own bubble, and
+  each todo list and note (an interruption, an error, a compaction).
+- Each run of tool calls between two messages is one quiet line of its
+  counts with a chevron, closed: "Ran 3 commands, read 2 files ›". A click
+  opens it to a row per step, and a click again closes it.
+- Thinking is a step of its run. Thinking with no tool call in its run has
+  no row.
+- Once a turn with tool calls ends, "Worked 1m 48s" sits under its last row,
+  in 12 pt secondary text. While the turn runs, the loader under it says
+  "Working" and the time.
+- No line has working dots: the loader is the chat's last row. While a turn
+  streams, a closed line changes only its counts.
+- **Made only when open.** A line holds only where its steps are in the
+  history. Its counts are worked out for the rows shown only. Its rows are
+  made when it opens, from the history, and dropped when it closes, so a
+  long chat with thousands of tool calls lays out no row for them. An open
+  line stays open while the chat shows.
 
-**Tool calls.** A run is one quiet line with no card: its summary, a chevron
-and the time.
+## Tool calls
+
+A run is one quiet line with no card: its summary and a chevron.
 - The summary uses pi-content-layout's words
   ([`tools.ts`](https://github.com/hkandala/pi-hkandala/blob/master/extensions/pi-content-layout/tools.ts)):
   a verb and a noun per tool for every agent's tool names, calls counted
@@ -395,25 +395,26 @@ and the time.
   at the bottom, and fade in under the header. In a floating window they
   start 28 pt under the title row, not 16 pt, because the card has no header
   there.
-- **Scrolling.** The messages are a plain stack of the newest 40 rows
-  (about 10 turns), not a lazy one: every row is built, so every height is
+- **Scrolling.** The messages are a plain stack of the newest 34 rows, not
+  a lazy one (34 rows of every reply lay out in the time 40 rows of last
+  replies did): every row is built, so every height is
   real, and an open, a split and Scroll to Bottom land exactly. (A lazy
   stack guessed the heights of rows it had not built, and after a split
   showed a blank where it guessed wrong.) The block starts at a user's
-  message near its cut, so its turn shows whole. At Everything, an open run
-  counts its steps toward the 40. At the bottom, the chat stays at the
-  bottom as messages come and as the card resizes. Scrolled up, the message
+  message near its cut, so its turn shows whole. At the bottom, the chat
+  stays at the bottom as messages come and as the card resizes. Scrolled up, the message
   at the top stays at the top instead, from when the scroll first passes a
   message's top. Until then (scrolled up inside the newest message), the
   bottom keeps its place. Once the chat leaves the bottom, its block stays
-  put: new rows do not take rows from its top. Back at the bottom, or at
-  another level, it is the newest 40 again.
-- **Show Earlier.** When a chat has older rows and the stack's top row is
-  in view, a glass pill "Show Earlier" (12 pt, 28 pt tall) sits over the
-  top of the messages, as Scroll to Bottom sits at the bottom. A click adds
-  the next block of 40 above, and the rows in view stay where they are.
-  While older rows exist, the stack has no top padding, so the top row's
-  top goes back to the top exactly.
+  put: new rows do not take rows from its top. Back at the bottom, it is the
+  newest 34 again.
+- **Show Earlier.** When a chat has older rows, a glass pill "Show Earlier"
+  (12 pt, 28 pt tall) is the stack's first row, centered, with the
+  messages' top padding above it and the rows' 10 pt gap under it. A click
+  shows a small spinner in place of its words, and the next block of 34
+  comes above on the next run loop turn, so the spinner draws before the
+  rows lay out. The scroll is held by its offset, which then grows by the
+  new rows' height, so the rows in view stay where they are.
 - **Resizing.** A narrow card (under 824 pt, where the column narrows too)
   lays its messages out at its new width once the width stops changing for
   150 ms, as a terminal does: a split's motion or a drag wraps the text once,
@@ -468,7 +469,7 @@ and the time.
   keyboard where it is, so selected text can be copied.
 - **The header.** Row 1: the pane's name ([Session titles](#session-titles))
   and the card buttons. Row 2: the program glyph, the agent's name and the
-  folder, then the state, then the level pill and Chat | TUI in the app's
+  folder, then the state, then Chat | TUI in the app's
   own pill segments ([Pane card](/docs/ui/window#pane-card)). The state is
   a state label, as t3code draws a thread's status: its symbol and word in
   11 pt, both in the status color: Working, Needs you, Done or Error, and
@@ -485,8 +486,8 @@ and the time.
   [Relaunch with Chat](#relaunch-with-chat) it opens on the chat. The choice
   is kept in memory per pane, for every window of the session. The card keeps
   the keyboard across a switch: the reply box or the terminal.
-- A floated chat pane shows its chat in its floating window, with the level
-  pill and Chat | TUI in the window's title row
+- A floated chat pane shows its chat in its floating window, with Chat | TUI
+  in the window's title row
   ([Floating pane](/docs/ui/window#floating-pane)).
 - The switch changes only what the card draws: the agent, its turn and its
   pane go on. The terminal stream stays open while the chat shows.
@@ -519,13 +520,12 @@ snapshot does not start every run at once.
 
 ## VoiceOver and identifiers
 
-- Messages, replies, the quiet lines and notes read as text with their
-  words. A run and each call are buttons whose value is "open" or "closed".
-  The level pill is named "Show", and its value is the level. Send, Stop,
-  Scroll to Bottom and Show Earlier are named. The state reads as its word.
+- Messages, replies, "Worked" and notes read as text with their words. A run
+  and each call are buttons whose value is "open" or "closed". Send, Stop,
+  Scroll to Bottom and Show Earlier are named; Show Earlier's value is
+  "loading" while its rows come. The state reads as its word.
 - Identifiers, after `chat.‹pane id›`: `.composer`, `.send`, `.stop`,
-  `.model`, `.level`, `.user`, `.sending`, `.not-sent`, `.reply`,
-  `.summary`, `.worked`, `.empty`, `.stack`, `.tool`, `.tool.input`,
+  `.model`, `.user`, `.sending`, `.not-sent`, `.reply`, `.worked`, `.empty`, `.stack`, `.tool`, `.tool.input`,
   `.tool.output`, `.note`, `.bottom`, `.earlier`, `.question`, `.option.‹option›`,
   `.drawer`, `.open-terminal`, `.problem` and `.show-terminal`. The header has `pane.‹id›.title`,
   `pane.‹id›.state`, `pane.‹id›.program`, `pane.‹id›.view.chat`

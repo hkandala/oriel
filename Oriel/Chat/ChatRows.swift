@@ -1,11 +1,14 @@
 import HerdrKit
 import SwiftUI
 
-/// One row of the chat (ui/chat-view#detail-levels).
+/// One row of the chat (ui/chat-view#messages).
 struct ChatRowView: View, Equatable {
     let row: ChatRow
     let paneID: String
-    let open: Bool
+    /// A run's counts: "Ran 3 commands, read 2 files".
+    let counts: String
+    /// An open run's steps, copied from the history only while it is open; nil: closed.
+    let steps: [ChatEntry]?
     let toggle: () -> Void
     /// The tool calls opened to their input and output.
     let opened: Set<String>
@@ -13,32 +16,29 @@ struct ChatRowView: View, Equatable {
     @Environment(\.look) private var look
 
     nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.row == rhs.row && lhs.open == rhs.open && lhs.paneID == rhs.paneID && lhs.opened == rhs.opened
+        // Only an open run reads `opened`.
+        lhs.row == rhs.row && lhs.counts == rhs.counts && lhs.steps == rhs.steps && lhs.paneID == rhs.paneID
+            && (lhs.steps == nil || lhs.opened == rhs.opened)
     }
 
     var body: some View {
         switch row {
         // More room between a turn and the user's messages than between a turn's rows.
         case let .user(_, text): UserBubble(text: text, paneID: paneID).padding(.vertical, 8)
-        // Replies: the line as Activity draws it, with no chevron and no click.
-        case let .summary(_, counts, steps) where steps.isEmpty:
-            quiet(counts, "summary").lineLimit(1).truncationMode(.middle).frame(height: 24)
-        case let .summary(_, counts, steps):
-            stack(steps) { Text(counts).foregroundStyle(.secondary) }
+        case .stack:
+            ToolStack(counts: counts, steps: steps, paneID: paneID, toggle: toggle, opened: opened,
+                      toggleTool: toggleTool)
         case let .worked(_, seconds):
-            quiet(seconds.map { "Worked " + ChatHistory.duration($0) } ?? "Worked", "worked")
+            let text = seconds.map { "Worked " + ChatHistory.duration($0) } ?? "Worked"
+            Text(text).font(.system(size: 12)).foregroundStyle(.secondary)
+                .accessibilityElement(children: .ignore)
+                .accessibilityAddTraits(.isStaticText)
+                .accessibilityValue(text)
+                .accessibilityIdentifier("chat.\(paneID).worked")
         case let .reply(_, text):
             Markdown(text: text).accessibilityIdentifier("chat.\(paneID).reply")
                 .bubble(look.receivedBubble).padding(.leading, -Composer.inset).padding(.trailing, 48)
                 .frame(maxWidth: .infinity, alignment: .leading)
-        case .thinking:
-            Text("Thought").font(.system(size: 12)).italic().foregroundStyle(.tertiary)
-        case let .stack(_, steps):
-            let tools = steps.compactMap(\.tool)
-            stack(steps) {
-                Text(ChatTool.summary(tools)).foregroundStyle(.secondary)
-                Time(start: steps.first?.time, end: tools.last?.ended)
-            }
         case let .todos(_, todos): Plan(todos: todos)
         case let .note(_, text, failed):
             Label(text, systemImage: failed ? "exclamationmark.triangle.fill" : "stop.circle")
@@ -48,19 +48,6 @@ struct ChatRowView: View, Equatable {
                 .accessibilityValue(text)
                 .accessibilityIdentifier("chat.\(paneID).note")
         }
-    }
-
-    private func quiet(_ text: String, _ id: String) -> some View {
-        Text(text).font(.system(size: 12)).foregroundStyle(.secondary)
-            .accessibilityElement(children: .ignore)
-            .accessibilityAddTraits(.isStaticText)
-            .accessibilityValue(text)
-            .accessibilityIdentifier("chat.\(paneID).\(id)")
-    }
-
-    private func stack(_ steps: [ChatEntry], @ViewBuilder header: () -> some View) -> some View {
-        ToolStack(steps: steps, open: open, paneID: paneID, toggle: toggle, opened: opened, toggleTool: toggleTool,
-                  header: header)
     }
 }
 

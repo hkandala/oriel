@@ -83,19 +83,18 @@ extension ChatEntry {
         }
     }
 
-    /// A tool call or thinking: a step of a run (ui/chat-view#detail-levels).
+    /// A tool call or thinking: a step of a run (ui/chat-view#tool-calls).
     var isStep: Bool {
         tool != nil || kind == .thinking
     }
 
-    /// Its own row: a reply, a thinking row, a todo list or a note.
+    /// Its own row: a reply, a todo list or a note.
     var row: ChatRow? {
         switch kind {
         case let .reply(text): .reply(id: id, text: text)
-        case .thinking: .thinking(id: id)
         case let .todos(todos): .todos(id: id, todos)
         case let .note(text, failed): .note(id: id, text: text, failed: failed)
-        case .user, .tool, .turnEnd: nil
+        case .user, .tool, .thinking, .turnEnd: nil
         }
     }
 }

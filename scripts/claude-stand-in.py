@@ -5,8 +5,9 @@ Started by the chooser with Oriel's flags (`--session-id T --settings <json>`), 
 writes a transcript in Claude Code's format, reports its state to herdr and answers prompts on its terminal: "wait"
 shows a dialog until 1 is typed, "ask" asks a question through the PermissionRequest hook, "slow" works until Esc,
 "mute" drops the next prompt, "long" gets a command with 200 lines of output, "big" writes 330 KB of lines the chat
-skips (as a real session's API records), "many" writes 150 more turns (a long session; "many 25" that many), anything else gets one command
-and the reply "Echo: <prompt>". Ctrl-C clears the line, and on an empty one asks for another; "/exit" quits. Started
+skips (as a real session's API records), "steps" gets a reply, a command, a reply, two commands and a reply, "many"
+writes 150 more turns (a long session; "many 25" that many), anything else gets one command and the reply
+"Echo: <prompt>". Ctrl-C clears the line, and on an empty one asks for another; "/exit" quits. Started
 without flags it reports its session to herdr (as herdr's Claude Code integration does) and keeps its transcript, which
 `--resume <session>` goes on with.
 """
@@ -125,6 +126,12 @@ def prompt(text, started):
         write("user", message={"content": "[Request interrupted by user]"})
         report("idle")
         say("Interrupted")
+    elif text == "steps":
+        for said, commands in [("First, a look.", ["ls"]), ("Then two more.", ["pwd", "date"])]:
+            write("assistant", message={"model": "claude-stand-in", "content": [{"type": "text", "text": said}]})
+            for command in commands:
+                tool(command, command)
+        reply("Done.", started)
     elif text == "long":
         tool("seq 200", "\n".join(str(n) for n in range(1, 201)))
         reply("Counted.", started)

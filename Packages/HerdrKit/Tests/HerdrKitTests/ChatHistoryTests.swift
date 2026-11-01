@@ -50,26 +50,21 @@ private func history() throws -> ChatHistory {
     #expect(history.entries.contains { $0.kind == .turnEnd(seconds: 8.355) })
 }
 
-/// A row's kind, and the steps of a quiet line or a stack.
+/// A row's kind.
 private extension ChatRow {
     var kind: String {
         String(describing: self).prefix { $0 != "(" }.description
     }
-
-    var steps: [ChatEntry]? {
-        switch self {
-        case let .summary(_, _, steps), let .stack(_, steps): steps
-        default: nil
-        }
-    }
 }
 
-@Test func `replies show each turn's quiet line, last reply and time; activity opens the line to every step`() throws {
+@Test func `every message shows in order, each run between them as one line of counts, then the time`() throws {
     let history = try history()
-    let replies = history.rows(.replies, working: false)
-    #expect(replies.count { $0.kind == "user" } == 6 && !replies.contains { $0.kind == "stack" })
-    // The edit turn: its user message, its quiet line, its last reply, how long it worked.
-    let turn = try #require(replies
+    let rows = history.rows(working: false)
+    #expect(rows.count { $0.kind == "user" } == 6 && Set(rows.map(\.id)).count == rows.count)
+    // Every reply, not only a turn's last one.
+    #expect(rows.count { $0.kind == "reply" } == history.entries.count { $0.row?.kind == "reply" })
+    // The edit turn: its runs and the replies between them, then how long it worked.
+    let turn = try #require(rows
         .firstIndex {
             if case let .user(_, text) = $0 {
                 text.hasPrefix("Think")
@@ -77,35 +72,25 @@ private extension ChatRow {
                 false
             }
         })
-    guard case let .summary(_, counts, []) = replies[turn + 1], case .reply = replies[turn + 2],
-          case let .worked(_, seconds?) = replies[turn + 3]
-    else {
-        Issue.record("no summary, reply and time after \(replies[turn])"); return
+    let next = rows[(turn + 1)...].firstIndex { $0.kind == "user" } ?? rows.endIndex
+    #expect(rows[(turn + 1) ..< next].map(\.kind).last == "worked")
+    guard case let .worked(_, seconds?) = rows[next - 1] else { Issue.record("no time"); return }
+    #expect(seconds > 30)
+    // A turn with no tool calls has no line and no time.
+    #expect(rows.prefix(3).map(\.kind) == ["user", "reply", "user"])
+
+    let runs = rows.compactMap { row -> ArraySlice<ChatEntry>? in
+        guard case let .stack(_, steps) = row else { return nil }
+        return history.entries[steps]
     }
-    #expect(counts == "Wrote 1 file, ran 1 command, edited 1 file, +1 more" && seconds > 30)
-    // A turn with no tool calls has neither line.
-    #expect(replies.prefix(3).map(\.kind) == ["user", "reply", "user"])
-
-    // The same rows, each line holding every step of its turn: the MCP turn's calls and thinking.
-    let activity = history.rows(.activity, working: false)
-    #expect(activity.map(\.id) == replies.map(\.id))
-    let mcp = try #require(activity.compactMap(\.steps).first { $0.count == 9 })
-    #expect(ChatTool.summary(mcp.compactMap(\.tool))
-        == "Ran 3 commands, ran toolsearch 1 time, ran search_files 1 time, 2 failed")
-}
-
-@Test func `everything has no quiet line, and the thinking between calls is in their run`() throws {
-    let everything = try history().rows(.everything, working: false)
-    #expect(!everything.contains { ["summary", "worked"].contains($0.kind) })
-    #expect(everything.compactMap(\.steps).map { ChatTool.summary($0.compactMap(\.tool)) } == [
+    #expect(runs.map { ChatTool.summary($0.compactMap(\.tool)) } == [
         "Asked 1 question", "Wrote 1 file, ran 1 command, edited 1 file, +1 more", "Ran 1 command",
         "Ran 3 commands, ran toolsearch 1 time, ran search_files 1 time, 2 failed",
     ])
-    #expect(everything.compactMap(\.steps)
-        .contains { $0.contains { $0.kind == .thinking } && $0.contains { $0.tool != nil } })
-    // Thinking alone is a row of its own.
-    #expect(everything.count { $0.kind == "thinking" } == 2)
-    #expect(Set(everything.map(\.id)).count == everything.count)
+    // A run's range holds its steps only: its calls and the thinking between them, which has no row of its own.
+    #expect(runs.allSatisfy { $0.allSatisfy { $0.tool != nil || $0.kind == .thinking } })
+    #expect(runs.contains { $0.contains { $0.kind == .thinking } && $0.contains { $0.tool != nil } })
+    #expect(!rows.contains { $0.kind == "thinking" })
 }
 
 @Test func `a run is worded as pi-content-layout words it`() {
@@ -134,13 +119,19 @@ private extension ChatRow {
     let tool = #"{"type":"tool_use","id":"t","name":"Bash","input":{"command":"npm test\nmore"}}"#
     ClaudeTranscript.read(#"{"type":"assistant","uuid":"a","message":{"content":[\#(tool)]}}"#, into: &history)
     // No "Worked" while it runs: the chat's loader counts from the turn's start.
-    #expect(history.rows(.replies, working: true).map(\.id) == ["u", "u.summary"])
-    #expect(history.rows(.replies, working: false).map(\.id) == ["u", "u.summary", "u.worked"])
-    guard case let .summary(_, counts, steps) = history.rows(.activity, working: true).last else {
-        Issue.record("no steps in the quiet line"); return
+    #expect(history.rows(working: true).map(\.id) == ["u", "a.0"])
+    #expect(history.rows(working: false).map(\.id) == ["u", "a.0", "u.worked"])
+    guard case let .stack(_, steps) = history.rows(working: true).last else {
+        Issue.record("no run"); return
     }
-    #expect(steps.first?.tool?.target == "npm test" && steps.first?.tool?.result == nil)
-    #expect(counts == "Ran 1 command")
+    #expect(history.entries[steps].first?.tool?.target == "npm test" && history.entries[steps].first?.tool?
+        .result == nil)
+    #expect(ChatTool.summary(history.entries[steps].compactMap(\.tool)) == "Ran 1 command")
+    // A turn's end ends its run: a turn with no user entry after it (a task notice) starts its own.
+    history.append(ChatEntry(id: "e", .turnEnd(seconds: 1), time: nil))
+    history.append(ChatEntry(id: "t2", .tool(ChatTool(id: "t2", name: "bash", category: .command, target: "ls",
+                                                      started: nil)), time: nil))
+    #expect(history.rows(working: false).map(\.id) == ["u", "a.0", "t2", "u.worked"])
     // A torn line is no entry.
     #expect(!ClaudeTranscript.read(#"{"type":"assist"#, into: &history))
     #expect(ChatHistory.duration(108) == "1m 48s")

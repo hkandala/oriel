@@ -68,20 +68,20 @@ extension OrielUITests {
         XCTAssertTrue(until(10) { last.exists && last.isHittable })
     }
 
-    /// A long chat shows its newest rows under Show Earlier, which adds the rows before them without moving what is in
-    /// view, until the first message.
+    /// A long chat shows its newest rows under Show Earlier, in its own row, which adds the rows before them without
+    /// moving what is in view, until the first message.
     func testALongChatShowsEarlierRowsInPlace() async throws {
         let pane = try await startChat().pane
-        // 25 turns: about 100 rows, the newest 40 and two blocks above.
+        // 25 turns: about 100 rows, the newest 34 and the blocks above.
         app.typeText("many 25\r")
         let last = row(pane, "reply", "Last.")
         XCTAssertTrue(until(10) { last.exists && last.isHittable })
         let chat = element("chat.\(pane)"), earlier = element("chat.\(pane).earlier")
         let first = row(pane, "user", "many 25")
         XCTAssertFalse(first.exists)
-        // Up to the oldest row shown, where the button shows.
+        // Up to the oldest row shown, where the button is (always in the stack, so in the tree).
         func up() {
-            for _ in 0 ..< 5 where !earlier.exists && !first.isHittable {
+            for _ in 0 ..< 5 where !earlier.isHittable && !first.isHittable {
                 chat.scroll(byDeltaX: 0, deltaY: 5000)
             }
         }
@@ -93,16 +93,22 @@ extension OrielUITests {
                 earlier.click()
                 continue
             }
-            // The message at the top stays where it is.
             let tree = try chat.snapshot()
-            var queue = [tree], users: [XCUIElementSnapshot] = []
+            var queue = [tree], nodes: [XCUIElementSnapshot] = []
             while let node = queue.popLast() {
                 queue += node.children
-                if node.identifier == "chat.\(pane).user", node.frame.minY >= tree.frame.minY - 1 {
-                    users.append(node)
-                }
+                nodes.append(node)
             }
-            let top = try XCTUnwrap(users.min { $0.frame.minY < $1.frame.minY })
+            let button = try XCTUnwrap(nodes.first { $0.identifier == "chat.\(pane).earlier" }).frame
+            // Its own row, the rows' gap under it, not over the first row.
+            let kinds = ["user", "reply", "stack", "worked"].map { "chat.\(pane).\($0)" }
+            let under = try XCTUnwrap(nodes.filter { kinds.contains($0.identifier) && $0.frame.maxY > button.minY }
+                .min { $0.frame.minY < $1.frame.minY })
+            XCTAssertGreaterThanOrEqual(under.frame.minY - button.maxY, 10, "\(button) \(under.frame)")
+            // The message at the top stays where it is.
+            let top = try XCTUnwrap(nodes.filter {
+                $0.identifier == "chat.\(pane).user" && $0.frame.minY >= tree.frame.minY - 1
+            }.min { $0.frame.minY < $1.frame.minY })
             let (text, place) = (top.value as? String ?? "", top.frame.minY)
             earlier.click()
             let same = row(pane, "user", text)
