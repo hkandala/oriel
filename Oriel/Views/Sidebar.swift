@@ -53,7 +53,7 @@ struct Sidebar: View {
                 }
             }
             .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { area = $0 }
-            // Not under the overview, which takes its own swipes.
+            // Not under the overview, which hides it.
             .background(ScrollAnchor(
                 step: step,
                 drag: pages.overview ? nil : drag as (Double, Bool) -> Void,
@@ -64,7 +64,7 @@ struct Sidebar: View {
                 area: area,
             ))
             // A dot, a key, a new page or the sheet: slide there with the session spring. A swipe is there already.
-            // Under the overview at once: hidden, it drew both pages for 0.3 s after an overview swipe.
+            // Under the overview at once: hidden, it would draw both pages for 0.3 s.
             .onChange(of: pages.list.map(\.id) + [pages.current?.id ?? ""], initial: true) { old, new in
                 guard let index = pages.list.firstIndex(where: { $0 === pages.current }),
                       swipe.slide != Double(index) else { return }
@@ -389,7 +389,7 @@ extension Sidebar {
 }
 
 extension Animation {
-    /// The session pages (the sidebar's, the overview's): 0.2 s with no bounce (0.14 s felt too
+    /// The sidebar's session pages: 0.2 s with no bounce (0.14 s felt too
     /// quick and odd). A swipe's slide starts at the fingers' `speed`
     /// toward the page `distance` away (in pages a second, and pages), so it goes on from the lift.
     static func session(speed: Double = 0, distance: Double = 0) -> Animation {

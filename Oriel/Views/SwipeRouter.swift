@@ -1,11 +1,9 @@
 import AppKit
 import SwiftUI
 
-/// The app's one scroll monitor (design D35). A gesture picks its axis once it moved 4 pt: a sideways one goes to
-/// the sidebar's pages when over them, else to the pages of the scroll view under the pointer (the strip's, over a
-/// card), or that scroll view, so a terminal never sees it; any other goes to the view under the pointer as usual.
-/// Pages take its moves and lift, not its momentum. A wheel picks per event; Shift makes it sideways. ⌥ + swipe: see
-/// docs/ui/swiping.mdx.
+/// The app's one scroll monitor (design D35). A gesture picks its axis once it moved 4 pt: a sideways one over the
+/// sidebar's pages goes to them; any other goes to the view under the pointer as usual. The pages take its moves and
+/// lift, not its momentum. A wheel picks per event; Shift makes it sideways. ⌥ + swipe: see docs/ui/swiping.mdx.
 @MainActor
 enum SwipeRouter {
     /// Once, at launch.
@@ -37,11 +35,9 @@ enum SwipeRouter {
         }
     }
 
-    /// Every window's strip, overview and sidebar pages; each registers itself.
+    /// Every window's sidebar pages; each registers itself.
     fileprivate static let anchors = NSHashTable<ScrollAnchor.Anchor>.weakObjects()
-    /// Where the current sideways gesture goes; nil while it goes the usual way.
-    private weak static var target: NSScrollView?
-    /// The pages the current sideways gesture goes to, and whether it lifted.
+    /// The pages the current sideways gesture goes to, and whether it lifted; nil while it goes the usual way.
     private weak static var pager: ScrollAnchor.Anchor?
     private static var lifted = false
     private static var picked = false
@@ -52,7 +48,7 @@ enum SwipeRouter {
     /// The gesture's sideways speed in the content's points a second, from its last moves.
     private static var speed = 0.0, last = 0.0
 
-    /// Whether the event went to a scroll view, the sidebar's pages or turned the strip.
+    /// Whether the event went to the sidebar's pages or stepped (⌥), not to the view under the pointer.
     private static func route(_ event: NSEvent) -> Bool {
         let deltaX = event.scrollingDeltaX, deltaY = event.scrollingDeltaY
         if event.phase.isEmpty, event.momentumPhase.isEmpty {
@@ -63,7 +59,6 @@ enum SwipeRouter {
         }
         if event.phase == .began {
             picked = false
-            target = nil
             pager = nil
             lifted = false
             moved = 0
@@ -97,8 +92,7 @@ enum SwipeRouter {
                 pick(event)
             }
         }
-        target?.scrollWheel(with: event)
-        return target != nil || pager != nil || option
+        return pager != nil || option
     }
 
     /// Where the gesture goes, by its axis: see `SwipeRouter`.
@@ -112,12 +106,6 @@ enum SwipeRouter {
             }
             if pager == nil, option {
                 take(.session(sideways > 0 ? 1 : -1), event)
-            } else if pager == nil {
-                target = scrollView(event)
-                // The strip's and the overview's pages take it as the sidebar's do.
-                if let paged = anchor(target), paged.marks.drag != nil {
-                    (pager, target) = (paged, nil)
-                }
             }
             pager?.marks.drag?(sideways, true)
         } else if option {
@@ -141,9 +129,8 @@ enum SwipeRouter {
         }
     }
 
-    /// A sideways wheel step: over the sidebar's pages, or over the strip's or the overview's as a burst (they have
-    /// no paging of their own; a mouse's line steps would only nudge them), it turns one page; else it goes to the
-    /// scroll view under the pointer. With ⌥, a burst steps the session or the sidebar's row.
+    /// A sideways wheel burst over the sidebar's pages turns one page; else it goes to the view under the pointer.
+    /// With ⌥, a burst steps the session or the sidebar's row.
     private static func wheel(_ event: NSEvent) -> Bool {
         let deltaX = event.scrollingDeltaX, deltaY = event.scrollingDeltaY
         if event.modifierFlags.contains(.option) {
@@ -151,17 +138,9 @@ enum SwipeRouter {
             turn({ take(across ? .session($0) : .row($0), event) }, across ? deltaX : up(event))
             return true
         }
-        guard abs(deltaX) > abs(deltaY) else { return false }
-        if let pages = anchors.allObjects.first(where: { $0.contains(event) }) {
-            turn(pages.marks.step, deltaX)
-            return true
-        }
-        guard let scrollView = scrollView(event) else { return false }
-        if let step = anchor(scrollView)?.marks.step {
-            turn(step, deltaX)
-        } else {
-            scrollView.scrollWheel(with: event)
-        }
+        guard abs(deltaX) > abs(deltaY),
+              let pages = anchors.allObjects.first(where: { $0.contains(event) }) else { return false }
+        turn(pages.marks.step, deltaX)
         return true
     }
 
@@ -172,30 +151,11 @@ enum SwipeRouter {
         }
         wheeled = .now
     }
-
-    private static func anchor(_ scrollView: NSScrollView?) -> ScrollAnchor.Anchor? {
-        scrollView.flatMap { view in anchors.allObjects.first { $0.enclosingScrollView === view } }
-    }
-
-    /// The innermost scroll view under the pointer that can scroll sideways (its document is wider than its clip
-    /// view): over a card, the strip. None can (a one-tab strip): the innermost still takes it, so a terminal never
-    /// does.
-    private static func scrollView(_ event: NSEvent) -> NSScrollView? {
-        let innermost = event.window?.contentView?.hitTest(event.locationInWindow)?.enclosingScrollView
-        var view = innermost
-        while let scrollView = view,
-              (scrollView.documentView?.frame.width ?? 0) <= scrollView.contentView.bounds.width + 0.5
-        {
-            view = scrollView.enclosingScrollView
-        }
-        return view ?? innermost
-    }
 }
 
-/// Marks a scroll view for the router: the strip with its page turn for wheels. With `drag`, its pages take a
-/// sideways swipe's moves (the first one of a gesture marked) and lift (with the fingers' speed), not the scroll
-/// view (`Paging`). With an `area` too, it marks the sidebar's pages, which take a swipe and a wheel's turn within
-/// it (in the window, from its top left) and down to the window's bottom (the dots and the filter too).
+/// Marks the sidebar's pages for the router: they take a sideways swipe's moves (`drag`, the first one of a gesture
+/// marked) and lift (with the fingers' speed), and a wheel's turn (`step`), within `area` (in the window, from its
+/// top left) and down to the window's bottom (the dots and the filter too).
 struct ScrollAnchor: NSViewRepresentable {
     var step: ((Int) -> Void)?
     var drag: ((Double, Bool) -> Void)?
@@ -243,73 +203,6 @@ struct ScrollAnchor: NSViewRepresentable {
         override func hitTest(_: NSPoint) -> NSView? {
             nil
         }
-    }
-}
-
-/// A paged scroll view's pages that a swipe moves as the sidebar's (the strip's, the overview's): they
-/// follow the fingers one to one and slide on from the lift (`slide`). With the system's paging a 140 pt flick at
-/// 625 pt/s slid back to its page over 0.55 s (CI).
-@MainActor
-final class Paging {
-    /// The offset and the page width as last laid out (`laid`), or moved to.
-    private var offset = 0.0, width = 1.0
-    /// The slide's page, and what runs once the pages are within a point of it (at its offset as laid out now: a
-    /// resize mid-slide moves it).
-    private var landing: (index: Int, land: () -> Void)?
-
-    /// From `onScrollGeometryChange`, at each frame of a slide.
-    func laid(_ geometry: ScrollGeometry) {
-        (offset, width) = (geometry.contentOffset.x, max(geometry.containerSize.width, 1))
-        Latency.shared.slid(offset, "page")
-        if let landing, abs(offset - Double(landing.index) * width) < 1 {
-            self.landing = nil
-            Latency.shared.shown()
-            landing.land()
-        }
-    }
-
-    /// The router's moves, in points toward later pages, within the first and last of `count` pages.
-    func drag(_ delta: Double, count: Int, _ position: Binding<ScrollPosition>) {
-        landing = nil
-        offset = min(max(offset + delta, 0), Double(max(count - 1, 0)) * width)
-        withTransaction(\.animation, nil) { position.wrappedValue.scrollTo(x: offset) }
-    }
-
-    /// The router's lift: the pages slide to the page it lands on (at once under Reduce Motion), and `land` runs
-    /// with its id as they arrive, unless a key, a click or another swipe moved them meanwhile. Not at the
-    /// animation's `.logicallyComplete`, which for a scroll fires at once: the tab's terminals or the session
-    /// shown in the slide's first frame held it for 50–150 ms (CI), so it jumped most of a page.
-    func lift(_ speed: Double, ids: [String], _ position: Binding<ScrollPosition>, reduceMotion: Bool,
-              land: @escaping (String) -> Void)
-    {
-        let page = offset / width, index = Swipe.landing(page, speed: speed, count: ids.count)
-        guard ids.indices.contains(index) else { return }
-        let id = ids[index]
-        Latency.shared.lifted(offset, "page")
-        // On the page already (a drag clamped at the last one): no animation, which might never end.
-        if reduceMotion && !Animation.forceMotion || abs(Double(index) * width - offset) < 1 {
-            position.wrappedValue.scrollTo(id: id, anchor: .leading)
-            return land(id)
-        }
-        landing = (index, {
-            if position.wrappedValue.viewID(type: String.self) == id {
-                land(id)
-            }
-        })
-        withAnimation(Self.slide(speed, (Double(index) - page) * width)) {
-            position.wrappedValue.scrollTo(id: id, anchor: .leading)
-        }
-    }
-
-    /// From the fingers' `speed` over the `distance` left (points a second, points), in at most 0.28 s: it starts
-    /// at their speed (a cubic whose x is linear, so its first slope is the start's speed in distances per
-    /// duration), speeds up only as much as that time needs and eases out; when their speed alone covers it in
-    /// that time it only slows down (slope 2: a quadratic ease-out). The session spring (0.2 s) went from 1.6k
-    /// to 15k pt/s in two frames after a slow lift, a page in four (capture F): it looked cut.
-    private static func slide(_ speed: Double, _ distance: Double) -> Animation {
-        let toward = max(distance < 0 ? -speed : speed, 0), length = max(abs(distance), 1)
-        let duration = min(0.28, 2 * length / toward)
-        return .timingCurve(1 / 3, toward * duration / length / 3, 2 / 3, 1, duration: duration)
     }
 }
 
