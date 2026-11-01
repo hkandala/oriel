@@ -44,7 +44,12 @@ enum Registry {
     }
 
     static func show(_ id: String, inNewPane: Bool) {
-        try? PluginPackages.list(id, in: settings, add: !inNewPane, key: hideKey)
+        do {
+            try PluginPackages.list(id, in: settings, add: !inNewPane, key: hideKey)
+        } catch {
+            // The Plugins panel's notice; the switch reads the file again, so it shows what is saved.
+            PluginInstalls.shared.failure = ("Could not save settings.json: \(error.localizedDescription)", nil)
+        }
         current.hidden = hidden()
     }
 

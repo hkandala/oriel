@@ -107,7 +107,8 @@ was made with.
 
 - Each time the app learns what a pane runs (`pane.process_info`), a browser
   or plugin pane with only its shell in front gets the placeholder: the app
-  types `exec` and the placeholder's argv, in the base64 envelope that every
+  types ⌃U (which clears a line half typed in herdr's TUI), then `exec` and
+  the placeholder's argv, in the base64 envelope that every
   login shell passes on ([Running commands](/docs/talking-to-herdr#running-commands)),
   and Return. The placeholder takes the shell's place, so the pane runs only
   the placeholder.

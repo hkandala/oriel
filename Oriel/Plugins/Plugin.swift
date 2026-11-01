@@ -328,9 +328,10 @@ extension HostStore {
         }
         guard let shell = program.foreground.first?.pid, pane.placed != shell else { return }
         pane.placed = shell
-        // In place of the shell, so the pane runs only the placeholder; base64, which any login shell passes on. The
-        // space keeps it out of a history that ignores such lines (fish; zsh and bash when set to).
-        let line = " exec " + SSHExec.envelope(["exec"] + label.placeholder)
+        // In place of the shell, so the pane runs only the placeholder; base64, which any login shell passes on. ⌃U
+        // first clears a line half typed in a herdr TUI (spiked: zsh). The space keeps it out of a history that
+        // ignores such lines (fish; zsh and bash when set to).
+        let line = "\u{15} exec " + SSHExec.envelope(["exec"] + label.placeholder)
         Task { try? await client.sendInput(line, keys: ["enter"], pane: pane.id) }
     }
 
