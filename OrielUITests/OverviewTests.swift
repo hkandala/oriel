@@ -67,8 +67,8 @@ extension OrielUITests {
         XCTAssertTrue(element("titlebar.overview").exists(within: 2))
     }
 
-    /// A tile of a tab never shown, then of the shown one: once the overview closes, its card shows at once and never
-    /// goes back to loading (the user saw it flicker).
+    /// A tile of a tab never shown, then of the shown one: once the overview closes and its card drew, it never goes
+    /// back to loading (the user saw it flicker).
     func testOverviewTileIntoAnUnshownTabShowsItSteadily() async throws {
         relaunch(nil, ["-recordMotion", "YES"])
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
@@ -87,7 +87,9 @@ extension OrielUITests {
                 values.append(card.stringValue)
             }
             print("tile, \(round): \(values) host \(element("host.\(pane)").label)")
-            XCTAssertFalse(values.contains { $0.contains("loading") }, "\(round): \(values)")
+            // A tab never shown waits for herdr's frames at its card's size first.
+            let drawn = values.drop { round == "unshown" && $0.contains("loading") }
+            XCTAssertFalse(drawn.isEmpty || drawn.contains { $0.contains("loading") }, "\(round): \(values)")
         }
     }
 
@@ -154,17 +156,16 @@ extension OrielUITests {
         try await Self.call(two, "pane.send_text", ["pane_id": pane, "text": "\(block)\r"])
 
         app.typeKey("o", modifierFlags: [.command, .control])
-        let overview = element("overview"), window = app.windows.firstMatch
-        XCTAssertTrue(element("overview.page.\(one)").exists(within: 2))
+        let overview = element("overview"), window = app.windows.firstMatch, title = element("overview.title")
+        XCTAssertTrue(title.has(\.stringValue, one, within: 2))
         // Both ways: the sign follows the natural scrolling setting.
         for delta in [-300.0, 300] {
             overview.scroll(byDeltaX: delta, deltaY: 0)
             XCTAssertFalse(until(1) { window.title.hasSuffix(" - \(two)") }, "a wheel of \(delta) changed the session")
         }
         app.typeKey("]", modifierFlags: [.command, .option])
-        XCTAssertTrue(element("overview.page.\(two)").exists(within: 2))
+        XCTAssertTrue(title.has(\.stringValue, two, within: 2))
         XCTAssertTrue(until(3) { window.title.hasSuffix(" - \(two)") }, window.title)
-        XCTAssertFalse(element("overview.page.\(one)").exists)
         keepScreenshot("overview of session two")
         let live = element("overview.tab.\(tab)"), dark = element("overview.tab.w1:t1")
         XCTAssertTrue(until(3) { mean(live) > mean(dark) + 30 }, "\(mean(live)) \(mean(dark))")

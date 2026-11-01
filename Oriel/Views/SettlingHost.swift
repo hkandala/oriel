@@ -28,11 +28,10 @@ final class SettlingHost: NSView {
         }
         fitting?.cancel()
         // At once until its first stream opened (it opens at the card's size; the terminal waits for that to
-        // settle), for a view that never had a frame, and for a web view on its new host's first size (it comes with
-        // its old one).
+        // settle), for a view that never had a frame, and on a new host's first size: a card shown again (its tab)
+        // comes with its old size, and nothing moves.
         let surface = view as? PaneSurfaceView
-        guard let view, surface == nil || surface?.terminal?.grid != nil, !view.frame.isEmpty,
-              surface != nil || old != .zero
+        guard let view, surface == nil || surface?.terminal?.grid != nil, !view.frame.isEmpty, old != .zero
         else {
             fit()
             return
