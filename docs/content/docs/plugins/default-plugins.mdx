@@ -487,7 +487,8 @@ The changes of one source in one scroll (`@pierre/diffs`).
   260 pt) in the home's row style: a title with the file count, then one row
   per file with its name, its folder in secondary, `+n −m` and its letter
   (`M A D R`, in the tree's colors). A click scrolls to the file. The file
-  list button hides and shows it.
+  list button slides it out and in (0.25 s, the plugins' shared sidebar in
+  `card.css`; at once with Reduce Motion).
 - **Previous and next change** step through the change blocks in order, from
   the last one stepped to or the file picked in the list. They open a folded
   file.

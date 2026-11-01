@@ -14,7 +14,8 @@ const letters = { change: "M", "rename-pure": "R", "rename-changed": "R", new: "
 const page = element("div")
 page.id = "diff"
 page.hidden = true
-const nav = element("nav", "list")
+// The file list slides in and out as every plugin's sidebar (card.css).
+const nav = element("nav", "list oriel-sidebar")
 const main = element("main", "diff")
 const empty = element("p", "empty")
 /** A commit's subject, body and facts, at the top of the scroll; empty for the working tree. */
@@ -37,7 +38,7 @@ const viewed = new Map<string, string>()
 let split = oriel.controls.get("diff.layout") === "split"
 let wrap = oriel.controls.get("diff.wrap") === true
 let list = oriel.state.get<{ list?: boolean }>()?.list ?? true
-nav.hidden = !list
+nav.toggleAttribute("data-closed", !list)
 
 const options: CodeViewOptions<undefined, undefined> = {
   theme: { dark: "pierre-dark", light: "pierre-light" },
@@ -441,12 +442,14 @@ export function layout(next: { split?: boolean; wrap?: boolean }) {
 
 export function toggleList() {
   list = !list
-  nav.hidden = !list
+  nav.toggleAttribute("data-closed", !list)
   keep({ list })
   control("diff.file-list", { title: list ? "Hide File List" : "Show File List" })
-  // Once the viewer has its new width: Side by Side wraps lines to it.
+  // Once the viewer has its new width (at once with Reduce Motion): Side by Side wraps lines to it.
   requestAnimationFrame(() => requestAnimationFrame(keepChange))
 }
+// After the slide.
+nav.addEventListener("transitionend", (event) => event.target === nav && keepChange())
 
 export function step(by: 1 | -1) {
   if (!changes.length) return

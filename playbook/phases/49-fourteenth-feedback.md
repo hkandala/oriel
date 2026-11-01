@@ -303,5 +303,9 @@ Files: `Oriel/Views/Sidebar*.swift`, the state capsule in the card header, the a
   shows as the card's and the tab's title (`WebCard.title`): no new API. A commit's facts come from a new
   `git.show` (`%s` as the history's, `%b`). Word Wrap is a header toggle; Side by Side always wraps, so it is
   disabled there.
+- **Item 26.** The diff's file list is Track B's shared `oriel-sidebar` (card.css): `data-closed` slides it out in
+  0.25 s, and Previous / Next's place is kept after the slide (`transitionend`).
+- **For the user.** Classic and light: `/tmp/oriel-shots/t49c-classic-light.png`. The file headers use `doc` for
+  every file, as the home's rows: File Explorer's per-type icons live in its own bundle.
 - **Pictures.** Home: before `/tmp/oriel-shots/t49c-home-before.png`, after `/tmp/oriel-shots/t49c-home-after1.png`.
   Diff, commit page, Working Tree: before the bottom right of the first, after `/tmp/oriel-shots/t49c-diff-after2.png`.
