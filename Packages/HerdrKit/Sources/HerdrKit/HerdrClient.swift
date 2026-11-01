@@ -231,9 +231,11 @@ public actor HerdrClient {
     private func subscribe(_ agentPanes: [String]) {
         events?.cancel()
         subscribed = agentPanes
+        // No workspace.metadata_updated: the app reads no workspace tokens, and herdr sends one on every token write,
+        // also one that changes nothing (a mark's refresh), each a snapshot read.
         let types = [
-            "workspace.created", "workspace.updated", "workspace.metadata_updated", "workspace.renamed",
-            "workspace.moved", "workspace.reordered", "workspace.closed",
+            "workspace.created", "workspace.updated", "workspace.renamed", "workspace.moved", "workspace.reordered",
+            "workspace.closed",
             "tab.created", "tab.closed", "tab.renamed", "tab.moved",
             "pane.created", "pane.closed", "pane.moved", "pane.exited", "pane.agent_detected",
             // herdr sends it on a terminal title change; a title can pick a pane's icon.

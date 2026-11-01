@@ -111,7 +111,9 @@ and watch files and run git the same way
   session without a page in any window has none
   ([Open sessions](/docs/machines#open-sessions)).
 - Subscriptions (herdr accepts no wildcards):
-  - `workspace.created|updated|metadata_updated|renamed|moved|reordered|closed`
+  - `workspace.created|updated|renamed|moved|reordered|closed`. Not
+    `workspace.metadata_updated`: the app reads no workspace tokens, and herdr
+    sends it on every token write, also one that changes nothing.
   - `tab.created|closed|renamed|moved`
   - `pane.created|closed|moved|updated|exited|agent_detected`. herdr sends
     `pane.updated` when `terminal_title_stripped` changes, which can pick a
