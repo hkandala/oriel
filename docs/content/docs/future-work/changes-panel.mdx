@@ -4,7 +4,7 @@ description: "What the agents changed: a drawer with git diffs, a git chip on ca
 ---
 
 Not built, and proposed: the user has not agreed to it yet. This page is the
-design of a changes panel: a drawer beside the strip that shows what changed
+design of a changes panel: a drawer beside the tab page that shows what changed
 in the keyboard card's worktree, against one of three bases (the state the
 diff compares with). The idea and its git commands come from Kero
 ([research](https://github.com/hkandala/oriel/blob/main/resources/research/clients/kero.md#the-changes-panel-diff-viewer)).
@@ -17,7 +17,7 @@ uncommitted changes or one commit ([Diff](/docs/plugins/default-plugins#diff)).
 ## The drawer
 
 - **Where it lives:** in the app only, as window chrome: a drawer at the
-  right of the strip, outside herdr's split tree. It is not a card and not a
+  right of the tab page, outside herdr's split tree. It is not a card and not a
   herdr pane, like the Agents view. Dropping a card on it does nothing.
 - **What it shows:** the worktree of the keyboard card: the pane's cwd from
   the snapshot, else the workspace's root. herdr's process info seems to
@@ -108,8 +108,8 @@ on cards. The chip needs the user's agreement before it is built.
 ## Order
 
 Build the drawer, the git chip and the last turn as one feature, in that
-order. A Diff plugin card ([Plugins](/docs/plugins))
-stays for a diff the user wants to pin in the strip; the drawer covers the
+order. A Git card's diff ([File Explorer and Git](/docs/plugins/default-plugins#diff))
+stays for a diff the user wants to pin in a tab; the drawer covers the
 common case with no placeholder pane.
 
 ## Not copied from Kero

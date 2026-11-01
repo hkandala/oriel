@@ -428,8 +428,8 @@ How it works: [Checks on connect](/docs/machines#checks-on-connect).
 
 ## Hover card
 
-A peek at what runs in a tab (D63). The [overview](#overview) shows live
-tabs.
+A peek at what runs in a tab (D63). The [overview](#overview) shows every
+tab at once.
 - **When.** The pointer rests 0.25 s on a title-bar capsule or an Agents
   row. The card stays while the pointer moves into it (0.15 s
   grace). It goes when the pointer leaves, on a click elsewhere, on a scroll,
@@ -636,8 +636,8 @@ agents at once.
   left and right (at least 48 pt), 40 pt above and below, so the grid sits
   centered.
 - **Tile.** One card per tab (the card's fill, rim and edge): at its top a 36 pt title row like a card
-  header (the tab's icon stack, its title with the folder dimmed, and its status
-  capsule), and under it, 8 pt in, a miniature of the page: the tab's cards in
+  header (the tab's icon stack, its title with the folder dimmed, and its state
+  label), and under it, 8 pt in, a miniature of the page: the tab's cards in
   herdr's layout, at the page's real proportions (the tab's page as it
   shows when the overview closes), each card its fill and edge with its
   content's picture inside, at the place and size it has in the card (no
@@ -667,8 +667,7 @@ agents at once.
 
 ### How the miniatures draw
 
-- The tiles draw pictures, not live views, so the overview costs the window almost nothing: it opened in
-  205 ms with 20 + 20 cards kept, 327 ms before.
+- The tiles draw pictures, not live views, so the overview costs the window almost nothing (D70).
 - **Taken as the overview opens** for the cards in view: each terminal's snapshot and each web card's
   picture ([Pictures and switches](/docs/ui/browser#pictures-and-switches)). The other cards keep the
   picture from their last show. A chat's picture is taken as its card leaves view, from the window's

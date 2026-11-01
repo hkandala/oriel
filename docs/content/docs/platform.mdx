@@ -60,7 +60,11 @@ Each library has its entry, with its license, in the app's `Acknowledgements.txt
   row (an empty toolbar's accessibility frame covered the title row on a Mac
   with a notch, so a hit test at a tab found the toolbar).
 - One glass marker sits on the selected tab. A switch shows the new page at
-  once, and the marker jumps with it. Nothing slides or morphs.
+  once, and the marker jumps with it. Only a tab that the app makes or closes
+  in the shown workspace moves the bar: the new tab (`Page.newTab`) and the close (`PaneWrites`) set
+  `Transaction.tabMotion` around their changes, and only the tab bar turns
+  it into a 0.2 s spring. The page, the cards and the sidebar never animate
+  with it.
 - Each capsule has one status slot: × on the hovered tab, else
   the working dots. The dots are a Core Animation keyframe animation at 15
   frames a second or less, phased by the clock, so the app does no work per

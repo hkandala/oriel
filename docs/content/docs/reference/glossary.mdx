@@ -27,7 +27,7 @@ description: "The words these docs use"
 | plugins folder | `~/.config/oriel/plugins/`, where Oriel installs plugin packages |
 | trust prompt | the question a plugin asks once before its code or build script first runs, showing what it can do |
 | web card | a browser or plugin card, whose content is a web view of its own; a plugin's page comes from its package's build |
-| picture (card) | a card's last image at 1x, shown over a web card as it comes back, in place of a dropped one, and in its overview tile |
+| picture (card) | a card's last image at 1x, shown in place of a dropped web card until the card made again has loaded, and in its overview tile |
 | plugin API / `oriel` | the typed object a plugin's page calls: files, git, run, state, the header, opens, toasts; behind it, the bridge's messages to the app |
 | linked open | an open from a plugin card in a new herdr tab right after its card's tab (⌘-click), or in a pane to its side (⌥-click) |
 | landing | the line, diff file or row an open scrolls to, once, on the page's first load |
@@ -50,7 +50,7 @@ description: "The words these docs use"
 | keyboard card | the card that gets typed keys, one per tab; the app's own choice, never herdr's focus |
 | program icon | the icon of the program that runs in a pane, from Oriel's own catalog; a tab shows a stack of them |
 | hover card | the panel that shows a tab's panes when the pointer rests on a title-bar tab or an Agents row |
-| overview | every tab of the session as a live miniature, grouped by workspace (⌃⌘O) |
+| overview | every tab of the session as a miniature of its page, drawn from pictures, grouped by workspace (⌃⌘O) |
 | floating pane | a pane shown in a small window of its own; herdr keeps it in its tab |
 | float request | a tool in a pane asks Oriel to float a pane, through herdr's pane metadata tokens |
 | notice | the short capsule at the bottom of the tab page after a failed action |

@@ -285,7 +285,7 @@ One path is [Future work](/docs/future-work).
   cards (6 on a remote machine); its miniatures are no visit: a terminal it
   alone showed goes back to how it was when the overview closes.
 - On a memory-pressure warning from macOS, the kept terminals out of view go
-  down to half (10), with the kept web cards
+  down to half (12), with the kept web cards
   ([What stays in memory](/docs/ui/browser#what-stays-in-memory)).
 - Only the shown tab's terminals (and floating panes) draw. The others still
   read their stream into their surface, so they show what came meanwhile the
@@ -296,13 +296,15 @@ One path is [Future work](/docs/future-work).
   a millisecond on the next draw. libghostty empties those IOSurfaces as it
   frees them, so a card copies its last frame (one IOSurface, about 2 ms)
   just before it stops drawing; the copy shows over the surface when the card
-  is back in a window, until the surface's first new frame (about 0.1 s).
+  is back in a window, until the surface's first new frame that has text or a
+  cursor (about 0.1 s). A swap chain made again at a new size can draw an
+  empty frame first; three empty frames in a row mean the screen is empty.
   libghostty also stops drawing in a minimized, hidden or covered window.
   The app decides which cards draw (`inView`), not libghostty: libghostty
   marks a view visible again whenever it moves to or from a window
   (`viewDidMoveToWindow` calls `setWindowVisible(true)`), so left to it,
   hidden cards would draw every output.
-- A terminal past those 20 lets go of its stream (its herdr run ends) and of
+- A terminal past those 25 lets go of its stream (its herdr run ends) and of
   its surface. Its copy stays as a still, purgeable while no window shows it,
   so it costs no memory then (the system takes such pictures back within
   seconds). When it is shown again, a new surface is made under the
@@ -331,10 +333,12 @@ One path is [Future work](/docs/future-work).
 - herdr answers every resize, even to the same size, with a full frame
   (`"full":true`); its other frames only carry what changed.
 - At a new grid (a resize, a new text size) a card that is not watching
-  pauses libghostty's drawing, so neither libghostty's reflow of the old
-  screen nor herdr's first frame shows: the card keeps its last picture, at
-  the top left, until herdr's frames settle (below), then shows the new one
-  at once. It never goes blank.
+  pauses libghostty's drawing and puts a copy of its last picture over the
+  surface, so neither libghostty's reflow of the old screen nor herdr's first
+  frame shows: the card keeps its last picture, at the top left, until
+  herdr's frames settle (below), then shows the new one at once. The copy
+  goes with the first new frame that has text or a cursor, so the card never
+  goes blank.
 - A `control` frame's `width` and `height` are the real PTY size.
 - herdr has no way to size a PTY without attaching (the attach's `--cols` /
   `--rows` resizes it), so a pane opened for the first time redraws once at

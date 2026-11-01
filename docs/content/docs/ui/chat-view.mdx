@@ -310,7 +310,7 @@ keyboard back. This covers tool approvals, Codex's questions, Pi's extension
 dialogs and every picker.
 
 **The chat cannot read the session.** A red card says so, with the reason
-and **Show TUI**, and the header's capsule says Error:
+and **Show TUI**, and the header's state label says Error:
 - "‹Agent› has not started a session": Claude Code or Pi after 10 s with no
   session, or Codex when a message is not sent and its hook never ran.
 - "OpenCode has not reported its session" ([MetaCode](#which-panes-have-it)),
@@ -396,8 +396,7 @@ A run is one quiet line with no card: its summary and a chevron.
   start 28 pt under the title row, not 16 pt, because the card has no header
   there.
 - **Scrolling.** The messages are a plain stack of the newest 34 rows, not
-  a lazy one (34 rows of every reply lay out in the time 40 rows of last
-  replies did): every row is built, so every height is
+  a lazy one: every row is built, so every height is
   real, and an open, a split and Scroll to Bottom land exactly. (A lazy
   stack guessed the heights of rows it had not built, and after a split
   showed a blank where it guessed wrong.) The block starts at a user's

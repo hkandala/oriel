@@ -124,6 +124,7 @@ was made with.
   moves and cold restarts. Rejected: metadata tokens (capped at 80
   characters, lost on restart); a pane list kept by the app.
 - **A placeholder pane made in one call.** Zero app state, and one layout for
-  every device and the herdr TUI, with no race with shell startup. Rejected:
-  typing the placeholder into a new shell; plugin UI drawn by the app outside
+  every device and the herdr TUI, with no race with shell startup. The app
+  types the placeholder only into a pane that came back without it. Rejected:
+  typing the placeholder into a new shell that the app makes; plugin UI drawn by the app outside
   herdr's layout; a placeholder that reports itself as an agent.
