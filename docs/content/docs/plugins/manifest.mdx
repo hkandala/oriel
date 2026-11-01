@@ -161,7 +161,7 @@ in a pane and in a floating window. The page changes them with
 
 | `type` | Fields | Draws | The page hears |
 |---|---|---|---|
-| `button` | `id`, `symbol`, `title`, `badge`, `busy`, `label`, `style` | an icon button; `title` is its help; `badge` a count after the symbol; `busy` a spinner in place of the symbol. `"style": "bordered"` draws the system's small bordered button with the symbol and the title (Git's Fetch, Pull and Push) | `{ id }` on a click |
+| `button` | `id`, `symbol`, `title`, `badge`, `busy`, `label`, `style` | an icon button; `title` is its help; `badge` a count after the symbol; `busy` a spinner in place of the symbol. `"style": "bordered"` draws the system's small bordered button with the symbol and the title (Git's Fetch, Pull and Push), down to the symbol alone when the row has no room for the title | `{ id }` on a click |
 | `toggle` | `id`, `symbol`, `title`, `value` (boolean) | an icon button, in the accent while on | `{ id, value }` |
 | `segmented` | `id`, `options` (`[{ "value", "title" }]`), `value` | the app's pill segments | `{ id, value }` |
 | `menu` | `id`, `title`, `symbol`, `items`, `value`, `busy` | a menu button showing the picked item's title, else `title`; `busy` a spinner in place of its symbol. An item is `{ "value", "title", "symbol" }`, `{ "title" }` for a section heading ("Remote"), or `"-"` for a divider | `{ id, value }` on a pick |

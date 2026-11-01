@@ -147,7 +147,8 @@ function actions(diff: FileDiffMetadata) {
   return box
 }
 
-const viewer = new CodeView(options)
+// A copy: CodeView compares each `setOptions` with the object it holds, which must not change under it.
+const viewer = new CodeView({ ...options })
 viewer.setup(main)
 
 /** Shows a source of a root, from its top, at a file (`at`) when it has it. A first read that fails (a folder not yet

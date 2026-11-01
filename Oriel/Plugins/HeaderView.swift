@@ -67,36 +67,46 @@ private struct HeaderItem: View {
 
     /// A 22 pt icon button, as `IconButton` draws one; with a badge, its count after the symbol; busy, a spinner in its
     /// place (Git's Pull and Push). `bordered`: the system's small bordered button with the symbol and the title (Git's
-    /// Fetch, Pull and Push). One view either way, so a click under way keeps its pressed state.
+    /// Fetch, Pull and Push), down to its symbol when the row is narrow, each button on its own. An icon button is one
+    /// view whatever its state, so a click under way keeps its pressed state.
     private func button(_ id: String) -> some View {
-        let title = control.title ?? "", bordered = control.style == "bordered"
-        let button = Button { plugin.header.pick(id, nil) } label: {
-            HStack(spacing: bordered ? 4 : 2) {
-                if control.busy == true {
-                    ProgressView().controlSize(.mini).frame(width: 14)
-                } else {
-                    Image(symbol: control.symbol ?? "questionmark").font(.system(size: 11)).frame(width: 14)
-                }
-                if bordered {
-                    Text(title)
-                }
-                if let badge = control.badge {
-                    Text(badge).font(.system(size: 11).monospacedDigit())
-                }
-            }
-            .padding(.horizontal, bordered ? 0 : 4)
-            .frame(minWidth: 22, minHeight: bordered ? nil : 22)
-        }
+        let title = control.title ?? ""
         return Group {
-            if bordered {
-                button.buttonStyle(.bordered).controlSize(.small)
+            if control.style == "bordered" {
+                // The words while the row has room for them.
+                ViewThatFits(in: .horizontal) {
+                    labeled(id, words: true)
+                    labeled(id, icon: false)
+                }
+                .buttonStyle(.bordered).controlSize(.small)
             } else {
-                button.buttonStyle(ChromeStyle(radius: 5.5)).foregroundStyle(look.paneButton)
+                labeled(id, icon: true).buttonStyle(ChromeStyle(radius: 5.5)).foregroundStyle(look.paneButton)
             }
         }
         .help(title)
         // In the label: XCUITest reads no button's value.
         .accessibilityLabel(control.label ?? control.badge.map { "\(title), \($0)" } ?? title)
+    }
+
+    /// The symbol (or the spinner), the words when `words`, the badge; an icon button's 22 pt box when `icon`.
+    private func labeled(_ id: String, words: Bool = false, icon: Bool = false) -> some View {
+        Button { plugin.header.pick(id, nil) } label: {
+            HStack(spacing: words ? 4 : 2) {
+                if control.busy == true {
+                    ProgressView().controlSize(.mini).frame(width: 14)
+                } else {
+                    Image(symbol: control.symbol ?? "questionmark").font(.system(size: 11)).frame(width: 14)
+                }
+                if words {
+                    Text(control.title ?? "").fixedSize()
+                }
+                if let badge = control.badge {
+                    Text(badge).font(.system(size: 11).monospacedDigit())
+                }
+            }
+            .padding(.horizontal, icon ? 4 : 0)
+            .frame(minWidth: icon ? 22 : nil, minHeight: icon ? 22 : nil)
+        }
     }
 
     /// An icon button in the accent while on.
