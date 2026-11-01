@@ -28,7 +28,7 @@ Problems that came back across phases, and the rule that stops each. How we work
 - **Scope every query.** `app.windows.firstMatch` can be a tooltip, a hover card or a floating pane, and
   menu bar items share names with context menu items. Use `app.windows[id]` and the menu's own items.
 - **An accessibility client changes the app it watches**: it hides lazy-layout bugs and slows large UIs.
-  Check rendering once with no client (`make strip-check`) and speed on a Release build.
+  Check rendering once with no client and speed on a Release build.
 - **Trackpad touches can be synthesized.** An `IOHIDEvent` digitizer collection (its finger events as paths, plus
   a vendor child 0xff00/0x1777 holding the pad's `mthid` device id) on a gesture `CGEvent` (`SLEventSetIOHIDEvent`,
   field 87 the pad's registry id) reaches `NSEvent.allTouches()` as real touches, through the HID tap or a pid.
@@ -83,7 +83,7 @@ Problems that came back across phases, and the rule that stops each. How we work
 
 ## SwiftUI and AppKit
 
-- **Inside a sideways scroll view (the strip), a SwiftUI scroll view of both axes gets no vertical wheel**: only its
+- **Inside a sideways scroll view, a SwiftUI scroll view of both axes gets no vertical wheel**: only its
   scroll bar moves it. Nest one scroll view per axis. A probe window that sends wheel events to itself
   (`window.sendEvent`) shows it without the GUI.
 - **Re-check state after every `await` and before every delayed effect**: state read before an await, late

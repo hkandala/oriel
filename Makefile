@@ -1,5 +1,5 @@
 SHELL := /bin/bash -eo pipefail
-.PHONY: setup format lint web build build-tests test e2e strip-check run app dmg install icons
+.PHONY: setup format lint web build build-tests test e2e run app dmg install icons
 
 DERIVED_DATA ?= .build/DerivedData
 XCODEBUILD := xcodebuild -project Oriel.xcodeproj -scheme Oriel -derivedDataPath $(DERIVED_DATA)
@@ -89,10 +89,6 @@ e2e: web
 		-resultBundlePath $(DERIVED_DATA)/e2e.xcresult \
 		$(if $(ONLY),$(addprefix -only-testing:,$(subst $(comma), ,$(ONLY))),$(addprefix -skip-testing:OrielUITests/OrielUITests/,$(ON_DEMAND))) \
 		test $(BEAUTIFY)
-
-# After e2e, which builds the app. It drives the app: the GUI lock (playbook/workflow.md).
-strip-check:
-	scripts/strip-check.sh $(DERIVED_DATA)/Build/Products/Debug/Oriel.app
 
 run: web
 	$(XCODEBUILD) $(MAC) build $(BEAUTIFY)

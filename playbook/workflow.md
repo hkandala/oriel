@@ -79,9 +79,8 @@ paraphrase.
   ≤ 72 characters (`feat`, `fix`, `chore`, `test`, `docs`, `refactor`, `perf`, `ci`, `build`). The hooks in
   `.githooks/` must pass. Never `--no-verify`. Never commit build output, DerivedData, `.xcresult`,
   screenshots or secrets.
-- **Commands:** use the Makefile targets (`make lint`, `format`, `build`, `test`, `e2e`, `strip-check`,
-  `run`). A new command gets a target. A rule a tool can check gets a lint rule or a script, not a line in
-  a doc.
+- **Commands:** use the Makefile targets (`make lint`, `format`, `build`, `test`, `e2e`, `run`). A new
+  command gets a target. A rule a tool can check gets a lint rule or a script, not a line in a doc.
 
 ### The GUI lock
 

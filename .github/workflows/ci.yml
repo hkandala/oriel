@@ -53,12 +53,6 @@ jobs:
       # The UI tests compile, though they do not run here.
       - run: make build-tests
       - run: make test
-      - run: make strip-check
-      - if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: strip-check
-          path: .build/strip-check
 
   # Dispatch: the UI tests on 5 parallel jobs, the account's macOS limit; a run of chosen tests takes one, the
   # on-demand tests take 4.
