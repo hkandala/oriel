@@ -62,6 +62,8 @@ final class HostStore {
     var windows: [WindowPages] = []
     /// Its panes marked as shown (`markShown`), and the marks in flight.
     @ObservationIgnored var marked: Set<String> = []
+    /// Its workspaces marked `oriel-open`.
+    @ObservationIgnored var openMarked: Set<String> = []
     @ObservationIgnored var marking: Task<Void, Never>?
     /// The session's page is in view in a visible window: git status runs only then (D67).
     var showsGit: Bool {
@@ -168,27 +170,34 @@ final class HostStore {
                 if !loadedSessions {
                     loadedSessions = true
                     notice = nil
-                    // State files of plugin panes closed elsewhere (plugins/api#state).
+                    // State files of plugin panes closed elsewhere (plugins/api#state), and the `oriel` command.
                     Task { [machine, session] in await machine.exec().pruneState(session: session) }
+                    Task { await prepareAgent() }
                     await loadSessions()
                 }
             case let .copy(text):
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(text, forType: .string)
+            case let .request(id, pane):
+                Task { await answer(request: id, from: pane) }
             case let .float(request):
                 WindowPages.float(session: request.session, pane: request.pane, machine: machine.id,
                                   over: windows.first)
             case let .error(error):
-                // Not while Connect runs, nor one that waited for its start: Connect's own read follows.
-                let connects = connects
-                guard !connecting else { continue }
-                // First, to tell "not running" from other failures without a flash of the other text.
-                await loadSessions()
-                guard connects == self.connects else { continue }
-                state = .failed(error)
-                snapshotted([])
+                await failed(error)
             }
         }
+    }
+
+    private func failed(_ error: HerdrError) async {
+        // Not while Connect runs, nor one that waited for its start: Connect's own read follows.
+        let connects = connects
+        guard !connecting else { return }
+        // First, to tell "not running" from other failures without a flash of the other text.
+        await loadSessions()
+        guard connects == self.connects else { return }
+        state = .failed(error)
+        snapshotted([])
     }
 
     func panes(in tabID: String?) -> [Pane] {

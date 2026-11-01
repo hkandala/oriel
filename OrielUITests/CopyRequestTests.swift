@@ -16,20 +16,7 @@ extension OrielUITests {
             return (info?["tokens"] as? [String: String])?["oriel-shown"] == mark
         }
         try await waitForPrompt(pane)
-        // The user's clipboard, every type of it, back after the test.
-        let saved = (NSPasteboard.general.pasteboardItems ?? []).map { item in
-            item.types.compactMap { type in item.data(forType: type).map { (type, $0) } }
-        }
-        addTeardownBlock {
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.writeObjects(saved.map { types in
-                let item = NSPasteboardItem()
-                for (type, data) in types {
-                    item.setData(data, forType: type)
-                }
-                return item
-            })
-        }
+        keepClipboard()
         NSPasteboard.general.clearContents()
         let id = UUID().uuidString.lowercased()
         try await send("printf 'copy-%s\\n✓ two' $((6*7)) >/tmp/oriel-copy-\(id) && echo saved-$((6*7))\r", to: pane)

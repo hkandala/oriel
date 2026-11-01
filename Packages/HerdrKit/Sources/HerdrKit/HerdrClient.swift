@@ -42,6 +42,8 @@ public enum Update: Sendable {
     case float(FloatRequest)
     /// A copy request's text (talking-to-herdr#copy-requests).
     case copy(String)
+    /// The `oriel` command rang on the pane (agent-control/protocol): `id` names its request in the machine's mailbox.
+    case request(id: String, pane: String)
 }
 
 /// Talks to one herdr session: requests over `remote-api-bridge`, one events stream, paced snapshots. herdr runs
@@ -70,6 +72,8 @@ public actor HerdrClient {
     private var floated: Set<String> = []
     /// The copy requests' ids (one per copy).
     private var copied: Set<String> = []
+    /// The last 256 `oriel` requests' ids, oldest first.
+    private var asked: [String] = []
 
     /// `timeout` bounds each request.
     public init(
@@ -226,8 +230,8 @@ public actor HerdrClient {
         events?.cancel()
     }
 
-    /// (Re)opens the one events stream. Every line on it means "read the snapshot again"; a pane's float and copy
-    /// requests are the only payloads read.
+    /// (Re)opens the one events stream. Every line on it means "read the snapshot again"; a pane's float, copy and
+    /// `oriel` requests are the only payloads read.
     private func subscribe(_ agentPanes: [String]) {
         events?.cancel()
         subscribed = agentPanes
@@ -264,6 +268,13 @@ public actor HerdrClient {
                     }
                     if let id = message?.data?.pane?.tokens?["oriel-copy"], copied.insert(id).inserted {
                         copy(id)
+                    }
+                    if let pane = message?.data?.pane, let id = pane.tokens?["oriel-req"], let paneID = pane.paneID,
+                       AgentRequest.isID(id), !asked.contains(id)
+                    {
+                        // ponytail: a linear search of 256 ids per ring.
+                        asked = asked.suffix(255) + [id]
+                        out?.yield(.request(id: id, pane: paneID))
                     }
                     // Every other line, the first too (subscription_started: catch up on what came before it).
                     read()
@@ -338,7 +349,12 @@ private struct EventLine: Decodable {
 }
 
 private struct EventPane: Decodable {
+    let paneID: String?
     let tokens: [String: String]?
+
+    enum CodingKeys: String, CodingKey {
+        case paneID = "pane_id", tokens
+    }
 }
 
 private struct SessionList: Decodable {

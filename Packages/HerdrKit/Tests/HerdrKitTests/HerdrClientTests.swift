@@ -335,6 +335,32 @@ private func keepComing(_ exec: FakeExec) -> Task<Void, Never> {
     withExtendedLifetime(updates) {}
 }
 
+@Test func `a pane's ring delivers one request per id, only a UUID, the last 256 remembered`() async {
+    let exec = FakeExec()
+    let updates = await started(client(exec), exec)
+    let id = "7f9c2b1e-4d0a-4c55-9a51-0b6c3e2d8f10"
+    let ring = { (pane: String, id: String) in
+        exec.event(#"{"event":"pane_updated","data":{"pane":{"pane_id":"\#(pane)","tokens":{"oriel-req":"\#(id)"}}}}"#)
+    }
+    let others = (0 ..< 256).map { _ in UUID().uuidString.lowercased() }
+    ring("w1:p2", id)
+    ring("w1:p2", id)
+    ring("w1:p2", "../x")
+    ring("w1:p3", id.uppercased())
+    others.forEach { ring("w1:p3", $0) }
+    ring("w1:p4", id)
+    var requests: [(String, String)] = []
+    for await update in updates {
+        guard case let .request(id, pane) = update else { continue }
+        requests.append((id, pane))
+        if pane == "w1:p4" {
+            break
+        }
+    }
+    #expect(requests.map(\.0) == [id] + others + [id])
+    #expect(requests.first?.1 == "w1:p2")
+}
+
 @Test func `updates deliver snapshots and read errors`() async {
     var updates = await client(FakeExec()).updates().makeAsyncIterator()
     guard case .snapshot = await updates.next() else {
