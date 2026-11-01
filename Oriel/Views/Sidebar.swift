@@ -39,7 +39,7 @@ struct Sidebar: View {
         VStack(spacing: 0) {
             Pager(swipe: swipe, width: width - gap) {
                 HStack(spacing: 0) {
-                    // At rest only the page in view (`Pager`): the others would lie over the strip, in the
+                    // At rest only the page in view (`Pager`): the others would lie over the tab's page, in the
                     // sidebar's accessibility frame (which takes in laid-out views past the clip) and in AppKit's
                     // hit tests.
                     ForEach(swipe.moving ? pages.list : pages.list.filter { $0 === pages.current }) { page in

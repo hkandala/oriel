@@ -267,7 +267,9 @@ private struct WindowContent: View {
                         .transition(.move(edge: .leading).combined(with: .opacity))
                 }
                 if !pages.overview {
+                    // At once, also when the sidebar moves in the same update (⌘. from the overview).
                     Detail(pages: pages, page: page).frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .transition(.identity)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
