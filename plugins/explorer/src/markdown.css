@@ -1,11 +1,7 @@
-/* The Markdown place (markdown.ts): the outline column, then Read's article or Edit's editor. */
+/* The Markdown place (markdown.ts): the outline column, then the one editor of Read and Edit. */
 [data-place="markdown"] {
   display: flex;
   overflow: hidden;
-}
-/* CodeMirror's own display would win over the attribute. */
-[hidden] {
-  display: none !important;
 }
 main {
   flex: 1;

@@ -7,7 +7,7 @@ import { markdown, markdownLanguage } from "@codemirror/lang-markdown"
 import { yamlFrontmatter } from "@codemirror/lang-yaml"
 import { ensureSyntaxTree, HighlightStyle, syntaxHighlighting, syntaxTree } from "@codemirror/language"
 import { closeSearchPanel } from "@codemirror/search"
-import { Compartment, type EditorState, Prec, type Range, StateField } from "@codemirror/state"
+import { Compartment, EditorState, Prec, type Range, StateField } from "@codemirror/state"
 import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate, WidgetType } from "@codemirror/view"
 import type { SyntaxNode } from "@lezer/common"
 import { tags } from "@lezer/highlight"
@@ -29,13 +29,14 @@ const slug = (text: string) => text.trim().toLowerCase().replace(/[^\p{L}\p{N}\s
 /** The mode is the view's `editable`: Edit when it is, and the caret's lines show their marks. */
 const editing = (state: EditorState) => state.facet(EditorView.editable)
 const switched = (start: EditorState, now: EditorState) => editing(start) !== editing(now)
-/** Read: no text box for VoiceOver, an article. */
+/** Read: no text box for VoiceOver, an article; read only, so a drag, a drop or a cut changes nothing. */
 const mode = (edit: boolean) => [
   EditorView.editable.of(edit),
+  EditorState.readOnly.of(!edit),
   edit ? [] : Prec.highest(EditorView.contentAttributes.of({ role: "article", "aria-readonly": "true" })),
 ]
 const modeClass = EditorView.editorAttributes.compute([EditorView.editable], (state) => ({
-  class: editing(state) ? "cm-editing" : "cm-reading",
+  class: editing(state) ? "" : "cm-reading",
 }))
 /** The nodes that hold blocks: the walks over the document's blocks go into these only. */
 const containers = ["Document", "Blockquote", "BulletList", "OrderedList", "ListItem"]
@@ -191,7 +192,7 @@ function preview(view: EditorView): DecorationSet {
           ranges.push(Decoration.line({ class: `cm-md-h${heading}`, attributes }).range(state.doc.lineAt(node.from).from))
         }
         if (name === "InlineCode") ranges.push(code.range(node.from, node.to))
-        if (name === "Link" || name === "Image" || name === "Autolink" || (name === "URL" && parent?.name === "Paragraph")) {
+        if (name === "Link" || name === "Image" || name === "Autolink" || (name === "URL" && !["Link", "Image", "Autolink"].includes(parent?.name ?? ""))) {
           const url = name === "URL" ? state.sliceDoc(node.from, node.to) : href(node.node, state)
           const marks = node.node.getChildren("LinkMark")
           const textFrom = name === "URL" || name === "Autolink" ? node.from : (marks[0]?.to ?? node.from)
@@ -203,8 +204,10 @@ function preview(view: EditorView): DecorationSet {
         if (name === "Blockquote") for (const each of shown(node)) ranges.push(quote.range(each.from))
         if (name === "FencedCode" || name === "CodeBlock") {
           const first = state.doc.lineAt(node.from).number, last = state.doc.lineAt(node.to).number
+          // The fences' lines: a block not closed yet has only its opening one.
+          const fences = new Set(node.node.getChildren("CodeMark").map((mark) => state.doc.lineAt(mark.from).number))
           for (const each of shown(node)) {
-            const n = each.number, fence = name === "FencedCode" && (n === first || n === last) && !raw(each.from)
+            const n = each.number, fence = fences.has(n) && !raw(each.from)
             const edge = `${n === first ? " cm-md-pre-first" : ""}${n === last ? " cm-md-pre-last" : ""}`
             ranges.push(line(`cm-md-pre${edge}${fence ? " cm-md-fence" : ""}`).range(each.from))
             if (fence && each.to > each.from) ranges.push(hide.range(each.from, each.to))
@@ -276,7 +279,7 @@ const look = HighlightStyle.define([
 
 /** The headings in the editor's syntax tree, at the top level, in lists and in quotes: their line and text. */
 function headings(state: EditorState, tree = syntaxTree(state)) {
-  const found: { line: number; from: number; level: number; text: string }[] = []
+  const found: { from: number; level: number; text: string }[] = []
   tree.iterate({
     enter(node) {
       const level = /^(?:ATX|Setext)Heading(\d)$/.exec(node.name)?.[1]
@@ -287,7 +290,7 @@ function headings(state: EditorState, tree = syntaxTree(state)) {
       const text = node.name.startsWith("ATX")
         ? state.sliceDoc(first?.to ?? node.from, last?.from ?? node.to)
         : state.sliceDoc(node.from, line.to)
-      found.push({ line: line.number, from: line.from, level: Number(level), text: text.trim() || line.text })
+      found.push({ from: line.from, level: Number(level), text: text.trim() || line.text })
       return false
     },
   })
@@ -366,8 +369,10 @@ export async function show(place: Place): Promise<Reveal> {
    *  relative path its file in the card (⌘ in a new tab, ⌥ to the side). */
   function follow(view: EditorView, event: MouseEvent) {
     const link = (event.target as Element).closest("a")
-    if (edit || !link) return false
+    if (!link) return false
+    // In Edit too: a table's `href=""` link would load the page again and lose the edits.
     event.preventDefault()
+    if (edit) return false
     const target = link.getAttribute("href") ?? ""
     if (target.startsWith("#")) {
       let anchor = target.slice(1)

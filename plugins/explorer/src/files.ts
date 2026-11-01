@@ -245,6 +245,12 @@ export async function show(place: Place): Promise<Reveal> {
   async function reveal(path: string) {
     if (!path.startsWith(`${base}/`)) return
     const relative = path.slice(base.length + 1)
+    // A dotfile shows only with the hidden files: the eye turns on (Show in File Explorer on `.gitignore`).
+    if (!dotfiles && dotted(relative)) {
+      dotfiles = true
+      oriel.controls.set("hidden-files", { value: true })
+      await refresh()
+    }
     for (const above of folders(relative).reverse()) {
       if (unlisted.has(above) || !children.has(above)) await list(above)
       folder(above)?.expand()
