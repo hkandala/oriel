@@ -133,3 +133,34 @@ simple and brief."
   command (the report's migration table). Push pi-hkandala to master when the Oriel side is on main.
 
 ## Findings
+
+### Track A
+
+- **Spike (herdr 0.9.5).** `pane report-metadata --token oriel-req=… --ttl-ms 3000` from a pane works and exits 1 for
+  an unknown pane; `pane.updated` carries the whole pane (`pane_id`, `tokens` of every source merged) and comes again,
+  without the token, when it expires. `workspace.report_metadata` takes `tokens` and `ttl_ms` like the pane call, a
+  `null` clears, and `workspace.metadata_updated` carries the workspace's `tokens`. `pane get` and `workspace get` print
+  compact JSON on one line, so the script's `sed` reads `workspace_id`, `oriel-shown` and `oriel-open`.
+- **Round trip.** This Mac, `oriel info --json` with the app in use: 0.34 s at best, 0.47 s median, 0.69 s at worst
+  (10 calls, load average 130–200 from other agents' builds); `oriel status` 0.18 s. With no Oriel, exit 3 after
+  2.4–3.0 s. Each step forks (the ring, the take, the answer, `date` and `sleep` in each 50 ms poll), so a busy Mac
+  costs more than the design's 0.1 s.
+- **Decisions.** A stale or unknown asking pane never reaches Oriel: the ring fails at herdr, so the script exits 5
+  and says to pass `--pane`; `pane_not_found` is only for a pane argument. A pane argument is always read on the
+  asking pane's machine (the syntax cannot name another), so no pane argument answers `other_machine`; a
+  `‹session›/‹pane›` whose session herdr does not run there is `pane_not_found`. `--json` counts anywhere in the
+  arguments. Without `--json`, a command that gives no text prints its JSON fields as `name: value` lines. `copy`
+  answers `{"bytes": n}` and prints nothing. `oriel-open` marks every workspace of a session while any window has it
+  open (a float-only page too), not only while its page is in view: requests are taken then. A request that is not
+  one, or is over 64 KiB or 64 fields, answers `usage`; a newer protocol answers `protocol`.
+- **The dispatcher.** A command is an `AgentCommand` (`name`, `usage`, `summary`, `help`, `run`) declared as a
+  `static let` in its track's own file under `Oriel/Agent/`, and one line in `AgentCommands.all`. `run` reads its
+  arguments off an `AgentCall` (`flag`, `value`, `argument`, `optionalArgument`, `done`, `target` for a pane), throws
+  `AgentError(code:message:)` (any other error answers `failed`), and returns `AgentOutput(json, text:)`.
+- **Two Oriels.** Away is no key press or click in the app for 60 s, the screen locked, or no visible window with the
+  session's page in view; an away Oriel waits 500 ms before its take.
+- **Tests.** The remote case sits in `AgentControlTests.swift`, not `RemoteTests.swift`, which is at the 400-line
+  limit; it skips without CI's sshd as the others do. The e2e test writes the script and the mailbox in the real
+  `~/.cache/oriel` (a cache, as the chat state is), never over a newer script.
+- **For the user.** A float from `oriel float` (and its `existing` bring-to-front) should open without activating
+  Oriel: check it with Oriel in the background.
