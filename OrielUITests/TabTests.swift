@@ -77,9 +77,9 @@ extension OrielUITests {
         }
         let swiped = title.stringValue
         XCTAssertNotEqual(swiped, "x 0", "a swipe did not scroll the page")
+        // One wheel: the swipe left the page between its edges, so either way moves it. A wheel back would undo it.
         page.scroll(byDeltaX: -200, deltaY: 0)
-        page.scroll(byDeltaX: 200, deltaY: 0)
-        XCTAssertTrue(until(2) { title.stringValue != swiped }, "a sideways wheel did not scroll the page")
+        XCTAssertTrue(until(2) { title.stringValue != swiped }, "a sideways wheel left the page at \(swiped)")
         XCTAssertTrue(capsule.isSelected)
     }
 
