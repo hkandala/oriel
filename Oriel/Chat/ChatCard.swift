@@ -104,7 +104,7 @@ struct CardState: View {
     }
 
     private var label: StateLabel? {
-        guard let chat else { return state.flatMap { $0 == .idle ? nil : $0.label(look) } }
+        guard let chat else { return state?.label(look) }
         // Only while the chat shows: nothing follows the agent behind its terminal, so nothing would clear it.
         if chat.problem != nil, chat.showsChat {
             return StateLabel(text: "Error", symbol: "exclamationmark.circle", color: look.error)

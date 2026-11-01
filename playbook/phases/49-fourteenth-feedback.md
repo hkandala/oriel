@@ -189,4 +189,8 @@ Files: `Oriel/Views/Sidebar*.swift`, the state capsule in the card header, the a
 - **Decisions.** herdr has one "blocked" for both input and approval, so Oriel keeps its word "Needs you" and its
   amber, with t3code's question bubble. herdr reports no error, so "Error" stays the chat card's own. The symbol
   does not move, as in t3code's sidebar: the counting time shows the work. The card header shows no time (its row is
-  full). A workspace's time is its longest-working agent's.
+  full). A workspace's time is the longest of its tabs' front agents'.
+- **Cost.** Each working label ticks once a second for its first minute, then once a minute, all on the same
+  wall-clock second, so a hundred working agents make one update a second at most, not a hundred.
+- **For the user.** The time counts from when this app saw the agent start working: after a relaunch, or on
+  another Mac, an agent that has worked for 20 minutes starts at 0s.

@@ -21,7 +21,7 @@ struct WorkspaceRow: View {
         let selected = workspace.id == page.selectedWorkspaceID
         let git = workspace.git
         let state = workspace.state
-        let label = state.flatMap { $0 == .idle ? nil : $0.label(look, since: workspace.since) }
+        let label = state?.label(look, since: state == .working ? workspace.since : nil)
         let height: CGFloat = git == nil ? 30 : 44
         Button {
             page.select(workspace)
@@ -75,6 +75,7 @@ struct WorkspaceRow: View {
                     .transition(Keycap.transition)
                     .accessibilityIdentifier("workspace.\(workspace.id).keycap")
             } else if let label, !renaming {
+                // Its own element, for tests; the row's value has the state word for VoiceOver.
                 label.frame(height: 30).padding(.trailing, 8).allowsHitTesting(false)
                     .accessibilityIdentifier("workspace.\(workspace.id).state")
             }

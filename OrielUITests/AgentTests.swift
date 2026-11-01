@@ -17,6 +17,7 @@ extension OrielUITests {
         XCTAssertTrue(state.exists(within: 2))
         let first = state.stringValue
         XCTAssertTrue(first.hasPrefix("Working "), first)
+        XCTAssertEqual(state.frame.maxX, element("workspace.w1").frame.maxX - 8, accuracy: 1.5)
         XCTAssertTrue(until(3) { state.stringValue != first }, first)
 
         // The selected tab shows them too; the × takes their place while hovered.
@@ -339,7 +340,7 @@ extension OrielUITests {
         app.launch()
         try await waitForValue("workspace.w2", containing: "idle")
         XCTAssertFalse((element("workspace.w2").value as? String ?? "").contains("finished"))
-        keepScreenshot("idle ring")
+        keepScreenshot("idle, no state")
     }
 
     /// Types in the footer filter, checks which rows stay, then clears it with Esc.

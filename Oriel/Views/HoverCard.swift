@@ -249,9 +249,7 @@ struct HoverCard: View {
                     HStack(spacing: 8) {
                         FadeText(text: page.titleLabel(tab)).fontWeight(.medium)
                         Spacer(minLength: 0)
-                        if let state = tab.agent?.state, state != .idle {
-                            state.label(look)
-                        }
+                        tab.agent?.state?.label(look)
                     }
                     .padding(.horizontal, 6)
                     .frame(height: 26)
@@ -295,9 +293,7 @@ struct HoverCard: View {
                     Text(name).lineLimit(1).layoutPriority(1)
                     Text(pane.folder ?? "").foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                     Spacer(minLength: 0)
-                    if let state = pane.state, state != .idle {
-                        state.label(look, since: pane.since)
-                    }
+                    pane.state?.label(look, since: pane.since)
                 }
                 ForEach(shown.indices, id: \.self) { index in
                     Text(shown[index]).font(.system(size: 10, design: .monospaced)).foregroundStyle(.secondary)

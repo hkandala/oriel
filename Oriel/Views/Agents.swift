@@ -32,9 +32,15 @@ extension AgentState {
         }
     }
 
-    /// Its `StateLabel`; Working counts its time from `since`.
-    func label(_ look: Look, since: Date? = nil) -> StateLabel {
-        StateLabel(text: title, symbol: symbol, color: color(look), since: self == .working ? since : nil)
+    /// Its `StateLabel`, none while idle (t3code shows none for a settled thread); Working counts its time from
+    /// `since`.
+    func label(_ look: Look, since: Date? = nil) -> StateLabel? {
+        self == .idle ? nil : StateLabel(
+            text: title,
+            symbol: symbol,
+            color: color(look),
+            since: self == .working ? since : nil,
+        )
     }
 
     /// Needs you or done and not seen: its row's name is medium, as t3code's rows that do not recede.
@@ -78,18 +84,37 @@ struct StateIcon: View {
 }
 
 /// A state as t3code's sidebar draws a thread's: its icon and word in the state's color, 11 pt medium. Working adds
-/// its time, counted each second ("Working 42s", "3m", "1h 5m").
+/// its time ("Working 42s", "3m", "1h 5m").
 struct StateLabel: View {
     let text: String, symbol: String, color: Color
     var since: Date?
 
     var body: some View {
         if let since {
-            TimelineView(.periodic(from: since, by: 1)) { context in
-                row("\(text) \(Self.elapsed(context.date.timeIntervalSince(since)))")
+            let start = Date(timeIntervalSinceReferenceDate: since.timeIntervalSinceReferenceDate.rounded(.down))
+            TimelineView(Ticks(start: start)) { context in
+                row("\(text) \(Self.elapsed(context.date.timeIntervalSince(start)))")
             }
         } else {
             row(text)
+        }
+    }
+
+    /// Each second for the first minute, then each minute, when the text changes: from a whole second, so every label
+    /// ticks in the same update, as t3code's shared tick (a hundred labels on their own phases laid out a hundred
+    /// times a second).
+    private struct Ticks: TimelineSchedule {
+        let start: Date
+
+        func entries(from date: Date, mode _: Mode) -> AnyIterator<Date> {
+            var next = date
+            return AnyIterator {
+                defer {
+                    let age = next.timeIntervalSince(start)
+                    next = start + (age < 59 ? age.rounded(.down) + 1 : ((age / 60).rounded(.down) + 1) * 60)
+                }
+                return next
+            }
         }
     }
 
@@ -105,7 +130,8 @@ struct StateLabel: View {
         .accessibilityValue(words)
     }
 
-    /// t3code's working time: seconds, then minutes, then hours and minutes.
+    /// t3code's working time: seconds, then minutes, then hours and minutes (shorter than a chat turn's "1m 48s",
+    /// `ChatHistory.duration`, to fit a sidebar row).
     static func elapsed(_ interval: TimeInterval) -> String {
         let seconds = max(0, Int(interval)), minutes = seconds / 60
         return seconds < 60 ? "\(seconds)s" : minutes < 60 ? "\(minutes)m" : "\(minutes / 60)h \(minutes % 60)m"
@@ -177,8 +203,8 @@ struct AgentButton: View {
                     Text(title).font(.system(size: 13, weight: state.calls ? .medium : .regular)).lineLimit(1)
                         .foregroundStyle(lit ? look.selected : look.chrome)
                     Spacer(minLength: 0)
-                    if state != .idle {
-                        state.label(look, since: pane.since)
+                    if let label = state.label(look, since: pane.since) {
+                        label
                     } else if let since = pane.since {
                         TimelineView(.everyMinute) { context in Text(age(since, context.date)) }
                             .font(.system(size: 11)).foregroundStyle(.secondary)

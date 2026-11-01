@@ -119,8 +119,8 @@ private struct Tile: View, Equatable {
                         page.close(.tab(tab.id))
                     }
                     .accessibilityIdentifier("overview.tab.\(tab.id).close")
-                } else if let state, state != .idle {
-                    state.label(look)
+                } else {
+                    state?.label(look)
                 }
             }
             .padding(.leading, 11)
