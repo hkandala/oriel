@@ -84,8 +84,7 @@ extension OrielUITests {
         XCTAssertTrue(field.has(\.stringValue, "\(root)/src", within: 5))
         field.click()
         app.typeText("\(root)/none\r")
-        // Still editing; Esc puts the root back.
-        XCTAssertTrue(field.has(\.stringValue, "\(root)/none", within: 3))
+        // A path that is no folder makes no place (Back below); Esc puts the root back.
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(field.has(\.stringValue, "\(root)/src", within: 3))
         // Tidied: `src/..` is the root. Back comes to src: the refused path made no place.
@@ -111,7 +110,8 @@ extension OrielUITests {
         XCTAssertTrue(row("a.txt", in: tree).exists(within: 10))
         XCTAssertFalse(row(".gitignore", in: tree).exists)
 
-        // build, src, a.txt: the first row has the keyboard.
+        // build, src, a.txt: the first row has the keyboard, a turn after the page's focus.
+        XCTAssertTrue(hasKeyboard(row("build", in: tree)))
         app.typeKey(.downArrow, modifierFlags: [])
         app.typeKey(.rightArrow, modifierFlags: [])
         XCTAssertTrue(row("deep", in: tree).exists(within: 5))

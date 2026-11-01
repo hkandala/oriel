@@ -42,20 +42,7 @@ extension OrielUITests {
         element("pane.\(card).go-forward").click()
         try await expect("forward to the commit") { try await paneLabel(card).hasSuffix(" \(root)/ \(hash)") }
         try await diff(page, card: card, tab: tab, root: root)
-        element("pane.\(card).diff.home").click()
-        // A change opens the working tree at its file, which follows the work tree.
-        XCTAssertTrue(home.buttons["Modified: a.txt"].exists(within: 10))
-        home.buttons["Modified: a.txt"].click()
-        try await expect("the label is Uncommitted") { try await paneLabel(card).hasSuffix(" \(root)/ uncommitted") }
-        XCTAssertTrue(page.buttons["a.txt"].exists(within: 10))
-        XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, "Working Tree", within: 3))
-        try await send("echo new >c.txt\r", to: left)
-        XCTAssertTrue(page.buttons["c.txt"].exists(within: 10))
-        // A file already shown draws its new text.
-        try await send("sed -i '' 's/^changed 200$/live 200/' a.txt\r", to: left)
-        XCTAssertTrue(page.staticTexts.matching(NSPredicate(format: "value CONTAINS 'live 200'")).firstMatch
-            .exists(within: 10))
-
+        try await workingTree(home, page, card: card, root: root, shell: left)
         element("pane.\(card).diff.home").click()
         let branch = element("pane.\(card).git.branch")
         XCTAssertTrue(branch.has(\.isHittable, true, within: 5))
@@ -117,6 +104,30 @@ extension OrielUITests {
         XCTAssertTrue(first.exists(within: 10))
         XCTAssertFalse(more.exists)
         try await send("cd / && rm -rf \(folder)\r", to: left)
+    }
+
+    /// A change opens the working tree at its file, which follows the work tree; row 2's Working Tree opens it too.
+    private func workingTree(_ home: XCUIElement, _ page: XCUIElement, card: String, root: String,
+                             shell left: String) async throws
+    {
+        element("pane.\(card).diff.home").click()
+        XCTAssertTrue(home.buttons["Modified: a.txt"].exists(within: 10))
+        home.buttons["Modified: a.txt"].click()
+        try await expect("the label is Working Tree's") { try await paneLabel(card).hasSuffix(" \(root)/ uncommitted") }
+        XCTAssertTrue(page.buttons["a.txt"].exists(within: 10))
+        XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, "Working Tree", within: 3))
+        try await send("echo new >c.txt\r", to: left)
+        XCTAssertTrue(page.buttons["c.txt"].exists(within: 10))
+        // A file already shown draws its new text.
+        try await send("sed -i '' 's/^changed 200$/live 200/' a.txt\r", to: left)
+        XCTAssertTrue(page.staticTexts.matching(NSPredicate(format: "value CONTAINS 'live 200'")).firstMatch
+            .exists(within: 10))
+
+        // Row 2's Working Tree opens it too, from the home.
+        element("pane.\(card).diff.home").click()
+        try await expect("back home") { try await paneLabel(card).hasSuffix("e2egit \(root)/") }
+        element("pane.\(card).git.working").click()
+        try await expect("Working Tree from row 2") { try await paneLabel(card).hasSuffix(" \(root)/ uncommitted") }
     }
 
     /// A web page's text, by its value: a plain text's label is empty.

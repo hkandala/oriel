@@ -105,7 +105,9 @@ private func lineByLine(_ path: String, from mark: FileMark,
             // A slow reader, as a relay over SSH: it reads on once the kill landed (no process has the file in its
             // argv), with the pipes full. A fixed wait ran out on a starved Mac before the kill came, and the
             // reader drained the whole backlog meanwhile.
+            let end = ContinuousClock.now + .seconds(20)
             while try await !localExec.output(["pgrep", "-f", file.lastPathComponent]).isEmpty {
+                try #require(ContinuousClock.now < end, "the follow's processes outlived the kill")
                 try await Task.sleep(for: .milliseconds(50))
             }
         }

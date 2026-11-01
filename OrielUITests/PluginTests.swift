@@ -74,10 +74,12 @@ extension OrielUITests {
 
         // A shell pane the app has known for a while, labeled a card later as an agent does (a rename sends no event;
         // the metadata token makes the app read the layout).
-        let (_, shell) = try await newTab("relabel")
+        let (relabel, shell) = try await newTab("relabel")
+        try await show(relabel)
         try await waitForPrompt(shell)
-        try await send("sleep 2; echo slept-$((6*7))\r", to: shell)
-        try await waitFor(shell) { $0.contains("slept-42") }
+        // The app knows its shell: the card's title leads with it (zsh here, bash on CI).
+        let title = element("pane.\(shell).title")
+        XCTAssertTrue(until(10) { title.stringValue.contains("sh ") }, title.stringValue)
         try await Self.call(one, "pane.rename", ["pane_id": shell, "label": "oriel:explorer#e2epl2 /tmp/"])
         try await Self.call(one, "pane.report_metadata", ["pane_id": shell, "source": "oriel-panes",
                                                           "tokens": ["oriel-label": "1"], "ttl_ms": 1000])

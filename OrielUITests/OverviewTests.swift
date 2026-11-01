@@ -201,7 +201,7 @@ extension OrielUITests {
             try await waitForPrompt(pane)
             try await send("while :; do echo $RANDOM $RANDOM $RANDOM $RANDOM; sleep 0.1; done\r", to: pane)
         }
-        let strip = try await measure("strip")
+        let page = try await measure("page")
         app.typeKey("o", modifierFlags: [.command, .control])
         XCTAssertTrue(element("overview").exists(within: 2))
         // The second tab's tile, never shown, gets its picture (its one card is checked again below).
@@ -211,7 +211,7 @@ extension OrielUITests {
         // Pictures taken, the tiles' streams end with the overview still open.
         try await poll("the tiles' streams to end") { () async throws -> Int? in
             let count = try await helpers(measure("overview", seconds: 1))
-            return count <= helpers(strip) + 1 ? count : nil
+            return count <= helpers(page) + 1 ? count : nil
         }
         let open = try await measure("overview")
         // Down to the new workspace's tiles: those in view get their pictures the same way. Either way: the sign
@@ -225,7 +225,7 @@ extension OrielUITests {
         keepScreenshot("overview of 6 tabs")
         let scrolled = try await measure("overview, scrolled")
         // The kept terminals, at most 16 cards still drawing their first picture, and a run or two ending.
-        XCTAssertLessThanOrEqual(helpers(scrolled), helpers(strip) + 16 + 2, scrolled)
+        XCTAssertLessThanOrEqual(helpers(scrolled), helpers(page) + 16 + 2, scrolled)
         // Back up: the second tab's card shows its snapshot at once, never the bare fill.
         scrollOverview(to: element("overview.tab.\(tabs[1])"), step: 3000, steps: 1)
         XCTAssertTrue(card.exists)
@@ -239,10 +239,10 @@ extension OrielUITests {
         XCTAssertTrue(element("overview").vanishes(within: 2))
         try await poll("the overview's streams to end") { () async throws -> Int? in
             let count = try await helpers(measure("after", seconds: 1))
-            return count == helpers(strip) ? count : nil
+            return count == helpers(page) ? count : nil
         }
         _ = try await measure("after the overview")
-        print("overview cost: strip\n\(strip)\nopen\n\(open)\nscrolled\n\(scrolled)")
+        print("overview cost: page\n\(page)\nopen\n\(open)\nscrolled\n\(scrolled)")
     }
 
     /// The overview of 200 tabs over 8 workspaces, 272 panes, 50 of them agents and half the rest printing
@@ -258,7 +258,7 @@ extension OrielUITests {
         addTeardownBlock { @MainActor in self.note(self.element("app.latency").stringValue) }
         XCTAssertTrue(element("pane.w1:p1").exists(within: 120))
         try await Task.sleep(for: .seconds(5))
-        let strip = try await measure("strip, 200 tabs", seconds: 5, session: eight)
+        let page = try await measure("page, 200 tabs", seconds: 5, session: eight)
         app.typeKey("o", modifierFlags: [.command, .control])
         let overview = element("overview")
         XCTAssertTrue(overview.exists(within: 5))
@@ -285,10 +285,10 @@ extension OrielUITests {
         let snapshots = element("overview.snapshots").stringValue
         note("overview: most runs \(most), live and snapshots \(snapshots)")
         // The kept terminals, at most 16 cards, and a run or two ending.
-        XCTAssertLessThanOrEqual(most, helpers(strip) + 16 + 2, "\(most) runs")
+        XCTAssertLessThanOrEqual(most, helpers(page) + 16 + 2, "\(most) runs")
         XCTAssertGreaterThan(Int(snapshots.split(separator: " ").last ?? "") ?? 0, 8, snapshots)
         // Bounded by the live cap, whatever the tab count: 16 full-window cards are about 1.1 GB on Retina.
-        XCTAssertLessThan(footprint(scrolled), footprint(strip) + 1600, scrolled)
+        XCTAssertLessThan(footprint(scrolled), footprint(page) + 1600, scrolled)
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(overview.vanishes(within: 2))
     }
