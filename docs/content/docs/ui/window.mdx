@@ -1,6 +1,6 @@
 ---
 title: "Main window"
-description: "Windows, the title row, tab bar, Agents button, sidebar pages, Agents view, Open Session, hover card, strip, pane cards, zoom, overview, floating panes, find bar, notices and the palette"
+description: "Windows, the title row, tab bar, Agents button, sidebar pages, Agents view, Open Session, hover card, tab page, pane cards, zoom, overview, floating panes, find bar, notices and the palette"
 ---
 
 ## Windows
@@ -112,18 +112,14 @@ One capsule per herdr tab of the selected workspace (D42).
   comes into view at once, without motion. A tab or a pane dragged and held
   near either end of the bar scrolls it (the scroll view's own drop scroll).
 - **Dividers.** 1 pt wide, 18 pt tall, centered between
-  tabs. A divider next to the selected, a lit or the hovered tab is hidden. They
-  fade over 0.2 s.
-- **Selection.** One marker follows the strip as it scrolls, so it sits
-  between two capsules while the strip is between their pages. It is 30 pt
-  tall and fully round, 2 pt inside the track, as in Rex. Only a swipe or a
-  mouse's sideways wheel slides the strip, and the marker with it: a swipe
-  follows the fingers and slides on from their speed
-  ([Swiping](/docs/ui/swiping)), a wheel turns a page with Rex's spring
-  (stiffness 520, damping 46); Reduce Motion makes both jump. Any other
-  switch (a click, +, ⌘T, ⌘1…⌘9, ⇧⌘[ and ⇧⌘], the palette, a close) shows the
-  tab's page at once. Glass draws the marker as a Liquid Glass capsule, Classic
-  as a plain raised pill.
+  tabs. A divider next to the selected or the hovered tab is hidden, at once.
+- **Selection.** One marker sits on the selected tab. It is 30 pt tall and
+  fully round, 2 pt inside the track, as in Rex. Every switch (a click, +,
+  ⌘T, ⌘1…⌘9, ⇧⌘[ and ⇧⌘], ⌃⇥, the palette, a close, an open from a card, the
+  overview) shows the tab's page at once, and the marker jumps with it: no
+  slide, no fade. A sideways swipe never changes the tab
+  ([Swiping](/docs/ui/swiping)). Glass draws the marker as a Liquid Glass
+  capsule, Classic as a plain raised pill.
 - **Close.** When the selected tab closes, the window selects the tab used
   before it (the latest one still open), else the tab on its left, else the
   new first tab.
@@ -253,8 +249,8 @@ session open in this window (D43).
   ⌥ + swipe, the palette, a notification), the list scrolls just
   enough to show its row, clear of the fade, without motion.
 - **Empty session.** A session with no workspace shows a New Workspace
-  button on its page. The strip shows no button, only an icon and "This
-  session is empty".
+  button on its page. The window's content shows no button, only an icon and
+  "This session is empty".
 - **Footer.** The filter field and one button, **Open Session** (⌥⌘T), which
   opens the [Open Session](#open-session) panel. The filter keeps the rows
   whose name or branch matches. A matching worktree also keeps its
@@ -263,8 +259,7 @@ session open in this window (D43).
 - **Width.** 240 pt by default, from the window's edge to the cards, as in
   Rex: the rows sit 10 pt in from the window's edge, and the 8 pt handle lies
   over the gap before the cards. Drag the handle to resize it between 227
-  and 480 pt. Each window keeps its own width. During
-  the drag the strip keeps its pages whole.
+  and 480 pt. Each window keeps its own width.
 
 The sidebar never shows tabs, and its bottom never shows agent activity.
 
@@ -442,10 +437,10 @@ tabs.
   panel) with the rows as buttons. A tab's action
   "Show Panes" opens it.
 
-## Strip
+## Tab page
 
-- One page per tab, full width, paged. Each workspace of each session has its
-  own strip, so a switch never starts from another workspace's scroll.
+- The window shows the selected tab's page, full width, and only it. A switch
+  replaces it at once (D12).
 - A pane the app creates shows the [New pane](/docs/ui/new-pane) chooser
   first: Terminal, Agent, Browser, File Explorer or Git.
 - Inside a page, pane cards follow herdr's split tree, with an 8 pt gap
@@ -456,11 +451,10 @@ tabs.
 - Layout changes animate over 0.13 s: a new card slides in from its side, a
   closed one fades away, a zoom grows the card to the page and back. A
   divider drag follows the pointer.
-- Browser and plugin cards are made in the selected tab once the strip rests,
-  and in the tabs on either side 0.5 s later while the kept bound has room
-  ([Neighbors made ahead](/docs/ui/browser#pictures-and-switches)). A
-  neighbor page shows their last pictures while the strip moves,
-  and a card coming back into view shows its picture until its page drew
+- Browser and plugin cards are made as their tab shows, and in the tabs on
+  either side 0.5 s later while the kept bound has room
+  ([Neighbors made ahead](/docs/ui/browser#pictures-and-switches)). A card
+  coming back into view shows its picture until its page drew
   ([Pictures and switches](/docs/ui/browser#pictures-and-switches)).
 
 How it works: [Layout and sizing](/docs/layout).
@@ -592,7 +586,7 @@ How it works: [Scrolling, queries and links](/docs/talking-to-herdr#scrolling-qu
 ## Zoom
 
 - The zoom button, a double-click on the header, or ⇧⌘↩ zooms a card. It
-  fills its tab's page in the strip, as if it were the only pane. Only the
+  fills its tab's page, as if it were the only pane. Only the
   zoomed card resizes; the others stay, hidden, at their size.
 - A zoomed card shows only two buttons: Restore (the accent at 0.6 on an
   accent circle at 0.07, as in Rex; no saturated blue) and Close.
@@ -612,12 +606,12 @@ agents at once.
 - **What it hides.** The sidebar, the tab bar and every title-row button: the
   row keeps only the traffic lights and, at its end, one × (Close Overview,
   ⌃⌘O) that leaves the overview. ⌘K and ⌘. still work. The overview covers
-  the window below the title row and fades in over 0.18 s as it opens (ease
-  out; at once under Reduce Motion).
-- **Canvas.** One page per session of the window, side by side: a sideways
-  swipe (or a wheel with Shift) moves to the next or previous session, as on
-  the sidebar, and the page it lands on becomes the window's page in view.
-  Inside a page, scrolled vertically: the session's title as the sidebar's
+  the window below the title row. It appears and goes at once, with no fade
+  or zoom.
+- **Canvas.** The session in view, scrolled vertically. ⌥ + swipe sideways,
+  ⌥⌘[ ] and the palette step to the window's previous or next session, which
+  the overview then shows; a sideways swipe alone goes nowhere. From the top:
+  the session's title as the sidebar's
   page header has it (13 pt semibold; This Mac's name for `default`), then
   the session's workspaces in the sidebar's order, 32 pt apart: each
   workspace's name (13 pt semibold, secondary), then its tabs as tiles in a
@@ -628,7 +622,7 @@ agents at once.
 - **Tile.** One card per tab (the card's fill, rim and edge): at its top a 36 pt title row like a card
   header (the tab's icon stack, its title with the folder dimmed, and its status
   capsule), and under it, 8 pt in, a miniature of the page: the tab's cards in
-  herdr's layout, at the page's real proportions (the strip's page as it
+  herdr's layout, at the page's real proportions (the tab's page as it
   shows when the overview closes), each card its fill and edge with its
   content's picture inside, at the place and size it has in the card (no
   header content: the tile's title row names the tab). The picture is the
@@ -640,19 +634,12 @@ agents at once.
   shows × at its end (Close Tab, as the tab bar's ×: it asks only when a
   program runs).
 - **Click.** A click on a tile selects its workspace and tab and leaves the
-  overview: the tile's miniature grows to the strip's page over 0.18 s
-  (ease out), its terminals scaling up live (the other cards as their
-  pictures), then the strip shows. The sidebar
-  and the title row stay laid out under the overview, hidden, and fade in
-  together over 0.12 s from the zoom's start. The tab bar's marker
-  sits on the selected tab under the overview and fades in with the title row,
-  with no fade of its own. Only the fade is animated: the marker, the rows and
-  the page title take their new places at once. Esc, the title
-  row's × and ⌃⌘O leave the same way, from the selected tab's tile (at once
-  when that tile is scrolled away). Under Reduce Motion it leaves at once. ⌘.
-  (Show Agents in the menu or palette) leaves it first and opens the Agents
-  view after the zoom; a
-  notification or Dock click leaves it at once and shows its pane. Other keys
+  overview: the tab's page shows at once. The sidebar and the title row stay
+  laid out under the overview, hidden, and show with it, so they come at
+  once in a big session too. Esc, the title row's × and ⌃⌘O leave the same
+  way, on the selected tab. ⌘. (Show Agents in the menu or palette) leaves it
+  and opens the Agents view; a notification or Dock click leaves it and shows
+  its pane. Other keys
   and the palette act as usual and the overview stays: ⌘T adds a tile, a tab
   key moves the selected tile.
 - **Keyboard.** While the overview is open no terminal has the keyboard (a
@@ -673,15 +660,14 @@ agents at once.
   (`cacheDisplay` drew SwiftUI's content blank, and the window's root layer took 120 ms).
 - A terminal tile with no snapshot yet shows a spinner and streams until its terminal drew, then lets go
   and keeps its snapshot. At most 16 such cards (6 on a remote machine) and 400 MB of surfaces stream at
-  once, only the page in view's tiles in view, once a scroll ends. Nothing turns live or lets go while
-  the grid scrolls or a swipe moves the pages. These are not visits (D46). The terminals' snapshots are
+  once, only the tiles in view, once a scroll ends. Nothing turns live or lets go while the grid
+  scrolls. These are not visits (D46). The terminals' snapshots are
   kept up to 100 MB.
 - A web card's or a chat's tile shows its last picture, else its kind's symbol (`globe`,
   `bubble.left.and.bubble.right`). A tile makes no web view, proxy or transcript read, and takes no web
   view from its card (one that did drew blank as it went back).
-- **The zoom** to the page after a click shows the tab's terminals live, scaled by AppKit (a layer
-  transform): libghostty keeps its size and grid, and herdr's PTY keeps the card's size. A terminal
-  turning live keeps its snapshot over the new surface until it drew, so there is no fade.
+- A tile's terminal that streams draws live, scaled by AppKit (a layer transform): libghostty keeps
+  its size and grid, and herdr's PTY keeps the card's size.
 - Cost: a live card keeps its surface at full card size (its swap chain:
   [What streams](/docs/talking-to-herdr#what-streams)), which is why the cap is in megabytes. Tiles cannot
   get smaller surfaces: libghostty-spm takes its content scale only from the window.
@@ -759,7 +745,7 @@ clients see it there.
   (and `&machine=‹machine id›` for a remote machine; This Mac otherwise)
   floats that pane over the machine's front main window, also when its
   session is not open there: then the session gets no page, no sidebar row
-  and no strip page, and it disconnects when its last float goes (such a
+  and no page in view, and it disconnects when its last float goes (such a
   float does not come back after a relaunch). Open again for the same pane,
   it brings the window forward. A session or pane that is not there shows a
   notice and no window.
@@ -773,7 +759,7 @@ clients see it there.
 ## Notice
 
 A short message after a failed action or a refused move.
-- A capsule at the bottom center of the strip, 30 pt above its bottom, 36 pt
+- A capsule at the bottom center of the tab's page, 30 pt above its bottom, 36 pt
   tall: glass, a leading symbol in a tone color (red `xmark.octagon.fill` for
   an error, amber `exclamationmark.triangle.fill` for a warning, blue for
   information), the text (two lines at most), an optional action button and ×.
@@ -786,7 +772,7 @@ A short message after a failed action or a refused move.
 
 A window that watches a session another window controls (D66).
 - Its cards of that session draw their content at 0.85 of its opacity, and a
-  capsule at the bottom center of the strip, 30 pt above its bottom, says
+  capsule at the bottom center of the tab's page, 30 pt above its bottom, says
   "Controlled in another window", with **Take Back**. It is a
   [notice](#notice) in the information tone with `macwindow.on.rectangle` and
   no ×, sits under a notice when both show, and shows only while the page in

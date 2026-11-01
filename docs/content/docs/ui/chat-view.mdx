@@ -361,9 +361,7 @@ and the time.
   `curlybraces.square` (other) and `text.bubble` (thinking).
 - A call opens on its own to its **Input** (an edit's diff instead, the
   first 40 lines) and its **Output**: 11 pt monospaced, selectable, at most
-  180 pt tall, then it scrolls. It is a vertical scroll view around a
-  sideways one, because inside the strip a scroll view of both axes gets no
-  vertical wheel. The parsers keep each call's input and output whole, up to
+  180 pt tall, then it scrolls both ways. The parsers keep each call's input and output whole, up to
   20 000 characters.
 - A todo list sits on a faint fill.
 
@@ -480,8 +478,8 @@ and the time.
 
 ## Switching views
 
-- Chat | TUI is in the card header, not a swipe: sideways swipes belong to
-  the strip. TUI is the agent's own terminal interface.
+- Chat | TUI is in the card header, not a swipe. TUI is the agent's own
+  terminal interface.
 - A card of a marked pane opens on its TUI; the user switches to Chat. After
   [Relaunch with Chat](#relaunch-with-chat) it opens on the chat. The choice
   is kept in memory per pane, for every window of the session. The card keeps

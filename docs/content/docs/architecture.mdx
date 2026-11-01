@@ -19,7 +19,7 @@ API bridge, a `terminal session` per streamed pane, and the event stream.
 | Window state | one per window: its machine, its open pages and its selection (page, workspace, tab, keyboard card, zoom, sidebar view and width), restored with `@SceneStorage` |
 | `PaneViewRegistry` | owns terminal, browser and plugin views by terminal id, so scrolling never destroys them |
 | Plugin cards | `Registry` (the browser's manifest and every package's), `Plugin` and its `WebCard` (one web view and the `oriel-plugin://` scheme), `Bridge` (the plugin API, one per card), `Header`, and the installs, builds, defaults and trust; the API's runtime and types in `web/oriel/`, the default plugins and the template in `plugins/` ([Plugins](/docs/plugins)) |
-| Views | title row, sidebar pages, Agents view, tab bar, strip, cards, overview, floating panes, panels and dialogs |
+| Views | title row, sidebar pages, Agents view, tab bar, tab page, cards, overview, floating panes, panels and dialogs |
 
 `Exec` and `Multiplexer` are the only protocols. `HerdrKit` is a separate
 package, so its single test target runs with `swift test`.

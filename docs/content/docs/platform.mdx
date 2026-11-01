@@ -1,6 +1,6 @@
 ---
 title: "Platform and code"
-description: "The codebase, dependencies, the strip, the tab bar and tests"
+description: "The codebase, dependencies, swipes and views, the tab bar and tests"
 ---
 
 ## Project
@@ -32,16 +32,16 @@ description: "The codebase, dependencies, the strip, the tab bar and tests"
 Each library has its entry, with its license, in the app's `Acknowledgements.txt`, the web ones included
 ([Program icons](/docs/ui/program-icons)).
 
-## Making the strip work
+## Swipes and views
 
-1. **Terminals swallow the swipe.** One `NSEvent`
-   monitor locks the axis at the start of each scroll gesture: a horizontal
-   gesture that starts in the strip pages the
-   strip; anything else goes to the view under the pointer. A gesture begun
-   with ⌥ held goes to the window's sessions or the sidebar's rows
+1. **One scroll monitor.** One `NSEvent` monitor locks the axis at the start
+   of each scroll gesture: a horizontal gesture over the sidebar pages its
+   session pages; anything else goes to the view under the pointer. A gesture
+   begun with ⌥ held goes to the window's sessions or the sidebar's rows
    ([Swiping](/docs/ui/swiping)).
-2. **Lazy SwiftUI containers destroy views that scroll off screen.** The
-   PaneViewRegistry owns every terminal view. Each
+2. **SwiftUI destroys a tab's views when another tab shows.** The window
+   shows only the selected tab's page, a view of its own per tab, so a switch
+   replaces it at once. The PaneViewRegistry owns every terminal view. Each
    SwiftUI wrapper makes its own container; the newest container adopts the
    view, and a container removes it only if it still owns it. Stream lifetime
    follows the HostStore, never whether a view is in a window. Off-screen
@@ -49,11 +49,6 @@ Each library has its entry, with its license, in the app's `Acknowledgements.txt
    that reads nothing for 30 s). At most 25 streaming terminals and 25 web
    cards out of view (D46), least recently used first out; an evicted card
    frees its surface or its web view and keeps its last image.
-   A lazy stack whose pages change under it can lay
-   out none: one strip shared by every workspace drew no page after it drew
-   again on a middle tab and the next workspace had fewer tabs. So each
-   workspace gets its own strip. Any accessibility client (VoiceOver,
-   XCUITest) hides that bug, so `make strip-check` drives the app without one.
 3. **libghostty's default key bindings eat the app's shortcuts.** Every
    surface gets `keybind = clear`, and keys go to the main menu first.
 
@@ -64,12 +59,8 @@ Each library has its entry, with its license, in the app's `Acknowledgements.txt
   window has no toolbar, and `TrafficLights` places the buttons on the 46 pt
   row (an empty toolbar's accessibility frame covered the title row on a Mac
   with a notch, so a hit test at a tab found the toolbar).
-- One glass marker follows the strip's scroll offset
-  (`onScrollGeometryChange`). The lit tabs come from the same number: every
-  tab from `floor(x/w)` to `ceil((x+w)/w) − 1`. When the scroll stops, the
-  selection changes to the page in view. A click, a key, the palette or a new
-  or closed tab shows the new page at once, and the marker jumps with it; only
-  a swipe or a mouse's sideways wheel slides them. Nothing morphs.
+- One glass marker sits on the selected tab. A switch shows the new page at
+  once, and the marker jumps with it. Nothing slides or morphs.
 - Each capsule has one status slot: × on the hovered tab, else
   the working dots. The dots are a Core Animation keyframe animation at 15
   frames a second or less, phased by the clock, so the app does no work per

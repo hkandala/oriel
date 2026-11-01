@@ -5,8 +5,8 @@ description: "What the user sees in every connection, pane and error state"
 
 Connecting and reconnecting states show at most one line of words and one
 button. Empty states show only the button: no tabs, and no workspaces on the
-sidebar's page; the strip of a session with no workspaces says only that it
-is empty.
+sidebar's page; the window's content for a session with no workspaces says
+only that it is empty.
 
 | State | What the user sees |
 |---|---|
@@ -26,7 +26,7 @@ is empty.
 | Session controlled in another window | cards dim a little; a bottom capsule "Controlled in another window" with **Take Back** ([Control capsule](/docs/ui/window#control-capsule)) |
 | Close a pane that runs a program | "Close “‹pane label, else its folder›”?" over "‹program› is running in it and will end, here and in every herdr client. This cannot be undone." (a pane that runs only its shell closes at once) |
 | Close a tab, other tabs, tabs to the right or a workspace | asks only when a pane of them runs a program besides its shell: "‹programs› is (are) running in it (them)." then the pane count and the same warning |
-| No workspaces | a **New Workspace** button on the sidebar's page; in the strip an icon and "This session is empty", no button |
+| No workspaces | a **New Workspace** button on the sidebar's page; in the window's content an icon and "This session is empty", no button |
 | A workspace with no tabs | a **New Tab** button with its shortcut, no text |
 | Move refused by herdr | herdr's reason in words, in the notice |
 | A drop step failed | the pane stays where it got to; the notice says so |
@@ -45,7 +45,7 @@ is empty.
 | A tab whose split tree the app cannot build | "No layout for this tab" |
 | A card's terminal is not settled at the card's size yet (a pane opened for the first time, while herdr resizes its PTY and the program redraws) | the card shows only its fill (a small spinner after 0.5 s); the terminal fades in over 0.06 s once herdr's frames stop for 0.1 s, or 0.4 s after the first frame (at once with Reduce Motion). A watching card shows its first frame |
 | A card visited before comes back (one of the 25 most recently shown, D46) | at once, with what its program printed meanwhile; no fade, no wait |
-| A card comes back after it let go of its stream and surface (past the 25 most recently shown, D46) | its last picture shows over a new surface until herdr's frames settle, then the new picture; if the system took the picture back, as a pane opened for the first time (above); such a card laid out beside the page in view (a swipe) shows its fill until it is shown |
+| A card comes back after it let go of its stream and surface (past the 25 most recently shown, D46) | its last picture shows over a new surface until herdr's frames settle, then the new picture; if the system took the picture back, as a pane opened for the first time (above) |
 | A card's size keeps changing (a window drag, a divider drag, the sidebar, layout motion) | its terminal keeps its grid, clipped at the top left; 150 ms after the last change (or when a window drag ends) it takes the new size and keeps showing its last picture until herdr's frames at the new grid settle (as above), then shows them at once, never blank. The same for a new text size (⌘+, ⌘-) |
 | Find with no match | "0 of 0", nothing highlighted, no scroll |
 | A folder dropped on the Dock icon with no window | a window opens, and the workspace opens in it once its page is live |

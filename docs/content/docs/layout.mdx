@@ -43,7 +43,7 @@ build(path) = split at path exists ? Split(dir, ratio, build(path+0), build(path
 
 ## Drawing and resizing
 
-- A tab page is the size of the strip. Each split divides its rectangle by the
+- A tab page fills the window beside the sidebar, below the title row. Each split divides its rectangle by the
   ratio, with a fixed 8 pt gap between cards. The gap is the divider. herdr's
   cell rectangles are not used for drawing.
 - Each terminal card tells herdr its own size in cells, so the PTY fits the

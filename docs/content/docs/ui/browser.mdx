@@ -145,8 +145,8 @@ server's terminal.
 
 ## Pictures and switches
 
-WebKit paints only what shows. A page scrolled back into the strip's view,
-or put back into a window, drew blank for one to six frames. So each web
+WebKit paints only what shows. A page put back into a window (its tab shown
+again) drew blank for one to six frames. So each web
 card (a browser's or a plugin's) keeps a picture of its page:
 
 - **Taken** as the card leaves view, and for the cards in view as the
@@ -157,21 +157,14 @@ card (a browser's or a plugin's) keeps a picture of its page:
 - **The cover.** As the card comes back into view, its picture sits over
   the page until WebKit's next presentation update after its visible rect
   changed (WebKit's SPI, else 100 ms), 2 s at most, also while a page
-  loads. It does not cover a page that shows already (a swipe's landing),
-  nor a picture of other proportions (the card resized meanwhile). A card
+  loads. It does not cover a page that shows already, nor a picture of
+  other proportions (the card resized meanwhile). A card
   made again takes it at any size.
 - **The cap.** One cap over every picture in the app (web cards' and
   chats'): 200 MB, the least recently taken out first. A card with no
   picture shows its loader. Pictures are not purgeable: macOS takes
   volatile surfaces back within seconds.
-- **Where the strip rests.** A web card is made only in the selected tab
-  (and in a floating window), and not while the strip moves: making a web
-  view took about 40 ms of the main thread, a dropped frame mid-swipe. A
-  neighbor page that the lazy strip lays out shows the card's last picture,
-  else the loader. 50 ms after a card comes into view, its web view gets
-  `renewGState`, so WebKit learns where the strip put it.
-- **Neighbors made ahead.** 0.5 s after a tab shows, while the strip rests
-  and not under the overview, the web cards of the tabs on either side are
+- **Neighbors made ahead.** 0.5 s after a tab shows, not under the overview, the web cards of the tabs on either side are
   made one at a time, 0.1 s apart, at their size in the page, and only while
   the kept bound has room for the cards in view too. They count as the least
   recently shown. A browser loads out of a window and takes its picture as
