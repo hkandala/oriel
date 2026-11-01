@@ -218,3 +218,15 @@ Files: `Oriel/Views/Sidebar*.swift`, the state capsule in the card header, the a
   again, and a labeled pane running another program gets one more look 5 s later (a slow startup).
 - **For the user:** the pi-hkandala `oriel-panes` skill's optional `pane run placeholder.sh` step now races with the
   app's own (harmless: the second line goes into the placeholder's `cat`); drop the step there.
+- **Decisions, tab pills (33):** read from the recording at 60 fps: on ⌘T Rex's marker slides about 180 pt in
+  0.07–0.15 s, ease-out, no bounce, while the new tab's content shows in its slot; on ⌘W the closed tab's content goes
+  at once and the marker glides to the neighbor. Built as a custom `Transaction.tabMotion` that Page.newTab and
+  Page.close set around their synchronous stand-in, hide and selection; only the tab bar turns it into
+  `.smooth(duration: 0.2)` (the page, the cards and the sidebar never animate, which FlickerTests' new ⇧⌘W step
+  checks with `-recordFrames`). A new tab scales and fades in, a closed one out; the marker glides. herdr's tab keeps
+  its stand-in's view (`Ahead.born`), so its growth is not cut short when the snapshot lands. No motion when the bar
+  changes workspace (a new tab in another workspace, a workspace's last tab closed), for a close that asks first, or
+  with Reduce Motion. Pictures (CI, `-forceMotion`, frames as recorded): `/tmp/oriel-shots/t49d/tab-pills-after-strip.png`
+  and `tab-pills-before-strip.png` (the old bar: every change in one frame).
+- **For the user:** when the tabs overflow the bar, a new tab's scroll into view lands just after the glide (one
+  small step at its end); check ⌘T and ⌘W by hand with Reduce Motion off.
