@@ -24,8 +24,8 @@ extension UTType {
 }
 
 /// The system drag: an AppKit session from the window's content view, which outlives the view that started it
-/// (spring-loading pages the strip away from the dragged card, and a `DragGesture` would be cancelled). It gives
-/// the preview and Esc; its end clears the page's drag, whatever view is left.
+/// (spring-loading shows another tab's page, which drops the dragged card, and a `DragGesture` would be cancelled).
+/// It gives the preview and Esc; its end clears the page's drag, whatever view is left.
 @MainActor
 final class DragSource: NSObject, NSDraggingSource {
     private static let shared = DragSource()

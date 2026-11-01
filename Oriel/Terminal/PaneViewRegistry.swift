@@ -187,7 +187,7 @@ final class PaneViewRegistry {
     /// Streams and draws these terminals (terminal id → pane id); past the `spare` most recently shown others,
     /// the rest let go. `unvisited` stream and draw too but are no visit (the overview): they keep their place in
     /// `recent`, and one not in it lets go once no longer shown. Drops the terminals not in `alive` (their panes
-    /// closed). The others keep their last picture (a swipe shows the neighbor's). `web`: the web cards in view.
+    /// closed). The others keep their last picture. `web`: the web cards in view.
     func show(_ shown: [String: String], web: Set<String>, unvisited: [String: String] = [:], alive: Set<String>,
               client: (any Multiplexer)?)
     {

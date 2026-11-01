@@ -122,7 +122,7 @@ struct TabBar: View {
             .onChange(of: page.selectedTabIDs[workspace.id], initial: true) { _, new in
                 if let new, new != clicked {
                     withTransaction(\.animation, nil) { proxy.scrollTo(new) }
-                    // A new tab's capsule lays out in this same update, and a scroll to it can miss (Strip): again
+                    // A new tab's capsule lays out in this same update, and a scroll to it can miss: again
                     // once it has.
                     Task { proxy.scrollTo(new) }
                 }

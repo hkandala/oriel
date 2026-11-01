@@ -77,7 +77,7 @@ final class PaneTerminal {
         // empty surface before herdr's first frame, which says whether it shows.
         session.receive(Self.modes)
         view.terminal = self
-        // No surface until it streams (`show`): a lazy page's card that never does costs no GPU memory.
+        // No surface until it streams (`show`): a card that never does costs no GPU memory.
         view.configuration = TerminalSurfaceOptions(backend: .inMemory(session))
         tasks = [
             Task { for await text in texts {

@@ -10,7 +10,7 @@ final class WindowPages {
     /// The machine whose sessions the pages are (D43): one per window.
     var machine = Machine.thisMac
     private(set) var list: [Page] = []
-    /// Sessions with no page here, for panes `oriel://float` floated: no row, no strip page, no selection (so a
+    /// Sessions with no page here, for panes `oriel://float` floated: no row, no page in view, no selection (so a
     /// float never gives their cards the keyboard). Each goes with its last float. ponytail: not saved.
     var floatOnly: [Page] = []
     /// An `oriel://float` URL's session and pane, until its store answers.

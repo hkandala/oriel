@@ -120,8 +120,8 @@ private struct HoverPanel<Panel: View>: ViewModifier {
     @Environment(\.isEnabled) private var isEnabled
     @Environment(HoverPanels.self) private var panels: HoverPanels?
     @State private var id = UUID()
-    /// The trigger's frame in the window, not observed: a write at every move (the tab bar's capsules while the strip
-    /// slides) redrew every trigger at every frame.
+    /// The trigger's frame in the window, not observed: a write at every move (the tab bar's capsules while the row
+    /// scrolls) redrew every trigger at every frame.
     @State private var trigger = Trigger()
     private final class Trigger {
         var frame = CGRect.zero

@@ -4,7 +4,7 @@ import Observation
 
 /// e2e (`-recordFrames YES`): for 1.5 s after the first window shows another tab (a tab, workspace or session
 /// change, or the overview closing), what each of the tab's cards showed at each run loop turn's Core Animation
-/// commit, each drawn (a display link's frames missed a commit of a strip at its first page). A commit counts
+/// commit, each drawn (a display link's frames missed commits). A commit counts
 /// as a flicker when a card shows neither its first picture nor its last one: no terminal view in the window, no
 /// picture or an emptied one, a fade, a third picture, or its terminal moved (a held grid keeps its top left, so a
 /// size change is no move). `recorded`: "tab bad/states codes" per change, each card's states
@@ -45,7 +45,7 @@ final class FrameProbe {
     private func turned() {
         guard let pages = WindowPages.windows.first, let window = pages.window, let page = pages.current
         else { return }
-        // Its zoom is the overview's; the strip after it is a change, also to the tab shown before.
+        // The tab's page after the overview is a change, also to the tab shown before.
         guard !pages.overview else {
             finish()
             shown = nil

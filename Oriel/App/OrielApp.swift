@@ -238,7 +238,7 @@ private struct WindowContent: View {
         let commands = CommandList(pages: pages, palette: open(.palette), sidebar: $sidebar, agents: $agents,
                                    openSession: open(.openSession), shortcuts: open(.shortcuts),
                                    plugins: open(.plugins), settings: settings)
-        // The strip's and the sidebar's 4 pt top room (for the cards' strokes) lies under the title row, so the
+        // The page's and the sidebar's 4 pt top room (for the cards' strokes) lies under the title row, so the
         // cards start at its bottom edge, as in Rex; the row stays on top for its clicks and window drags.
         VStack(spacing: -4) {
             TitleBar(
@@ -256,10 +256,10 @@ private struct WindowContent: View {
             .zIndex(1)
             HStack(spacing: 0) {
                 if sidebar {
-                    // As in Rex, the cards start at the sidebar's width: its handle lies over the strip's 8 pt gap.
+                    // As in Rex, the cards start at the sidebar's width: its handle lies over the page's 8 pt gap.
                     Sidebar(pages: pages, agents: agents, width: $sidebarWidth) { panel = .openSession }
                         .padding(.bottom, gap)
-                        // Rex's page header and first row sit 3 pt lower than the strip's 4 pt room.
+                        // Rex's page header and first row sit 3 pt lower than the page's 4 pt room.
                         .padding(.top, 7)
                         .padding(.trailing, -gap)
                         .underOverview(pages)

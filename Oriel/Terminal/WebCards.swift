@@ -29,7 +29,7 @@ extension PaneViewRegistry {
         Self.recentWeb.removeAll { kept in
             kept.registry == nil || kept.registry === self && (touched.contains(kept.id) || webView(kept.id) == nil)
         }
-        // A card made out of view (a page the lazy strip keeps): the oldest.
+        // A card made out of view (made ahead): the oldest.
         let tracked = Set(Self.recentWeb.filter { $0.registry === self }.map(\.id)).union(touched)
         let untracked = Set(browsers.keys).union(plugins.keys).subtracting(tracked)
         Self.recentWeb = untracked.map { Kept(registry: self, id: $0) } + Self.recentWeb
@@ -38,10 +38,10 @@ extension PaneViewRegistry {
         prewarm()
     }
 
-    /// The selected tab's neighbors' web cards, made 0.5 s after a tab shows while the strip rests (not under the
-    /// overview) and the kept bound has room for the cards in view too, one a turn 0.1 s apart, at their size in the
-    /// page: a swipe or a key to them finds them made and drawn (making one took 40 ms of a frame as the strip
-    /// rested). They count as the least recently shown. Snapshots of the same tab do not start it again.
+    /// The selected tab's neighbors' web cards, made 0.5 s after a tab shows (not under the overview) while the kept
+    /// bound has room for the cards in view too, one a turn 0.1 s apart, at their size in the page: a key to them
+    /// finds them made and drawn (making one took 40 ms of a frame). They count as the least recently shown.
+    /// Snapshots of the same tab do not start it again.
     func prewarm() {
         let selected = pages?.current?.selectedTab?.id
         guard selected != prewarmed else { return }

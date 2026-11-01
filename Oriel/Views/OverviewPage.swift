@@ -78,7 +78,7 @@ extension View {
     /// No hover or hit test reaches the views under it while `shielding` (a scroll): SwiftUI
     /// looked for the tile under the pointer at every frame (a tenth of the main thread). Not
     /// `allowsHitTesting`, whose change made every tile's body again, equatable or not (30–60 tiles,
-    /// 20–40 ms at a swipe's start).
+    /// 20–40 ms at a scroll's start).
     func shielded(_ shielding: Bool) -> some View {
         overlay {
             if shielding {

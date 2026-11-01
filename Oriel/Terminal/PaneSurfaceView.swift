@@ -22,7 +22,7 @@ final class PaneSurfaceView: AppTerminalView {
     var onKeyboard: (() -> Void)?
     /// Return, with or without modifiers, not repeated.
     var onReturn: (() -> Void)?
-    /// Its window's overview tiles' scale of the strip's page: its snapshot's (`takeSnapshot`).
+    /// Its window's overview tiles' scale of the tab's page: its snapshot's (`takeSnapshot`).
     var tileScale: () -> CGFloat = { 0.35 }
     /// Its page's store: a file dropped on a remote machine's card is copied there (`FileDrop`).
     var store: () -> HostStore? = { nil }
@@ -217,7 +217,7 @@ final class PaneSurfaceView: AppTerminalView {
     }
 
     override func scrollWheel(with event: NSEvent) {
-        // Sideways gestures never get here: the strip's scroll monitor takes them.
+        // Up and down only: a terminal has no sideways scroll.
         guard let cell = cell(event), let metrics else { return }
         // Trackpads report points, wheels report lines.
         scrolled += event.hasPreciseScrollingDeltas

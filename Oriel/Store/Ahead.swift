@@ -27,7 +27,7 @@ struct Ahead {
     var replacing: [String: Replacing] = [:]
     /// The replacements done in the last snapshot, by old pane id: every page's zoom and floating window follow them.
     var replaced: [String: Replacing] = [:]
-    /// Replaced panes by new id, while it is there: the strip's next render, maybe after more shows, keeps the card.
+    /// Replaced panes by new id, while it is there: the page's next render, maybe after more shows, keeps the card.
     var cards: [String: String] = [:]
 
     struct NewTab {
