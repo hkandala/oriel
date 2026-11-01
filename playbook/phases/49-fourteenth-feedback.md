@@ -265,3 +265,12 @@ Files: `Oriel/Views/Sidebar*.swift`, the state capsule in the card header, the a
   links (`[text][ref]`) are no links and their definitions stay shown; inline HTML and entities show as written; a
   setext heading keeps its underline; a list item's continuation lines do not hang; `1. 1. 1.` shows as written; a
   second heading of the same name has no `-1` anchor.
+- **Runs.** Chosen-tests CI runs, green on the pushed heads: 41297000504 (89fb18c9: FilesTests, FileTests, HeaderTests,
+  MarkdownTests), 41298939441 (fa7d058c: MarkdownTests, FilesTests, the file card). CI's screenshots draw no web
+  content, so the pictures of the pages come from the built plugin in headless Chrome with a stand-in API, before
+  (main at 7603a9c4) and after: `/tmp/oriel-shots/49b/before-harness-{read,edit,tree}.png`,
+  `after-harness-{read,edit,dark,tree,treed}.png`; row 2 from CI: `before-file-explorer-home.png`,
+  `after-file-explorer-home.png`.
+- **For the user.** Scroll the tree with the wheel while another pane has the keyboard, then click a row: the click
+  opens that row (the tree no longer jumps to its old row first). In Markdown, select text in Read and copy it; switch
+  Read ↔ Edit (⌘E) on a long file and see that only the caret's line changes. Type a wrong path in the root field.
