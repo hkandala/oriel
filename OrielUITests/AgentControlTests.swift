@@ -18,11 +18,14 @@ extension OrielUITests {
         try await expectOpen("w2")
         let oriel = Self.orielCommand
         try await run("\(oriel) status", in: first, "status", 0, "Shown in Oriel")
+        XCTAssertTrue(hasKeyboard("terminal.\(first)"))
 
         try await run("\(oriel) float \(second) --on-top", in: first, "float", 0, "existing: false", "onTop: true")
         let window = app.windows.containing(.any, identifier: "float.\(second)").firstMatch
         XCTAssertTrue(window.exists(within: 5))
         XCTAssertTrue(element("float.\(second).pin").has(\.stringValue, "on", within: 3))
+        // An agent's float leaves the keyboard where it was.
+        XCTAssertTrue(hasKeyboard("terminal.\(first)"))
         try await run("\(oriel) float \(second)", in: first, "again", 0, "existing: true")
         try await run("\(oriel) unfloat \(second)", in: first, "unfloat", 0, "floating: false")
         XCTAssertTrue(window.vanishes(within: 3))

@@ -14,12 +14,14 @@ extension Page {
     }
 
     /// Floats the pane in a window of its own, or brings its window to the front, with the keyboard (its window
-    /// takes it as it shows). herdr keeps the pane in its tab. One window per terminal: one another main window
-    /// floats comes to the front.
-    func float(_ pane: HostStore.Pane) {
+    /// takes it as it shows); an `agent`'s float leaves the keyboard where it is (agent-control/cli). herdr keeps the
+    /// pane in its tab. One window per terminal: one another main window floats comes to the front.
+    func float(_ pane: HostStore.Pane, agent: Bool = false) {
         guard let terminalID = pane.terminalID else { return }
         if floating[terminalID] != nil {
-            terminals.focus(terminalID)
+            if !agent {
+                terminals.focus(terminalID)
+            }
         } else if !WindowPages.windows.contains(where: { $0.floats(terminalID) }) {
             floating[terminalID] = false
             if zoomedPaneID == pane.id {
@@ -28,7 +30,7 @@ extension Page {
             // The main window's keyboard leaves it for another card of the tab.
             focusKeyboardCard()
         }
-        FloatFrames.open(Floating(session: id, terminalID: terminalID), over: terminals.pages?.window,
+        FloatFrames.open(Floating(session: id, terminalID: terminalID), over: terminals.pages?.window, agent: agent,
                          with: WindowPages.openWindow)
     }
 
@@ -63,7 +65,7 @@ extension WindowPages {
 
     /// Also a float request on a session a store follows (talking-to-herdr#float-requests), from pi-herd on any
     /// machine: over the window the user last typed or clicked in a card of that store (`over`).
-    static func float(session: String, pane: String, machine: String, over: WindowPages? = nil) {
+    static func float(session: String, pane: String, machine: String, over: WindowPages? = nil, agent: Bool = false) {
         // Any app or pane can ask: the name goes into a herdr argv.
         guard Session.isValidName(session) else {
             windows.first?.cannotFloat(pane, of: session, "not a session name.")
@@ -71,7 +73,7 @@ extension WindowPages {
         }
         guard let window = over ?? windows.first(where: { $0.machine.id == machine }) else {
             if windows.isEmpty {
-                early = { float(session: session, pane: pane, machine: machine) }
+                early = { float(session: session, pane: pane, machine: machine, agent: agent) }
             } else {
                 windows.first?.cannotFloat(pane, of: session, "no window of machine \(machine).")
             }
@@ -82,6 +84,7 @@ extension WindowPages {
             window.dropFloatOnly(old)
         }
         window.floatPending = (window.pageToFloat(session), pane)
+        window.floatPendingForAgent = agent
         window.showFloatPending()
     }
 
@@ -120,7 +123,7 @@ extension WindowPages {
         guard let (page, paneID) = floatPending, page.store.state != .connecting else { return }
         floatPending = nil
         if let pane = page.store.panes.first(where: { $0.id == paneID && $0.terminalID != nil }) {
-            page.float(pane)
+            page.float(pane, agent: floatPendingForAgent)
             // It streams now, not at the next snapshot: its page may not be in view.
             showTerminals()
         } else {

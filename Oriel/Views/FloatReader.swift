@@ -13,11 +13,44 @@ enum FloatFrames {
 
     /// Opens the pane's floating window, or brings it to the front: a new one at `frame` (a replaced pane's old
     /// window's), else where it was last (AppKit's saved frame), else over its main window.
-    static func open(_ floating: Floating, over main: NSWindow?, frame: NSRect? = nil, with open: OpenWindowAction?) {
-        if windows.object(forKey: floating.terminalID as NSString) == nil {
+    /// An `agent`'s float (agent-control/cli) comes to the front without the keyboard and without activating the app.
+    static func open(_ floating: Floating, over main: NSWindow?, frame: NSRect? = nil, agent: Bool = false,
+                     with open: OpenWindowAction?)
+    {
+        let window = windows.object(forKey: floating.terminalID as NSString)
+        if agent, let window {
+            return window.orderFrontRegardless()
+        }
+        if window == nil {
             next = frame ?? saved(floating.terminalID) ?? main.map(frame(over:))
         }
+        if agent {
+            quiet[floating.terminalID] = .some(NSApp.keyWindow)
+        }
         open?(id: "float", value: floating)
+    }
+
+    /// Agents' new floats, until their windows show: the window that had the keyboard, which keeps it.
+    static var quiet: [String: NSWindow?] = [:]
+
+    /// A new float's window for an agent: in front, and the keyboard back in the window that had it once SwiftUI made
+    /// the float key (at most 1 s).
+    static func keepKey(_ window: NSWindow, _ terminalID: String) {
+        guard let previous = quiet.removeValue(forKey: terminalID) else { return }
+        Task { window.orderFrontRegardless() }
+        guard let previous else { return }
+        let center = NotificationCenter.default
+        let observer = center
+            .addObserver(forName: NSWindow.didBecomeKeyNotification, object: window, queue: .main) { _ in
+                MainActor.assumeIsolated { previous.makeKey() }
+            }
+        Task {
+            if window.isKeyWindow {
+                previous.makeKey()
+            }
+            try? await Task.sleep(for: .seconds(1))
+            center.removeObserver(observer)
+        }
     }
 
     /// `next`, in the screen's top-left based points that `WindowPlacement` takes.
@@ -80,6 +113,7 @@ struct FloatReader: NSViewRepresentable {
             // ponytail: one defaults key per terminal ever floated; prune them if that ever matters.
             FloatFrames.windows.setObject(window, forKey: terminalID as NSString)
             window.setFrameAutosaveName("float \(terminalID)")
+            FloatFrames.keepKey(window, terminalID)
             let center = NotificationCenter.default, close = NSWindow.willCloseNotification
             observers.append(center.addObserver(forName: close, object: window, queue: .main) { [weak self] _ in
                 MainActor.assumeIsolated {

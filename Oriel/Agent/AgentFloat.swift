@@ -17,7 +17,7 @@ extension AgentCommand {
             throw AgentError(code: "failed", message: "no window shows herdr session \(call.store.session)")
         }
         let existing = target.floating != nil
-        WindowPages.float(session: target.session, pane: target.id, machine: machine.id, over: window)
+        WindowPages.float(session: target.session, pane: target.id, machine: machine.id, over: window, agent: true)
         // A session with no page opens a float-only one, which floats the pane once it connects.
         var floating = target.floating
         let end = ContinuousClock.now + .seconds(8)

@@ -15,6 +15,8 @@ final class WindowPages {
     var floatOnly: [Page] = []
     /// An `oriel://float` URL's session and pane, until its store answers.
     @ObservationIgnored var floatPending: (page: Page, pane: String)?
+    /// An agent asked for it: it floats without the keyboard.
+    @ObservationIgnored var floatPendingForAgent = false
     /// What ssh asks while this window connects a remote machine; its dialog answers it.
     var question: Question?
     /// The remote host dialog's machine: a new one to add, or one of the list to edit.
