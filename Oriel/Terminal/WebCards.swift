@@ -14,15 +14,6 @@ extension PaneViewRegistry {
             webView(id)?.coverUntilDrawn()
             plugins[id]?.web.bridge?.shown(true)
         }
-        // Once the strip scrolled to them: WebKit hears of its view's place in the window only from its own frame or
-        // window, so a page the lazy strip made before a jump to it painted one page off (blank, on CI).
-        let came = shown.subtracting(webInView)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
-            for id in came {
-                // ponytail: deprecated but still WebKit's hook (`WebViewImpl::renewGState` updates its frames).
-                self?.webView(id)?.perform(NSSelectorFromString("renewGState"))
-            }
-        }
         // Also the ones made since the last call (a card is made as its page draws).
         let touched = webInView.union(shown).filter { webView($0) != nil }
         webInView = shown
