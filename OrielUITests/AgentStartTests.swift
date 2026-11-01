@@ -3,11 +3,15 @@ import XCTest
 /// `oriel notify`, `oriel agent` and `oriel chat` (agent-control/cli): a notification on the Mac, an agent in a new
 /// pane, and Relaunch with Chat, asked from a pane.
 extension OrielUITests {
-    /// A split beside the asking pane, its shell given Claude Code's line with Oriel's flags, and the answer once it is
-    /// typed. CI only past the errors: the new pane's shell runs the real `claude` when there is one (a new shell has
-    /// no stand-in), and CI has none.
+    /// A split beside the asking pane, then a tab after its tab: each shell gets Claude Code's line with Oriel's flags,
+    /// the answer comes once it is typed, and the keyboard and the selected tab stay. CI only past the errors: a new
+    /// pane's shell has no stand-in and runs the real `claude` when there is one, and CI has none.
     func testAgentStartsAnAgentWithChatBesideThePane() async throws {
+        let before = try await tabIDs()
+        closeNew("tab", besides: before)
         let (tab, pane) = try await newTab("agent")
+        element("tab.\(tab)").click()
+        XCTAssertTrue(hasKeyboard("terminal.\(pane)"))
         try await waitForPrompt(pane)
         try await expectOpen("w2")
         let oriel = Self.orielCommand
@@ -19,12 +23,18 @@ extension OrielUITests {
             throw XCTSkip("this Mac has claude, which the new pane would start")
         }
 
-        try await run("\(oriel) --json agent claude | tr , '\\n'", in: pane, "agent", 0, #"{"agent":"claude""#)
-        let text = try await read(pane)
-        let id = try XCTUnwrap(text.firstMatch(of: /"pane":"(w\d+:p\d+)"/)?.1, text)
-        let new = try await self.pane(String(id))
-        XCTAssertEqual(new["tab_id"] as? String, tab)
-        try await waitFor(String(id)) { $0.contains("claude --session-id ") }
+        for (place, marker) in [("", "split"), (" --tab", "tab")] {
+            try await send("clear\r", to: pane)
+            try await run("\(oriel) --json agent claude\(place)", in: pane, marker, 0, #"{"agent":"claude""#)
+            let text = try await read(pane)
+            let id = try String(XCTUnwrap(text.firstMatch(of: /"pane":"(w\d+:p\d+)"/)?.1, text))
+            let new = try await self.pane(id)["tab_id"] as? String
+            XCTAssertEqual(new == tab, place.isEmpty, "\(id) in \(new ?? "no tab")")
+            // Wrapped at the pane's width (about 45 columns on CI).
+            try await waitFor(id) { $0.replacing("\n", with: "").contains("claude --session-id ") }
+            XCTAssertTrue(element("tab.\(tab)").isSelected, marker)
+            XCTAssertTrue(hasKeyboard("terminal.\(pane)"), marker)
+        }
     }
 
     /// One notification per pane every 10 s, none while Notifications ▸ From Agents is off. A banner cannot be read or

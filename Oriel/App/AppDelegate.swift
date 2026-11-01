@@ -139,7 +139,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         let id = response.notification.request.identifier
         await MainActor.run {
             NSApp.activate()
-            WindowPages.go(to: id.hasPrefix(Notifications.agent) ? String(id.dropFirst(Notifications.agent.count)) : id)
+            WindowPages.go(to: String(id.trimmingPrefix(Notifications.agent)))
         }
     }
 }
@@ -149,7 +149,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
 @MainActor
 enum Notifications {
     static let needsYou = "notifyNeedsYou", finished = "notifyFinished", fromAgents = "notifyFromAgents"
-    /// The id's prefix of an agent's: out of the snapshot's sweep, which removes a pane's that no longer hold.
+    /// The id's prefix of an agent's, which the snapshot's sweep removes only once its pane closed.
     static let agent = "agent|"
 
     /// Posts the snapshot's new needs-you and finishes, except for panes the user looks at, and removes the page's
@@ -162,8 +162,12 @@ enum Notifications {
             // After the wait: a later snapshot's new one must not go.
             let holding = Set(store.panes.filter { $0.state ?? .idle >= .finishedUnseen }
                 .map { id($0, of: store) })
-            let gone = delivered
-                .filter { $0.hasPrefix("\(store.machine.id)|\(store.session)|") && !holding.contains($0) }
+            // An agent's goes with its pane.
+            let prefix = "\(store.machine.id)|\(store.session)|"
+            let panes = Set(store.panes.map { agent + id($0, of: store) })
+            let gone = delivered.filter {
+                $0.hasPrefix(prefix) && !holding.contains($0) || $0.hasPrefix(agent + prefix) && !panes.contains($0)
+            }
             center.removeDeliveredNotifications(withIdentifiers: gone)
         }
         for change in changes where change.state >= .finishedUnseen

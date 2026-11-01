@@ -2,7 +2,7 @@ import Foundation
 import HerdrKit
 
 extension AgentCommand {
-    /// When each asking pane (machine, session, pane) last notified.
+    /// When each asking pane (machine, session, terminal) last notified.
     @MainActor private static var notified: [String: ContinuousClock.Instant] = [:]
 
     static let notify = AgentCommand(
@@ -21,7 +21,9 @@ extension AgentCommand {
         guard UserDefaults.standard.bool(forKey: Notifications.fromAgents) else {
             return AgentOutput(["pane": target.id, "notified": false])
         }
-        let now = ContinuousClock.now, from = "\(call.store.machine.id)|\(call.store.session)|\(call.pane)"
+        // By terminal: herdr reuses pane ids.
+        let asking = call.store.pane(call.pane)?.terminalID ?? call.pane
+        let now = ContinuousClock.now, from = "\(call.store.machine.id)|\(call.store.session)|\(asking)"
         notified = notified.filter { now - $0.value < .seconds(10) }
         guard notified[from] == nil else {
             throw AgentError(code: "rate_limited", message: "one notification per pane every 10 s")
@@ -55,7 +57,7 @@ extension AgentCommand {
         chooser.terminalID = store.pane(id)?.terminalID
         store.choosers.append(chooser)
         store.start(agent, chooser)
-        try await store.typed(chooser, "pane \(id) closed before \(agent.name) started")
+        try await store.typed(chooser, "\(agent.name) could not be typed in pane \(id)")
         return AgentOutput(["pane": id, "agent": name])
     }
 
@@ -63,7 +65,8 @@ extension AgentCommand {
         name: "chat", usage: "chat <pane>", summary: "Starts an idle agent again with the chat view",
         help: """
         Relaunch with Chat: the agent quits and starts again in the same session, with Oriel's flags. It answers when \
-        the line is typed. An agent that works or waits for the user is busy; this pane is self.
+        the line is typed, which can take over 10 s: pass --timeout 20. An agent that works or waits for the user is \
+        busy; this pane is self.
         """,
     ) { call in
         let target = try call.target(call.argument("pane"))
@@ -78,8 +81,8 @@ extension AgentCommand {
             message: "\(name) in pane \(target.id) is \(pane.state == .needsYou ? "waiting for you" : "working")",
         )
         guard EnableChat.offered(pane, store) else {
-            if store.chooser(pane.id) != nil {
-                throw busy
+            if store.chooser(pane.id)?.starting != nil {
+                throw AgentError(code: "busy", message: "\(name) in pane \(target.id) is starting again")
             }
             let why = ChatAdapters.adapter(pane.agent) == nil ? "runs no agent with a chat view"
                 : ChatAdapters.recognize(pane.program) != nil ? "shows the chat view already"

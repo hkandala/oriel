@@ -210,7 +210,11 @@ extension OrielUITests {
     /// plugins; `launch` ends a running one first.
     func relaunch(_ session: String? = nil, _ args: [String] = []) {
         let config = args.contains("-configFolder") ? [] : Self.noConfig
-        app.launchArguments = ["-session", session ?? one, "-ApplePersistenceIgnoreState", "YES"] + config + args
+        // The notification switches as they ship, whatever the user's Oriel has (the defaults are shared).
+        let notify = ["notifyNeedsYou", "notifyFinished", "notifyFromAgents"].filter { !args.contains("-\($0)") }
+            .flatMap { ["-\($0)", "YES"] }
+        app.launchArguments = ["-session", session ?? one, "-ApplePersistenceIgnoreState", "YES"] + config + notify
+            + args
         // The default plugins install from npm's cache (`make web` fills it), never the network.
         app.launchEnvironment["npm_config_offline"] = "true"
         app.launch()
