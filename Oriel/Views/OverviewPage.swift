@@ -1,20 +1,17 @@
 import HerdrKit
 import SwiftUI
 
-/// One session: its workspaces in the sidebar's order, each its name over a grid of its tabs. Equatable: a swipe's
-/// every move redraws the overview's scroll view, which made every tile's body again at each frame.
+/// One session: its workspaces in the sidebar's order, each its name over a grid of its tabs. Equatable: the
+/// overview's body runs again on every change of the live set, which would make every tile's body again.
 struct OverviewPage: View, Equatable {
     let pages: WindowPages
     let page: Page
-    /// The strip's page.
+    /// The tab's page.
     let size: CGSize
-    let frames: Overview.Frames
     /// The margin left and right; the grid between them.
     let side: CGFloat
     /// Tiles a row: 2 to 4 by the window's width.
     let columns: Int
-    /// The tab whose miniature zooms: its tile leaves the terminals to it.
-    let zooming: String?
     let open: (HostStore.Workspace, HostStore.Tab) -> Void
     @State private var scrolling = false
 
@@ -36,8 +33,6 @@ struct OverviewPage: View, Equatable {
                                     workspace: workspace,
                                     tab: tab,
                                     size: size,
-                                    frames: frames,
-                                    zooming: zooming == tab.id,
                                 ) { open(workspace, tab) }
                                     .equatable()
                             }
@@ -65,7 +60,7 @@ struct OverviewPage: View, Equatable {
                 pages.settleOverview()
             }
         }
-        // Two pages away it is not made: its tiles report no leaving, and would stay live out of view.
+        // Another session shows: its tiles report no leaving, and would stay live out of view.
         .onDisappear {
             pages.overviewTabs[page.id] = nil
         }
@@ -74,13 +69,13 @@ struct OverviewPage: View, Equatable {
 
     /// All but `open`, a closure made anew with the overview's body.
     nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.pages === rhs.pages && lhs.page === rhs.page && lhs.frames === rhs.frames && lhs.size == rhs.size
-            && lhs.side == rhs.side && lhs.columns == rhs.columns && lhs.zooming == rhs.zooming
+        lhs.pages === rhs.pages && lhs.page === rhs.page && lhs.size == rhs.size && lhs.side == rhs.side
+            && lhs.columns == rhs.columns
     }
 }
 
 extension View {
-    /// No hover or hit test reaches the views under it while `shielding` (a scroll, a slide, the zoom): SwiftUI
+    /// No hover or hit test reaches the views under it while `shielding` (a scroll): SwiftUI
     /// looked for the tile under the pointer at every frame (a tenth of the main thread). Not
     /// `allowsHitTesting`, whose change made every tile's body again, equatable or not (30–60 tiles,
     /// 20–40 ms at a swipe's start).
@@ -95,27 +90,21 @@ extension View {
 
 /// A tab as one card: its title row (icon stack, title, status; × on hover) over the miniature of its page. The
 /// selected tab of its workspace has the keyboard card's look. Equatable: the page's body runs again when its grid
-/// starts or stops scrolling, and the first event of a sideways swipe does that (30–70 tiles, 40 ms).
+/// starts or stops scrolling (30–70 tiles, 40 ms).
 private struct Tile: View, Equatable {
     let pages: WindowPages
     let page: Page
     let workspace: HostStore.Workspace
     let tab: HostStore.Tab
-    /// The strip's page.
+    /// The tab's page.
     let size: CGSize
-    let frames: Overview.Frames
-    /// Its miniature zooms to the page: the tile leaves the terminals to it.
-    let zooming: Bool
     let open: () -> Void
     @State private var hovering = false
 
     var body: some View {
-        // e2e: counted (`Latency.tiles`). A bare `_ =` would be a view in the builder.
-        // swiftformat:disable:next redundantLet
-        let _ = Latency.isOn ? (Latency.shared.tiles += 1) : () // swiftlint:disable:this redundant_discardable_let
         let selected = page.selectedTabIDs[workspace.id] == tab.id
         let state = tab.agent?.state
-        let loading = !zooming && !pages.pictured(page, pages.tileCards(page, tab.id))
+        let loading = !pages.pictured(page, pages.tileCards(page, tab.id))
         VStack(spacing: 0) {
             HStack(spacing: 8) {
                 IconStack(panes: page.stack(tab), badge: state)
@@ -134,31 +123,20 @@ private struct Tile: View, Equatable {
             .padding(.leading, 11)
             .padding(.trailing, 8)
             .frame(height: PaneCard.header)
-            Group {
-                if zooming {
-                    Color.clear
-                } else {
-                    // Only the page in view's tiles are live, and only they redraw when the live set changes.
-                    Miniature(tab: tab, page: page, size: size,
-                              live: page === pages.current ? pages.overviewLive : [])
+            Miniature(tab: tab, page: page, size: size, live: pages.overviewLive)
+                // A card with no picture yet (never drawn, or its snapshot gone): it loads in turn (`overviewCards`).
+                .overlay {
+                    if loading {
+                        Waiting().accessibilityIdentifier("overview.tab.\(tab.id).loading")
+                            // e2e (`-recordLatency`): it showed, however briefly.
+                            .onAppear { Latency.shared.note("loader \(tab.id)") }
+                    }
                 }
-            }
-            // A card with no picture yet (never drawn, or its snapshot gone): it loads in turn (`overviewCards`).
-            .overlay {
-                if loading {
-                    Waiting().accessibilityIdentifier("overview.tab.\(tab.id).loading")
-                        // e2e (`-recordLatency`): it showed, however briefly.
-                        .onAppear { Latency.shared.note("loader \(tab.id)") }
-                }
-            }
-            // It drew: a tile waiting loads.
-            .onChange(of: loading) { pages.settleOverview() }
-            .aspectRatio(size, contentMode: .fit)
-            .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(Overview.space)) } action: {
-                frames.rects["\(page.id) \(tab.id)"] = $0
-                pages.tileScale = $0.width / size.width
-            }
-            .padding([.horizontal, .bottom], gap)
+                // It drew: a tile waiting loads.
+                .onChange(of: loading) { pages.settleOverview() }
+                .aspectRatio(size, contentMode: .fit)
+                .onGeometryChange(for: CGFloat.self, of: \.size.width) { pages.tileScale = $0 / size.width }
+                .padding([.horizontal, .bottom], gap)
         }
         .frame(maxWidth: .infinity)
         .background(CardSurface(keyboard: selected))
@@ -178,7 +156,7 @@ private struct Tile: View, Equatable {
     /// All but `open`, a closure made anew with the page's body.
     nonisolated static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.pages === rhs.pages && lhs.page === rhs.page && lhs.workspace === rhs.workspace && lhs.tab === rhs.tab
-            && lhs.size == rhs.size && lhs.frames === rhs.frames && lhs.zooming == rhs.zooming
+            && lhs.size == rhs.size
     }
 
     private func laidOut(_ shown: Bool) {

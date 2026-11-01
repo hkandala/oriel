@@ -134,7 +134,7 @@ final class Latency {
         }
     }
 
-    /// What the key window shows, in short; the overview too (its close: the zoom's 0.18 s, then the strip's turn).
+    /// What the key window shows, in short; the overview too.
     private var state: String {
         guard let pages = WindowPages.windows.first, let page = pages.current else { return "" }
         let workspace = page.selectedWorkspace, tab = page.selectedTab
@@ -187,9 +187,6 @@ final class Latency {
     }
 
     @ObservationIgnored private var shownAt = -1
-    /// The overview's tiles made since a swipe's first move: "tiles <count>" at its lift (every tile in
-    /// view at each move, 20–40 ms a frame).
-    @ObservationIgnored var tiles = 0
     @ObservationIgnored private var lifted: (TimeInterval, String)?
     @ObservationIgnored private var slide: [(Int, Double)] = []
 

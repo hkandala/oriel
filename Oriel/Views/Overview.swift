@@ -2,132 +2,42 @@ import AppKit
 import HerdrKit
 import SwiftUI
 
-/// Every tab of the window's sessions as live miniatures of their pages (D70): a page per session, paged
-/// sideways; its workspaces scrolled vertically. A click, Esc or the toggle zooms the selected tab's miniature to
-/// the strip's page, then the strip shows.
+/// Every tab of the session in view as miniatures of their pages (D70), its workspaces scrolled vertically. A click
+/// on a tile, Esc or the toggle shows the selected tab's page at once.
 struct Overview: View {
     let pages: WindowPages
-    /// Where the strip starts when the overview closes: the sidebar's width, or 0.
+    /// Where the tab's page starts when the overview closes: the sidebar's width, or 0.
     let leading: CGFloat
-    @State private var position = ScrollPosition(idType: String.self)
-    @State private var paging = Paging()
-    /// A swipe holds or slides the pages: no tile takes the pointer or turns live meanwhile.
-    @State private var sliding = false
-    /// Each tile's miniature's frame in the overview, by page and tab: not observed, so a scroll redraws nothing.
-    @State private var frames = Frames()
-    /// The tab whose miniature grows to the page, from its tile's frame; `grown` once it moves.
-    @State private var zoom: Zoom?
-    @State private var grown = false
-    /// Fades in once open.
-    @State private var opened = false
     @State private var monitor: Any?
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    final class Frames {
-        var rects: [String: CGRect] = [:]
-    }
-
-    private struct Zoom {
-        let page: Page
-        let tab: HostStore.Tab
-        let from: CGRect
-    }
 
     var body: some View {
         GeometryReader { proxy in
-            // The strip's page, as `Strip` lays it out beside the sidebar.
-            let strip = CGRect(x: leading + gap, y: 4, width: max(proxy.size.width - leading - 2 * gap, 1),
-                               height: max(proxy.size.height - 4 - gap, 1))
             // Wide margins round the grid, as in the user's reference.
             let side = max(48, proxy.size.width * 0.08)
-            let shown = pages.list.firstIndex { $0 === pages.current } ?? 0
-            ScrollView(.horizontal) {
-                // The page in view and its neighbors, made before a swipe reaches them: a lazy stack made the next
-                // session's page in the swipe's first frame (40–60 ms with a few tabs). Each grid is
-                // lazy itself.
-                HStack(spacing: 0) {
-                    ForEach(pages.list) { page in
-                        Group {
-                            if abs((pages.list.firstIndex { $0 === page } ?? 0) - shown) <= 1 {
-                                OverviewPage(
-                                    pages: pages,
-                                    page: page,
-                                    size: strip.size,
-                                    frames: frames,
-                                    side: side,
-                                    columns: min(4, max(2, Int((proxy.size.width - 2 * side + 16) / 356))),
-                                    zooming: page === zoom?.page ? zoom?.tab.id : nil,
-                                ) {
-                                    open(page, $0, $1)
-                                }
-                                .equatable()
-                            } else {
-                                Color.clear
-                            }
-                        }
-                        .containerRelativeFrame([.horizontal, .vertical])
-                        .accessibilityHidden(page !== pages.current)
-                    }
+            if let page = pages.current {
+                OverviewPage(
+                    pages: pages,
+                    page: page,
+                    // The tab's page, as `TabPage` lays it out beside the sidebar.
+                    size: CGSize(width: max(proxy.size.width - leading - 2 * gap, 1),
+                                 height: max(proxy.size.height - 4 - gap, 1)),
+                    side: side,
+                    columns: min(4, max(2, Int((proxy.size.width - 2 * side + 16) / 356))),
+                ) { workspace, tab in
+                    page.select(workspace, tab: tab.id)
+                    pages.closeOverview()
                 }
-                .scrollTargetLayout()
-                // Nothing under the zoom or a swipe takes the pointer; in the scroll view, which the router finds
-                // under it for a swipe mid-slide.
-                .shielded(zoom != nil || sliding)
-                .background(ScrollAnchor(step: step, drag: drag, lift: lift))
-            }
-            // No `.paging`: it snapped a swipe's first move to the next page (on CI).
-            .scrollPosition($position)
-            .scrollIndicators(.never)
-            .onScrollGeometryChange(for: ScrollGeometry.self, of: { $0 }, action: { paging.laid($1) })
-            .opacity(grown ? 0 : 1)
-            .onScrollPhaseChange { _, phase in
-                if phase == .idle {
-                    rested()
-                }
-                if phase == .idle, let id = position.viewID(type: String.self), id != pages.current?.id,
-                   let page = pages.list.first(where: { $0.id == id })
-                {
-                    pages.show(page)
-                }
-            }
-            .onChange(of: pages.current?.id, initial: true) { old, new in
-                guard let new, position.viewID(type: String.self) != new else { return }
-                withAnimation(old == nil || reduceMotion && !Animation.forceMotion ? nil : .session()) {
-                    position.scrollTo(id: new)
-                }
-                // The first layout can miss it.
-                if old == nil {
-                    Task { position.scrollTo(id: new) }
-                }
-            }
-            .overlay(alignment: .topLeading) {
-                if let zoom {
-                    Miniature(tab: zoom.tab, page: zoom.page, size: strip.size, live: pages.overviewLive,
-                              pictures: false)
-                        .modifier(Grow(progress: grown ? 1 : 0, from: zoom.from, page: strip))
-                }
-            }
-            .onChange(of: pages.leaving) {
-                if pages.leaving, zoom == nil {
-                    leave(in: CGRect(origin: .zero, size: proxy.size))
-                }
+                .equatable()
+                // A view of its own per session: tab ids repeat across sessions, and its tiles report what is in view.
+                .id(page.id)
             }
         }
-        .coordinateSpace(.named(Self.space))
-        .opacity(opened ? 1 : 0)
         // e2e: the live cards and the snapshots kept (`-recordMotion YES`).
         .testValue("overview.snapshots", "Overview Snapshots",
                    "\(pages.overviewLive.count) \(PaneTerminal.snapshots.count)", shown: SettlingHost.record)
-        .testValue(
-            "overview.motion",
-            "Overview Motion",
-            "\(MiniTerminal.Mini.most)",
-            shown: SettlingHost.record,
-        )
         // The keyboard leaves the terminals, which take none while in a miniature (`PaneSurfaceView`). Esc by a
         // monitor: a SwiftUI focus did not take the keyboard from a terminal moving into a miniature (CI).
         .onAppear {
-            withAnimation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.18)) { opened = true }
             pages.window?.makeFirstResponder(nil)
             monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
                 guard event.keyCode == 53 else { return event }
@@ -135,7 +45,7 @@ struct Overview: View {
                     // Not a panel's (the palette's, the shortcuts').
                     guard let window = pages.window, NSApp.keyWindow === window, !pages.panelOpen,
                           !(window.firstResponder is NSText) else { return false }
-                    pages.leaving = true
+                    pages.closeOverview()
                     return true
                 }
                 return leave ? nil : event
@@ -147,131 +57,29 @@ struct Overview: View {
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("overview")
     }
-
-    nonisolated static let space = "overview"
-
-    /// A swipe's moves and lift (`Paging`), or a wheel's step; the window shows the session it lands on as its
-    /// page arrives. Not under a panel, which would then act on another page.
-    private func drag(_ delta: Double, _: Bool) {
-        guard !pages.panelOpen else { return }
-        if !sliding {
-            sliding = true
-            pages.overviewSliding = true
-            pages.overviewSettling?.cancel()
-            Latency.shared.tiles = 0
-        }
-        paging.drag(delta, count: pages.list.count, $position)
-    }
-
-    private func lift(_ speed: Double) {
-        // A panel opened mid-swipe: back to the page shown.
-        guard !pages.panelOpen else {
-            if let id = pages.current?.id {
-                position.scrollTo(id: id)
-            }
-            return rested()
-        }
-        Latency.shared.note("tiles \(Latency.shared.tiles)")
-        paging.lift(speed, ids: pages.list.map(\.id), $position, reduceMotion: reduceMotion) { id in
-            pages.list.first { $0.id == id }.map(pages.show)
-            rested()
-        }
-    }
-
-    /// The pages came to rest (also after a key or a click moved them mid-slide): the tiles in view settle.
-    private func rested() {
-        guard sliding else { return }
-        sliding = false
-        pages.overviewSliding = false
-        pages.settleOverview()
-    }
-
-    private func step(_ offset: Int) {
-        if !pages.panelOpen {
-            pages.step(offset)
-        }
-    }
-
-    private func open(_ page: Page, _ workspace: HostStore.Workspace, _ tab: HostStore.Tab) {
-        // A tile of the page sliding away (a wheel's or a key's step): the zoom is the current page's.
-        if page !== pages.current {
-            pages.show(page)
-        }
-        page.select(workspace, tab: tab.id)
-        pages.leaving = true
-    }
-
-    /// The selected tab's miniature grows to the strip's page (its terminals scale up live), then the strip shows.
-    /// At once under Reduce Motion, or when its tile is scrolled out of view.
-    private func leave(in view: CGRect) {
-        guard let page = pages.current, let tab = page.selectedTab, let from = frames.rects["\(page.id) \(tab.id)"],
-              from.intersects(view), !reduceMotion || Animation.forceMotion
-        else { return pages.closeOverview() }
-        zoom = Zoom(page: page, tab: tab, from: from)
-        // Next turn: a view inserted in the same update as the change starts at its end, with no motion.
-        Task {
-            withAnimation(.easeOut(duration: 0.18)) { grown = true } completion: {
-                pages.closeOverview()
-            }
-        }
-    }
 }
 
 extension View {
-    /// The window's chrome (the sidebar, the title row) under the overview: laid out while it is open, hidden, so
-    /// it fades in with the zoom; made once the zoom ended, it came a moment late in a big session.
-    /// `own`: the overview's ×, the other way round.
+    /// The window's chrome (the sidebar, the title row) under the overview: laid out while it is open, hidden, so it
+    /// shows at once when it closes (made then, it came a moment late in a big session). `own`: the overview's ×,
+    /// the other way round.
     func underOverview(_ pages: WindowPages, own: Bool = false) -> some View {
-        modifier(UnderOverview(pages: pages, own: own))
-    }
-}
-
-private struct UnderOverview: ViewModifier {
-    let pages: WindowPages
-    let own: Bool
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    func body(content: Content) -> some View {
-        let open = pages.overview && !pages.leaving
-        // One quick fade with the zoom's start, the tab bar's pill in it (0.18 s looked slow). The
-        // opacity alone: what the tile's pick changes in the same update (the tab, the page) slid in it.
-        content.animation(reduceMotion && !Animation.forceMotion ? nil : .easeOut(duration: 0.12)) {
-            $0.opacity(open == own ? 1 : 0)
-        }
-        .allowsHitTesting(open == own)
-        // Not `accessibilityHidden(false)`, which overrides the hidden ones inside (a button's overlay image
-        // took its identifier too).
-        .accessibilityElement(children: open == own ? .contain : .ignore)
-        // Out of the key view loop too: Tab would reach a hidden field.
-        .disabled(open != own)
-    }
-}
-
-/// The zoom's frame at each step: a plain animated frame reached the miniature's terminal views only at its end
-/// (their sizes come from a `GeometryReader`, which a layout animation gives the final size at once).
-private struct Grow: ViewModifier, Animatable {
-    var progress: CGFloat
-    let from: CGRect
-    let page: CGRect
-
-    var animatableData: CGFloat {
-        get { progress }
-        set { progress = newValue }
-    }
-
-    func body(content: Content) -> some View {
-        let step = { (start: CGFloat, end: CGFloat) in start + (end - start) * progress }
-        let rect = CGRect(x: step(from.minX, page.minX), y: step(from.minY, page.minY),
-                          width: step(from.width, page.width), height: step(from.height, page.height))
-        content.frame(width: rect.width, height: rect.height).position(x: rect.midX, y: rect.midY)
+        let shown = pages.overview == own
+        return opacity(shown ? 1 : 0)
+            .allowsHitTesting(shown)
+            // Not `accessibilityHidden(false)`, which overrides the hidden ones inside (a button's overlay image
+            // took its identifier too).
+            .accessibilityElement(children: shown ? .contain : .ignore)
+            // Out of the key view loop too: Tab would reach a hidden field.
+            .disabled(!shown)
     }
 }
 
 extension WindowPages {
-    /// Opens the overview, or leaves it by its zoom.
+    /// Opens the overview, or closes it.
     func toggleOverview() {
         if overview {
-            leaving = true
+            closeOverview()
         } else {
             overview = true
             // The cards in view: their pictures now, for their tiles (D70).
@@ -280,29 +88,15 @@ extension WindowPages {
         }
     }
 
-    /// Runs `action` now, or after the overview's zoom when it is open: an action that opens the sidebar would
-    /// move the zoom's target and resize the tiles' terminals.
-    func afterOverview(_ action: @escaping () -> Void) {
-        if overview {
-            afterOverview = action
-            leaving = true
-        } else {
-            action()
-        }
-    }
-
-    /// The strip shows again, and the keyboard goes back to the tab's card.
+    /// The tab's page shows again, and the keyboard goes back to the tab's card.
     func closeOverview() {
+        guard overview else { return }
         overview = false
-        leaving = false
         overviewTabs = [:]
         overviewScrolling = false
-        overviewSliding = false
         overviewSettling?.cancel()
         showTerminals()
         current?.focusKeyboardCard()
-        afterOverview?()
-        afterOverview = nil
     }
 }
 
@@ -362,14 +156,13 @@ extension WindowPages {
     /// new surface and stream each, on the main thread); they show their snapshots meanwhile. A tile scrolled away
     /// lets go then too, and one that drew while another waits (`overviewCards`).
     func settleOverview() {
-        guard overview, !leaving else { return }
+        guard overview else { return }
         overviewSettling?.cancel()
-        // Not while the grid scrolls or a swipe moves the pages: their end settles (a surface made or freed
-        // mid-scroll dropped frames). A sideways swipe's first event also starts and ends the grid's scroll.
-        guard !overviewScrolling, !overviewSliding else { return }
+        // Not while the grid scrolls: its end settles (a surface made or freed mid-scroll dropped frames).
+        guard !overviewScrolling else { return }
         overviewSettling = Task {
             try? await Task.sleep(for: .milliseconds(150))
-            if !Task.isCancelled, !overviewScrolling, !overviewSliding {
+            if !Task.isCancelled, !overviewScrolling {
                 showTerminals()
             }
         }

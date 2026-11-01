@@ -3,15 +3,13 @@ import HerdrKit
 import SwiftUI
 
 /// A tab's page at the size it is given: its cards in herdr's layout (or its zoomed card), each with its picture at
-/// its place in the card, scaled from the strip's page (`size`).
+/// its place in the card, scaled from the tab's page (`size`).
 struct Miniature: View {
     let tab: HostStore.Tab
     let page: Page
     let size: CGSize
-    /// The terminals that stream and draw here until they have a snapshot (all of them: `pictures` off).
+    /// The terminals that stream and draw here until they have a snapshot.
     let live: Set<String>
-    /// The tiles show pictures (D70); the zoom to the page shows its terminals live.
-    var pictures = true
 
     var body: some View {
         GeometryReader { proxy in
@@ -22,8 +20,7 @@ struct Miniature: View {
                 ZStack(alignment: .topLeading) {
                     ForEach(cards, id: \.id) { card in
                         let rect = zoomed == nil ? card.rect : area
-                        MiniCard(id: card.id, page: page, size: rect.size, scale: scale, live: live,
-                                 pictures: pictures)
+                        MiniCard(id: card.id, page: page, size: rect.size, scale: scale, live: live)
                             .frame(width: rect.width * scale, height: rect.height * scale)
                             .position(x: rect.midX * scale, y: rect.midY * scale)
                     }
@@ -39,11 +36,10 @@ struct Miniature: View {
 private struct MiniCard: View {
     let id: String
     let page: Page
-    /// The card in the strip's page.
+    /// The card in the tab's page.
     let size: CGSize
     let scale: CGFloat
     let live: Set<String>
-    let pictures: Bool
     @Environment(\.look) private var look
 
     var body: some View {
@@ -76,7 +72,7 @@ private struct MiniCard: View {
                     let isLive = live.contains(id)
                     // Not made for a tile that is not live (a view and a session each, while it scrolls).
                     let view = isLive ? page.terminal(pane) : page.terminals.terminals([id]).first
-                    let drawsLive = isLive && (!pictures || view?.snapshot == nil)
+                    let drawsLive = isLive && view?.snapshot == nil
                     ZStack {
                         Color.clear
                         if drawsLive, let view {
@@ -157,17 +153,9 @@ struct MiniTerminal: NSViewRepresentable {
         mini.fit()
     }
 
-    static func dismantleNSView(_ mini: Mini, coordinator _: ()) {
-        Mini.most = max(Mini.most, mini.sizes)
-    }
-
     final class Mini: NSView {
         var size = CGSize.zero
         private var fitting: Task<Void, Never>?
-        /// e2e (`-recordMotion YES`): the most sizes a miniature took, the zoom's among them (many when it grows
-        /// frame by frame, one or two when it jumps).
-        static var most = 0
-        private(set) var sizes = 0
 
         override var isFlipped: Bool {
             true
@@ -179,7 +167,6 @@ struct MiniTerminal: NSViewRepresentable {
 
         override func setFrameSize(_ newSize: NSSize) {
             super.setFrameSize(newSize)
-            sizes += 1
             fit()
         }
 

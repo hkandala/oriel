@@ -25,19 +25,14 @@ final class WindowPages {
     /// The window is visible (its scene is active): its page in view shows git status.
     var visible = false
     /// The overview is open (D70): its tiles laid out (`overviewTabs`, by page, the latest last), up to a cap,
-    /// stream and draw (`overviewLive`); `leaving` while its tile zooms to the page; `tileScale`, the tiles' scale
-    /// of the strip's page (a third before they laid out), for snapshots; `afterOverview` runs after the zoom;
-    /// `overviewScrolling` while its grid scrolls, `overviewSliding` while a swipe moves its pages
-    /// (`settleOverview`).
+    /// stream and draw (`overviewLive`); `tileScale`, the tiles' scale of the tab's page (a third before they laid
+    /// out), for snapshots; `overviewScrolling` while its grid scrolls (`settleOverview`).
     var overview = false
-    var leaving = false
     @ObservationIgnored var overviewTabs: [String: [String]] = [:]
     @ObservationIgnored var overviewSettling: Task<Void, Never>?
     private(set) var overviewLive: Set<String> = []
     @ObservationIgnored var tileScale: CGFloat = 0.35
     @ObservationIgnored var overviewScrolling = false
-    @ObservationIgnored var overviewSliding = false
-    @ObservationIgnored var afterOverview: (() -> Void)?
     /// A floating panel (the palette, the shortcuts) is open: its Esc is its own.
     @ObservationIgnored var panelOpen = false
     /// The window is key (D14).
