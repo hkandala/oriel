@@ -166,6 +166,8 @@ extension OrielUITests {
         for section in ["Panes", "Tabs", "Workspaces", "Sessions", "View", "Edit"] {
             XCTAssertTrue(element("shortcuts.section.\(section)").exists, section)
         }
+        // Only over a plugin card.
+        XCTAssertFalse(element("shortcuts.section.Plugins").exists)
         // A family is one row; a second key is on its first's row. One pattern: the key says the action,
         // the modifier the level.
         let rows = [

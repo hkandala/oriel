@@ -126,7 +126,7 @@ extension OrielUITests {
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(look.has(\.stringValue, dark, within: 2))
         // Back on the root, still open; Esc there closes it.
-        XCTAssertTrue(element("palette.command.Appearance").exists(within: 2))
+        XCTAssertTrue(element("palette.section.Tabs").exists(within: 2))
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(filter.vanishes(within: 2))
 

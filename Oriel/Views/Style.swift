@@ -289,7 +289,8 @@ struct MenuRow: View {
             // A long typed name keeps both ends, and takes the free space before the detail does.
             Text(item.title).lineLimit(1).truncationMode(.middle).layoutPriority(1)
             if let note = item.note {
-                Text(note).font(.system(size: 12)).lineLimit(1)
+                // The row's value says it (`FilterList`).
+                Text(note).font(.system(size: 12)).lineLimit(1).accessibilityHidden(true)
                     .foregroundStyle(selected ? AnyShapeStyle(Color.white.opacity(0.6)) : AnyShapeStyle(.tertiary))
             }
             Spacer(minLength: 4)

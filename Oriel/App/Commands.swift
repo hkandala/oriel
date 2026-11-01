@@ -190,7 +190,7 @@ struct Command {
         case palette
         case help
 
-        /// Its group on the Keyboard Shortcuts panel, unless the command names its own.
+        /// Its group in the palette and on the Keyboard Shortcuts panel, unless the command names its own.
         var group: Group {
             switch self {
             case .edit: .edit

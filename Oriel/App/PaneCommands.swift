@@ -114,7 +114,7 @@ extension CommandList {
         main.floating = nil
         let sizes = main.all.filter { $0.section == .size || $0.title == "Font Size" }
         func edit(_ title: String, _ action: Selector, _ symbol: String) -> Command {
-            Command(section: .palette, title: title, symbol: symbol, enabled: terminal != nil) {
+            Command(section: .palette, title: title, group: .edit, symbol: symbol, enabled: terminal != nil) {
                 if let terminal {
                     NSApp.sendAction(action, to: terminal.view, from: nil)
                 }
