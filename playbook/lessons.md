@@ -114,6 +114,9 @@ Problems that came back across phases, and the rule that stops each. How we work
   `top -l 2 -s 10 -pid <pid>`; xctrace's Animation Hitches crashes on attach. Measure keys and speed on a
   Release build launched by hand (`open -n`), with Quartz events: `sample` triples a key's time and
   XCUITest's accessibility snapshots dominate at scale.
+- **A `ScrollViewReader`'s content runs again only when what its closure captures changes.** `@State` or an
+  environment value read only inside it is no dependency of the body, so its change redraws nothing (a button that
+  never showed). Read them into `let`s in the body and use those inside; observed models are tracked inside.
 - **Hover state is unreliable.** A view removed under the pointer gets no hover end, and a busy app runs
   hover late. Decide from the pointer's location when it matters.
 - **Every key has three possible owners: the menu, SwiftUI and libghostty.** libghostty takes every key it

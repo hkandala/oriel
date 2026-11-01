@@ -315,3 +315,47 @@ Files: `Oriel/Views/Sidebar*.swift`, the state capsule in the card header, the a
   every file, as the home's rows: File Explorer's per-type icons live in its own bundle.
 - **Pictures.** Home: before `/tmp/oriel-shots/t49c-home-before.png`, after `/tmp/oriel-shots/t49c-home-after1.png`.
   Diff, commit page, Working Tree: before the bottom right of the first, after `/tmp/oriel-shots/t49c-diff-after2.png`.
+
+### Track A
+
+- **Decisions (item 1).** One view: the user's message, then every reply, todo list and note in order; each run of
+  tool calls between two messages is one closed line of its counts with a chevron, its thinking among its steps;
+  "Worked ‹time›" under a finished turn with tool calls (kept from Replies only). Thinking with no tool call in its run
+  has no row. A run's line holds only its range in the history's entries: its counts are worked out for the 40 rows
+  shown, its rows are made from the history when it opens and dropped when it closes. The levels, their pill, the
+  `chatLevel` setting and `ChatLevel` are gone. "Parsed" in the brief read as the run's rows: the transcript parsers
+  still read each call's input and output whole (the counts need the calls, and they run off the main actor).
+- **Measured** on this Mac's 117 MB pi session (4,474 entries), Release builds of main and the branch with a
+  temporary display-link probe, alternating. `rows()`: main 3.25 ms (Replies only, 1,030 rows), first try 4.77 ms
+  (2,132 rows, counts for every run), now 3.04 ms. The first layout (the worst frame in the second after the rows
+  show) and a scroll of 240 frames up and back (20 pt a frame), medians of 6 runs each: main 126 ms; the branch with
+  the block of 40 rows 141 ms (+12 %: more of the 40 rows are long replies); with 34 rows 120 ms against main's 122 ms
+  in the same hour. **Decision:** the block is 34 rows. Scroll p95 10.0 ms in every run on both (the display's
+  frame), p99 10–20 ms on both. The Mac's load was 30–300 during the runs, so single frames move by ±20 ms.
+- **Cause (found on CI, a78a8705): the Scroll to Bottom button never showed.** SwiftUI runs a `ScrollViewReader`'s
+  content again only when what its closure captures changes; `@State` read only inside it is no dependency of the
+  body (file logs in a Release build: the body ran with `atBottom` false, the overlay closure did not). Main got away
+  with it because its closure captured a value that changed each body. **Fix:** the state and environment values the
+  content draws with (`atBottom`, `held`, `earlier`, `width`, the error color) are read into `let`s before the
+  closure. A lesson.
+- **Cause, the reviewer's blocker: Show Earlier jumped.** With the button a row of its own, holding the place by the row
+  at the top put that row at the very top, 54 pt up, hiding the spinner. Tried and dropped: the bottom anchor for size
+  changes (rows pushed 2,250 pt down: it did not hold) and pinning by row id (54 pt off, not every time). **Fix:** the
+  scroll position is a `ScrollPosition`; the click pins the current offset, and when the rows come the offset grows
+  by the content's height change. The UI test checks the gap under the button from one snapshot and that the top row
+  stays within 2 pt; it failed on the 54 pt bug and passes. **Cause, the split test then failed on CI 3 of 4 runs**
+  (it passed here): the `ScrollPosition` binding named the row at the top only as a scroll began on CI (a diagnostic
+  run's event log: one name, then none while 150 rows went by), so a split brought back a row near the bottom. The row
+  at the top now comes from `onScrollTargetVisibilityChange` (the first row with any part in view); the position is
+  only kept for the offset.
+- **Decisions (item 2).** Show Earlier is the stack's first row, centered, with the messages' top padding above and the
+  10 pt row gap under it. A click swaps its words for a small spinner (same capsule size) and loads the rows on the run
+  loop turn after the commit that draws the spinner (a one-shot observer after Core Animation's commit, then a wake-up;
+  not `afterCommit`, which also fires on a click's tracking loop exit, before the commit).
+- **Pictures.** Before/after on the 117 MB session, scrolled up mid-chat (`sips -Z 1200` of the window):
+  `/tmp/oriel-shots/t49a-before-5-up.png` (Replies only: one reply per turn) and
+  `/tmp/oriel-shots/t49a-after-5-up.png` (every message, runs folded as "Ran 2 commands ›").
+- **For the user.** Open a long chat: every reply shows, and each run of tool calls is one closed line; open one and
+  close it. Scroll up and click Show Earlier: the spinner shows in the button, then the rows come above without moving
+  what is in view. Scroll up a little: the round Scroll to Bottom button shows. Not checked by hand: that the spinner
+  draws before the rows lay out in a build with no accessibility client (the tests always run with one).
