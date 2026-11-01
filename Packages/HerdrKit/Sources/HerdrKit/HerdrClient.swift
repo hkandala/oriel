@@ -200,6 +200,8 @@ public actor HerdrClient {
                     let snapshot = try await snapshot()
                     lastRead = .now
                     out?.yield(.snapshot(snapshot))
+                    // A ring while the stream opened again came with no event.
+                    snapshot.panes.forEach { ask($0.tokens?.request, $0.id) }
                     let agentPanes = snapshot.agents.map(\.paneID).sorted()
                     if out != nil, agentPanes != subscribed {
                         subscribe(agentPanes)
@@ -259,9 +261,7 @@ public actor HerdrClient {
                 for await line in channel.lines {
                     let message = try? JSONDecoder().decode(EventLine.self, from: Data(line.utf8))
                     // events_lost, pane_not_found: start over.
-                    if message?.error != nil {
-                        break
-                    }
+                    guard message?.error == nil else { break }
                     // Once: every change of the asking pane sends its tokens again until they expire.
                     if let request = FloatRequest(message?.data?.pane?.tokens), floated.insert(request.nonce).inserted {
                         out?.yield(.float(request))
@@ -269,13 +269,7 @@ public actor HerdrClient {
                     if let id = message?.data?.pane?.tokens?["oriel-copy"], copied.insert(id).inserted {
                         copy(id)
                     }
-                    if let pane = message?.data?.pane, let id = pane.tokens?["oriel-req"], let paneID = pane.paneID,
-                       AgentRequest.isID(id), !asked.contains(id)
-                    {
-                        // ponytail: a linear search of 256 ids per ring.
-                        asked = asked.suffix(255) + [id]
-                        out?.yield(.request(id: id, pane: paneID))
-                    }
+                    ask(message?.data?.pane?.tokens?["oriel-req"], message?.data?.pane?.paneID)
                     // Every other line, the first too (subscription_started: catch up on what came before it).
                     read()
                 }
@@ -287,6 +281,14 @@ public actor HerdrClient {
             subscribed = nil
             read()
         }
+    }
+
+    /// Yields an `oriel` request once per id: herdr sends the token again on each change of the pane until it expires.
+    private func ask(_ id: String?, _ pane: String?) {
+        // ponytail: a linear search of 256 ids per ring.
+        guard let id, let pane, AgentRequest.isID(id), !asked.contains(id) else { return }
+        asked = asked.suffix(255) + [id]
+        out?.yield(.request(id: id, pane: pane))
     }
 
     /// Reads a copy request's text from `/tmp/oriel-copy-<id>` on the session's machine, as base64 (Linux's wraps

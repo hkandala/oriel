@@ -16,6 +16,8 @@ final class FakeExec: Exec {
         var maxInFlight = 0
         var terminated = 0
         var agents: [String] = []
+        /// The snapshot's panes, as JSON.
+        var panes: [String] = []
         var subscribes: [String] = []
         var events: AsyncStream<String>.Continuation?
     }
@@ -67,17 +69,18 @@ final class FakeExec: Exec {
             reply.yield(#"{"id":"events","result":{"type":"subscription_started"}}"#)
         } else if line.contains("session.snapshot") {
             Task {
-                let agents = state.withLock {
+                let (agents, panes) = state.withLock {
                     $0.reads += 1
                     $0.firstRead = $0.firstRead ?? .now
                     $0.inFlight += 1
                     $0.maxInFlight = max($0.maxInFlight, $0.inFlight)
-                    return $0.agents
+                    return ($0.agents, $0.panes)
                 }
                 try? await Task.sleep(for: readDelay)
                 state.withLock { $0.inFlight -= 1 }
                 let entries = agents.map { #"{"pane_id":"\#($0)","agent_status":"idle"}"# }
-                reply.yield(#"{"id":"1","result":{"snapshot":{"workspaces":[],"tabs":[],"panes":[],"layouts":[],"#
+                reply.yield(#"{"id":"1","result":{"snapshot":{"workspaces":[],"tabs":[],"layouts":[],"#
+                    + #""panes":[\#(panes.joined(separator: ","))],"#
                     + #""agents":[\#(entries.joined(separator: ","))]}}}"#)
                 reply.finish()
             }
@@ -359,6 +362,26 @@ private func keepComing(_ exec: FakeExec) -> Task<Void, Never> {
     }
     #expect(requests.map(\.0) == [id] + others + [id])
     #expect(requests.first?.1 == "w1:p2")
+}
+
+@Test func `a ring in a snapshot, which the stream missed, delivers its request once`() async {
+    let exec = FakeExec()
+    let (id, other) = ("7f9c2b1e-4d0a-4c55-9a51-0b6c3e2d8f10", "8f9c2b1e-4d0a-4c55-9a51-0b6c3e2d8f10")
+    exec.state.withLock {
+        $0.panes = [#"{"pane_id":"w1:p2","tab_id":"w1:t1","tokens":{"oriel-req":"\#(id)","oriel-shown":"1"}}"#]
+    }
+    let updates = await started(client(exec), exec)
+    // The same id again from another pane is a repeat.
+    exec.event(#"{"event":"pane_updated","data":{"pane":{"pane_id":"w1:p3","tokens":{"oriel-req":"\#(id)"}}}}"#)
+    exec.event(#"{"event":"pane_updated","data":{"pane":{"pane_id":"w1:p4","tokens":{"oriel-req":"\#(other)"}}}}"#)
+    var requests: [String] = []
+    for await case let .request(ring, pane) in updates {
+        requests.append("\(pane) \(ring)")
+        if pane == "w1:p4" {
+            break
+        }
+    }
+    #expect(requests == ["w1:p2 \(id)", "w1:p4 \(other)"])
 }
 
 @Test func `updates deliver snapshots and read errors`() async {

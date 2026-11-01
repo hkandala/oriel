@@ -159,7 +159,8 @@ machine Oriel follows (D104,
 [Agent control](/docs/agent-control)). The command writes its arguments to a
 file in `~/.cache/oriel/rpc/` on its machine and rings: the pane token
 `oriel-req` = the request id, source `oriel-cli`, `ttl_ms` 3000. On the
-`pane.updated` event that carries a new id, Oriel takes the file with one
+`pane.updated` event or the snapshot that carries a new id (the snapshot
+covers a ring while the event stream opens again), Oriel takes the file with one
 run, does the work, and writes the answer back as files with one more run
 ([Protocol](/docs/agent-control/protocol)).
 

@@ -62,8 +62,9 @@ sh -c 'cd "$HOME/.cache/oriel/rpc" && mv -- "$1.req" "$1.run" && head -c "$2" "$
   value. The command waits for the answer before it returns, so calls in a
   row from one pane never overlap. Parallel calls from one pane can lose the
   first ring, which then exits 3.
-- Oriel acts only on events. A ring while its stream opens again (after a
-  link drop, or when the set of agent panes changes) is not taken: exit 3.
+- Oriel reads the token off each `pane.updated` event and each snapshot, so
+  a ring while its stream opens again (after a link drop, or when the set of
+  agent panes changes) is taken from the next snapshot.
 
 ## The request
 
@@ -116,7 +117,7 @@ A failed answer run is logged in Oriel, and the command exits 4.
 | 0 | done | Oriel |
 | 1 | the command failed; the error says why | Oriel |
 | 2 | usage: an unknown command, a bad option, a missing or extra argument | Oriel, or the script for its own options |
-| 3 | no Oriel took the request within 3 s: no Oriel follows this session, or its stream was opening again. `oriel status`: no Oriel follows the session | the script |
+| 3 | no Oriel took the request within 3 s: no Oriel follows this session. `oriel status`: no Oriel follows the session | the script |
 | 4 | an Oriel took it but did not answer within the timeout | the script |
 | 5 | not in herdr: no `$HERDR_PANE_ID` and no `--pane`, herdr refused the ring (a stale or unknown pane: pass `--pane`), or the mailbox could not be written | the script |
 
@@ -227,8 +228,9 @@ The rules guard the Mac and the user's attention:
 
 ## In Oriel
 
-- **HerdrKit.** `HerdrClient`'s event loop decodes `oriel-req` off
-  `pane.updated` and yields `Update.request(id:pane:)`. `AgentRequest` reads
+- **HerdrKit.** `HerdrClient` decodes `oriel-req` off `pane.updated` and
+  off each snapshot's panes, and yields `Update.request(id:pane:)` once per
+  id. `AgentRequest` reads
   `‹id›.req`, and its `Exec` runs are `prepareAgent` (on connect), `take`,
   `input` (for `copy`) and `answer`, each one run.
 - **The store.** `HostStore` hears `.request`, waits when its user is away,

@@ -83,11 +83,20 @@ public struct Pane: Decodable, Sendable, Identifiable {
     public let agentStatus: AgentStatus?
     /// The agent's session, as its herdr integration reported it.
     public let agentSession: AgentSession?
+    /// Of its tokens only the `oriel` command's ring.
+    let tokens: Ring?
 
     enum CodingKeys: String, CodingKey {
         case id = "pane_id", terminalID = "terminal_id", tabID = "tab_id", label, cwd, agent
         case title = "terminal_title_stripped", scroll, agentStatus = "agent_status", agentSession = "agent_session"
+        case tokens
     }
+}
+
+struct Ring: Decodable {
+    let request: String?
+
+    enum CodingKeys: String, CodingKey { case request = "oriel-req" }
 }
 
 /// herdr's `agent_session`: `value` is the session's id (Claude Code, Codex, OpenCode) or its file (pi). It can be an

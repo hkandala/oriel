@@ -92,9 +92,9 @@ the machine.
 - **`remote`** in `oriel status` is true, so the agent knows its own `pbcopy`
   does not reach the Mac. `oriel copy` does.
 - **The link drops** (sleep, a network change): the event stream ends, and
-  requests until it opens again are not taken (exit 3). Oriel opens it again
-  as it does for every session. A request in the gap is not replayed: its
-  token expired.
+  Oriel opens it again as it does for every session. The snapshot read then
+  takes a ring whose token still lives (3 s). A request after that is not
+  replayed: the command exited 3.
 - **Another session on the machine** (`oriel float pi-herd/w1:p1`) works
   while herdr runs it there. Oriel opens the other session for the float, on
   a float-only page, as `oriel://float` does with `&machine=`.
