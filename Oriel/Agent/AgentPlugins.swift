@@ -10,9 +10,10 @@ extension AgentCommand {
         help: """
         plugins: the browser and every plugin, and why a package did not load. --for: only the ones that open a \
         file, folder (ending in /) or URL, best first, the default marked.
-        new <name>: a plugin from the template in the plugins folder, built and trusted (This Mac only).
+        new <name>: a plugin from the template in the plugins folder, built and trusted (This Mac only). Pass a long \
+        --timeout: it installs the template's dependencies and builds it.
         reload [<id>]: builds one plugin, or every plugin with an open card, and loads its cards again (This Mac \
-        only). A card with unsaved edits stops it ("dirty").
+        only). A card with unsaved edits stops it ("dirty"). Pass a long --timeout for a slow build.
         install <source>: npm:<package>, git:<repository> or a folder, after the user allows it on the Mac (This \
         Mac only). Pass a long --timeout: it answers after the install and the build.
         """,
@@ -68,6 +69,16 @@ extension AgentCommand {
         try call.done()
         // A relative folder from the command's folder, not the settings' as in settings.json.
         let source = typed.hasPrefix(".") ? URL(filePath: call.cwd).appending(path: typed).standardized.path : typed
+        guard PluginSource(source) != nil else {
+            throw AgentError(
+                code: "bad_argument",
+                message: "\(typed) is not npm:<package>, git:<repository> or a folder",
+            )
+        }
+        // Again would be an Update, which asks only when the permissions grew: the user's, in the Plugins panel.
+        guard !PluginPackages.sources(Registry.settings).contains(source) else {
+            throw AgentError(code: "bad_argument", message: "\(source) is installed; Update is in the Plugins panel")
+        }
         let asker = Asker(name: "\(call.agent) in pane \(call.pane)", window: call.store.windows.first?.window)
         let manifest: PluginManifest
         do {
@@ -88,6 +99,7 @@ extension AgentCommand {
         try call.done()
         // A folder made since the last read loads too.
         Registry.reload()
+        var ids = Set(Plugin.cards.map(\.manifest.id)).sorted()
         if let id {
             guard let manifest = Registry.plugin(id) else {
                 throw AgentError(code: "plugin_not_found", message: Registry.problem(id) ?? "no plugin \(id)")
@@ -98,13 +110,16 @@ extension AgentCommand {
             guard PluginTrust.shared.allows(manifest) else {
                 throw AgentError(code: "failed", message: "\(id) is not trusted yet: its card asks the user first")
             }
-        }
-        let ids = id.map { [Registry.plugin($0)?.id ?? $0] } ?? Set(Plugin.cards.map(\.manifest.id)).sorted()
-        if let dirty = Plugin.cards.first(where: { ids.contains($0.manifest.id) && $0.dirty }) {
-            throw AgentError(code: "dirty", message: "\(call.naming(dirty)) has unsaved edits in \(dirty.manifest.id)")
+            ids = [manifest.id]
         }
         var results: [[String: Any]] = [], failures: [String] = []
-        for id in ids {
+        // Before anything builds, and again before each plugin: a card can get edits while another one builds.
+        for (index, id) in ids.enumerated() {
+            if let dirty = Plugin.cards.first(where: { ids[index...].contains($0.manifest.id) && $0.dirty }) {
+                let done = results.map { "\($0["id"] ?? "")" }
+                throw AgentError(code: "dirty", message: "\(call.naming(dirty)) has unsaved edits in "
+                    + dirty.manifest.id + (done.isEmpty ? "" : "; reloaded before it: \(done.joined(separator: ", "))"))
+            }
             let start = ContinuousClock.now
             let problem = await Plugin.reload(id, asked: true)
             if let problem {
@@ -124,21 +139,16 @@ extension AgentCommand {
         if id != nil, let result = results.first {
             return AgentOutput(result)
         }
-        return AgentOutput(["plugins": results], text: results.map {
-            "\($0["id"] ?? "") built in \($0["ms"] ?? 0) ms, \($0["cards"] ?? 0) card(s)\n"
+        return AgentOutput(["plugins": results], text: results.map { result in
+            let built = result["built"] as? Bool == true ? "built" : "not built (not trusted)"
+            return "\(result["id"] ?? "") \(built) in \(result["ms"] ?? 0) ms, \(result["cards"] ?? 0) card(s)\n"
         }.joined())
     }
 
     /// Columns, two spaces apart.
     private static func table(_ lines: [[String]]) -> String {
-        let widths = lines.reduce(into: [Int]()) { widths, line in
-            for (index, cell) in line.enumerated() {
-                if index < widths.count {
-                    widths[index] = max(widths[index], cell.count)
-                } else {
-                    widths.append(cell.count)
-                }
-            }
+        let widths = (0 ..< (lines.map(\.count).max() ?? 0)).map { column in
+            lines.map { column < $0.count ? $0[column].count : 0 }.max() ?? 0
         }
         return lines.map { line in
             line.enumerated().map { $1.padding(toLength: widths[$0], withPad: " ", startingAt: 0) }

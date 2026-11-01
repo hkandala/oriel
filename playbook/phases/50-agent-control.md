@@ -178,7 +178,10 @@ simple and brief."
   browser and the default plugins, whose row says "Comes with Oriel". A package that did not load shows `id`, `source`
   (its folder) and `error` (`package.json: …`); in the text it is a `not loaded` row. `log` is the full path, and only
   for a pane on This Mac and a plugin with an entry (not the browser). `--for` and a relative `install` path are read
-  from the command's folder; `--for` treats an argument ending in `/` (or `.`) as a folder.
+  from the command's folder; `--for` treats an argument ending in `/` (or `.`) as a folder (the docs should say "end a
+  folder with /"). `install` of a source that is not one, or one already listed (that would be an Update, which asks
+  only when the permissions grew), is `bad_argument`; a bad or taken name for `new` stays `failed` with the panel's
+  words. `cards` counts the plugin's cards in every window, so a pane shown in two windows counts twice.
 - **One order for `--for` and `open`.** `Registry.openers(for:)` ranks a path, folder or http(s) URL; BridgeCard's
   linked open and track B's `open` take its first, so the default never differs between them.
 - **The panel's code, throwing.** `PluginInstalls.create(named:)` and `install(_:for:)` now throw and return the
@@ -191,9 +194,10 @@ simple and brief."
   the prompt stays and the install goes on.
 - **reload.** One id: the registry is read again first, so a folder made by hand loads; an unknown id is
   `plugin_not_found` with the registry's reason; the browser is `bad_argument`; an untrusted plugin is `failed` (its
-  card asks the user). No id: every plugin with an open card, answered as `{"plugins":[…]}`. Any dirty card of those
-  plugins stops it with `dirty` and the pane's name before anything builds; edits made during the build itself are
-  still Plugin.reload's (the panel's) race. `build_failed`'s message is the card's toast title and the build's last 20
-  lines.
+  card asks the user). No id: every plugin with an open card, answered as `{"plugins":[…]}`. A dirty
+  card stops it with `dirty` and the pane's name, before anything builds and again before each plugin (naming the
+  ones reloaded before it); edits made during one plugin's own build are still Plugin.reload's (the panel's) race.
+  `build_failed`'s message is the card's toast title and the build's last 20 lines. A failed agent install leaves
+  the panel's notice without Retry.
 - **For the user.** The trust prompt with the agent's name: `/tmp/oriel-shots/agent-trust-prompt.png`. Check by hand
   that it shows on the session's window while Oriel is in the background, and that Return does not install.

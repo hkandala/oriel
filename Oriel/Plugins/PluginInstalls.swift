@@ -51,12 +51,20 @@ final class PluginInstalls {
         {
             throw refuse("A plugin folder named \(folder) is already installed")
         }
-        return try await run(text, "Installing…") {
-            if case let .local(path) = source {
-                try await self.list(local: path, text, for: agent)
-            } else {
-                try await self.fetch(source, text, for: agent)
+        do {
+            return try await run(text, "Installing…") {
+                if case let .local(path) = source {
+                    try await self.list(local: path, text, for: agent)
+                } else {
+                    try await self.fetch(source, text, for: agent)
+                }
             }
+        } catch {
+            // The agent has its answer; a Retry from the panel would show the agent's prompt as the user's.
+            if agent != nil {
+                failure?.retry = nil
+            }
+            throw error
         }
     }
 
@@ -277,7 +285,8 @@ final class PluginInstalls {
 /// session, which the prompt's sheet goes on.
 struct Asker {
     let name: String
-    let window: NSWindow?
+    /// Weak: a closed window takes no sheet, and the prompt runs as a modal alert instead.
+    weak var window: NSWindow?
 }
 
 /// One row of the list: a plugin, or a listed source whose install is missing.

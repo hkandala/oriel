@@ -21,7 +21,7 @@ extension OrielUITests {
 
         // The command waits on the prompt; the test answers it, then reads the exit.
         let install = "\(oriel) --timeout 60 plugins install \(csv)"
-        try await send("\(install); echo cancel-$((6*7))-$?\r", to: pane)
+        try await send("\(install) --json; echo cancel-$((6*7))-$?\r", to: pane)
         let sheet = app.sheets.firstMatch
         XCTAssertTrue(sheet.buttons["Install"].exists(within: 10))
         let words = sheet.staticTexts.allElementsBoundByIndex.map { $0.value as? String ?? "" }.joined(separator: "\n")
@@ -32,7 +32,8 @@ extension OrielUITests {
         try await waitFor(pane) { $0.contains("\ncancel-42-") }
         let canceled = try await read(pane)
         XCTAssertTrue(
-            canceled.contains("\ncancel-42-1") && canceled.contains("oriel: the user did not allow"),
+            canceled.contains("\ncancel-42-1") && canceled.contains("oriel: the user did not allow")
+                && canceled.contains(#"{"error":{"code":"declined""#),
             canceled,
         )
 
@@ -46,6 +47,8 @@ extension OrielUITests {
                       in: pane, "default", 0, "1")
         try await run("\(oriel) plugins --json | grep -c '\"log\":\"\(config)/logs/plugins/oriel-e2e-csv-table.log\"'",
                       in: pane, "log", 0, "1")
+        // Again is an Update: the user's, in the Plugins panel.
+        try await run(install, in: pane, "again", 1, "oriel: \(csv) is installed")
     }
 
     /// New Plugin from an agent: made, built and trusted; Reload Plugin answers its build, and a broken build its last
@@ -65,8 +68,10 @@ extension OrielUITests {
                       "made", 0, "1")
         try await run("\(oriel) plugins reload oriel-e2e-agent", in: pane, "reload", 0, "built: true", "cards: 0")
         try await run("echo 'export default {' >> \(made)/src/main.ts", in: pane, "broke", 0)
-        try await run("\(oriel) plugins reload oriel-e2e-agent", in: pane, "failed", 1,
-                      "oriel: Oriel E2E Agent did not build:")
+        // The code on standard output, the toast's title and the build's own lines on standard error.
+        try await run("j=$(\(oriel) --json plugins reload oriel-e2e-agent 2>\(made)/err); s=$?; echo \"$j\" | "
+            + "grep -c '\"code\":\"build_failed\"'; grep -q '^oriel: Oriel E2E Agent did not build:' \(made)/err && "
+            + "grep -q 'main.ts' \(made)/err && echo stderr; (exit $s)", in: pane, "failed", 1, "1\nstderr")
         try await run("\(oriel) plugins reload nope", in: pane, "nope", 1, "oriel: no plugin nope")
 
         element("workspace.w2").click()
@@ -98,7 +103,8 @@ extension OrielUITests {
         // The Key Host store writes the script once its session opens.
         try await run("until \(oriel) status >/dev/null; do sleep 0.1; done", in: "w1:p1", "ready", 0)
         try await run("\(oriel) plugins | head -1", in: "w1:p1", "list", 0, "browser")
-        try await run("\(oriel) plugins --json | grep -c '\"log\"'", in: "w1:p1", "logs", 1, "0")
+        try await run("j=$(\(oriel) plugins --json) && echo \"$j\" | grep -q '\"id\":\"browser\"' && ! echo \"$j\" | "
+            + "grep -q '\"log\"' && echo no-logs", in: "w1:p1", "logs", 0, "no-logs")
         for (index, sub) in ["new x", "reload", "install npm:x"].enumerated() {
             try await run("\(oriel) plugins \(sub)", in: "w1:p1", "remote\(index)", 1,
                           "oriel: plugins \(sub.split(separator: " ")[0]) works only")
