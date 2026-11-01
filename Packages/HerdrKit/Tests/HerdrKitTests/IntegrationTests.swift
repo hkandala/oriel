@@ -153,23 +153,16 @@ private func talk(_ client: HerdrClient, _ exec: SubscribeCounter) async throws 
     #expect(lines.map(\.count) == [1, 8_000_000, 1])
 }
 
-/// Against a ten times shorter line, not the wall clock (a busy CI runner stalls for seconds): linear is about 10
-/// times slower, a scan from the line's start for each chunk about 100 times. The fastest of three of each.
-@Test func `a long line splits in time linear in its length`() {
-    func split(_ size: Int) -> Duration {
-        let chunk = Data(repeating: UInt8(ascii: "x"), count: 65536)
-        return (0 ..< 3).map { _ in
-            ContinuousClock().measure {
-                var buffer = LineBuffer()
-                for _ in 0 ..< size / chunk.count {
-                    _ = buffer.take(chunk)
-                }
-                #expect(buffer.take(Data("\n".utf8)).count == 1)
-            }
-        }.min() ?? .zero
+/// Counts the work, not the wall clock (a busy CI runner stalls for seconds): each byte is searched once, where a
+/// scan from the line's start for each chunk searched an 8 MB line in 64 KB chunks about 60 times over.
+@Test func `a long line is searched once`() {
+    let chunk = Data(repeating: UInt8(ascii: "x"), count: 65536)
+    var buffer = LineBuffer()
+    for _ in 0 ..< 122 {
+        _ = buffer.take(chunk)
     }
-    let short = split(800_000), long = split(8_000_000)
-    #expect(long < short * 40, "\(short) for 800 KB, \(long) for 8 MB")
+    #expect(buffer.take(Data("\n".utf8)).count == 1)
+    #expect(buffer.scanned == 122 * chunk.count + 1)
 }
 
 @Test func `terminate stops the readers when a grandchild keeps the pipes open`() async throws {

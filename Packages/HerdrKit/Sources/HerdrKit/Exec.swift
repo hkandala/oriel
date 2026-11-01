@@ -322,13 +322,18 @@ public final class ProcessExec: Exec {
 /// A pipe's bytes as lines, chunk by chunk.
 struct LineBuffer {
     private var data = Data()
+    /// The bytes searched for a newline so far: about the bytes taken (a test counts it).
+    private(set) var scanned = 0
 
     /// The lines the chunk ends. Only its bytes are scanned: a scan from the start for each chunk made a 280 KB
     /// snapshot line cost O(n²), the app's top function in a stress profile.
     mutating func take(_ chunk: Data) -> [String] {
         var from = data.endIndex, lines: [String] = []
         data.append(chunk)
-        while let newline = data[from...].firstIndex(of: UInt8(ascii: "\n")) {
+        while true {
+            let newline = data[from...].firstIndex(of: UInt8(ascii: "\n"))
+            scanned += data.distance(from: from, to: newline.map { data.index(after: $0) } ?? data.endIndex)
+            guard let newline else { break }
             lines.append(String(decoding: data[..<newline], as: UTF8.self))
             data.removeSubrange(...newline)
             from = data.startIndex

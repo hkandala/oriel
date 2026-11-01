@@ -386,8 +386,9 @@ Files: `Oriel/Views/Sidebar*.swift`, the state capsule in the card header, the a
   second, a write's read within 120 ms) on every push, the 8 MB line's 6 s now and then. **Fix:** HerdrClient takes
   its spaced read's wait as a closure; the pacing tests hold it in a gate and count reads (no wait before an event's
   read, one read while the wait holds, its deadline the read's start plus the spacing, a write's read with the gate
-  shut); `eventually`'s bound is 20 s (a failure's limit only); the line split is `LineBuffer`, timed against a ten
-  times shorter line (it fails with the old scan put back). A lint rule (`wall_clock_bounds`) rejects a time bound
+  shut); `eventually`'s bound is 20 s (a failure's limit only); the line split is `LineBuffer`, and its test counts
+  the bytes it searches (it fails with the old scan put back; a timing against a ten times shorter line still
+  failed on CI, 41312102745: 69 times, not 10). A lint rule (`wall_clock_bounds`) rejects a time bound
   in HerdrKit's tests. 83912e9a carries the pacing fix under a wrong subject (an amend after a failed hook).
 - **Decisions (nits left).** The page's view id stays herdr's tab id (keying it by `Ahead.born` keeps placed and held
   state across the stand-in's swap: a layout motion risk for no visible gain). `fitHidden` keeps its copy of the card's
