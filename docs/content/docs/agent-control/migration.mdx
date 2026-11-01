@@ -73,12 +73,13 @@ return new Promise((ok) => {
 The `oriel` skill (`skills/oriel/` in pi-hkandala) replaces `oriel-panes`
 and its `placeholder.sh`. Its `SKILL.md` says what Oriel is, how to tell that
 it shows the pane (`oriel status`), the commands an agent uses most and the
-rules. One file per topic loads only when the agent needs it:
+rules (with `notify` and `copy`). One file per topic loads only when the agent needs it:
 
 | File | Holds |
 |---|---|
 | `cards.md` | `open` in each place, reuse, replace, browser addresses, `float`, `card`, `shown` |
 | `plugins.md` | list, make, reload and install plugins |
+| `agents.md` | start an agent with the chat view, relaunch an agent with chat |
 | `remote.md` | what differs on a remote machine |
 
 Every herdr detail points to the herdr skill (`herdr --skill`).

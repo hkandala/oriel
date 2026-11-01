@@ -131,14 +131,17 @@ error.
 
 | Code | Exit | When |
 |---|---|---|
-| `usage` | 2 | an unknown option, a missing or extra argument, two places for `open`; a file that is not a request, or over 64 KiB or 64 fields |
+| `usage` | 2 | an unknown option, a missing or extra argument, two places for `open`, `--replace` for `agent`; a file that is not a request, or over 64 KiB or 64 fields |
 | `unknown_command` | 2 | a command this Oriel does not have (`oriel help` lists them) |
 | `protocol` | 2 | the request's version is newer than this Oriel speaks |
 | `pane_not_found` | 1 | a pane argument: no such pane, or no such session running on the asking pane's machine |
 | `plugin_not_found` | 1 | no browser or plugin with that id; with the reason when its manifest did not load |
-| `bad_argument` | 1 | the argument does not fit: not a pane, a missing path, a kind that does not open it, a label over 1024 characters or with a control character, a source that is not one, standard input over 1 MiB |
+| `bad_argument` | 1 | the argument does not fit: not a pane, a missing path, a kind that does not open it, a label over 1024 characters or with a control character, a source that is not one, standard input over 1 MiB, an unknown agent, a pane with no agent for `chat` |
 | `other_machine` | 1 | `plugins new`, `reload` or `install` from a pane on a remote machine |
 | `not_floating` | 1 | `unfloat` of a pane that does not float |
+| `busy` | 1 | `chat` while the agent works or needs you, or while a relaunch runs |
+| `self` | 1 | `chat` on the asking pane |
+| `rate_limited` | 1 | a second `notify` from the asking pane within 10 s |
 | `dirty` | 1 | `open --replace` of a card with unsaved edits; `plugins reload` while a card of the plugin has them (the message names the pane) |
 | `declined` | 1 | the user pressed Cancel in the trust prompt of `plugins install` |
 | `build_failed` | 1 | `plugins reload`: the build failed; the message ends with the build's last 20 lines |
@@ -210,10 +213,13 @@ The rules guard the Mac and the user's attention:
    ([Browser](/docs/ui/browser#when-a-page-loads-by-itself)).
 5. **No focus, no view change.** Oriel never activates itself for a request,
    never switches a window's tab or page, never moves the keyboard. A float
-   opens its window without activating the app.
-6. **Paths built by Oriel.** The mailbox path comes from the id that matched
+   opens its window without activating the app. Only a click on an agent's
+   notification brings Oriel to the front, because the user asked.
+6. **Notifications** are limited to one per asking pane every 10 s, and
+   follow the user's From Agents switch.
+7. **Paths built by Oriel.** The mailbox path comes from the id that matched
    the pattern. The request's size is checked before it is decoded.
-7. **No secrets in tokens or labels.** A token holds only the id. Every
+8. **No secrets in tokens or labels.** A token holds only the id. Every
    device that follows the session sees tokens and labels.
 
 ## In Oriel

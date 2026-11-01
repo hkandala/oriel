@@ -60,8 +60,17 @@ the session:
 - A click activates the app, shows that page and selects the pane.
 - The app asks for permission (alerts and the badge) at launch; macOS asks the
   user only once.
-- Notifications are on for needs you and for finished; the Dock badge counts
-  needs you only; no sounds. These are fixed ([Settings](/docs/ui/settings)).
+- An agent posts its own with `oriel notify <title> [<body>]`
+  ([CLI](/docs/agent-control/cli#notify)): the title and body it gives, with
+  "‹agent› · ‹session›" as the subtitle. The id is
+  `"agent|<machine>|<session>|<terminal_id>"`, so a newer one from the same
+  pane replaces the older. It is removed only when its pane closes. A click
+  activates the app and shows the pane, as for needs you. One per asking pane
+  every 10 s.
+- Three switches in Oriel ▸ Notifications turn them off: Needs You,
+  Finished and From Agents, each on by default (D105,
+  [Settings](/docs/ui/settings)). The Dock badge counts needs you only, and
+  no notification has a sound.
 
 ### Delivery
 

@@ -33,7 +33,10 @@ oriel [--pane <pane>] [--timeout <seconds>] <command> [<args>] [--json]
   herdr then gives it a new id, and the environment keeps the old one.
 - `--timeout` is how long the command waits for Oriel's answer once Oriel
   took the request, in whole seconds. The default is 10. Give `plugins new`,
-  `reload` and `install` a longer one: they install and build.
+  `reload` and `install` a longer one (they install and build), and `chat`
+  20 s.
+- `--pane` and `--timeout` go before the command. After the command, an
+  option belongs to that command (`notify --pane`).
 - `--json` prints one JSON value on standard output, also for an error that
   Oriel answers. It counts anywhere in the arguments. The keys are sorted.
 - Without `--json`, a command prints its text. A command with no text of its
@@ -87,7 +90,7 @@ What the Oriel that takes the request offers.
 ```sh
 $ oriel info --json
 {"agents":["claude","codex","pi","opencode"],"app":"0.1","appearance":"dark",
- "commands":["help","info","float","unfloat","copy","plugins","open","reveal","card","shown"],
+ "commands":["help","info","float","unfloat","copy","plugins","open","reveal","card","shown","notify","agent","chat"],
  "machine":"This Mac","protocol":1}
 ```
 
@@ -98,7 +101,7 @@ $ oriel info --json
 | `machine` | Oriel's name for the asking pane's machine: `This Mac`, or the name in the machine list |
 | `appearance` | `light` or `dark`, as Oriel draws now (for an HTML report that matches) |
 | `commands` | the commands this Oriel parses (`status` is the script's) |
-| `agents` | the agents Oriel knows, by command |
+| `agents` | the agents `oriel agent` starts with the chat view, by command |
 
 ## plugins
 
@@ -376,6 +379,61 @@ $ oriel shown --json
 `shown` lists the panes in a tab in view, `floating` the panes in windows of
 their own, and `windows` counts the visible windows with the session's page
 in view.
+
+## notify
+
+A notification on the Mac, through the app's notifications
+([Notifications](/docs/status#notifications)).
+
+```sh
+$ oriel notify "Tests pass" "412 passed in 38 s"
+notified: true
+pane: w1:p2
+$ oriel notify "Review ready" --pane w2:p1
+```
+
+- The title is the agent's title, the body its body, and the subtitle
+  "‹agent› · ‹session›".
+- A click brings Oriel to the front and shows the pane: the asking pane, or
+  `--pane`'s. Showing it there is the user's own action.
+- One per asking pane every 10 s, whatever `--pane` names: a second is
+  `rate_limited`. A newer one from the same pane replaces the older in
+  Notification Center.
+- With Oriel ▸ Notifications ▸ From Agents off, it posts nothing and answers
+  `"notified": false` with exit 0. That does not count toward the limit.
+- If macOS does not let Oriel post notifications, it is `failed` with
+  macOS's words.
+
+## agent and chat
+
+```sh
+$ oriel agent claude --json            # beside me, with the chat view
+{"agent":"claude","pane":"w1:p9"}
+$ oriel agent pi --tab
+$ oriel --timeout 20 chat w1:p4        # Relaunch with Chat, for an idle agent
+```
+
+- `agent <name>` takes `claude`, `codex`, `pi` or `opencode`. Another name is
+  `bad_argument`. It makes a shell pane at the place, as `open` does (the
+  same `<place>` options, but not `--replace`, which is `usage`), shows the
+  agent loader on it and types the agent's command line with the chat view's
+  launch flags, as Start Agent Here does
+  ([New pane](/docs/ui/new-pane#agent)). It answers `pane` and `agent` when
+  the line is typed, not when the agent is ready. A pane that closes first is
+  `failed`.
+- `chat <pane>` runs [Relaunch with Chat](/docs/ui/chat-view#relaunch-with-chat)
+  and answers `pane` and `agent` when the new line is typed, in about 3 s.
+  It never asks the user, so it refuses instead, in this order:
+  - The asking pane itself is `self`. Its agent would end before the answer.
+  - A pane with no chat agent, one that shows the chat already, or one whose
+    agent session herdr does not know is `bad_argument`.
+  - A relaunch that already runs, or an agent that works or needs you, is
+    `busy`.
+- An agent that does not quit fails only after Relaunch with Chat's 10 s
+  wait, so pass `--timeout 20` to `chat`. With the default, the script exits
+  4 first.
+- `chat` clears a draft that the user types into the agent (⌃C, then the
+  quit command), and the loader takes the keys until the agent is back.
 
 ## copy
 

@@ -49,7 +49,9 @@ same session. The **Relaunch with Chat** button sits where Chat | TUI sits,
 with the help tag "Restart ‹Agent› with chat, in the same session". It
 shows when herdr reports the agent and its session (`agent_session`, of the
 same agent), the pane's processes carry no marker, and the agent takes that
-session value:
+session value. An agent in another pane runs it with `oriel chat <pane>`,
+which never asks: it refuses a working or waiting agent with `busy`
+([CLI](/docs/agent-control/cli#agent-and-chat)).
 
 | Agent | Session from herdr | Added to the launch line |
 |---|---|---|
