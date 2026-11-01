@@ -90,7 +90,9 @@ final class FakeExec: Exec {
     }
 }
 
-func eventually(within timeout: Duration = .seconds(3), _ condition: () async -> Bool) async -> Bool {
+/// A bound for a failure only: the 140 HerdrKit tests start together, many spawning processes, and on CI's 3 cores a
+/// client's first reads took over 3 s.
+func eventually(within timeout: Duration = .seconds(20), _ condition: () async -> Bool) async -> Bool {
     let deadline = ContinuousClock.now + timeout
     while await !condition() {
         guard ContinuousClock.now < deadline else { return false }
@@ -141,10 +143,10 @@ private func client(_ exec: FakeExec, _ gate: Gate? = nil) -> HerdrClient {
 }
 
 /// Starts updates and waits for the opening reads (one before and one after subscribing).
-private func started(_ client: HerdrClient, _ exec: FakeExec, _ gate: Gate? = nil) async -> AsyncStream<Update> {
+private func started(_ client: HerdrClient, _ exec: FakeExec, _ gate: Gate? = nil) async throws -> AsyncStream<Update> {
     let updates = await client.updates()
     // At least two: timing on a loaded machine can add a read; the tests count from the reset below.
-    #expect(await eventually {
+    try #require(await eventually {
         gate?.open()
         return exec[\.subscribes].count == 1 && exec[\.reads] >= 2 && exec[\.inFlight] == 0
     })
@@ -200,11 +202,11 @@ private func snapshot(version: String) -> String {
 
 // MARK: Pacing
 
-@Test func `reads at once, one at a time, with one read again`() async {
+@Test func `reads at once, one at a time, with one read again`() async throws {
     let exec = FakeExec(readDelay: .milliseconds(300))
     let gate = Gate()
     let client = client(exec, gate)
-    let updates = await started(client, exec, gate)
+    let updates = try await started(client, exec, gate)
     let waits = gate[\.deadlines].count
     exec.event()
     // No debounce: the read starts with no wait before it.
@@ -236,13 +238,13 @@ private func keepComing(_ exec: FakeExec) -> Task<Void, Never> {
     let exec = FakeExec(readDelay: .milliseconds(10))
     let gate = Gate()
     let client = client(exec, gate)
-    let updates = await started(client, exec, gate)
+    let updates = try await started(client, exec, gate)
     let sent = ContinuousClock.now, waits = gate[\.deadlines].count
     let events = keepComing(exec)
     defer { events.cancel() }
     // The first read at once, then a wait to its start plus the spacing, however many events come meanwhile.
     #expect(await eventually { gate[\.waiting] == 1 })
-    let first = try #require(exec[\.firstRead]), deadline = gate[\.deadlines][waits]
+    let first = try #require(exec[\.firstRead]), deadline = try #require(gate[\.deadlines].dropFirst(waits).first)
     #expect(deadline >= sent + HerdrClient.spacing && deadline <= first + HerdrClient.spacing)
     try? await Task.sleep(for: .milliseconds(200))
     #expect(exec[\.reads] == 1, "\(exec[\.reads]) reads")
@@ -253,11 +255,11 @@ private func keepComing(_ exec: FakeExec) -> Task<Void, Never> {
     withExtendedLifetime(updates) {}
 }
 
-@Test func `a write while events keep coming is read at once, not spaced`() async {
+@Test func `a write while events keep coming is read at once, not spaced`() async throws {
     let exec = FakeExec(readDelay: .milliseconds(10))
     let gate = Gate()
     let client = client(exec, gate)
-    let updates = await started(client, exec, gate)
+    let updates = try await started(client, exec, gate)
     let events = keepComing(exec)
     defer { events.cancel() }
     // Each write's read comes while the spaced read still waits: the gate never opens.
@@ -270,10 +272,10 @@ private func keepComing(_ exec: FakeExec) -> Task<Void, Never> {
     withExtendedLifetime(updates) {}
 }
 
-@Test func `events stream reopens on agent changes, errors and exit`() async {
+@Test func `events stream reopens on agent changes, errors and exit`() async throws {
     let exec = FakeExec()
     let client = client(exec)
-    let updates = await started(client, exec)
+    let updates = try await started(client, exec)
     #expect(!exec[\.subscribes][0].contains("agent_status_changed"))
 
     exec.state.withLock { $0.agents = ["w1:p1"] }
@@ -289,10 +291,10 @@ private func keepComing(_ exec: FakeExec) -> Task<Void, Never> {
     withExtendedLifetime(updates) {}
 }
 
-@Test func `a pane's float tokens deliver one request per nonce, never again`() async {
+@Test func `a pane's float tokens deliver one request per nonce, never again`() async throws {
     let exec = FakeExec()
     let client = client(exec)
-    let updates = await started(client, exec)
+    let updates = try await started(client, exec)
     let pane = { (target: String, nonce: String) in
         #"{"event":"pane_updated","data":{"type":"pane_updated","pane":{"pane_id":"w1:p2","tokens":"#
             + #"{"oriel-float":"\#(target)","oriel-float-id":"\#(nonce)"}}}}"#
@@ -317,10 +319,10 @@ private func keepComing(_ exec: FakeExec) -> Task<Void, Never> {
     #expect(requests.map(\.pane) == ["w3:p1", "w3:p2", "w3:p3"])
 }
 
-@Test func `a pane's copy token reads its file once per id, and only a UUID`() async {
+@Test func `a pane's copy token reads its file once per id, and only a UUID`() async throws {
     let exec = FakeExec()
     let client = client(exec)
-    let updates = await started(client, exec)
+    let updates = try await started(client, exec)
     let pane = { (id: String) in
         #"{"event":"pane_updated","data":{"pane":{"pane_id":"w1:p2","tokens":{"oriel-copy":"\#(id)"}}}}"#
     }
