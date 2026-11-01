@@ -66,14 +66,14 @@ public enum Git {
                                                    "--porcelain=v1", "-z", "--untracked-files=all"]))
     }
 
-    /// The last `limit` commits of every branch, remote branch and tag, and HEAD (also detached), newest first, each
-    /// child before its parents. Not `--all`: the stash, notes and git's own refs would add lanes.
+    /// The last `limit` (500 when nil) commits of every branch, remote branch and tag, and HEAD (also detached),
+    /// newest first, each child before its parents. Not `--all`: the stash, notes and git's own refs would add lanes.
     /// ponytail: Show More asks for the whole longer list again, as the graph's lanes need every row before; ask for
     /// the rows after a commit if long histories get slow. An orphan branch with no commit yet fails on `HEAD` and
     /// shows no history; drop `HEAD` there if that matters.
-    public static func log(_ root: String, limit: Int = 500, exec: any Exec) async throws -> [Commit] {
+    public static func log(_ root: String, limit: Int? = nil, exec: any Exec) async throws -> [Commit] {
         try await exec.checkedOutput(
-            ["git", "-C", root, "log", "--branches", "--remotes", "--tags", "HEAD", "-n", String(max(limit, 1)),
+            ["git", "-C", root, "log", "--branches", "--remotes", "--tags", "HEAD", "-n", String(max(limit ?? 500, 1)),
              "--topo-order",
              "--no-show-signature", "--decorate=full",
              // `--`: a file named HEAD is no revision.

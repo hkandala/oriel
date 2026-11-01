@@ -156,7 +156,7 @@ public struct PluginCalls: Sendable {
             return try await Git.branches(root, exec: exec)
                 .map { ["name": $0.name, "remote": $0.remote, "current": $0.current] }
         case "git.log":
-            let commits = try await Git.log(root, limit: args.limit ?? 500, exec: exec)
+            let commits = try await Git.log(root, limit: args.limit, exec: exec)
             return zip(commits, Git.graph(commits)).map { commit, row in
                 ["hash": commit.hash, "subject": commit.subject, "author": commit.author,
                  "date": commit.date.timeIntervalSince1970 * 1000, "refs": commit.refs, "lane": row.lane,
