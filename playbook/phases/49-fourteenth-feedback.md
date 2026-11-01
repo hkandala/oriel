@@ -359,3 +359,32 @@ Files: `Oriel/Views/Sidebar*.swift`, the state capsule in the card header, the a
   close it. Scroll up and click Show Earlier: the spinner shows in the button, then the rows come above without moving
   what is in view. Scroll up a little: the round Scroll to Bottom button shows. Not checked by hand: that the spinner
   draws before the rows lay out in a build with no accessibility client (the tests always run with one).
+
+### Final review fixes
+
+- **Docs pass.** The pages matched the tracks' work except: the tab marker's glide (D42, platform), D94's Commit All
+  and Initialize Repository, D95's 34 rows, "live" overview tiles, a cover picture that is gone, the kept terminals'
+  20 and 10 (now 25 and 12), the hold's copy, the Git header and `main.ts` sketch in building.mdx, `check-ignore` and
+  `git show` in the herdr calls, a swipe preview in Future work, and which labels show Working's time.
+- **Fix (Git).** A live Working Tree reload reset Previous and Next to the first change; a file-list slide ran its
+  keep three times (two frames and one `transitionend` per property); a rename kept a stale "from …" header (the
+  header cache now follows the file diff object). Show More disables itself; a long word wraps in a commit body.
+- **Fix (File Explorer).** Read was not read only (a drag or a drop edited the file); a fence not closed yet hid its
+  last line; Show in File Explorer on a dotfile did nothing with hidden files off (it turns the eye on); a relative
+  path in the path bar made a relative root (it now goes from the root: `src`, `..`; an empty Return is the root);
+  an Edit click on a table's empty link reloaded the page.
+- **Fix (app).** Menu items, header toggles, the path field and the sidebar branch draw `source.branch` (they used
+  `Image(systemName:)`). The placeholder starts with ⌃U, so a line half typed in herdr's TUI does not run in its place
+  (spiked on zsh). A failed `settings.json` write from Show in New Pane shows in the Plugins panel.
+- **Tests.** PluginTests waits for the card's shell title, not `sleep 2`; FollowTests' `pgrep` loop fails after 20 s;
+  FilesTests waits for the tree's keyboard before the arrows; GitTests clicks row 2's Working Tree.
+- **Runs.** Chosen tests on ff27bf22, green on the first try: 41307651798 (FilesTests, MarkdownTests, FileTests) and
+  41307657905 (GitTests, PluginTests, HeaderTests). The checks on every push since phase 47 (27c1b915) fail in
+  HerdrClientTests' three pacing tests (wall-clock reads and spacing), also on ff27bf22 (41307637835); they pass here.
+- **Decisions (nits left).** The page's view id stays herdr's tab id (keying it by `Ahead.born` keeps placed and held
+  state across the stand-in's swap: a layout motion risk for no visible gain). `fitHidden` keeps its copy of the card's
+  terminal room (PaneCard lays out with padding, not a function), and fits only the selected workspace. A working
+  workspace row keeps its hidden label copy (it measures the growing time; both tick in the same update). Show
+  Earlier's offset is not guarded against a reply growing in the same run loop turn (a one-turn window). Git's 500
+  stays in Git.log and PluginCalls; `labeled(words:icon:)` keeps two flags (three states); `overflow()` keeps setting
+  Word Wrap's enabled state (it also runs at load).
