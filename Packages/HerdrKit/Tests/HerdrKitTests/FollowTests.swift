@@ -102,8 +102,12 @@ private func lineByLine(_ path: String, from mark: FileMark,
         if !closed {
             channel.closeInput()
             closed = true
-            // A slow reader, as a relay over SSH: the kill lands while the pipes are full.
-            try await Task.sleep(for: .milliseconds(500))
+            // A slow reader, as a relay over SSH: it reads on once the kill landed (no process has the file in its
+            // argv), with the pipes full. A fixed wait ran out on a starved Mac before the kill came, and the
+            // reader drained the whole backlog meanwhile.
+            while try await !localExec.output(["pgrep", "-f", file.lastPathComponent]).isEmpty {
+                try await Task.sleep(for: .milliseconds(50))
+            }
         }
         after += 1
     }
