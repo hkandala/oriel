@@ -234,20 +234,14 @@ public final class ProcessExec: Exec {
     {
         let output = chunks(handle)
         return Task {
-            var buffer = Data()
+            var buffer = LineBuffer()
             for await data in output {
-                // Only the new bytes: a scan from the start for each chunk made a 280 KB snapshot line cost
-                // O(n²), the app's top function in a stress profile.
-                var from = buffer.endIndex
-                buffer.append(data)
-                while let newline = buffer[from...].firstIndex(of: UInt8(ascii: "\n")) {
-                    lines.yield(String(decoding: buffer[..<newline], as: UTF8.self))
-                    buffer.removeSubrange(...newline)
-                    from = buffer.startIndex
+                for line in buffer.take(data) {
+                    lines.yield(line)
                 }
             }
-            if !buffer.isEmpty {
-                lines.yield(String(decoding: buffer, as: UTF8.self))
+            if let rest = buffer.rest {
+                lines.yield(rest)
             }
             lines.finish()
         }
@@ -322,5 +316,28 @@ public final class ProcessExec: Exec {
             terminate: terminate,
             exit: { await (status.value, errors.value) },
         )
+    }
+}
+
+/// A pipe's bytes as lines, chunk by chunk.
+struct LineBuffer {
+    private var data = Data()
+
+    /// The lines the chunk ends. Only its bytes are scanned: a scan from the start for each chunk made a 280 KB
+    /// snapshot line cost O(n²), the app's top function in a stress profile.
+    mutating func take(_ chunk: Data) -> [String] {
+        var from = data.endIndex, lines: [String] = []
+        data.append(chunk)
+        while let newline = data[from...].firstIndex(of: UInt8(ascii: "\n")) {
+            lines.append(String(decoding: data[..<newline], as: UTF8.self))
+            data.removeSubrange(...newline)
+            from = data.startIndex
+        }
+        return lines
+    }
+
+    /// The last line, with no newline after it.
+    var rest: String? {
+        data.isEmpty ? nil : String(decoding: data, as: UTF8.self)
     }
 }

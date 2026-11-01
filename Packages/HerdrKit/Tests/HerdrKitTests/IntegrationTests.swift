@@ -144,17 +144,32 @@ private func talk(_ client: HerdrClient, _ exec: SubscribeCounter) async throws 
     }
 }
 
-@Test func `a long line and the lines around it read whole, and quickly`() async throws {
+@Test func `a long line and the lines around it read whole`() async throws {
     let exec = localExec
     // 8 MB in one line, as a big session's snapshot comes (280 KB at 400 panes), in many pipe chunks.
     let channel = try await exec.run(["sh", "-c", "echo a; head -c 8000000 /dev/zero | tr '\\0' x; echo; echo b"])
     channel.closeInput()
-    let start = ContinuousClock.now
     let lines = await channel.lines.reduce(into: []) { $0.append($1) }
     #expect(lines.map(\.count) == [1, 8_000_000, 1])
-    // A scan from the line's start for each chunk took about 16 s here, the linear split under 1 s: a bound a slow,
-    // shared CI runner meets (1 s did not).
-    #expect(ContinuousClock.now - start < .seconds(6))
+}
+
+/// Against a ten times shorter line, not the wall clock (a busy CI runner stalls for seconds): linear is about 10
+/// times slower, a scan from the line's start for each chunk about 100 times. The fastest of three of each.
+@Test func `a long line splits in time linear in its length`() {
+    func split(_ size: Int) -> Duration {
+        let chunk = Data(repeating: UInt8(ascii: "x"), count: 65536)
+        return (0 ..< 3).map { _ in
+            ContinuousClock().measure {
+                var buffer = LineBuffer()
+                for _ in 0 ..< size / chunk.count {
+                    _ = buffer.take(chunk)
+                }
+                #expect(buffer.take(Data("\n".utf8)).count == 1)
+            }
+        }.min() ?? .zero
+    }
+    let short = split(800_000), long = split(8_000_000)
+    #expect(long < short * 40, "\(short) for 800 KB, \(long) for 8 MB")
 }
 
 @Test func `terminate stops the readers when a grandchild keeps the pipes open`() async throws {
