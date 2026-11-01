@@ -159,8 +159,8 @@ extension OrielUITests {
         XCTAssertTrue(element("pane.\(pane).reload").exists)
     }
 
-    /// The user's clipboard, every type of it, back after the test (the fixture writes it).
-    private func keepPasteboard() {
+    /// The user's clipboard, every type of it, back after the test (a test that writes it).
+    func keepPasteboard() {
         let saved = (NSPasteboard.general.pasteboardItems ?? []).map { item in
             item.types.compactMap { type in item.data(forType: type).map { (type, $0) } }
         }

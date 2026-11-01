@@ -329,23 +329,35 @@ An editable text view (CodeMirror 6).
 - **Row 2:** Back and Forward, `Read | Edit`, the outline toggle
   (`sidebar.left`, in the accent while the outline shows), then Show in File
   Explorer and Open With.
-- **Read** shows the text rendered (markdown-it, with HTML and bare
-  addresses as links), 28 pt under row 2. It renders the editor's current
-  text, so unsaved edits show too. YAML front matter is left out. Task items
-  show boxes. Headings get GitHub's ids, so `#section` links scroll. Images
-  are not loaded: their alt text is a link to the image.
-- **Edit** is the File page's editor with Markdown (GitHub's flavor) in a
-  640 pt column, 28 pt under row 2, in the system font 1 pt larger than the
-  text size. Each mark (a heading's `#`, emphasis, a link's brackets and
-  address, code ticks) hides unless the selection touches its element. A
-  task's `[ ]` shows as a box. Fenced code fences, link references,
-  autolinks, setext underlines and table pipes stay shown. Front matter
-  shows as YAML in 12 pt monospace, secondary.
+- **One view for both modes.** Read and Edit are the same editor (CodeMirror
+  with Markdown, GitHub's flavor), drawn as rendered Markdown: a live
+  preview. It is a 640 pt column, 28 pt under row 2, in the system font 1 pt
+  larger than the text size. So a switch moves nothing on screen but the
+  caret's line.
+- **Read** is the view with every line drawn and no caret. Marks are hidden:
+  a heading's `#`, emphasis, a link's brackets and address, code ticks,
+  quote marks and code fences. Headings have their size (an h2 a line under
+  it), bullets are `•` and numbers stay, at their depth, with the line
+  hanging after them. Task items show boxes. Quotes have a bar at the left
+  and secondary text. Code blocks have a rounded fill. A `---` rule is a
+  line. Tables and HTML blocks are drawn by markdown-it; HTML comments draw
+  nothing; an escape's backslash hides. Bare addresses are links. Images are
+  not loaded: their alt text is a link to the image. Front matter shows as
+  YAML in 12 pt monospace, secondary. Copy gives the Markdown source of the
+  selection, and Select All the whole file. For VoiceOver, Read is an article
+  with headings, not a text box.
+- **Edit** makes the view editable. The lines with the caret or the
+  selection show their marks; every other line looks as in Read. A table or
+  an HTML block shows its source while the caret is in it; a click on one
+  puts the caret there. A click in Read and then ⌘E keeps the caret where
+  the click was.
 - **⌘E** (View ▸ Edit Mode, checked while editing) switches between Read and
-  Edit. ⌘F in Read switches to Edit, where the search panel is.
+  Edit. ⌘F, ⌘G and ⇧⌘G in Read switch to Edit, where the search panel is.
+  Read closes the search panel.
 - **The outline** is a 190 pt column at the left with the document's
-  headings, indented by level. A click scrolls Read to the heading, or puts
-  Edit's caret on it.
+  headings, indented by level. It slides in and out (0.25 s). A click
+  scrolls to the heading and in Edit puts the caret on it. `#section` links
+  scroll to the heading with GitHub's id.
 - Links open from Read only ([Opening](#opening)). A landing with a line
   opens Edit with the caret on that line. A page that loads again starts in
   Read with the outline closed.

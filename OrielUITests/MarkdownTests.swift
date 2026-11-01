@@ -1,7 +1,8 @@
+import AppKit
 import XCTest
 
-/// File Explorer's Markdown place: Read renders the file, Edit (⌘E) is its own text with each mark hidden unless
-/// the caret is in its element, the outline lists the headings, ⌘S saves, Read follows the file on disk, the
+/// File Explorer's Markdown place: Read draws the file rendered, Edit (⌘E) is the same view with the marks of the
+/// caret's line shown, the outline lists the headings, ⌘S saves, Read follows the file on disk, the
 /// overview's tile shows the page and a relative link shows its file in the card, or a new tab with ⌘.
 extension OrielUITests {
     func testMarkdownCardReadsEditsSavesAndLinks() async throws {
@@ -13,16 +14,17 @@ extension OrielUITests {
             _ = try? await Self.call(one, "pane.send_text", ["pane_id": shell, "text": "rm -rf \(folder)\r"])
         }
         try await send("mkdir -p \(folder) && cd \(folder) && printf '%s\\n' '---' 'title: Hidden' '---' '# Notes' "
-            + "'Some *words*.' '## Second' '[Other](other.md)' >notes.md && printf '# Other\\n' >other.md && clear "
+            + "'Some *words*.' '## Second' '[Other](other.md)' '' '| A | B |' '| - | - |' '| 1 | 2 |' >notes.md"
+            + " && printf '# Other\\n' >other.md && clear "
             + "&& echo ready-$((6*7))\r", to: shell)
         try await waitFor(shell) { $0.contains("ready-42") }
         let (tab, card) = try await markdownCard("\(folder)/notes.md")
 
-        // Read: the rendered page, front matter left out; no editor.
+        // Read: the rendered page with no marks (`Second` alone), a table drawn; no text box.
         let page = element("markdown.\(card).page")
         XCTAssertTrue(page.staticTexts.matching(NSPredicate(format: "value == 'Second'")).firstMatch.exists(within: 10))
         XCTAssertTrue(element("pane.\(card).mode.read").isSelected)
-        XCTAssertFalse(page.staticTexts.matching(NSPredicate(format: "value CONTAINS 'Hidden'")).firstMatch.exists)
+        XCTAssertTrue(page.staticTexts.matching(NSPredicate(format: "value == 'B'")).firstMatch.exists)
         XCTAssertFalse(page.textViews.firstMatch.exists)
         element("pane.\(card).outline").click()
         XCTAssertTrue(element("pane.\(card).outline").has(\.isSelected, true, within: 3))
@@ -47,6 +49,7 @@ extension OrielUITests {
         XCTAssertTrue(element("pane.\(card).mode.read").has(\.isSelected, true, within: 3))
         try await send("printf '## Third\\n' >>notes.md\r", to: shell)
         XCTAssertTrue(page.staticTexts.matching(NSPredicate(format: "value == 'Third'")).firstMatch.exists(within: 5))
+        copyAll(page)
         let before = try await tabIDs()
         XCUIElement.perform(withKeyModifiers: .command) { page.links["Other"].click() }
         let opened = try await newTabID(after: before)
@@ -61,26 +64,46 @@ extension OrielUITests {
         XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, "notes.md", within: 5))
     }
 
-    /// ⌘E: marks away from the caret (at the top) are hidden; an outline row puts the caret on its heading, whose
-    /// mark shows. A typed letter shows the dirty dot and ⌘S writes it to the file.
+    /// ⌘E: nothing moves but the clicked line, whose marks show; the others stay hidden; a click on the table shows
+    /// its source; an outline row puts the caret on its heading, whose mark shows while the other heading's hides. A
+    /// typed letter shows the dirty dot and ⌘S writes it to the file.
     private func editAndSave(_ card: String, page: XCUIElement, shell: String) async throws {
+        // Read takes no typing: the dot stays off below.
         page.staticTexts.matching(NSPredicate(format: "value == 'Second'")).firstMatch.click()
+        app.typeText("q")
+        let link = page.links["Other"].frame
         app.typeKey("e", modifierFlags: .command)
         XCTAssertTrue(element("pane.\(card).mode.edit").has(\.isSelected, true, within: 3))
         let editor = page.textViews.firstMatch
-        XCTAssertTrue(until(5) { editor.exists && editor.stringValue.contains("Some words.") })
+        XCTAssertTrue(until(5) { editor.exists && editor.stringValue.contains("## Second") }, editor.stringValue)
+        XCTAssertTrue(editor.stringValue.contains("Some words."))
         XCTAssertFalse(editor.stringValue.contains("*words*"))
-        XCTAssertFalse(editor.stringValue.contains("## Second"))
-        page.buttons["Second"].click()
-        XCTAssertTrue(until(3) { editor.stringValue.contains("## Second") })
+        XCTAssertEqual(page.links["Other"].frame, link)
+        page.staticTexts.matching(NSPredicate(format: "value == '1'")).firstMatch.click()
+        XCTAssertTrue(until(3) { editor.stringValue.contains("| 1 | 2 |") }, editor.stringValue)
+        page.buttons["Notes"].click()
+        XCTAssertTrue(until(3) { editor.stringValue.contains("# Notes") && !editor.stringValue.contains("## Second") })
         XCTAssertFalse(element("pane.\(card).dirty").exists)
         app.typeText("x")
         XCTAssertTrue(element("pane.\(card).dirty").exists(within: 3))
         keepScreenshot("markdown card, edit")
         app.typeKey("s", modifierFlags: .command)
         XCTAssertTrue(element("pane.\(card).dirty").vanishes(within: 5))
-        try await send("clear && grep -q '^x## Second$' notes.md && echo saved-$((6*7))\r", to: shell)
+        try await send("clear && grep -q '^x# Notes$' notes.md && echo saved-$((6*7))\r", to: shell)
         try await waitFor(shell) { $0.contains("saved-42") }
+    }
+
+    /// Select All and Copy in Read give the whole source, past the lines drawn.
+    private func copyAll(_ page: XCUIElement) {
+        keepPasteboard()
+        NSPasteboard.general.clearContents()
+        page.staticTexts.matching(NSPredicate(format: "value == 'Third'")).firstMatch.click()
+        app.typeKey("a", modifierFlags: .command)
+        app.typeKey("c", modifierFlags: .command)
+        XCTAssertTrue(until(3) {
+            let copied = NSPasteboard.general.string(forType: .string) ?? ""
+            return copied.hasPrefix("---\ntitle: Hidden") && copied.contains("[Other](other.md)")
+        }, NSPasteboard.general.string(forType: .string) ?? "nothing copied")
     }
 
     /// A Markdown card of this file in a tab of its own in w2 (selected by `newTab`), made as Oriel makes one, shown.

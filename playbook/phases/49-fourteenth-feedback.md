@@ -258,3 +258,10 @@ Files: `Oriel/Views/Sidebar*.swift`, the state capsule in the card header, the a
   `#D5512F`/`#FF855E` and `#08C0EF`.
 - **Item 13.** Open With already opened the default app first, with the others in its menu, but showed only the
   app's icon: it now shows the icon and the app's name.
+- **Decisions, item 12.** Read and Edit are one CodeMirror view (a live preview), so a switch moves nothing but the
+  caret's line: Read is the view not editable with every line drawn, Edit shows the marks of the caret's lines.
+  markdown-it draws only tables and HTML blocks (block widgets, the source while the caret is in one). Front matter
+  shows in Read too (dim monospace, as Edit). Known limits of the live preview against markdown-it's page: reference
+  links (`[text][ref]`) are no links and their definitions stay shown; inline HTML and entities show as written; a
+  setext heading keeps its underline; a list item's continuation lines do not hang; `1. 1. 1.` shows as written; a
+  second heading of the same name has no `-1` anchor.
