@@ -94,8 +94,9 @@ extension HostStore {
         var program: Program?
         /// The card of a plugin not on this Mac shows the pane's placeholder terminal: the user asked for it.
         var placeholder = false
-        /// The shell process the placeholder was typed into (`keepPlaceholder`).
+        /// The shell process the placeholder was typed into, and the terminal looked at again (`keepPlaceholder`).
         @ObservationIgnored var placed: Int?
+        @ObservationIgnored var rechecked: String?
         /// Relaunch with Chat restarted its agent: the user asked for the chat, so it shows first.
         @ObservationIgnored var relaunched = false
         /// herdr was asked for the program at least once.
@@ -283,7 +284,10 @@ extension HostStore {
             pane.asks += 1 // the old terminal's answer in flight
         }
         let word = { (title: String?) in title?.split(separator: " ").first }
-        if pane.asked, new.agent != pane.agent || word(new.title) != word(pane.terminalTitle) {
+        // A new label too: a pane labeled a card by hand gets its placeholder (`keepPlaceholder`).
+        if pane.asked,
+           new.agent != pane.agent || word(new.title) != word(pane.terminalTitle) || new.label != pane.label
+        {
             Task { await askProgram(pane.id) }
         }
         // Every pane once, for its tab's icons and the hover card, also in tabs never shown; a failed ask is made

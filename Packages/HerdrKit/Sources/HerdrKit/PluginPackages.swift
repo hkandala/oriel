@@ -246,7 +246,7 @@ public enum PluginPackages {
         }
     }
 
-    /// Adds the source to the list (once), or takes it out; the file's other keys stay.
+    /// Adds the entry (a source, or a plugin's id) to the list (once), or takes it out; the file's other keys stay.
     public static func list(_ source: String, in settings: URL, add: Bool, key: String = "packages") throws {
         var json = read(settings)
         var packages = (json[key] as? [Any] ?? []).filter {

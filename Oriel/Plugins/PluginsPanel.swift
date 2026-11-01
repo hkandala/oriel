@@ -80,7 +80,7 @@ struct NewPaneSwitch: View {
         Toggle("Show in New Pane", isOn: Binding { Registry.inNewPane(manifest) } set: {
             Registry.show(manifest.id, inNewPane: $0)
         })
-        .font(.system(size: 11)).foregroundStyle(.secondary).toggleStyle(.switch).controlSize(.mini)
+        .font(.system(size: 11)).foregroundStyle(.secondary)
     }
 }
 
@@ -105,7 +105,8 @@ private struct PluginRow: View {
             }
             Spacer(minLength: 8)
             if let manifest = row.manifest, manifest.chooser != nil {
-                NewPaneSwitch(manifest: manifest).accessibilityIdentifier("\(id).new-pane")
+                NewPaneSwitch(manifest: manifest).toggleStyle(.switch).controlSize(.mini)
+                    .accessibilityIdentifier("\(id).new-pane")
             }
             if let busy = installs.busy[row.id]
                 ?? (DefaultPlugins.shared.installing.contains(row.id) ? "Installing…" : nil)

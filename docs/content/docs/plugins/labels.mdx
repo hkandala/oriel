@@ -111,8 +111,12 @@ was made with.
   login shell passes on ([Running commands](/docs/talking-to-herdr#running-commands)),
   and Return. The placeholder takes the shell's place, so the pane runs only
   the placeholder.
+- It looks again when the pane's label changes, and once more 5 s after it
+  found another program in front (a slow shell startup after a restart).
 - Once per shell process (its pid). A pane that runs any other program gets
-  nothing typed.
+  nothing typed. The line starts with a space, which keeps it out of a history
+  that ignores such lines. A shell's own question that waits for a line (an
+  update prompt in a `.zshrc`) looks like the shell, and gets the line.
 
 ## Choices
 

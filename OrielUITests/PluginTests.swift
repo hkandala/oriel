@@ -71,6 +71,17 @@ extension OrielUITests {
         let names = ((info["process_info"] as? [String: Any])?["foreground_processes"] as? [[String: Any]] ?? [])
             .compactMap { $0["name"] as? String }
         XCTAssertTrue(names.contains("cat"), "\(names)")
+
+        // A shell pane the app has known for a while, labeled a card later as an agent does (a rename sends no event;
+        // the metadata token makes the app read the layout).
+        let (_, shell) = try await newTab("relabel")
+        try await waitForPrompt(shell)
+        try await send("sleep 2; echo slept-$((6*7))\r", to: shell)
+        try await waitFor(shell) { $0.contains("slept-42") }
+        try await Self.call(one, "pane.rename", ["pane_id": shell, "label": "oriel:explorer#e2epl2 /tmp/"])
+        try await Self.call(one, "pane.report_metadata", ["pane_id": shell, "source": "oriel-panes",
+                                                          "tokens": ["oriel-label": "1"], "ttl_ms": 1000])
+        try await waitFor(shell, in: nil) { $0.contains("Shown in Oriel") }
     }
 
     /// A tab per file page made as Oriel makes one (`layout.apply` with the label and a placeholder): its card and

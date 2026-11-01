@@ -281,11 +281,23 @@ extension HostStore {
     /// per shell process (plugins/labels#the-placeholder): herdr starts a fresh shell under the label after a restart,
     /// and a pane labeled outside the app may have none. Never into a pane that runs another program.
     func keepPlaceholder(_ pane: Pane) {
-        guard let label = pane.plugin, let program = pane.program, program.isShell, !pane.starting,
-              let shell = program.foreground.first?.pid, pane.placed != shell, let client else { return }
+        guard let label = pane.plugin, let program = pane.program, let client else { return }
+        guard program.isShell else {
+            // A slow shell startup after a restart can outlast the first look: one more, later.
+            if !program.isPlaceholder, pane.rechecked != pane.terminalID {
+                pane.rechecked = pane.terminalID
+                Task {
+                    try? await Task.sleep(for: .seconds(5))
+                    await askProgram(pane.id)
+                }
+            }
+            return
+        }
+        guard let shell = program.foreground.first?.pid, pane.placed != shell else { return }
         pane.placed = shell
-        // In place of the shell, so the pane runs only the placeholder; base64, which any login shell passes on.
-        let line = "exec " + SSHExec.envelope(["exec"] + label.placeholder)
+        // In place of the shell, so the pane runs only the placeholder; base64, which any login shell passes on. The
+        // space keeps it out of a history that ignores such lines (fish; zsh and bash when set to).
+        let line = " exec " + SSHExec.envelope(["exec"] + label.placeholder)
         Task { try? await client.sendInput(line, keys: ["enter"], pane: pane.id) }
     }
 
