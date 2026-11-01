@@ -25,6 +25,7 @@ enum AgentCommands {
         .float,
         .unfloat,
         .copy,
+        .plugins,
     ]
 
     /// The script Oriel writes to `~/.cache/oriel/bin/oriel` on each machine it opens a session on.

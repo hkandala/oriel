@@ -170,3 +170,30 @@ simple and brief."
   `~/.cache/oriel` (a cache, as the chat state is), never over a newer script.
 - **For the user.** A float from `oriel float` (and its `existing` bring-to-front) should open without activating
   Oriel: check it with Oriel in the background.
+
+### Track C
+
+- **Decisions.** `plugins` is one command with the subcommands `new`, `reload`, `install`; a first word that is none
+  of them is the list. `source` is the Plugins panel's row text (the folder, `npm:…`, `git:…`), except `app` for the
+  browser and the default plugins, whose row says "Comes with Oriel". A package that did not load shows `id`, `source`
+  (its folder) and `error` (`package.json: …`); in the text it is a `not loaded` row. `log` is the full path, and only
+  for a pane on This Mac and a plugin with an entry (not the browser). `--for` and a relative `install` path are read
+  from the command's folder; `--for` treats an argument ending in `/` (or `.`) as a folder.
+- **One order for `--for` and `open`.** `Registry.openers(for:)` ranks a path, folder or http(s) URL; BridgeCard's
+  linked open and track B's `open` take its first, so the default never differs between them.
+- **The panel's code, throwing.** `PluginInstalls.create(named:)` and `install(_:for:)` now throw and return the
+  plugin; the panel calls them with `try?` and still shows its notice and Retry. The prompt's Cancel is a
+  `CancellationError` (no notice in the panel; `declined` for an agent). An agent's work shows in the panel too
+  (Creating…, Installing…, a failure).
+- **The agent's trust prompt.** The same sheet as the panel's, on the window of the asking session, with "‹agent› in
+  pane ‹pane› asks to install it." first. Oriel never comes to the front for it (it asks for attention in the Dock),
+  and Return does not press Install, so keys typed elsewhere cannot consent. If the script's `--timeout` ends first,
+  the prompt stays and the install goes on.
+- **reload.** One id: the registry is read again first, so a folder made by hand loads; an unknown id is
+  `plugin_not_found` with the registry's reason; the browser is `bad_argument`; an untrusted plugin is `failed` (its
+  card asks the user). No id: every plugin with an open card, answered as `{"plugins":[…]}`. Any dirty card of those
+  plugins stops it with `dirty` and the pane's name before anything builds; edits made during the build itself are
+  still Plugin.reload's (the panel's) race. `build_failed`'s message is the card's toast title and the build's last 20
+  lines.
+- **For the user.** The trust prompt with the agent's name: `/tmp/oriel-shots/agent-trust-prompt.png`. Check by hand
+  that it shows on the session's window while Oriel is in the background, and that Return does not install.

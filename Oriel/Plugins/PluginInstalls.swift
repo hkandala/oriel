@@ -38,25 +38,24 @@ final class PluginInstalls {
         return plugins + missing.map { InstalledPlugin(id: $0.value, manifest: nil, kind: .installed($0.value)) }
     }
 
-    /// Install from the field: an `npm:` or `git:` source is fetched, its manifest shown in the trust prompt, then its
-    /// dependencies installed; a local path is listed after the same prompt.
-    func install(_ text: String) async {
+    /// Install from the field, or from an agent (`oriel plugins install`, which names it in the trust prompt): an
+    /// `npm:` or `git:` source is fetched, its manifest shown in the trust prompt, then its dependencies installed; a
+    /// local path is listed after the same prompt. The plugin installed; `CancellationError` on the prompt's Cancel.
+    func install(_ text: String, for agent: Asker? = nil) async throws -> PluginManifest {
         let text = text.trimmingCharacters(in: .whitespaces)
         guard let source = PluginSource(text) else {
-            failure = ("Enter npm:<package>, git:<repository> or a folder’s path", nil)
-            return
+            throw refuse("Enter npm:<package>, git:<repository> or a folder’s path")
         }
         if let folder = source.folder, !PluginPackages.sources(Registry.settings).contains(text),
            FileManager.default.fileExists(atPath: Self.plugins.appending(path: folder).path)
         {
-            failure = ("A plugin folder named \(folder) is already installed", nil)
-            return
+            throw refuse("A plugin folder named \(folder) is already installed")
         }
-        await run(text, "Installing…") {
+        return try await run(text, "Installing…") {
             if case let .local(path) = source {
-                try await self.list(local: path, text)
+                try await self.list(local: path, text, for: agent)
             } else {
-                try await self.fetch(source, text)
+                try await self.fetch(source, text, for: agent)
             }
         }
     }
@@ -65,8 +64,8 @@ final class PluginInstalls {
     /// again only when the permissions grew.
     func update(_ row: InstalledPlugin) async {
         guard case let .installed(text) = row.kind, let source = PluginSource(text) else { return }
-        await run(row.id, "Updating…") {
-            try await self.fetch(source, text)
+        _ = try? await run(row.id, "Updating…") {
+            try await self.fetch(source, text, for: nil)
         }
     }
 
@@ -79,7 +78,7 @@ final class PluginInstalls {
             text = "Its folder stays where it is; Oriel stops loading it."
         }
         guard await ask("Remove “\((row.manifest?.name ?? row.id).shown)”?", text, button: "Remove") else { return }
-        await run(row.id, "Removing…") {
+        try? await run(row.id, "Removing…") {
             if case let .installed(text) = row.kind {
                 try PluginPackages.list(text, in: Registry.settings, add: false)
             }
@@ -96,23 +95,25 @@ final class PluginInstalls {
         }
     }
 
-    /// New Plugin…: the app's template (`plugins/template`) copied into the plugins folder under a name, installed and
-    /// built, and trusted (the user made it). Its row shows its folder, for an editor or an agent.
+    /// New Plugin…: the name asked, then `create(named:)`.
     func create() async {
         guard let typed = await askName() else { return }
+        _ = try? await create(named: typed)
+    }
+
+    /// The app's template (`plugins/template`) copied into the plugins folder under a name, installed and built, and
+    /// trusted (the user, or their agent on This Mac, made it). Its row shows its folder, for an editor or an agent.
+    /// The new plugin's folder.
+    func create(named typed: String) async throws -> URL {
         let name = typed.trimmingCharacters(in: .whitespaces).shown
         let id = name.lowercased().split { !($0.isASCII && ($0.isLetter || $0.isNumber)) }.joined(separator: "-")
-        guard let template = Registry.folder?.appending(path: "template") else { return }
-        guard !id.isEmpty else {
-            failure = ("Use letters or digits in a plugin’s name", nil)
-            return
-        }
+        guard let template = Registry.folder?.appending(path: "template") else { throw refuse("Oriel has no template") }
+        guard !id.isEmpty else { throw refuse("Use letters or digits in a plugin’s name") }
         let folder = Self.plugins.appending(path: id)
         guard Registry.plugin(id) == nil, !FileManager.default.fileExists(atPath: folder.path) else {
-            failure = ("A plugin named \(id) is already there", nil)
-            return
+            throw refuse("A plugin named \(id) is already there")
         }
-        await run(id, "Creating…") {
+        return try await run(id, "Creating…") {
             try FileManager.default.createDirectory(at: Self.plugins, withIntermediateDirectories: true)
             try FileManager.default.copyItem(at: template, to: folder)
             do {
@@ -136,6 +137,7 @@ final class PluginInstalls {
                 throw error
             }
             Registry.reload()
+            return folder
         }
     }
 
@@ -158,31 +160,33 @@ final class PluginInstalls {
         return answer == .alertFirstButtonReturn ? field.stringValue : nil
     }
 
-    private func fetch(_ source: PluginSource, _ text: String) async throws {
+    private func fetch(_ source: PluginSource, _ text: String, for agent: Asker?) async throws -> PluginManifest {
         let exec = await localExec.value
         let staged = try await PluginPackages.fetch(source, into: Self.plugins, exec: exec)
         do {
             try free(staged.manifest.id, for: Self.plugins.appending(path: source.folder ?? ""))
-            guard await trusts(staged.manifest, from: text, folder: staged.folder) else {
-                return PluginPackages.discard(staged)
-            }
+            try await trusts(staged.manifest, from: text, folder: staged.folder, for: agent)
             let output = try await PluginPackages.finish(staged, into: Self.plugins, exec: exec).output
             PluginLog.add(staged.manifest.id, "installed from \(text):\n"
                 + output.trimmingCharacters(in: .whitespacesAndNewlines))
         } catch {
             PluginPackages.discard(staged)
-            PluginLog.add(staged.manifest.id, "install from \(text) failed: \(error.localizedDescription)")
+            if !(error is CancellationError) {
+                PluginLog.add(staged.manifest.id, "install from \(text) failed: \(error.localizedDescription)")
+            }
             throw error
         }
         try installed(staged.manifest, text)
+        return staged.manifest
     }
 
-    private func list(local path: String, _ text: String) async throws {
+    private func list(local path: String, _ text: String, for agent: Asker?) async throws -> PluginManifest {
         let folder = Registry.local(path)
         let manifest = try PluginManifest(package: Data(contentsOf: folder.appending(path: "package.json")))
         try free(manifest.id, for: folder)
-        guard await trusts(manifest, from: text, folder: folder) else { return }
+        try await trusts(manifest, from: text, folder: folder, for: agent)
         try installed(manifest, text)
+        return manifest
     }
 
     /// An id the app or another folder has would install a package the registry leaves out.
@@ -199,12 +203,13 @@ final class PluginInstalls {
         Task { await Plugin.reload(manifest.id, build: false) }
     }
 
-    /// The trust prompt at install: the source and what the plugin can do. A new source always asks; an update only
-    /// when its permissions grew.
-    private func trusts(_ manifest: PluginManifest, from source: String, folder: URL) async -> Bool {
+    /// The trust prompt at install: the source and what the plugin can do, and the agent that asks for it. A new
+    /// source always asks; an update only when its permissions grew. Cancel throws `CancellationError`.
+    private func trusts(_ manifest: PluginManifest, from source: String, folder: URL, for agent: Asker?) async throws {
         let new = !PluginPackages.sources(Registry.settings).contains(source)
-        guard new || !PluginTrust.shared.allows(manifest) else { return true }
-        let text = ["\(manifest.id) \(manifest.version.shown) from \(source)", manifest.description.shown,
+        guard new || !PluginTrust.shared.allows(manifest) else { return }
+        let asks = agent.map { "\($0.name) asks to install it." }
+        let text = [asks ?? "", "\(manifest.id) \(manifest.version.shown) from \(source)", manifest.description.shown,
                     PluginTrust.words(manifest, folder: folder).joined(separator: " ")].filter { !$0.isEmpty }
         let alert = NSAlert()
         // Its row in the New Pane chooser, on unless the user turned it off before.
@@ -214,38 +219,65 @@ final class PluginInstalls {
             alert.suppressionButton?.state = Registry.inNewPane(manifest) ? .on : .off
         }
         guard await ask("Trust “\(manifest.name.shown)”?", text.joined(separator: "\n\n"), button: "Install",
-                        alert: alert) else { return false }
+                        alert: alert, for: agent) else { throw CancellationError() }
         if let box = alert.suppressionButton, alert.showsSuppressionButton {
             Registry.show(manifest.id, inNewPane: box.state == .on)
         }
-        return true
     }
 
-    private func ask(_ title: String, _ text: String, button: String, alert: NSAlert = NSAlert()) async -> Bool {
+    /// A sheet on the key window, or for an agent on its session's window. An agent's prompt never takes the user's
+    /// keys: Oriel only asks for attention, and Return is not Install, so typing that lands here installs nothing.
+    private func ask(_ title: String, _ text: String, button: String, alert: NSAlert = NSAlert(),
+                     for agent: Asker? = nil) async -> Bool
+    {
         alert.messageText = title
         alert.informativeText = text
         alert.addButton(withTitle: button)
         alert.addButton(withTitle: "Cancel")
-        guard let window = NSApp.keyWindow else { return alert.runModal() == .alertFirstButtonReturn }
+        if agent != nil {
+            alert.buttons[0].keyEquivalent = ""
+            NSApp.requestUserAttention(.informationalRequest)
+        }
+        guard let window = agent?.window ?? NSApp.keyWindow else {
+            return alert.runModal() == .alertFirstButtonReturn
+        }
         return await alert.beginSheetModal(for: window) == .alertFirstButtonReturn
     }
 
-    /// One at a time per row; a failure's Retry runs it again.
-    private func run(_ id: String, _ doing: String, _ body: @escaping () async throws -> Void) async {
-        guard busy[id] == nil else { return }
+    /// The panel's notice for a refusal before any work, as an error for an agent.
+    private func refuse(_ text: String) -> HerdrError {
+        failure = (text, nil)
+        return .failed(text)
+    }
+
+    /// One at a time per row; a failure's Retry runs it again. A Cancel in a prompt is no failure.
+    private func run<T>(_ id: String, _ doing: String, _ body: @escaping () async throws -> T) async throws -> T {
+        if let busy = busy[id] {
+            throw HerdrError.failed("\(id) is busy: \(busy)")
+        }
         busy[id] = doing
         failure = nil
         defer { busy[id] = nil }
         do {
-            try await body()
+            return try await body()
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
             let text = (error as? ManifestError).map { "package.json: \($0.text)" } ?? error.localizedDescription
-            failure = (text.firstLine, { Task { await self.run(id, doing, body) } })
+            failure = (text.firstLine, { Task { _ = try? await self.run(id, doing, body) } })
             if Registry.plugin(id) != nil {
                 PluginLog.add(id, "\(doing) failed: \(text)")
             }
+            throw HerdrError.failed(text)
         }
     }
+}
+
+/// An agent that asks for an install (`oriel plugins install`): its name in the trust prompt, and the window of its
+/// session, which the prompt's sheet goes on.
+struct Asker {
+    let name: String
+    let window: NSWindow?
 }
 
 /// One row of the list: a plugin, or a listed source whose install is missing.

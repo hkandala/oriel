@@ -131,11 +131,12 @@ enum Registry {
     /// manifest or a taken id is left out, with the reason in the log.
     struct Loaded {
         let all: [PluginManifest], defaults: Set<String>, folders: [String: URL]
-        let byID: [String: PluginManifest], symbols: Set<String>, problems: [String: String]
+        let byID: [String: PluginManifest], symbols: Set<String>
+        let problems: [String: Problem]
         /// File Explorer's places.json (`ExplorerPlace`): the installed copy's, else the app's (first launch).
         let places: [String: Set<String>]
 
-        init(all: [PluginManifest], defaults: Set<String>, folders: [String: URL], problems: [String: String]) {
+        init(all: [PluginManifest], defaults: Set<String>, folders: [String: URL], problems: [String: Problem]) {
             (self.all, self.defaults, self.folders, self.problems) = (all, defaults, folders, problems)
             places = [folders["explorer"], Registry.folder?.appending(path: "defaults/explorer")]
                 .lazy.compactMap { $0.flatMap { try? Data(contentsOf: $0.appending(path: "places.json")) } }.first
@@ -148,7 +149,7 @@ enum Registry {
     }
 
     private static func load() -> Loaded {
-        problems = [:]
+        leftOut = [:]
         // The defaults' installed copies, with the app's manifest while a copy is missing (first launch).
         let plugins = config.appending(path: "plugins")
         let mine = packages(in: folder?.appending(path: "defaults")).map { manifest, url in
@@ -175,7 +176,7 @@ enum Registry {
             + manifests.filter { !defaults.contains($0.id) }.sorted { $0.id < $1.id },
             defaults: defaults.union([browser.id]),
             folders: Dictionary(kept.map { ($0.manifest.id, $0.url) }) { first, _ in first },
-            problems: problems.filter { problem in !manifests.contains { $0.id == problem.key } })
+            problems: leftOut.filter { problem in !manifests.contains { $0.id == problem.key } })
     }
 
     /// Each subfolder's package, by folder name.
@@ -203,7 +204,7 @@ enum Registry {
             // A label naming its id shows why it did not load, when the id itself reads.
             let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
             if let id = (json?["oriel"] as? [String: Any])?["id"] as? String {
-                problems[id] = text
+                leftOut[id] = Problem(folder: folder, error: "package.json: \(error.text)")
                 // `note` wrote it under the folder's name.
                 if id != folder.lastPathComponent {
                     PluginLog.add(id, text)
@@ -214,11 +215,22 @@ enum Registry {
     }
 
     /// Why a package with this id was left out (a bad manifest), while the list is read; `Loaded.problems` after.
-    private static var problems: [String: String] = [:]
+    private static var leftOut: [String: Problem] = [:]
+
+    /// A package left out for its manifest: its folder, and the error in it.
+    struct Problem {
+        let folder: URL
+        let error: String
+    }
+
+    /// Every package with an id that was left out, by that id.
+    static var problems: [String: Problem] {
+        current.loaded.problems
+    }
 
     /// Why the plugin of a label did not load: its manifest's error.
     static func problem(_ id: String) -> String? {
-        current.loaded.problems[id]
+        current.loaded.problems[id].map { "\($0.folder.path)/\($0.error)" }
     }
 
     /// A package left out: in the unified log, and in the log file named after its folder (it may have no id).

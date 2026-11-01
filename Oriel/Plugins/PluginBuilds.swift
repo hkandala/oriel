@@ -122,12 +122,16 @@ enum PluginLog {
         ?? URL.homeDirectory.appending(path: "Library/Logs/Oriel/plugins")
     private nonisolated static let queue = DispatchQueue(label: "dev.hkandala.oriel.plugin-log")
 
+    nonisolated static func file(_ id: String) -> URL {
+        folder.appending(path: "\(id).log")
+    }
+
     nonisolated static func add(_ id: String, _ text: String) {
         // A page's line breaks stay indented under its line, so they never read as the app's own lines.
         let text = text.replacingOccurrences(of: "\n", with: "\n  ")
         let line = Data("\(Date.now.ISO8601Format(.iso8601(timeZone: .current))) \(text)\n".utf8)
         queue.async {
-            let file = folder.appending(path: "\(id).log"), files = FileManager.default
+            let file = PluginLog.file(id), files = FileManager.default
             try? files.createDirectory(at: folder, withIntermediateDirectories: true)
             // ponytail: starts over past 1 MB; keep a second file if authors need more history.
             let size = (try? file.resourceValues(forKeys: [.fileSizeKey]))?.fileSize
@@ -144,7 +148,7 @@ enum PluginLog {
     /// Show Log: the plugin's log in the app that opens `.log` files (Console), after the lines on their way.
     nonisolated static func show(_ id: String) {
         queue.async {
-            let file = folder.appending(path: "\(id).log")
+            let file = PluginLog.file(id)
             try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
             if !FileManager.default.fileExists(atPath: file.path) {
                 FileManager.default.createFile(atPath: file.path, contents: nil)
@@ -214,18 +218,19 @@ extension Plugin {
     /// ask first, on the first card that has them.
     /// ponytail: Discard there drops every card's edits, and a card made again starts from its state file (up to
     /// 500 ms behind); ask per card and hand the state over if that bites.
-    /// `build` false: an install that built it already, or ships its build.
-    static func reload(_ id: String, asked: Bool = false, build: Bool = true) async {
+    /// `build` false: an install that built it already, or ships its build. The failed build's problem, for an agent.
+    @discardableResult
+    static func reload(_ id: String, asked: Bool = false, build: Bool = true) async -> PluginProblem? {
         if !asked, let dirty = cards.first(where: { $0.manifest.id == id && $0.dirty }) {
             dirty.leave { _ in Task { await reload(id, asked: true, build: build) } }
-            return
+            return nil
         }
         Registry.reload()
-        guard let manifest = Registry.plugin(id), manifest.entry != nil else { return }
+        guard let manifest = Registry.plugin(id), manifest.entry != nil else { return nil }
         let cards = cards.filter { $0.manifest == manifest }
         guard build, let problem = await PluginBuilds.shared.build(manifest) else {
             cards.forEach { $0.web.reload() }
-            return
+            return nil
         }
         for card in cards {
             if card.web.bridge?.failure != nil || !card.web.ready {
@@ -236,6 +241,7 @@ extension Plugin {
                 card.web.toast = problem.toast(id)
             }
         }
+        return problem
     }
 
     /// Reload Plugins: every package read again (new, removed and changed manifests), then each plugin with an open

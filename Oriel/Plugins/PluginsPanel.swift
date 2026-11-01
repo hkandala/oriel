@@ -64,7 +64,7 @@ struct PluginsPanel: View {
     private func install() {
         let text = source
         Task {
-            await PluginInstalls.shared.install(text)
+            _ = try? await PluginInstalls.shared.install(text)
             if PluginInstalls.shared.failure == nil {
                 source = ""
             }
