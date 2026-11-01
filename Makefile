@@ -63,6 +63,9 @@ test:
 	python3 -c 'import pathlib, sys; texts = pathlib.Path("Oriel/Acknowledgements.txt").read_text(); \
 		sys.exit([f"{f} is not in Oriel/Acknowledgements.txt" for f in pathlib.Path("resources/icons/licenses").iterdir() \
 			if f.read_text().strip() not in texts] or None)'
+	@# cli.mdx shows the script Oriel carries.
+	python3 -c 'import pathlib, sys; sys.exit("```sh\n" + pathlib.Path("Oriel/Agent/oriel.sh").read_text() + "```" not in \
+		pathlib.Path("docs/content/docs/agent-control/cli.mdx").read_text() and "cli.mdx: The script differs from Oriel/Agent/oriel.sh")'
 
 # Runs the UI tests against throwaway herdr sessions, removed even when tests fail.
 # ONLY=OrielUITests/OrielUITests/testA,OrielUITests/OrielUITests/testB runs just those.

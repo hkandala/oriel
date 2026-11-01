@@ -125,13 +125,13 @@ script exits 5 and says to pass `--pane`.
 
 ### Error codes
 
-Oriel's errors, in `{"error":{"code","message"}}` with `--json`. The script's
-own failures (exit 2 for its options, 3, 4, 5) print only text on standard
-error.
+The errors, in `{"error":{"code","message"}}` with `--json`. The script
+answers `no_oriel`, `timeout`, `no_herdr`, and `usage` for its own options;
+Oriel answers the rest.
 
 | Code | Exit | When |
 |---|---|---|
-| `usage` | 2 | an unknown option, a missing or extra argument, two places for `open`, `--replace` for `agent`; a file that is not a request, or over 64 KiB or 64 fields |
+| `usage` | 2 | the script's `--pane` or `--timeout` without a whole value; an unknown option, a missing or extra argument, two places for `open`, `--replace` for `agent`; a file that is not a request, or over 64 KiB or 64 fields |
 | `unknown_command` | 2 | a command this Oriel does not have (`oriel help` lists them) |
 | `protocol` | 2 | the request's version is newer than this Oriel speaks |
 | `pane_not_found` | 1 | a pane argument: no such pane, or no such session running on the asking pane's machine |
@@ -146,6 +146,9 @@ error.
 | `declined` | 1 | the user pressed Cancel in the trust prompt of `plugins install` |
 | `build_failed` | 1 | `plugins reload`: the build failed; the message ends with the build's last 20 lines |
 | `failed` | 1 | anything else: a herdr call or a run failed, no window shows the session, the Plugins panel's own refusal; the message is herdr's, the shell's or the panel's |
+| `no_oriel` | 3 | no Oriel took the request within 3 s |
+| `timeout` | 4 | an Oriel took it but did not answer within the timeout |
+| `no_herdr` | 5 | no pane to ring, herdr has no such pane or refused the ring, or the mailbox could not be written |
 
 A pane argument is always read on the asking pane's machine, because its
 syntax cannot name another one. So no pane argument is `other_machine`.
@@ -161,7 +164,7 @@ syntax cannot name another one. So no pane argument is `other_machine`.
   a command gets a new command name. `oriel info --json` lists `commands`, so
   a caller can look for one first.
 - **The script's version** is its second line,
-  `# oriel-cli ‹protocol›.‹revision›` (`# oriel-cli 1.1`). Oriel compares the
+  `# oriel-cli ‹protocol›.‹revision›` (`# oriel-cli 1.2`). Oriel compares the
   machine's line with its own script's, as numbers, and writes the script
   only over a lower one. A fixed script gets a new revision and replaces the
   old one without a new protocol. Oriel never writes an older script, so two

@@ -48,7 +48,8 @@ extension OrielUITests {
         XCTAssertTrue(app.wait(for: .notRunning, timeout: 5))
         try await expectOpen("w2", false)
         try await run("\(oriel) status", in: first, "gone", 3, "Not in Oriel")
-        try await run("\(oriel) info", in: first, "none", 3, "oriel: no Oriel shows")
+        try await run("\(oriel) --json info", in: first, "none", 3, "oriel: no Oriel shows",
+                      #"{"error":{"code":"no_oriel""#)
     }
 
     /// The `oriel` command on Key Host (RemoteTests' sshd, CI only): Oriel writes the script there, hears the ring over
