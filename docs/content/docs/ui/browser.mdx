@@ -147,31 +147,23 @@ server's terminal.
 
 ## Pictures and switches
 
-WebKit paints only what shows. A page put back into a window (its tab shown
-again) drew blank for one to six frames. So each web
-card (a browser's or a plugin's) keeps a picture of its page:
+A tab shown again puts its kept web views back into the window as they are:
+recorded at 60 fps, WebKit draws no blank frame on such a switch, so nothing
+covers the page. Each web card (a browser's or a plugin's) keeps a picture of
+its page, for its overview tile and for a card made again:
 
 - **Taken** as the card leaves view, and for the cards in view as the
   overview opens (`takeSnapshot`, about 8 ms in WebKit's process, also out
   of a window). Every picture is taken at 1x: 6 MB for a full-window card
-  on a Retina screen, not 24. A cover shows for a few frames, and a tile is
-  scaled down.
-- **The cover.** As the card comes back into view, its picture sits over
-  the page until WebKit's next presentation update after its visible rect
-  changed (WebKit's SPI, else 100 ms), 2 s at most, also while a page
-  loads. It does not cover a page that shows already, nor a picture of
-  other proportions (the card resized meanwhile). A card
-  made again takes it at any size.
+  on a Retina screen, not 24. A tile is scaled down; a dropped card made
+  again shows the picture until its page loaded.
 - **The cap.** One cap over every picture in the app (web cards' and
   chats'): 200 MB, the least recently taken out first. A card with no
   picture shows its loader. Pictures are not purgeable: macOS takes
   volatile surfaces back within seconds.
-- **Neighbors made ahead.** 0.5 s after a tab shows, not under the overview, the web cards of the tabs on either side are
-  made one at a time, 0.1 s apart, at their size in the page, and only while
-  the kept bound has room for the cards in view too. They count as the least
-  recently shown. A browser loads out of a window and takes its picture as
-  its load ends, which covers its first frames in a window; a File Explorer or
-  Git page loads only once shown.
+- A web card is made as its tab first shows, not ahead: a switch to a tab
+  whose browser is made then took 62 ms to its first frame, as one made ahead
+  (61 ms).
 - When a new host adopts a web view, the view keeps its size: one set to the
   host's zero size laid the page out again and drew it blank.
 

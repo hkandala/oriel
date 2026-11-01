@@ -33,3 +33,49 @@ orchestrator's. This file wins over the design pages; the feature updates them.
    the Findings.
 
 ## Findings
+
+### Feature
+
+- **Removed.** The strip's scroll view and paging (`Strip`, `Paging`, `stripPage`, `stripMoving`, the item 28 follow),
+  the router's half that sent sideways gestures and wheels to the strip and the overview, the overview's session
+  paging, zoom, fades and their state (`leaving`, `afterOverview`, `overviewSliding`, `Grow`, `Frames`), the pill's
+  slide and its records, `Animation.tab`, web cards made only where the strip rests, `renewGState`, the cover
+  picture over a re-shown web view, the neighbors' web cards made ahead, `make strip-check` (script, target, CI
+  step), and the tests that checked only motion (the strip's and the overview's
+  swipes, the zoom's sizes, the pill's place). The window shows `TabPage`, the selected tab's page, a view of its own
+  per tab.
+- **Decisions (the orchestrator's).** The overview shows only the session in view: ⌥ + swipe, ⌥⌘[ ] and the palette
+  step sessions there. The tab bar's pill jumps; its dividers' fade goes. Split and close motion inside a tab, the
+  spring-load pulse and the tab drag's slide-apart stay.
+- **Decisions (mine).** The page and the pill fall back to the first tab until a snapshot settles the selection. A
+  sideways swipe over a browser card is WebKit's back and forward (or the page's own sideways scroll). A terminal
+  takes no sideways scroll: herdr's `terminal.scroll` takes only up and down (spiked). The chat's tool detail is one
+  scroll view of both axes again (the nested pair was for the strip). `ScrollAnchor` is `PagesAnchor`: it marks only
+  the sidebar's pages.
+- **Kept, and why.** The kept views (25 + 25): a switch back shows a kept terminal's surface and a kept web card's
+  page with no new stream or WebKit process. The overview's pictures: its tiles are still pictures (D70). A dropped
+  web card's picture: it shows until the card made again has loaded.
+- **Cause (CI, plugins).** A hidden tab's page now leaves the window, and a first responder that leaves its window
+  gets no `resignFirstResponder`: a plugin page kept `keyboard: true` out of view and never heard a change when it
+  came back. A plugin card now tells its page as it leaves the window. The strip had kept the neighbor page in the
+  window, so the keyboard moved by a resign there.
+- **Cause (CI, flicker).** After a resize (the sidebar, the window), every hidden tab came back at a new size and
+  reflowed in view: `hold()` keeps the old picture until herdr settles, but libghostty already draws at the new size
+  during it, so a slow pass showed the old picture, libghostty's reflow and herdr's. **Fix:** the selected
+  workspace's hidden tabs' kept terminals take their card's new size once it settles, as Ghostty's hidden tabs do;
+  a card shown in a new host fits at once (no motion to wait for). **Follow-up:** make `hold()` stop libghostty from
+  drawing during it (C, not in this phase).
+- **Runs** (Release, `open -n` on this Mac, a 6-tab bench session (terminals, two browsers, a long chat, a split
+  with a streaming chat), clicks posted to the HID tap, `-recordLatency`; base 9bcb88b5, after c20af4bd; medians,
+  click to the drawn frame): a terminal tab 59 → 45 ms, a kept browser tab 88.5 → 78.5 ms, a chat tab 60 → 48 ms;
+  the overview open 52.5 → 52 ms, a tile open 239.5 → 37.5 ms (the 0.18 s zoom is gone); a pass of 20 switches
+  0.45 s apart 67 → 51 ms. Main thread over a pass of 18 switches under `sample`: busy 51 % → 21 % of its samples
+  (SwiftUI 1729 → 896, Core Animation commits 1769 → 848, AppKit layout 1593 → 763). The cover: 60 fps recordings of
+  8 switches to kept browser tabs each, with and without it: no blank frame either way, so it went. Neighbors made
+  ahead: the first show of a browser tab took 61 ms with them, 62 ms without, so they went. CI: the touched classes
+  green on c20af4bd's code (41288845507, 41288851061, 41289783012, 41289788395, 41290732026).
+- **For the user.** Switch tabs every way (click, ⌘1–9, ⇧⌘[ ], ⌃⇥, the palette, the overview's tiles): the page
+  changes in one step. Swipe sideways over a wide browser page, a Side by Side diff and a wide Markdown table: they
+  scroll; over a narrow browser page the swipe goes back or forward. Hide the sidebar, then switch to a split tab
+  with long lines: no reflow on the switch. ⌥ + swipe still steps sessions and rows. In the overview, ⌥⌘] shows the
+  next session.

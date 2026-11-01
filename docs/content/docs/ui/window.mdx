@@ -441,6 +441,10 @@ tabs.
 
 - The window shows the selected tab's page, full width, and only it. A switch
   replaces it at once (D12).
+- When the page's size changes (the sidebar, the window), the selected
+  workspace's other tabs' kept terminals take their card's new size once it
+  settles, while hidden, as Ghostty's hidden tabs do: their programs hear of it
+  then, and a switch to the tab shows no reflow.
 - A pane the app creates shows the [New pane](/docs/ui/new-pane) chooser
   first: Terminal, Agent, Browser, File Explorer or Git.
 - Inside a page, pane cards follow herdr's split tree, with an 8 pt gap
@@ -451,10 +455,7 @@ tabs.
 - Layout changes animate over 0.13 s: a new card slides in from its side, a
   closed one fades away, a zoom grows the card to the page and back. A
   divider drag follows the pointer.
-- Browser and plugin cards are made as their tab shows, and in the tabs on
-  either side 0.5 s later while the kept bound has room
-  ([Neighbors made ahead](/docs/ui/browser#pictures-and-switches)). A card
-  coming back into view shows its picture until its page drew
+- Browser and plugin cards are made as their tab first shows
   ([Pictures and switches](/docs/ui/browser#pictures-and-switches)).
 
 How it works: [Layout and sizing](/docs/layout).
