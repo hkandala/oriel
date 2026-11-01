@@ -116,17 +116,23 @@ extension AgentCommand {
             ids = [manifest.id]
         }
         var results: [[String: Any]] = [], failures: [String] = []
+        func stop(_ dirty: Plugin, _ more: String = "") -> AgentError {
+            let done = results.map { "\($0["id"] ?? "")" }
+            return AgentError(code: "dirty", message: "\(call.naming(dirty)) has unsaved edits in \(dirty.manifest.id)"
+                + more + (done.isEmpty ? "" : "; reloaded before it: \(done.joined(separator: ", "))"))
+        }
         // Before anything builds, and again before each plugin: a card can get edits while another one builds.
         for (index, id) in ids.enumerated() {
             if let dirty = Plugin.cards.first(where: { ids[index...].contains($0.manifest.id) && $0.dirty }) {
-                let done = results.map { "\($0["id"] ?? "")" }
-                throw AgentError(code: "dirty", message: "\(call.naming(dirty)) has unsaved edits in "
-                    + dirty.manifest.id + (done.isEmpty ? "" : "; reloaded before it: \(done.joined(separator: ", "))"))
+                throw stop(dirty)
             }
             let start = ContinuousClock.now
-            let problem = await Plugin.reload(id, asked: true)
+            let problem = await Plugin.reload(id, asked: true, keepEdits: true)
             if let problem {
                 failures.append("\(problem.title):\n\(problem.text)")
+            } else if let dirty = Plugin.cards.first(where: { $0.manifest.id == id && $0.dirty }) {
+                // Edits made during its build: that card kept its page, its other cards loaded the new build.
+                throw stop(dirty, " and kept its page; \(id)'s other cards reloaded")
             }
             results.append([
                 "id": id,

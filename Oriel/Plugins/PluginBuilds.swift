@@ -218,9 +218,12 @@ extension Plugin {
     /// ask first, on the first card that has them.
     /// ponytail: Discard there drops every card's edits, and a card made again starts from its state file (up to
     /// 500 ms behind); ask per card and hand the state over if that bites.
-    /// `build` false: an install that built it already, or ships its build. The failed build's problem, for an agent.
+    /// `build` false: an install that built it already, or ships its build. `keepEdits` (an agent's): a card with
+    /// unsaved edits when the build ends keeps its page. The failed build's problem, for an agent.
     @discardableResult
-    static func reload(_ id: String, asked: Bool = false, build: Bool = true) async -> PluginProblem? {
+    static func reload(_ id: String, asked: Bool = false, build: Bool = true, keepEdits: Bool = false) async
+        -> PluginProblem?
+    {
         if !asked, let dirty = cards.first(where: { $0.manifest.id == id && $0.dirty }) {
             dirty.leave { _ in Task { await reload(id, asked: true, build: build) } }
             return nil
@@ -229,7 +232,7 @@ extension Plugin {
         guard let manifest = Registry.plugin(id), manifest.entry != nil else { return nil }
         let cards = cards.filter { $0.manifest == manifest }
         guard build, let problem = await PluginBuilds.shared.build(manifest) else {
-            cards.forEach { $0.web.reload() }
+            cards.filter { !keepEdits || !$0.dirty }.forEach { $0.web.reload() }
             return nil
         }
         for card in cards {

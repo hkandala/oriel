@@ -198,7 +198,9 @@ first, so a folder made by hand loads.
 - A card with unsaved edits stops it with `dirty`, which names the pane.
   Oriel never discards edits for an agent. It looks before anything builds
   and again before each plugin, and the message names the plugins reloaded
-  before it.
+  before it. A card that gets edits during its plugin's build keeps its page
+  while the plugin's other cards load the new build, and the answer is
+  `dirty` too.
 - A failed build is `build_failed`. Its message is the card's toast title and
   the build's last 20 lines.
 - An unknown id is `plugin_not_found`, with the reason when its manifest did
