@@ -63,3 +63,4 @@ run and test it is in the root `README.md`.
 | 45 | Twelfth feedback: the chat's turns, empty state, speed and the panes skill | [45-twelfth-feedback.md](phases/45-twelfth-feedback.md) |
 | 46 | Thirteenth feedback: chat bubbles and long chats, pane speed, File Explorer and Git | [46-thirteenth-feedback.md](phases/46-thirteenth-feedback.md) |
 | 47 | The plugin system: packages, the `oriel` API, File Explorer and Git on it (merged into main) | [47-plugin-system.md](phases/47-plugin-system.md) |
+| 48 | Instant tabs: no strip, no tab animations, simpler code | [48-instant-tabs.md](phases/48-instant-tabs.md) |
