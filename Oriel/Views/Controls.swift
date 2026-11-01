@@ -27,7 +27,7 @@ struct IconButton: View {
     var body: some View {
         let help = key.map { "\(help) \($0.glyphs)" } ?? help
         Button(action: action) {
-            Image(systemName: symbol)
+            Image(symbol: symbol)
                 // 22 pt buttons (card headers, the find bar): Rex's 11 pt regular glyphs.
                 .font(size < 28 ? .system(size: 11) : .body.weight(.medium))
                 // The surrounding style: the look's chrome, or a card header's buttons.

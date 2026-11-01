@@ -46,7 +46,7 @@ struct WorkspaceRow: View {
                 }
                 if let git {
                     HStack(spacing: 4) {
-                        Image("source.branch").font(.system(size: 10))
+                        Image(symbol: "source.branch").font(.system(size: 10))
                         Text(git.branch).lineLimit(1).truncationMode(.middle)
                         if git.ahead > 0 {
                             Text("↑\(git.ahead)").foregroundStyle(look.finished)

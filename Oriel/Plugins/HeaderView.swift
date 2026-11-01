@@ -219,7 +219,7 @@ private struct HeaderMenu: View {
     @ViewBuilder
     private func label(_ item: PluginManifest.Item, _ pick: String) -> some View {
         if let symbol = item.symbol {
-            Label(item.title ?? pick, systemImage: symbol)
+            Label { Text(item.title ?? pick) } icon: { Image(symbol: symbol) }
         } else {
             Text(item.title ?? pick)
         }
