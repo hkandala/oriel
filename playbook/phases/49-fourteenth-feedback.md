@@ -306,8 +306,9 @@ Files: `Oriel/Views/Sidebar*.swift`, the state capsule in the card header, the a
 - **Cause (Word Wrap).** CodeView kept the options object it was made with, and the page changed that same object
   before each `setOptions`, so CodeView saw no change and drew nothing new (a toggle on, lines unwrapped). It gets a
   copy now. A plain probe page with the same options wrapped; only an on-screen web view runs `requestAnimationFrame`.
-- **Narrow cards.** On CI's 1x screen a half-width card cut "Fetch" to "F…": a bordered button drops its word when
-  the row has no room (`ViewThatFits`).
+- **Narrow cards.** On CI's 1x screen a half-width card cut "Fetch" to "F…": the row's bordered buttons drop their
+  words together when the row has no room for all of them (one `ViewThatFits` over the row). A commit card's
+  VoiceOver name is its subject, as its title.
 - **Item 26.** The diff's file list is Track B's shared `oriel-sidebar` (card.css): `data-closed` slides it out in
   0.25 s, and Previous / Next's place is kept after the slide (`transitionend`).
 - **For the user.** Classic and light: `/tmp/oriel-shots/t49c-classic-light.png`. The file headers use `doc` for

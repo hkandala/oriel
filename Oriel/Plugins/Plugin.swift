@@ -87,6 +87,13 @@ extension Page {
         let title = pane.terminalID.flatMap(terminals.builtPlugin)?.web.title ?? ""
         return title.isEmpty ? label.title : title
     }
+
+    /// What VoiceOver reads for a card: a plugin card's title (Git's commit subject), as its header shows it.
+    func cardLabel(_ pane: HostStore.Pane?) -> String {
+        pane.map { pane in
+            pane.plugin.flatMap { pane.browser == nil ? pluginTitle(pane, $0) : nil } ?? pane.cardTitle
+        } ?? "terminal"
+    }
 }
 
 extension Image {

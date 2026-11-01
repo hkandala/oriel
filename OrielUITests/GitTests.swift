@@ -32,11 +32,10 @@ extension OrielUITests {
         // A commit opens its diff in the card; Back and Forward walk the card's places.
         commit("second", in: home).click()
         try await expect("the label names the commit") { try await paneLabel(card).hasSuffix(" \(root)/ \(hash)") }
-        // The commit's subject is the title; its page names its parent.
+        // The commit's subject is the title.
         XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, "second", within: 10))
         let page = element("git.\(card).page")
         XCTAssertTrue(page.buttons["a.txt"].exists(within: 10))
-        XCTAssertTrue(page.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Parent '")).firstMatch.exists)
         XCTAssertFalse(page.buttons["b.md"].exists)
         element("pane.\(card).go-back").click()
         try await expect("back home") { try await paneLabel(card).hasSuffix("e2egit \(root)/") }
@@ -149,6 +148,9 @@ extension OrielUITests {
 
     /// The diff's own controls, on the diff of the commit that changes lines 1-150 and 290.
     private func diff(_ page: XCUIElement, card: String, tab: String, root: String) async throws {
+        // VoiceOver reads the subject too; the page names the parent.
+        XCTAssertEqual(element("pane.\(card)").label, "second")
+        XCTAssertTrue(page.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Parent '")).firstMatch.exists)
         // Clicks in the page wait for what it draws: its layout comes back late after the card was hidden.
         let open = page.buttons["Open a.txt"]
         XCTAssertTrue(open.has(\.isHittable, true, within: 3))

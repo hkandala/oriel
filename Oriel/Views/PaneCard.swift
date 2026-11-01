@@ -115,7 +115,7 @@ struct PaneCard: View {
         .clipShape(CardSurface.shape)
         // The card's element is its background: a container would merge into a one-pane page's.
         .background {
-            CardSurface(keyboard: lit).accessibilityElement().accessibilityLabel(pane?.cardTitle ?? "terminal")
+            CardSurface(keyboard: lit).accessibilityElement().accessibilityLabel(page.cardLabel(pane))
                 // A plain element has no value in XCUITest; the static text trait gives it one.
                 .accessibilityAddTraits(.isStaticText)
                 // "loading" until herdr's frames settled at the card's size.

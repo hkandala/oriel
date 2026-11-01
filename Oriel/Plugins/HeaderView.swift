@@ -9,8 +9,21 @@ struct PluginHeader: View {
     let page: Page
 
     var body: some View {
+        // Bordered buttons show their words all together or not at all: the row without them when it is narrow. Only
+        // then: a row made again would lose a typing field's keyboard.
+        if plugin.header.controls.contains(where: { $0.style == "bordered" && $0.hidden != true }) {
+            ViewThatFits(in: .horizontal) {
+                row(words: true)
+                row(words: false)
+            }
+        } else {
+            row(words: false)
+        }
+    }
+
+    private func row(words: Bool) -> some View {
         let controls = plugin.header.controls, history = plugin.manifest.history
-        HStack(spacing: 0) {
+        return HStack(spacing: 0) {
             if history {
                 BackForward(plugin: plugin)
             }
@@ -19,7 +32,7 @@ struct PluginHeader: View {
                 let control = controls[index]
                 if control.hidden != true {
                     let before = controls[..<index].last { $0.hidden != true }
-                    HeaderItem(control: control, plugin: plugin, page: page)
+                    HeaderItem(control: control, plugin: plugin, page: page, words: words)
                         .disabled(control.enabled == false || control.busy == true)
                         .padding(.leading, before == nil && !history ? 0 : CGFloat(control.gap ?? 6))
                         // A text its whole width before a spacer takes any: cut only when the row is full.
@@ -39,6 +52,8 @@ private struct HeaderItem: View {
     let control: PluginManifest.Control
     let plugin: Plugin
     let page: Page
+    /// A bordered button's title is shown (`PluginHeader`).
+    let words: Bool
     @Environment(\.look) private var look
 
     var body: some View {
@@ -67,18 +82,13 @@ private struct HeaderItem: View {
 
     /// A 22 pt icon button, as `IconButton` draws one; with a badge, its count after the symbol; busy, a spinner in its
     /// place (Git's Pull and Push). `bordered`: the system's small bordered button with the symbol and the title (Git's
-    /// Fetch, Pull and Push), down to its symbol when the row is narrow, each button on its own. An icon button is one
-    /// view whatever its state, so a click under way keeps its pressed state.
+    /// Fetch, Pull and Push) while the row has room for every bordered title. A button is one view whatever its state,
+    /// so a click under way keeps its pressed state.
     private func button(_ id: String) -> some View {
         let title = control.title ?? ""
         return Group {
             if control.style == "bordered" {
-                // The words while the row has room for them.
-                ViewThatFits(in: .horizontal) {
-                    labeled(id, words: true)
-                    labeled(id, icon: false)
-                }
-                .buttonStyle(.bordered).controlSize(.small)
+                labeled(id, words: words).buttonStyle(.bordered).controlSize(.small)
             } else {
                 labeled(id, icon: true).buttonStyle(ChromeStyle(radius: 5.5)).foregroundStyle(look.paneButton)
             }
