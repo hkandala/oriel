@@ -1,8 +1,8 @@
 import HerdrKit
 import SwiftUI
 
-/// The selected workspace's tabs in the title row (D42): one width on a track, one marker that follows the
-/// strip's scroll, dividers, hover and close. Tabs never shrink: the row scrolls sideways when they do not fit.
+/// The selected workspace's tabs in the title row (D42): one width on a track, one marker on the selected tab,
+/// dividers, hover and close. Tabs never shrink: the row scrolls sideways when they do not fit.
 struct TabBar: View {
     /// Every tab's: the user wants tabs that keep their width and a row that scrolls.
     static let width: CGFloat = 220
@@ -15,8 +15,6 @@ struct TabBar: View {
     let page: Page
     /// A pane dragged over the `+`; with one over the track's end, a ghost capsule at the end, when it fits.
     let plus: Bool
-    /// The overview is open: the pill sits on the selected tab (`marker`).
-    let overview: Bool
     @State private var end = false
     /// A drag over the track: the capsule a pane is over, or the place a dragged tab goes.
     @State private var over: Int?
@@ -40,10 +38,7 @@ struct TabBar: View {
         let tabs = workspace.tabs, count = CGFloat(tabs.count), width = Self.width
         let content = count * width + count - 1
         let hidden = (leading: visible.lowerBound > 0.5, trailing: visible.upperBound < content - 0.5)
-        // Pages floor(x/w) through ceil((x+w)/w) − 1, that is floor(page)...ceil(page). With no strip under the
-        // overview, the selected tab's.
-        let place = overview ? Double(page.selectedIndex(in: workspace)) : page.stripPage
-        let lit = Int(place.rounded(.down)) ... Int(place.rounded(.up))
+        let selected = page.selectedIndex(in: workspace)
         ScrollViewReader { proxy in
             ScrollView(.horizontal) {
                 HStack(spacing: 0) {
@@ -51,15 +46,13 @@ struct TabBar: View {
                         // One view per tab, so a scroll to its id shows the tab, not the divider before it.
                         HStack(spacing: 0) {
                             if index > 0 {
-                                // Hidden next to the marker, the selected tab and the pointer.
-                                let quiet = lit.contains(index) || lit.contains(index - 1)
-                                    || [tab.id, tabs[index - 1].id]
-                                    .contains { $0 == hovered || $0 == page.selectedTabIDs[workspace.id] }
+                                // Hidden next to the selected tab and the pointer.
+                                let quiet = [index, index - 1].contains(selected)
+                                    || [tab.id, tabs[index - 1].id].contains(hovered)
                                 Rectangle().fill(look.divider).frame(width: 1, height: Self.height - 16)
                                     .opacity(quiet ? 0 : 1)
-                                    .animation(.easeInOut(duration: 0.2), value: quiet)
                             }
-                            TabButton(tab: tab, workspace: workspace, page: page, lit: lit.contains(index),
+                            TabButton(tab: tab, workspace: workspace, page: page, lit: index == selected,
                                       hovering: hovered == tab.id, keycap: hints && index < 9 ? index + 1 : nil,
                                       clicked: { clicked = tab.id })
                                 .onHover { hovered = $0 ? tab.id : hovered == tab.id ? nil : hovered }
@@ -88,7 +81,7 @@ struct TabBar: View {
                 .background {
                     ZStack(alignment: .leading) {
                         Capsule().fill(look.track).opacity(tabs.count > 1 ? 1 : 0)
-                        marker(place, count: tabs.count)
+                        marker(selected)
                     }
                 }
                 // Room for the Classic pill's shadow (radius 3.5, y 1.5): the scroll view clips.
@@ -164,48 +157,14 @@ struct TabBar: View {
         }
     }
 
-    /// The look's pill on the page in view, between two tabs while the strip is between their pages: it slides
-    /// with a swipe or a wheel turn and jumps on any other switch, as the strip does. Under the overview, on the
-    /// selected tab (the strip's place was the tab selected before), so it fades in there with the title row; a
-    /// fade of its own came after the zoom.
-    private func marker(_ place: Double, count: Int) -> some View {
-        let place = min(max(place, 0), Double(max(count - 1, 0))), selected = page.selectedIndex(in: workspace)
-        let rest = !overview && place == place.rounded()
-        let astray = rest && Int(place) != selected ? "pill \(place) \(selected)" : ""
-        return Pill(shape: RoundedRectangle(cornerRadius: Self.radius - Self.inset, style: .continuous))
+    /// The look's pill on the selected tab.
+    private func marker(_ selected: Int) -> some View {
+        Pill(shape: RoundedRectangle(cornerRadius: Self.radius - Self.inset, style: .continuous))
             .frame(width: Self.width, height: Self.height - 2 * Self.inset)
-            .modifier(Slide(drawn: place, place: place))
-            // Not in another change's animation: the title row's fade after the overview slid it there.
-            .animation(nil, value: place)
+            .offset(x: CGFloat(selected) * (Self.width + 1))
+            // It jumps, also in another change's animation (a tab drag's slide).
+            .animation(nil, value: selected)
             .allowsHitTesting(false)
-            // e2e (`-recordLatency YES`): "pill <place> <selected>" when it shows at rest on another tab.
-            .onChange(of: astray) {
-                if !$1.isEmpty {
-                    Latency.shared.note($1)
-                }
-            }
-    }
-}
-
-/// The pill's offset, drawn at each frame. e2e (`-recordLatency YES`): "pill slides <drawn> <place>" at a frame drawn
-/// short of its place: it follows the strip frame by frame and never animates (an animation of the same
-/// update, the title row's fade after the overview, slid it from the tab selected before).
-private struct Slide: ViewModifier, Animatable {
-    var drawn: Double
-    let place: Double
-
-    var animatableData: Double {
-        get { drawn }
-        set { drawn = newValue }
-    }
-
-    func body(content: Content) -> some View {
-        content.offset(x: drawn * (TabBar.width + 1))
-            .onChange(of: drawn) {
-                if Latency.isOn, $1 != place {
-                    Latency.shared.note("pill slides \(String(format: "%.2f", $1)) \(place)")
-                }
-            }
     }
 }
 

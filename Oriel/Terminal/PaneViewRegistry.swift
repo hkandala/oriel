@@ -2,8 +2,8 @@ import AppKit
 import GhosttyTerminal
 import HerdrKit
 
-/// Owns every pane's terminal of one window's pages, keyed by `terminal_id`, so SwiftUI never destroys
-/// one while the strip scrolls. The shown tab's terminals stream and draw; the `spare` most recently shown others,
+/// Owns every pane's terminal of one window's pages, keyed by `terminal_id`, so SwiftUI never destroys one when
+/// its tab goes out of view. The shown tab's terminals stream and draw; the `spare` most recently shown others,
 /// over all windows, keep their surface without drawing (as Ghostty's hidden tabs) and, on this Mac, their
 /// stream, so coming back to them is at once; the rest keep only their last picture (design: what streams). Web
 /// cards (browsers and plugins) the same way: the `spareWeb` most recently shown others keep their page; the rest
@@ -61,8 +61,8 @@ final class PaneViewRegistry {
     var prewarming: Task<Void, Never>?
     /// The tab whose neighbors `prewarming` makes.
     var prewarmed: String?
-    /// The strip's page, for web cards made before they show (`prewarm`).
-    var stripSize = CGSize.zero
+    /// The tab's page, for web cards made before they show (`prewarm`).
+    var pageSize = CGSize.zero
     /// Chat cards' pictures from their views in the window (`ChatProbe`), by terminal id.
     var chatViews: [String: () -> CGImage?] = [:]
     /// The terminals in view at the last `show`: a chat among them that left takes its picture.

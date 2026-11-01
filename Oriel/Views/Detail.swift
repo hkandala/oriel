@@ -2,7 +2,7 @@ import Foundation
 import HerdrKit
 import SwiftUI
 
-/// A short message at the bottom of the strip (design: Notice).
+/// A short message at the bottom of the page (design: Notice).
 struct Notice {
     enum Tone {
         case error, warning, info
@@ -74,7 +74,7 @@ struct Detail: View {
             message("\(store.session) is not running",
                     button: ("Start \(store.session)", "start", { await store.start() }))
         case .live, .failed:
-            // Reconnecting (the server runs, the bridge fails) in one branch, so the strip keeps its state through
+            // Reconnecting (the server runs, the bridge fails) in one branch, so the page keeps its state through
             // it; the notices stay clickable.
             let reconnecting = store.reconnecting
             tabs()
@@ -96,7 +96,7 @@ struct Detail: View {
         }
     }
 
-    /// The selected workspace's strip, the button that makes a missing tab, or that the session is empty: its page
+    /// The selected tab's page, the button that makes a missing tab, or that the session is empty: its page
     /// header's `+` makes a workspace.
     @ViewBuilder private func tabs() -> some View {
         if let workspace = page.selectedWorkspace {
@@ -107,10 +107,9 @@ struct Detail: View {
                 }
                 .accessibilityIdentifier("new-tab")
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                // A strip of its own per workspace: a shared one could lay out no page after a switch and stay
-                // empty (`make strip-check`).
-                Strip(workspace: workspace, pages: pages, page: page).id("\(page.id) \(workspace.id)")
+            } else if let tab = page.selectedTab {
+                // A view of its own per tab: a shared one would carry its cards' places into the next tab's.
+                TabPage(tab: tab, page: page).id("\(page.id) \(tab.id)")
             }
         } else if page.store.state == .live {
             // Not while it reconnects before its first snapshot.

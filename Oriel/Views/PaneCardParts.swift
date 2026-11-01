@@ -2,14 +2,9 @@ import HerdrKit
 import SwiftUI
 
 extension Page {
-    /// The pane's browser or plugin card. Made only in the selected tab (or floated) and not while the strip moves
-    /// (making a web view took a frame; `stripMoving` is false again also when the strip goes mid-scroll): a neighbor
-    /// page the lazy strip lays out shows its last picture, and a card past the kept bound is not made again there.
+    /// The pane's browser or plugin card, made on first use.
     func cards(_ pane: HostStore.Pane?) -> (Browser?, Plugin?) {
-        guard let pane, stripMoving || pane.tabID != selectedTab?.id && !floats(pane) else {
-            return (pane.flatMap(browser), pane.flatMap(plugin))
-        }
-        return (pane.terminalID.flatMap(terminals.built), pane.terminalID.flatMap(terminals.builtPlugin))
+        (pane.flatMap(browser), pane.flatMap(plugin))
     }
 
     /// A browser's, a plugin's or an agent's card has a second header row; a terminal's, a floated or a choosing one

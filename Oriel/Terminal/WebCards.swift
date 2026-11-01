@@ -49,12 +49,12 @@ extension PaneViewRegistry {
         prewarming?.cancel()
         prewarming = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(500))
-            guard let self, let page = pages?.current, let workspace = page.selectedWorkspace, stripSize != .zero,
+            guard let self, let page = pages?.current, let workspace = page.selectedWorkspace, pageSize != .zero,
                   let index = workspace.tabs.firstIndex(where: { $0.id == page.selectedTab?.id }) else { return }
-            let area = Strip.area(stripSize)
+            let area = TabPage.area(pageSize)
             for tab in [index - 1, index + 1].filter(workspace.tabs.indices.contains).map({ workspace.tabs[$0] }) {
                 for card in tab.tree.map({ Parts($0, in: area, held: [:]).cards }) ?? [] {
-                    guard !Task.isCancelled, !page.stripMoving, pages?.overview != true,
+                    guard !Task.isCancelled, pages?.overview != true,
                           Self.recentWeb.count(where: { $0.registry?.droppable($0.id) == true }) + webInView.count
                           < Self.spareWeb else { return }
                     guard let pane = page.store.pane(card.id), pane.plugin != nil, let id = pane.terminalID,

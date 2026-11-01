@@ -1,9 +1,8 @@
 import AppKit
 import SwiftUI
 
-/// Shows a pane's terminal view. The registry owns the view; the newest host adopts it, so a page
-/// SwiftUI rebuilds while the strip scrolls never destroys the surface (design: making the strip
-/// work).
+/// Shows a pane's terminal view. The registry owns the view; the newest host adopts it, so a tab's page that
+/// SwiftUI makes again (a switch back to it) never destroys the surface.
 struct TerminalHost: NSViewRepresentable {
     let terminal: PaneTerminal
     /// The card's dim. On the host view: SwiftUI's `opacity` moved the terminal's accessibility frame half a card

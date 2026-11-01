@@ -55,9 +55,6 @@ final class Page: Identifiable {
     var find: Find?
     /// Counts ⌘F presses: each one focuses the open bar's field.
     var findFocus = 0
-    /// The strip's offset in pages (1.5: halfway from the second tab to the third), and while it moves (`PaneCard`).
-    var stripPage = 0.0
-    var stripMoving = false
     /// The terminals that had the keyboard, the latest last: each tab's keyboard card is its latest, so a closed
     /// one gives way to the card of its tab used before it. Observed: the tab's icon stack puts it in front.
     private var usedTerminals: [String] = []

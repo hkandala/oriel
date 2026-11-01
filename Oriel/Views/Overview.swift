@@ -293,11 +293,6 @@ extension WindowPages {
 
     /// The strip shows again, and the keyboard goes back to the tab's card.
     func closeOverview() {
-        // The tab bar's pill stays on the selected tab, where it faded in, not where the strip before the overview
-        // left it (a tab chosen in the overview); the new strip's geometry comes a turn later.
-        if let current, let workspace = current.selectedWorkspace {
-            current.stripPage = Double(current.selectedIndex(in: workspace))
-        }
         overview = false
         leaving = false
         overviewTabs = [:]
