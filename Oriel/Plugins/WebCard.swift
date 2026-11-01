@@ -184,6 +184,14 @@ final class WebCardView: BrowserView {
         }
         return resigned
     }
+
+    /// Its tab hidden, it leaves the window with no `resignFirstResponder`: the page hears it lost the keyboard.
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if window == nil {
+            keyboard?(false)
+        }
+    }
 }
 
 /// A card's page in the card, with the app's colors and text size: CSS variables on the page's root, and a plugin's
