@@ -63,8 +63,10 @@ orchestrator's. This file wins over the design pages; the feature updates them.
   reflowed in view: `hold()` keeps the old picture until herdr settles, but libghostty already draws at the new size
   during it, so a slow pass showed the old picture, libghostty's reflow and herdr's. **Fix:** the selected
   workspace's hidden tabs' kept terminals take their card's new size once it settles, as Ghostty's hidden tabs do;
-  a card shown in a new host fits at once (no motion to wait for). **Follow-up:** make `hold()` stop libghostty from
-  drawing during it (C, not in this phase).
+  a card shown in a new host fits at once (no motion to wait for). Then a blank first frame showed instead: a swap
+  chain made again at a new size can show an empty frame first. **Fix:** a hold keeps a copy of the old picture over
+  the surface, which goes with the first picture that has text or a cursor (three empty ones in a row: the screen is
+  empty), not with any contents change; no timer.
 - **Runs** (Release, `open -n` on this Mac, a 6-tab bench session (terminals, two browsers, a long chat, a split
   with a streaming chat), clicks posted to the HID tap, `-recordLatency`; base 9bcb88b5, after c20af4bd; medians,
   click to the drawn frame): a terminal tab 59 → 45 ms, a kept browser tab 88.5 → 78.5 ms, a chat tab 60 → 48 ms;
