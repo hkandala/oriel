@@ -113,6 +113,18 @@ enum Registry {
         }.map(\.1)
     }
 
+    /// The plugins that open a path or web address, best first, so the first is an open's default: for an http(s)
+    /// address the `default` plugins whose `urls` match it (a user's first, as for files), then the browser; for a
+    /// folder (it ends in `/`) the plugins that open folders; else a file's `openers`.
+    static func openers(for arg: String) -> [PluginManifest] {
+        let scheme = URL(string: arg)?.scheme?.lowercased()
+        guard scheme == "http" || scheme == "https" else {
+            return arg.hasSuffix("/") ? all.filter(\.opens.folders) : openers(arg)
+        }
+        let matches = all.filter { $0.id != browser.id && $0.opens.priority == "default" && $0.opens(url: arg) }
+        return matches.filter { !defaults.contains($0.id) } + matches.filter { defaults.contains($0.id) } + [browser]
+    }
+
     private static let log = Logger(subsystem: "dev.hkandala.oriel", category: "plugins")
 
     /// The first package of an id wins, in this order: the app's, the settings' local paths, the plugins folder. A bad

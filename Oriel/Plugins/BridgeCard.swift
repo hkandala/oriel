@@ -77,18 +77,9 @@ extension Bridge {
                           main: (main, { picked(main) }))
     }
 
-    /// The plugin an open names, else for a web address a `default` plugin whose `urls` match it (a user's first, as
-    /// for files) or the browser, the first plugin that opens folders for a folder, or a file's default plugin.
+    /// The plugin an open names, else the argument's default (`Registry.openers(for:)`).
     private func opener(_ arg: String, _ id: String?) throws -> PluginManifest {
-        let scheme = URL(string: arg)?.scheme?.lowercased()
-        let web = {
-            let matches = Registry.all.filter {
-                $0.id != Registry.browser.id && $0.opens.priority == "default" && $0.opens(url: arg)
-            }
-            return matches.first { !Registry.defaults.contains($0.id) } ?? matches.first ?? Registry.browser
-        }
-        let found = id.map(Registry.plugin) ?? (scheme == "http" || scheme == "https" ? web()
-            : arg.hasSuffix("/") ? Registry.all.first { $0.opens.folders } : Registry.openers(arg).first)
+        let found = id.map(Registry.plugin) ?? Registry.openers(for: arg).first
         guard let found else { throw PluginError("notFound", "No plugin opens \(arg)") }
         return found
     }
