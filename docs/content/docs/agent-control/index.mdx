@@ -60,7 +60,7 @@ them, and any process in the session reads them with herdr calls.
 
 | Token | On | Value | Written | Means |
 |---|---|---|---|---|
-| `oriel-shown` | each pane in view | `1`, or `remote` when the pane's machine is not the Mac that runs that Oriel | when the pane comes into view, every 10 s while it stays, cleared when it leaves; `ttl_ms` 30000 | an Oriel window shows the pane now: it is in the shown tab of the page in view of a visible window, or it floats |
+| `oriel-shown` | each pane in view | `1`, or `remote` when the pane's machine is not the Mac that runs that Oriel | when the pane comes into view, every 10 s while it stays, cleared when it leaves; `ttl_ms` 30000 | an Oriel window shows the pane now: it is in the shown tab of the page in view of a visible window (and is the zoomed card, when one is), or it floats |
 | `oriel-open` | each workspace of the session | the protocol version, `1` | while any window of that Oriel has the session open (a float-only page too): on each snapshot with a new workspace, every 10 s; cleared when the last window lets the session go and on quit; `ttl_ms` 30000 | an Oriel follows the session, so it takes requests, also when the pane is in a hidden tab |
 
 `oriel status --json` reads them with `pane get` and `workspace get` and

@@ -30,12 +30,15 @@ extension HostStore {
             || !windows.contains { $0.visible && $0.current?.store === self }
     }
 
-    /// Its panes in view of a visible window: the shown tab of its page in view there, and its floats. What
-    /// `oriel-shown` marks and what agents are told.
+    /// Its panes in view of a visible window: the shown tab of its page in view there (only the zoomed card when one
+    /// is), and its floats. What `oriel-shown` marks and what agents are told.
     var inView: Set<String> {
         Set(windows.filter(\.visible).flatMap { window in
             window.withFloats.filter { $0.store === self }.flatMap { page in
-                page === window.current ? Array(page.shownTerminals.values) : panes.filter(page.floats).map(\.id)
+                let floats = panes.filter(page.floats).map(\.id)
+                guard page === window.current else { return floats }
+                let zoomed = page.zoomedPaneID.flatMap { pane($0)?.tabID == page.selectedTab?.id ? $0 : nil }
+                return zoomed.map { [$0] + floats } ?? Array(page.shownTerminals.values)
             }
         })
     }

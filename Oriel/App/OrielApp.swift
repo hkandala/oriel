@@ -358,6 +358,7 @@ private struct WindowContent: View {
             }
         }
         .onChange(of: page.shownTerminals) { pages.showTerminals() }
+        .onChange(of: page.zoomedPaneID) { pages.markShown() }
     }
 
     enum Panel {

@@ -279,8 +279,8 @@ simple and brief."
 - **Cause (lost edits).** An agent's reload checked for edits before the build and reloaded every card after it.
   **Fix:** `Plugin.reload(keepEdits:)` keeps a card that got edits during the build, and the agent gets `dirty`.
 - **Decisions.** One in-view set (`HostStore.inView`, the shown tab of each visible window's page in view, plus the
-  floats) feeds `oriel-shown` and `open`, `reveal`, `card` and `shown`: the design's definition, so a pane behind a
-  zoomed card counts as shown. `plugins --for` reads a folder off the disk, as `open` does. A reused card stays
+  floats; a zoomed card hides its tab's others) feeds `oriel-shown` and `open`, `reveal`, `card` and `shown`, and a
+  zoom marks again. `plugins --for` reads a folder off the disk, as `open` does. A reused card stays
   where it is with `--float`. `agent` tells a bad name or `--replace` before a bad place.
 - **Decisions (Mac safety).** A `file:` URL from a remote pane is `bad_argument` for every kind, not only the
   browser. An agent's trust prompt with no window left fails instead of running a modal alert. An agent's failed
