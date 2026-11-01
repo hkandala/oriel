@@ -4,8 +4,6 @@ import Foundation
 public struct FileEntry: Equatable, Sendable {
     public let name: String
     public let isFolder: Bool
-    /// The git letter (`Change.letter`); a folder's is that of a change inside it.
-    public let letter: Character?
     /// git ignores it, or the folder it is in.
     public let ignored: Bool
 }
@@ -31,42 +29,31 @@ public enum Files {
     /// Bigger files on a remote machine open read only: a save queues the whole file on the machine's one relay.
     public static let remoteEditLimit = 4 << 20
 
-    /// A folder's files and folders but `.git` (as VS Code), folders first, by name as the Finder sorts. `repo` is the
-    /// root of the git repository the folder is in (`Git.root`), nil for none or when git cannot run: then no git runs.
-    public static func list(_ folder: String, repo: String?, exec: any Exec) async throws -> [FileEntry] {
-        // Links to folders are folders; a name may hold a line break.
+    /// A folder's files and folders but `.git` (as VS Code), folders first, by name as the Finder sorts. With `git`,
+    /// the names git ignores are marked: `git check-ignore` asks only about the folder's own names, where a
+    /// `git status --ignored` walked the whole repository (seconds in a big one) at each listing.
+    public static func list(_ folder: String, git: Bool, exec: any Exec) async throws -> [FileEntry] {
+        // Links to folders are folders; a name may hold a line break. The ignored names come after an empty one; none
+        // outside a repository.
         let script = #"""
         cd "$1" || exit
         for f in * .[!.]* ..?*; do
           if [ -d "$f" ]; then printf '%s/\0' "$f"; elif [ -e "$f" ] || [ -h "$f" ]; then printf '%s\0' "$f"; fi
         done
+        [ "$2" ] || exit 0
+        printf '\0'
+        for f in * .[!.]* ..?*; do [ -e "$f" ] || [ -h "$f" ] && printf '%s\0' "$f"; done |
+          git --no-optional-locks check-ignore -z --stdin 2>/dev/null
+        exit 0
         """#
-        async let names = exec.checkedOutput(["sh", "-c", script, "sh", folder])
-        var changes: [Git.Change] = []
-        var prefix = ""
-        // The folder's own `-- .`: a name with `*` in it is no pattern there.
-        if let repo, folder == repo || folder.hasPrefix(repo + "/") {
-            changes = await Git.Change.parse((try? exec.checkedOutput(["git", "--no-optional-locks", "-C", folder,
-                                                                       "status", "--porcelain=v1", "-z", "--ignored",
-                                                                       "-unormal", "--", "."])) ?? "")
-            prefix = folder == repo ? "" : folder.dropFirst(repo.count + 1) + "/"
-        }
-        // git names an untracked or ignored folder once, with a `/`, not the files in it; a link without one. Such
-        // a folder may hold the whole listing.
-        let all = changes.first { $0.path.hasSuffix("/") && prefix.hasPrefix($0.path) }
-        let byName = Dictionary(grouping: changes.filter { $0.path.hasPrefix(prefix) }) {
-            $0.path.dropFirst(prefix.count).prefix { $0 != "/" }
-        }
-        return try await names.split(separator: "\0").filter { $0 != ".git/" && $0 != ".git" }.map { name in
+        let parts = try await exec.checkedOutput(["sh", "-c", script, "sh", folder, git ? "git" : ""])
+            .split(separator: "\0", omittingEmptySubsequences: false)
+        let empty = parts.firstIndex(of: "") ?? parts.endIndex
+        let ignored = Set(parts[empty...].filter { !$0.isEmpty })
+        return parts[..<empty].filter { $0 != ".git/" && $0 != ".git" }.map { name in
             let isFolder = name.hasSuffix("/")
-            let name = String(isFolder ? name.dropLast() : name)
-            let path = prefix + name
-            let mine = byName[Substring(name)] ?? []
-            let covering = all ?? mine.first { $0.path == path || $0.path == path + "/" }
-            let inside = isFolder ? mine.first { $0.letter != "!" && $0.path.count > path.count + 1 } : nil
-            let ignored = covering?.letter == "!"
-            return FileEntry(name: name, isFolder: isFolder, letter: ignored ? nil : covering?.letter ?? inside?.letter,
-                             ignored: ignored)
+            let name = isFolder ? name.dropLast() : name
+            return FileEntry(name: String(name), isFolder: isFolder, ignored: ignored.contains(name))
         }
         .sorted {
             $0.isFolder != $1.isFolder ? $0.isFolder : $0.name.localizedStandardCompare($1.name) == .orderedAscending

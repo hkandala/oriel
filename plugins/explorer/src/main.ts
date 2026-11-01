@@ -14,7 +14,7 @@ type Shown = { arg: string; root: HTMLElement; offs: Off[]; reveal: Reveal }
 
 /** Each place's controls in row 2; the rest hide. Preview shows its page and zoom itself. */
 const CONTROLS: Record<Kind, string[]> = {
-  files: ["root", "filter", "collapse"],
+  files: ["root", "filter", "collapse", "hidden-files"],
   file: ["jump", "spacer", "reveal", "open-with"],
   preview: ["path", "spacer", "reveal", "open-with"],
   markdown: ["mode", "outline", "spacer", "reveal", "open-with"],

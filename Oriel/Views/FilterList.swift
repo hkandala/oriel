@@ -219,6 +219,8 @@ struct FilterField: View {
     let identifier: String
     var symbol: String?
     var autofocus = false
+    /// Each new value gives the field the keyboard (a plugin's ⌘F).
+    var focus = 0
     @State private var editing = false
     @FocusState private var focused: Bool
 
@@ -245,6 +247,11 @@ struct FilterField: View {
         .fieldCapsule()
         .contentShape(.capsule)
         .onTapGesture { editing = true }
+        .onChange(of: focus) {
+            editing = true
+            // A first responder set during an update is undone.
+            DispatchQueue.main.async { focused = true }
+        }
     }
 }
 

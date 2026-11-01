@@ -52,10 +52,12 @@ private struct HeaderItem: View {
                      selection: Binding { control.value?.text ?? "" } set: { plugin.header.pick(id, .text($0)) })
                 .fixedSize()
         case "menu": HeaderMenu(control: control, header: plugin.header).accessibilityIdentifier(identifier)
+        case "field" where control.style == "path":
+            PathField(control: control, plugin: plugin, page: page, identifier: identifier)
         case "field":
             FilterField(prompt: control.placeholder ?? "Filter",
                         text: Binding { control.value?.text ?? "" } set: { plugin.header.pick(id, .text($0)) },
-                        identifier: identifier)
+                        identifier: identifier, focus: plugin.header.focus[id] ?? 0)
                 .onSubmit { plugin.header.pick(id, nil, submit: true) }
         case "text": text.accessibilityIdentifier(identifier)
         case "openWith": openWith.accessibilityIdentifier(identifier)

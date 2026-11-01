@@ -125,10 +125,11 @@ final class Plugin {
         web.view.setAccessibilityIdentifier("\(page).\(paneID).page")
     }
 
-    /// A plugin's page takes what its manifest `handles` (`save`, `find`); a File Explorer only in File and Markdown.
+    /// A plugin's page takes what its manifest `handles` (`save`, `find`); a File Explorer saves in File and Markdown,
+    /// and finds there and in the tree (its filter).
     func handles(_ command: String) -> Bool {
         let place = manifest.id == "explorer" ? ExplorerPlace(web.arg) : nil
-        return manifest.handles.contains(command) && place != .files && place != .preview
+        return manifest.handles.contains(command) && place != .preview && (place != .files || command == "find")
     }
 
     /// A menu command for the card's page: `save`, `find`, `findNext` or `findPrevious`.

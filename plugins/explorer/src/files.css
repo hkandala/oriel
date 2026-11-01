@@ -1,5 +1,27 @@
 /* The File Explorer's home (files.ts); the trees draw in their own shadow roots. */
 [hidden] { display: none !important; }
-[data-place="files"] { display: flex; flex-direction: column; }
+[data-place="files"] { display: flex; flex-direction: column; padding-top: 6px; box-sizing: border-box; }
 [data-place="files"] #message { color: var(--dim); margin: 12px; }
 [data-place="files"] :is(#tree, #matches) { flex: 1; min-height: 0; }
+/* `..`, a row above the tree in the tree rows' size: its folder where a top-level folder's sits. */
+[data-place="files"] #up {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  margin: 0 6px;
+  padding: 0 6px;
+  border-radius: 6px;
+  cursor: default;
+  user-select: none;
+}
+[data-place="files"] #up:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
+[data-place="files"] #up .icon {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-left: 18px;
+  background: var(--folder-blue);
+  -webkit-mask: var(--folder) center / 16px no-repeat;
+}

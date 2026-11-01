@@ -44,35 +44,39 @@ private func execs() async throws -> [any Exec] {
     try await [localExec, RelayExec.start()]
 }
 
-@Test func `lists a folder with git letters and ignored files, here and remote`() async throws {
+@Test func `lists a folder with the files git ignores, here and remote`() async throws {
     let repo = try await scratchRepo.value
     for exec in try await execs() {
-        let root = try await Files.list(repo.path, repo: repo.path, exec: exec)
+        let root = try await Files.list(repo.path, git: true, exec: exec)
         #expect(root == [
-            FileEntry(name: "build", isFolder: true, letter: nil, ignored: true),
-            FileEntry(name: "link", isFolder: true, letter: "U", ignored: false),
-            FileEntry(name: "sub", isFolder: true, letter: "M", ignored: false),
-            FileEntry(name: ".gitignore", isFolder: false, letter: nil, ignored: false),
-            FileEntry(name: "bin.dat", isFolder: false, letter: "U", ignored: false),
-            FileEntry(name: "crlf.txt", isFolder: false, letter: "M", ignored: false),
-            FileEntry(name: "err.log", isFolder: false, letter: nil, ignored: true),
-            FileEntry(name: "side.txt", isFolder: false, letter: nil, ignored: false),
-            FileEntry(name: "two.txt", isFolder: false, letter: nil, ignored: false),
+            FileEntry(name: "build", isFolder: true, ignored: true),
+            FileEntry(name: "link", isFolder: true, ignored: false),
+            FileEntry(name: "sub", isFolder: true, ignored: false),
+            FileEntry(name: ".gitignore", isFolder: false, ignored: false),
+            FileEntry(name: "bin.dat", isFolder: false, ignored: false),
+            FileEntry(name: "crlf.txt", isFolder: false, ignored: false),
+            FileEntry(name: "err.log", isFolder: false, ignored: true),
+            FileEntry(name: "side.txt", isFolder: false, ignored: false),
+            FileEntry(name: "two.txt", isFolder: false, ignored: false),
         ])
-        let sub = try await Files.list(repo.path + "/sub", repo: repo.path, exec: exec)
-        #expect(sub == [
-            FileEntry(name: "moved", isFolder: true, letter: "R", ignored: false),
-            FileEntry(name: "new", isFolder: true, letter: "U", ignored: false),
-            FileEntry(name: "a.txt", isFolder: false, letter: "M", ignored: false),
-            FileEntry(name: "line\nbreak", isFolder: false, letter: "U", ignored: false),
-            FileEntry(name: "tab\t\"x", isFolder: false, letter: "U", ignored: false),
+        #expect(try await Files.list(repo.path + "/sub", git: true, exec: exec) == [
+            FileEntry(name: "moved", isFolder: true, ignored: false),
+            FileEntry(name: "new", isFolder: true, ignored: false),
+            FileEntry(name: "a.txt", isFolder: false, ignored: false),
+            FileEntry(name: "line\nbreak", isFolder: false, ignored: false),
+            FileEntry(name: "tab\t\"x", isFolder: false, ignored: false),
         ])
-        // Inside an untracked folder git names only the folder.
-        #expect(try await Files.list(repo.path + "/sub/new", repo: repo.path, exec: exec)
-            == [FileEntry(name: "f.txt", isFolder: false, letter: "U", ignored: false)])
-        // No repository, no git.
-        #expect(try await Files.list(repo.path + "/sub", repo: nil, exec: exec).allSatisfy { $0.letter == nil })
-        await #expect(throws: HerdrError.self) { try await Files.list(repo.path + "/none", repo: nil, exec: exec) }
+        // Inside an ignored folder everything is ignored.
+        #expect(try await Files.list(repo.path + "/build", git: true, exec: exec)
+            == [FileEntry(name: "out", isFolder: false, ignored: true)])
+        // No git, or no repository: nothing ignored.
+        #expect(try await Files.list(repo.path, git: false, exec: exec).allSatisfy { !$0.ignored })
+        let plain = try scratchFolder()
+        defer { try? FileManager.default.removeItem(at: plain) }
+        try Data().write(to: plain.appending(path: "x.log"))
+        #expect(try await Files.list(plain.path, git: true, exec: exec)
+            == [FileEntry(name: "x.log", isFolder: false, ignored: false)])
+        await #expect(throws: HerdrError.self) { try await Files.list(repo.path + "/none", git: true, exec: exec) }
     }
 }
 

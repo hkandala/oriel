@@ -65,7 +65,8 @@ extension OrielUITests {
         try await send("rm -rf \(repo)\r", to: shell)
     }
 
-    /// The row menu's Open as Root, then the root's menu back up to its parent.
+    /// The row menu's Open as Root, `..` back up, a double-click on a folder, then the path field: a path that is no
+    /// folder stays and Esc puts the root back; a folder's path goes there.
     private func moveRoot(_ card: String, _ tree: XCUIElement, _ root: String) async throws {
         row("src", in: tree).rightClick()
         app.menuItems["Open as Root"].click()
@@ -73,10 +74,63 @@ extension OrielUITests {
         // The old tree shows until the new one drew, and it has deep too: main.swift is revealed in it.
         XCTAssertTrue(row("a.txt", in: tree).vanishes(within: 10))
         XCTAssertTrue(row("deep", in: tree).exists(within: 5))
-        element("pane.\(card).root").click()
-        app.menuItems["oriel-e2e-files"].click()
+        row("Parent Folder", in: tree).doubleClick()
         try await labelEnds(card, " \(root)/")
         XCTAssertTrue(row("a.txt", in: tree).exists(within: 10))
+        row("src", in: tree).doubleClick()
+        try await labelEnds(card, " \(root)/src/")
+
+        let field = element("pane.\(card).root")
+        XCTAssertTrue(field.has(\.stringValue, "\(root)/src", within: 5))
+        field.click()
+        app.typeText("\(root)/none\r")
+        // Still editing, the root unchanged.
+        XCTAssertTrue(field.has(\.stringValue, "\(root)/none", within: 3))
+        try await labelEnds(card, " \(root)/src/")
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(field.has(\.stringValue, "\(root)/src", within: 3))
+        field.click()
+        app.typeText("\(root)\r")
+        try await labelEnds(card, " \(root)/")
+        XCTAssertTrue(row("a.txt", in: tree).exists(within: 10))
+    }
+
+    /// The tree has the keyboard as its card shows: ↓ moves, → opens a folder, ← closes it, Return opens a file. Hidden
+    /// files show only with row 2's eye. ⌘F gives the filter the keyboard.
+    func testFileExplorerKeysHiddenFilesAndFind() async throws {
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        let (_, shell) = try await newTab("files-keys")
+        try await waitForPrompt(shell)
+        let repo = "/tmp/oriel-e2e-files-keys", root = "/private/tmp/oriel-e2e-files-keys"
+        try await makeRepo(repo, in: shell)
+        let (tab, card) = try await explorer(root, in: repo)
+        try await show(tab)
+        let tree = element("files.\(card).page")
+        XCTAssertTrue(row("a.txt", in: tree).exists(within: 10))
+        XCTAssertFalse(row(".gitignore", in: tree).exists)
+
+        // build, src, a.txt: the first row has the keyboard.
+        app.typeKey(.downArrow, modifierFlags: [])
+        app.typeKey(.rightArrow, modifierFlags: [])
+        XCTAssertTrue(row("deep", in: tree).exists(within: 5))
+        app.typeKey(.leftArrow, modifierFlags: [])
+        XCTAssertTrue(row("deep", in: tree).vanishes(within: 5))
+        app.typeKey(.downArrow, modifierFlags: [])
+        app.typeKey(.return, modifierFlags: [])
+        try await labelEnds(card, " \(root)/a.txt")
+        element("pane.\(card).go-back").click()
+        XCTAssertTrue(row("a.txt", in: tree).exists(within: 10))
+
+        let eye = element("pane.\(card).hidden-files")
+        eye.click()
+        XCTAssertTrue(row(".gitignore", in: tree).exists(within: 5))
+        eye.click()
+        XCTAssertTrue(row(".gitignore", in: tree).vanishes(within: 5))
+
+        app.typeKey("f", modifierFlags: .command)
+        app.typeText("main")
+        XCTAssertTrue(row("main.swift", in: tree).exists(within: 5))
+        try await send("rm -rf \(repo)\r", to: shell)
     }
 
     /// ⌘-click opens a file in a new tab right after the card's, ⌥-click in a pane to the card's side. After each

@@ -180,6 +180,10 @@ export interface Controls {
     enabled?: boolean
     checked?: boolean
     busy?: boolean
+    /** A field takes the keyboard (the page's ⌘F). */
+    focus?: boolean
+    /** A path field shakes and keeps the typed path: it names no place to go. */
+    refused?: boolean
   }): void
 }
 

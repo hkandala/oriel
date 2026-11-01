@@ -7,6 +7,10 @@ import SwiftUI
 @MainActor @Observable
 final class Header {
     private(set) var controls: [PluginManifest.Control]
+    /// Each field's asks to take the keyboard (`focus`) and a path field's refusals (`refused`), counted: a view
+    /// acts on each new one.
+    private(set) var focus: [String: Int] = [:]
+    private(set) var refused: [String: Int] = [:]
     /// A control event for the page: `["id": id, "value": value?, "submit": true?]` (`oriel.on("control")`).
     @ObservationIgnored var send: (([String: Any]) -> Void)?
     /// After any change of a control, the page's or the user's: the state file keeps the values.
@@ -34,8 +38,8 @@ final class Header {
         }
     }
 
-    /// The page's `oriel.controls.set(id, change)`: value, title, label, symbol, badge, items, hidden, enabled, busy. A
-    /// wrong type leaves that field; an unknown id changes nothing.
+    /// The page's `oriel.controls.set(id, change)`: value, title, label, symbol, badge, items, hidden, enabled, busy;
+    /// focus and refused once. A wrong type leaves that field; an unknown id changes nothing.
     func set(_ id: String, _ change: [String: Any]) {
         guard let index = controls.firstIndex(where: { $0.id == id }) else { return }
         var control = controls[index]
@@ -65,6 +69,9 @@ final class Header {
             }
         }
         controls[index] = control
+        for (key, path) in [("focus", \Header.focus), ("refused", \.refused)] where change[key] as? Bool == true {
+            self[keyPath: path][id, default: 0] += 1
+        }
         changed?()
     }
 

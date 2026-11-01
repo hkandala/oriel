@@ -113,7 +113,7 @@ public struct PluginCalls: Sendable {
                     "kind": type.localizedDescription ?? "Document", "type": type.identifier,
                     "hash": lines.count > 1 ? String(lines[1]) : ""]
         case "files.list":
-            return try await Files.list(path, repo: repo(path), exec: exec)
+            return try await Files.list(path, git: gitRuns, exec: exec)
                 .map { ["name": $0.name, "folder": $0.isFolder, "ignored": $0.ignored] }
         case "files.paths":
             return try await Files.paths(path, repo: repo(path), exec: exec)
@@ -131,8 +131,7 @@ public struct PluginCalls: Sendable {
     else echo "No such file" >&2; exit 1; fi
     """#
 
-    /// The repository a folder is in, for git's letters and ignored files.
-    /// ponytail: one `git rev-parse` per listing; keep the roots per card if remote listings get slow.
+    /// The repository a folder is in, for the filter's paths.
     private func repo(_ folder: String) async -> String? {
         gitRuns ? await Git.root(folder, exec: exec) : nil
     }
