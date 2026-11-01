@@ -113,7 +113,7 @@ export interface Git {
   /** The patch as git prints it: "uncommitted" (staged, unstaged and untracked against HEAD) or a commit against its
    *  first parent. Up to 16 MB. */
   diff(root: string, source: string): Promise<string>
-  /** A commit's page: its subject (git's `%s`, as `log` gives it) and body (`%b`, trimmed), author, email, date in
+  /** A commit's page, by its hex hash (not a ref name): its subject (git's `%s`, as `log` gives it) and body (`%b`, trimmed), author, email, date in
    *  milliseconds since 1970, and the full hashes of its parents. */
   show(root: string, hash: string): Promise<{
     hash: string; parents: string[]; author: string; email: string; date: number; subject: string; body: string
@@ -189,7 +189,7 @@ export interface Controls {
     enabled?: boolean
     checked?: boolean
     busy?: boolean
-    /** A field takes the keyboard (the page's ⌘F). */
+    /** A plain field (not a path field) takes the keyboard (the page's ⌘F). */
     focus?: boolean
     /** A path field shakes and keeps the typed path: it names no place to go. */
     refused?: boolean

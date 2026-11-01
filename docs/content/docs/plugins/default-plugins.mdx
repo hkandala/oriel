@@ -30,7 +30,7 @@ A plugin pane's herdr label is `oriel:<plugin>#<iid> <arg>`
 the card shows, and it picks the card's page. A relaunch, a cold restart of
 herdr or another device makes the card at that place. The instance state
 file on the pane's machine keeps the rest: Git's commit message, the diff's
-Side by Side and its file list ([State](/docs/plugins/api#state)).
+Side by Side, Word Wrap and its file list ([State](/docs/plugins/api#state)).
 
 | Plugin | Label argument | Page | Title | Tab |
 |---|---|---|---|---|
@@ -257,12 +257,13 @@ selection in the accent at 24 %. A 6 pt gap sits under the header.
   (`…ode/oriel`). A click shows the whole path, selected. Return goes there,
   with `.`, `..` and `//` resolved: the tree rooted at that folder becomes the
   card's next place. A path that is no folder makes the field shake (a beep
-  with Reduce Motion); the typed path stays. Esc puts the root back. On a
-  remote machine the field takes only absolute paths. The folder icon before the path is **Choose Folder…**: the folder
+  with Reduce Motion); the typed path stays. Esc puts the root back. A path
+  that does not start with `/` (or `~` on This Mac) goes from the root, so
+  `src` or `..` works, and an empty one is the root. The folder icon before the path is **Choose Folder…**: the folder
   panel on This Mac, a "Go to Folder" field on a remote machine (`~` is the
   home folder there). A folder's own menu has **Open as Root**.
-- **`..`** is the first row, except at `/`. A double-click on it makes the
-  parent folder the root.
+- **`..`** is a row above the tree, except at `/`. A double-click or a press (VoiceOver, a key) on it
+  makes the parent folder the root. The arrow keys move only in the tree.
 - **The tree** shows the root's listing first and lists a folder only when
   it opens. `.git` is hidden, and links to folders are folders. Files and
   folders whose name starts with `.` show only while Show Hidden Files is on.
@@ -345,7 +346,7 @@ An editable text view (CodeMirror 6).
   hanging after them. Task items show boxes. Quotes have a bar at the left
   and secondary text. Code blocks have a rounded fill. A `---` rule is a
   line. Tables and HTML blocks are drawn by markdown-it; HTML comments draw
-  nothing; an escape's backslash hides. Bare addresses are links. Images are
+  nothing; an escape's backslash hides. Bare addresses are links, except inside a link. Images are
   not loaded: their alt text is a link to the image. Front matter shows as
   YAML in 12 pt monospace, secondary. Copy gives the Markdown source of the
   selection, and Select All the whole file. For VoiceOver, Read is an article
@@ -385,7 +386,8 @@ app's fonts and `Look` colors. From the top:
   alone. A button
   shows a spinner while its command runs. The three and the branch are
   disabled while one of them, a switch or Commit runs, and when git cannot
-  read the repository.
+  read the repository. Working Tree is disabled only when git cannot read
+  it.
 - **The branch** is a menu button with `source.branch` and the
   checked-out branch. Its menu lists the local branches, the current one
   checked, then under "Remote" the remote branches that have no local

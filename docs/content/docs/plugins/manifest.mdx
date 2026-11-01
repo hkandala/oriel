@@ -161,12 +161,12 @@ in a pane and in a floating window. The page changes them with
 
 | `type` | Fields | Draws | The page hears |
 |---|---|---|---|
-| `button` | `id`, `symbol`, `title`, `badge`, `busy`, `label`, `style` | an icon button; `title` is its help; `badge` a count after the symbol; `busy` a spinner in place of the symbol. `"style": "bordered"` draws the system's small bordered button with the symbol and the title (Git's Fetch, Pull and Push), or, when the row has no room for every bordered button's title, each with its symbol alone | `{ id }` on a click |
+| `button` | `id`, `symbol`, `title`, `badge`, `busy`, `label`, `style` | an icon button; `title` is its help; `badge` a count after the symbol; `busy` a spinner in place of the symbol. `"style": "bordered"` draws the system's small bordered button with the symbol and the title (Git's Working Tree, Fetch, Pull and Push), or, when the row has no room for every bordered button's title, each with its symbol alone | `{ id }` on a click |
 | `toggle` | `id`, `symbol`, `title`, `value` (boolean) | an icon button, in the accent while on | `{ id, value }` |
 | `segmented` | `id`, `options` (`[{ "value", "title" }]`), `value` | the app's pill segments | `{ id, value }` |
 | `menu` | `id`, `title`, `symbol`, `items`, `value`, `busy` | a menu button showing the picked item's title, else `title`; `busy` a spinner in place of its symbol. An item is `{ "value", "title", "symbol" }`, `{ "title" }` for a section heading ("Remote"), or `"-"` for a divider | `{ id, value }` on a pick |
 | `field` | `id`, `placeholder`, `value` | a search field ("Filter") that takes the free width | `{ id, value }` on each change, and `{ id, value, submit: true }` on Return |
-| `field` with `"style": "path"` | `id`, `symbol`, `label`, `value` (a folder's path) | a path field, as the browser's address: at rest the path with the home as `~` (on This Mac), cut at the start when it is long; a click shows the whole path, selected, to edit. Esc puts the path back. `symbol` is a button before the path | `{ id, value, submit: true }` on Return with the typed path (`.`, `..` and `//` resolved, `~` expanded on This Mac), and `{ id }` on a click of the symbol |
+| `field` with `"style": "path"` | `id`, `symbol`, `label`, `value` (a folder's path) | a path field, as the browser's address: at rest the path with the home as `~` (on This Mac), cut at the start when it is long; a click shows the whole path, selected, to edit. Esc puts the path back. `symbol` is a button before the path | `{ id, value, submit: true }` on Return with the typed path, absolute (a relative one from the field's path; `.`, `..` and `//` resolved, `~` expanded on This Mac), and `{ id }` on a click of the symbol |
 | `text` | `id`, `value`, `style` (`plain`, `dim` or `path`), `symbol`, `digits` | text cut in the middle; `path` draws a list of parts with `›` between them, the first part dim; `symbol` draws before the last part (File's `{}` before the scope) | nothing |
 | `openWith` | `id`, `value` (a file's path) | Open With: the default app's icon and name open the file; its menu lists the apps with icons, then the plugins. Not drawn with no path | nothing |
 | `spacer` | none | free space | nothing |
@@ -188,11 +188,12 @@ in a pane and in a floating window. The page changes them with
   state file under `"controls"` ([State](/docs/plugins/api#state)). A card
   loaded again, or shown again after it was dropped, gets the same values.
 - **A toggle, segments and a field** change their value natively, then the
-  page hears it. A menu pick only sends: an item can be an action, such as
-  Choose Folder…, and the page sets the menu's value. The same segment again,
+  page hears it. A menu pick only sends: an item can be an action, and the
+  page sets the menu's value (Git's branch menu shows the branch once the
+  switch ran). The same segment again,
   or a field set to its own text, sends nothing.
-- **Asks of the page.** `controls.set(id, { focus: true })` gives a field
-  the keyboard (File Explorer's ⌘F). `controls.set(id, { refused: true })`
+- **Asks of the page.** `controls.set(id, { focus: true })` gives a plain
+  field (not a path field) the keyboard (File Explorer's ⌘F). `controls.set(id, { refused: true })`
   shakes a path field, which keeps the typed path: the path names no place
   to go.
 - **One header for many places.** A control that only some places use

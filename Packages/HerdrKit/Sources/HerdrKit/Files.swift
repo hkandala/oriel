@@ -30,8 +30,8 @@ public enum Files {
     public static let remoteEditLimit = 4 << 20
 
     /// A folder's files and folders but `.git` (as VS Code), folders first, by name as the Finder sorts. With `git`,
-    /// the names git ignores are marked: `git check-ignore` asks only about the folder's own names, where a
-    /// `git status --ignored` walked the whole repository (seconds in a big one) at each listing.
+    /// the names git ignores are marked: `git check-ignore` asks only about the folder's own names, so a listing never
+    /// walks the whole repository.
     public static func list(_ folder: String, git: Bool, exec: any Exec) async throws -> [FileEntry] {
         // Links to folders are folders; a name may hold a line break. The ignored names come after an empty one; none
         // outside a repository. Each name is asked as `./name`: git reads them as pathspecs, so `:foo` would be `foo`.

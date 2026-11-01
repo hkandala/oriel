@@ -329,6 +329,8 @@ Git's manifest:
     { "type": "menu", "id": "git.branch", "symbol": "source.branch", "title": "—", "label": "Branch",
       "enabled": false, "hidden": true },
     { "type": "button", "id": "diff.home", "symbol": "house", "title": "Git Home", "hidden": true },
+    { "type": "button", "id": "git.working", "symbol": "plus.forwardslash.minus", "title": "Working Tree",
+      "style": "bordered", "hidden": true },
     { "type": "spacer" },
     { "type": "button", "id": "git.fetch", "symbol": "arrow.clockwise", "title": "Fetch", "style": "bordered",
       "hidden": true },
@@ -338,6 +340,8 @@ Git's manifest:
       "hidden": true },
     { "type": "segmented", "id": "diff.layout", "value": "unified", "hidden": true,
       "options": [{ "value": "unified", "title": "Unified" }, { "value": "split", "title": "Side by Side" }] },
+    { "type": "toggle", "id": "diff.wrap", "symbol": "arrow.turn.down.left", "title": "Word Wrap", "value": false,
+      "hidden": true },
     { "type": "button", "id": "diff.file-list", "symbol": "sidebar.left", "title": "Hide File List", "hidden": true },
     { "type": "button", "id": "diff.previous", "symbol": "chevron.up", "title": "Previous Change", "gap": 0,
       "hidden": true },
@@ -356,8 +360,8 @@ import "./home.css"
 import "./diff.css"
 import * as Home from "./home"
 
-const HOME = ["git.branch", "git.fetch", "git.pull", "git.push"]
-const DIFF = ["diff.home", "diff.layout", "diff.file-list", "diff.previous", "diff.next"]
+const HOME = ["git.branch", "git.working", "git.fetch", "git.pull", "git.push"]
+const DIFF = ["diff.home", "diff.layout", "diff.wrap", "diff.file-list", "diff.previous", "diff.next"]
 
 export default async function main(oriel: Oriel) {
   let Diff: typeof import("./diff") | undefined

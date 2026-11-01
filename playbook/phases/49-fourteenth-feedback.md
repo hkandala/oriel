@@ -283,8 +283,8 @@ Files: `Oriel/Views/Sidebar*.swift`, the state capsule in the card header, the a
   leaves the files staged, which the home shows). Show More reads `git log -n 1000`, then 1500: the graph's lanes need
   every row before, so it asks for the whole longer list again.
 - **Decisions (icons, buttons).** mdi `source-branch` is an app symbolset (`source.branch`, Regular-M from the 24 pt
-  path), so it takes font sizes and weights as SF Symbols do. `Image(symbol:)` and `NSImage.symbol` try SF Symbols
-  first, then the app's own: the plugin icon, the branch menu, the chooser, the palette, the trust prompt, the
+  path), so it takes font sizes and weights as SF Symbols do. `Image(symbol:)` and `NSImage.symbol` take the app's
+  own symbol of that name, else the SF Symbol: the plugin icon, the branch menu, the chooser, the palette, the trust prompt, the
   miniature and the sidebar's branch use it. Fetch, Pull and Push are the system's small bordered buttons
   (`"style": "bordered"` on a header button).
 - **Not a repository.** The home asks `git.root` only after `git.changes` fails: null shows "Not a Git repository",

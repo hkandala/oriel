@@ -77,8 +77,7 @@ A plugin card's, on the pane's machine, with `-z` and NUL-separated names so a
 name can hold a line break ([File Explorer and Git](/docs/plugins/default-plugins)):
 
 ```sh
-sh -c 'cd "$1" || exit; for f in * .[!.]* ..?*; do … printf "%s/\0" …; done' sh <folder>   # a folder's entries (the File Explorer's tree)
-git --no-optional-locks -C <folder> status --porcelain=v1 -z --ignored -unormal -- .     # with it: the entries' letters and ignored state
+sh -c 'cd "$1" || exit; for f in * .[!.]* ..?*; do … printf "%s/\0" …; done; [ "$2" ] || exit 0; printf "\0"; for f in …; do printf "./%s\0" "$f"; done | git --no-optional-locks check-ignore -z --stdin' sh <folder> git   # a folder's entries (the File Explorer's tree), then the names git ignores
 sh -c 'cd "$1"; if [ "$2" ]; then git ls-files -z -co --exclude-standard; else find . -name .git -prune -o -type f -print0; fi | head -c 8388608' sh <root> git   # every path, for the filter
 sh -c '[ -f "$1" ] …; wc -c <"$1"; cksum <"$1" && base64 <"$1"' sh <path> 16777216   # read a file (size, hash, bytes)
 sh -c 'cksum <"$1"' sh <path>                       # has it changed (a reload check)
@@ -93,6 +92,7 @@ git -C <root> log --branches --remotes --tags HEAD -n <500, 1000, …> --topo-or
 env GIT_TERMINAL_PROMPT=0 git -C <root> <write>     # the Git home's writes, one at a time: fetch --all, pull, -c push.autoSetupRemote=true push, --literal-pathspecs add -A -- <path>, --literal-pathspecs reset -q -- <path>, add -A, reset -q, commit -m <message>, switch [--track] <branch>, init -q
 sh -c 'cd "$1"; h=$(git rev-parse -q --verify HEAD || git hash-object -t tree /dev/null); { git diff … "$h" --; git ls-files -z -o --exclude-standard | head -c 65536 | xargs -0 -r -n 1 git diff … --no-index -- /dev/null; } …' sh <root> …   # a diff: the working tree, with untracked files
 git -C <root> show --no-color --no-ext-diff -M -m --first-parent --format= <hash>   # a diff: one commit
+git -C <root> show -s --no-show-signature --format=%H%x1f%P%x1f%an%x1f%ae%x1f%at%x1f%s%x1f%b <hash> --   # a commit's page: its subject, body, author, date and parents
 git -C <root> show -s --no-show-signature --format=%H%x1f%P%x1f%an%x1f%ae%x1f%at%x1f%s%x1f%b <hash> --   # a commit's page: its message, author, date and parents
 ```
 
