@@ -212,9 +212,9 @@ private struct HeaderMenu: View {
     }
 }
 
-/// Open With, as other editors draw it: the default app's icon opens the file in it; its menu lists that app, then
-/// the others that open the file, each with its icon, then the other plugins that open it, whose pick turns the card
-/// into theirs.
+/// Open With, as other editors draw it: the default app's icon and name open the file in it; its menu lists that app,
+/// then the others that open the file, each with its icon, then the other plugins that open it, whose pick turns the
+/// card into theirs.
 private struct OpenWith: View {
     let path: String
     /// The Mac's apps: on This Mac.
@@ -229,7 +229,10 @@ private struct OpenWith: View {
                 Menu {
                     OpenWithItems(url: url, plugins: plugins, pick: pick)
                 } label: {
-                    Image(nsImage: OpenWithItems.icon(main))
+                    HStack(spacing: 4) {
+                        Image(nsImage: OpenWithItems.icon(main))
+                        Text(FileManager.default.displayName(atPath: main.path)).lineLimit(1)
+                    }
                 } primaryAction: {
                     NSWorkspace.shared.open([url], withApplicationAt: main,
                                             configuration: NSWorkspace.OpenConfiguration())

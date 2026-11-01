@@ -11,3 +11,25 @@ body {
   color: var(--text);
   font: var(--font-size) system-ui;
 }
+/* A sidebar that slides in and out, as the system's do: a flex child with `--sidebar-width`, the attribute
+   `data-closed` slides it out of its row (its parent clips) and the content beside it takes the room. On the left, or
+   on the right with the class `end`. */
+.oriel-sidebar {
+  flex: none;
+  box-sizing: border-box;
+  width: var(--sidebar-width);
+  transition: margin 0.25s ease, visibility 0.25s;
+}
+.oriel-sidebar[data-closed] {
+  margin-inline-start: calc(-1 * var(--sidebar-width));
+  visibility: hidden;
+}
+.oriel-sidebar.end[data-closed] {
+  margin-inline-start: 0;
+  margin-inline-end: calc(-1 * var(--sidebar-width));
+}
+@media (prefers-reduced-motion: reduce) {
+  .oriel-sidebar {
+    transition: none;
+  }
+}

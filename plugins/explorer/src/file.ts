@@ -18,15 +18,24 @@ import { name, type Place, type Reveal } from "./place"
 /** One color per look: the card's `color-scheme` picks the side. */
 const color = (light: string, dark: string) => `light-dark(${light}, ${dark})`
 
+/** The diff's colors: @pierre/diffs' default Shiki themes, Pierre Light and Pierre Dark (@pierre/theme), by the
+ *  TextMate scope each tag stands for. */
 const highlight = HighlightStyle.define([
-  { tag: [tags.keyword, tags.modifier, tags.controlKeyword, tags.operatorKeyword], color: color("#9b2393", "#fc5fa3") },
-  { tag: [tags.string, tags.special(tags.string), tags.regexp], color: color("#c41a16", "#fc6a5d") },
-  { tag: [tags.number, tags.bool, tags.null, tags.atom], color: color("#1c00cf", "#d0bf69") },
-  { tag: [tags.comment, tags.meta], color: color("#5d6c79", "#7f8c98"), fontStyle: "italic" },
-  { tag: [tags.typeName, tags.className, tags.namespace], color: color("#0b4f79", "#5dd8ff") },
-  { tag: [tags.function(tags.variableName), tags.function(tags.propertyName)], color: color("#326d74", "#67b7a4") },
-  { tag: [tags.propertyName, tags.attributeName], color: color("#3900a0", "#a167e6") },
-  { tag: tags.tagName, color: color("#9b2393", "#fc5fa3") },
+  { tag: [tags.keyword, tags.modifier, tags.controlKeyword, tags.operatorKeyword], color: color("#d32a61", "#ff678d") },
+  { tag: [tags.string, tags.special(tags.string)], color: color("#199f43", "#5ecc71") },
+  { tag: tags.regexp, color: color("#17a5af", "#64d1db") },
+  { tag: tags.escape, color: color("#16a994", "#61d5c0") },
+  { tag: [tags.number, tags.bool, tags.null, tags.atom], color: color("#1ca1c7", "#68cdf2") },
+  { tag: [tags.comment, tags.meta], color: "#737373" },
+  { tag: [tags.typeName, tags.className], color: color("#a631be", "#d568ea") },
+  { tag: [tags.namespace, tags.self, tags.constant(tags.variableName)], color: color("#d5901c", "#ffab16") },
+  { tag: [tags.function(tags.variableName), tags.function(tags.propertyName)], color: color("#693acf", "#9d6afb") },
+  { tag: [tags.variableName, tags.propertyName], color: color("#d47628", "#ffa359") },
+  { tag: [tags.operator, tags.definitionOperator, tags.compareOperator], color: "#08c0ef" },
+  { tag: [tags.punctuation, tags.bracket, tags.separator], color: "#636363" },
+  { tag: [tags.tagName, tags.heading], color: color("#d5512f", "#ff855e") },
+  { tag: tags.attributeName, color: color("#18a46c", "#60d199") },
+  { tag: tags.annotation, color: color("#1a85d4", "#69b1ff") },
   { tag: tags.invalid, color: "var(--error)" },
 ])
 

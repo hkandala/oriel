@@ -30,7 +30,8 @@ extension OrielUITests {
         // Over the page's left edge (11 pt into the card, the page 10 pt), in the pane and floating.
         let page = element("fixture.\(card).card").frame
         XCTAssertEqual(control("go-back").frame.minX - page.minX, 1, accuracy: 1, "\(page)")
-        XCTAssertGreaterThan(control("filter").frame.width, control("jump").frame.width)
+        // Past its prompt's own width (about 70 pt).
+        XCTAssertGreaterThan(control("filter").frame.width, 100)
         // 6 pt apart by default; `gap` 0 joins Push to Outline.
         // The segments' first sits 2 pt into their track.
         XCTAssertEqual(control("mode.read").frame.minX - control("rows").frame.maxX, 6 + 2, accuracy: 1)
