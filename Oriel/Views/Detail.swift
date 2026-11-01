@@ -10,7 +10,8 @@ struct Notice {
 
     let text: String
     var tone = Tone.error
-    /// The pane that Show selects in the window (an agent's notice, agent-control/cli).
+    /// The terminal whose pane Show selects in the window (an agent's notice, agent-control/cli): a pane id can name
+    /// another pane after a move.
     var show: String?
     let id = UUID()
 }
@@ -129,7 +130,7 @@ struct Detail: View {
                     if let id = notice.show {
                         Button("Show") {
                             store.notice = nil
-                            if let pane = store.pane(id) {
+                            if let pane = store.panes.first(where: { $0.terminalID == id }) {
                                 page.go(to: pane)
                             }
                         }

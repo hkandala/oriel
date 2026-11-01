@@ -36,48 +36,37 @@ extension AgentCall {
         case .tab: (near, split) = (PaneTarget(session: store.session, id: pane, machine: store.machine), nil)
         case .replace: throw AgentError.usage("--replace makes no pane")
         }
-        guard let store = near.store else {
-            throw AgentError(code: "failed", message: "Oriel does not show herdr session \(near.session)")
-        }
-        guard let card = store.pane(near.id), let workspace = store.workspace(of: card.tabID),
+        let (store, card) = try found(near)
+        guard let workspace = store.workspace(of: card.tabID),
               let index = workspace.tabs.firstIndex(where: { $0.id == card.tabID })
-        else { throw AgentError(
-            code: "pane_not_found",
-            message: "pane \(near.id) is not in herdr session \(near.session)",
-        ) }
+        else { throw AgentError(code: "pane_not_found", message: "pane \(near.id) is in no tab") }
+        if case .tab(float: true) = place, store.windows.isEmpty {
+            throw AgentError(code: "failed", message: "no window shows herdr session \(store.session)")
+        }
         let made = try await store.request { client in
             try await store.newPane(client, in: workspace.id, cwd: cwd, label: label,
                                     split.map { .split(tab: card.tabID, pane: card.id, $0) } ?? .tab(after: index))
         }
-        let end = ContinuousClock.now + .seconds(5)
         // In its place: a snapshot between the new tab and the move has it in the temporary tab.
-        while store.pane(made.id)?.tabID != made.tabID, end > .now {
-            try await Task.sleep(for: .milliseconds(50))
-        }
+        try await settle { store.pane(made.id)?.tabID == made.tabID }
         if case .tab(float: true) = place {
             var float = AgentCall(store: store, pane: pane, cwd: cwd, id: id, args: [made.id])
-            _ = try await AgentCommand.float.run(&float)
+            do {
+                _ = try await AgentCommand.float.run(&float)
+            } catch {
+                // Not left behind with no name in the answer.
+                try? await store.request { try await $0.close(pane: made.id) }
+                throw error
+            }
         }
         return (store, made.id)
     }
 }
 
-extension HostStore {
-    /// One write for a request, after the writes before it, as `write` does: its error goes back to the command, not to
-    /// a notice.
-    func request<T>(_ action: (any Multiplexer) async throws -> T) async throws -> T {
-        guard let client else {
-            throw AgentError(code: "failed", message: "Oriel is not connected to herdr session \(session)")
-        }
-        await writes.enter()
-        let result: Result<T, Error>
-        do {
-            result = try await .success(action(client))
-        } catch {
-            result = .failure(error)
-        }
-        writes.leave()
-        await client.refresh()
-        return try result.get()
+/// Waits up to 5 s for what the snapshots show, 50 ms between looks.
+func settle(_ done: () -> Bool) async throws {
+    let end = ContinuousClock.now + .seconds(5)
+    while !done(), end > .now {
+        try await Task.sleep(for: .milliseconds(50))
     }
 }

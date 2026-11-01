@@ -45,28 +45,39 @@ extension HostStore {
     /// One write. No focus change; the snapshot after it draws the result. Whether it went through.
     @discardableResult
     func write(_ action: (any Multiplexer) async throws -> Void) async -> Bool {
-        guard let client else { return false }
-        await writes.enter()
-        notice = nil
-        var failure: Error?
+        guard client != nil else { return false }
         do {
-            try await action(client)
+            try await request { client in
+                notice = nil
+                try await action(client)
+            }
+            return true
         } catch {
-            failure = error
+            Task { await show(Notice(text: error.localizedDescription)) }
+            return false
         }
-        writes.leave()
-        // After a failure too: part of it may have happened (Close Other Tabs).
-        await client.refresh()
-        if let failure {
-            Task { await show(Notice(text: failure.localizedDescription)) }
-        }
-        return failure == nil
     }
 
-    /// A notice for a few seconds, unless a newer one replaced it.
-    func show(_ new: Notice) async {
+    /// One write after the ones before it, then a snapshot read, also after a failure: part of it may have happened
+    /// (Close Other Tabs). Its error goes to the caller (an agent's request answers it).
+    func request<T>(_ action: (any Multiplexer) async throws -> T) async throws -> T {
+        guard let client else { throw HerdrError.failed("Oriel is not connected to herdr session \(session)") }
+        await writes.enter()
+        let result: Result<T, Error>
+        do {
+            result = try await .success(action(client))
+        } catch {
+            result = .failure(error)
+        }
+        writes.leave()
+        await client.refresh()
+        return try result.get()
+    }
+
+    /// A notice for a few seconds (4 by default), unless a newer one replaced it.
+    func show(_ new: Notice, for time: Duration = .seconds(4)) async {
         notice = new
-        try? await Task.sleep(for: .seconds(4))
+        try? await Task.sleep(for: time)
         if notice?.id == new.id {
             notice = nil
         }

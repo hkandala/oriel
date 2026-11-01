@@ -13,7 +13,8 @@ extension AgentCommand {
         Mac.
         <place>: --beside <pane> [--down] (a split, right or below; this pane by default), --tab (after this pane's \
         tab, not selected), --float (as --tab, then floats it), --replace <pane> (that browser or plugin card shows it).
-        A card of the same kind and argument in the session is the answer ("reused": true) unless --new.
+        A card of the same kind and argument in the session is the answer ("reused": true) unless --new, which \
+        --replace does not take.
         """,
     ) { call in
         let new = call.flag("--new"), place = try call.place()
@@ -25,24 +26,24 @@ extension AgentCommand {
         try call.done()
         let (plugin, arg) = try await call.opening(first, words)
         if case let .replace(target) = place {
+            guard !new else { throw AgentError.usage("--replace makes no new card") }
             return try await call.replace(target, plugin, arg)
         }
         // A card of that kind and argument where the new one would go.
         let store = if case let .beside(target, _) = place {
-            target.store ?? call.store
+            try call.found(target).0
         } else {
             call.store
         }
-        let same = store.panes.first { $0.plugin.map { $0.manifest?.id == plugin.id && $0.place == arg } == true }
-        if !new, let same {
-            return call.opened(same.id, in: store, reused: true)
+        if !new, let same = store.panes.first(where: { pane in
+            pane.plugin.map { $0.manifest?.id == plugin.id && $0.place == arg } == true
+        }), let label = same.plugin {
+            return call.opened(same.id, label, in: store, reused: true)
         }
         let label = store.newLabel(plugin, arg: arg)
-        guard PaneLabel(label.text) != nil else {
-            throw AgentError(code: "bad_argument", message: "\(first) makes a label over 1024 characters")
-        }
+        guard PaneLabel(label.text) != nil else { throw AgentError.noLabel(first) }
         let (made, id) = try await call.newPane(place, label: label)
-        return call.opened(id, in: made, reused: false)
+        return call.opened(id, label, in: made, reused: false)
     }
 
     static let reveal = AgentCommand(
@@ -56,7 +57,7 @@ extension AgentCommand {
         if shown {
             store.flash(pane.id)
         } else {
-            store.notice("\(call.agent) points to \(pane.name)", show: pane.id)
+            store.notice("\(call.agent) points to \(store.title(pane))", show: pane)
         }
         return AgentOutput(["pane": pane.id, "shown": shown])
     }
@@ -71,7 +72,7 @@ extension AgentCommand {
         let target = try call.target(call.argument("pane"))
         try call.done()
         let (store, pane) = try call.found(target)
-        var json: [String: Any] = ["pane": pane.id, "title": pane.name, "floating": target.floating != nil,
+        var json: [String: Any] = ["pane": pane.id, "title": store.title(pane), "floating": target.floating != nil,
                                    "shown": store.inView.contains(pane.id)]
         if let label = pane.plugin {
             let card = pane.card
@@ -128,15 +129,15 @@ extension AgentCall {
     }
 
     /// `open`'s answer; a card out of view gets the notice, with Show.
-    func opened(_ id: String, in store: HostStore, reused: Bool) -> AgentOutput {
-        let pane = store.pane(id), label = pane?.plugin, shown = store.inView.contains(id)
-        if !shown, let label {
-            let title = label.title == label.manifest?.name ? "" : " \(label.title)"
-            store.notice(reused ? "\(agent) points to \(pane?.name ?? label.title)"
-                : "\(agent) opened \(label.manifest?.name ?? label.plugin)\(title)", show: id)
+    func opened(_ id: String, _ label: PaneLabel, in store: HostStore, reused: Bool) -> AgentOutput {
+        let shown = store.inView.contains(id)
+        if !shown, let pane = store.pane(id) {
+            let kind = label.manifest?.name ?? label.plugin, title = store.title(pane)
+            store.notice(reused ? "\(agent) points to \(title)"
+                : "\(agent) opened \(kind)\(title == kind ? "" : " \(title)")", show: pane)
         }
-        return AgentOutput(["pane": id, "kind": label?.manifest?.id ?? "", "arg": label?.place ?? "",
-                            "label": pane?.label ?? "", "reused": reused, "shown": shown])
+        return AgentOutput(["pane": id, "kind": label.manifest?.id ?? label.plugin, "arg": label.place,
+                            "label": label.text, "reused": reused, "shown": shown])
     }
 
     /// `--replace`: the card's label names the new kind and argument with its iid, so the card shows it as a label
@@ -150,15 +151,14 @@ extension AgentCall {
             throw AgentError(code: "dirty", message: "pane \(pane.id) has unsaved edits")
         }
         let label = PaneLabel(plugin: plugin.id, iid: old.iid, arg: arg)
-        guard PaneLabel(label.text) != nil else {
-            throw AgentError(code: "bad_argument", message: "the argument makes a label over 1024 characters")
+        guard PaneLabel(label.text) != nil else { throw AgentError.noLabel(arg) }
+        // A browser card made later loads its saved address before its label's, as after a typed one.
+        if old.plugin == Registry.browser.id {
+            await store.machine.exec().remove(home: old.statePath(session: store.session))
         }
         try await store.request { try await $0.rename(pane: pane.id, label: label.text) }
-        let end = ContinuousClock.now + .seconds(5)
-        while store.pane(pane.id)?.label != label.text, end > .now {
-            try await Task.sleep(for: .milliseconds(50))
-        }
-        return opened(pane.id, in: store, reused: false)
+        try await settle { store.pane(pane.id)?.label == label.text }
+        return opened(pane.id, label, in: store, reused: false)
     }
 
     /// The kind and the label's argument of `open`'s words (agent-control/cli, Kind or path).
@@ -171,6 +171,9 @@ extension AgentCall {
         }
         guard words.isEmpty else {
             throw AgentError(code: "plugin_not_found", message: "no plugin \(first); `oriel plugins` lists them")
+        }
+        if first.lowercased().hasPrefix("file://") {
+            return try await (Registry.browser, arg(Registry.browser, [first]))
         }
         if web(first) {
             let plugin = Registry.openers(for: first).first ?? Registry.browser
@@ -202,8 +205,11 @@ extension AgentCall {
                 ? Browser.url(path ? URL(filePath: absolute(first)).absoluteString : first,
                               local: !store.machine.isRemote)?.absoluteString
                 : plugin.opens(url: first) ? first : nil
-            guard let url
-            else { throw AgentError(code: "bad_argument", message: "\(plugin.id) does not open \(first)") }
+            guard let url else {
+                let mac = path || first.lowercased().hasPrefix("file:")
+                throw AgentError(code: "bad_argument", message: mac ? "the browser opens a file on This Mac only"
+                    : "\(plugin.id) does not open \(first)")
+            }
             return url
         }
         let path = absolute(first)
@@ -219,7 +225,9 @@ extension AgentCall {
                 throw AgentError(code: "bad_argument", message: "\(path) is no folder of a git repository")
             }
             guard let source else { return root + "/" }
-            guard source == "uncommitted" || (4 ... 40).contains(source.count) && source.allSatisfy(\.isHexDigit) else {
+            guard source == "uncommitted" || (4 ... 40).contains(source.count) && source
+                .allSatisfy({ $0.isASCII && $0.isHexDigit })
+            else {
                 throw AgentError(code: "bad_argument", message: "\(source) is not uncommitted or a commit hash")
             }
             return "\(root)/ \(source)"
@@ -260,8 +268,11 @@ extension AgentCall {
 extension HostStore {
     /// Its panes in view of a visible window: in the shown tab of its page in view there, or floating.
     var inView: Set<String> {
-        Set(windows.filter { $0.visible && $0.current?.store === self }.compactMap(\.current)
-            .flatMap { panes(in: $0.selectedTab?.id).map(\.id) }).union(floatingPanes)
+        Set(windows.filter { $0.visible && $0.current?.store === self }.compactMap(\.current).flatMap { page in
+            // A zoomed card hides the others.
+            page.zoomedPaneID.flatMap { pane($0)?.tabID == page.selectedTab?.id ? [$0] : nil }
+                ?? panes(in: page.selectedTab?.id).map(\.id)
+        }).union(floatingPanes)
     }
 
     /// Its panes that float in a window of their own, over a visible window.
@@ -270,29 +281,39 @@ extension HostStore {
             .flatMap { page in panes.filter(page.floats).map(\.id) })
     }
 
+    /// How long an agent's notice and flash last when a test holds them (`-agentHoldSeconds`), so that a slow query
+    /// still finds them.
+    private static let held = UserDefaults.standard.string(forKey: "agentHoldSeconds").flatMap(Double.init)
+        .map { Duration.seconds($0) }
+    private static var flashes = 0
+
     /// An agent's notice in each window that shows the session, in the information tone, with Show.
-    func notice(_ text: String, show pane: String) {
-        Task { await show(Notice(text: text, tone: .info, show: pane)) }
+    func notice(_ text: String, show pane: Pane) {
+        Task { await show(Notice(text: text, tone: .info, show: pane.terminalID), for: Self.held ?? .seconds(4)) }
     }
 
-    /// The card's border flashes in the accent color once (`reveal`).
+    /// The card's border flashes in the accent color once (`reveal`); a second reveal starts it again.
     func flash(_ pane: String) {
         flashing = pane
+        Self.flashes += 1
+        let flash = Self.flashes
         Task {
-            try? await Task.sleep(for: .milliseconds(600))
-            if flashing == pane {
+            try? await Task.sleep(for: Self.held ?? .milliseconds(600))
+            if Self.flashes == flash {
                 flashing = nil
             }
         }
     }
+
+    /// A pane's title in a notice or an answer: a card's as its window shows it (a browser's page title), an agent's,
+    /// else the terminal's.
+    func title(_ pane: Pane) -> String {
+        WindowPages.windows.lazy.flatMap(\.withFloats).first { $0.store === self }?.kindTitle(pane)?.detail
+            ?? pane.plugin?.title ?? pane.cardTitle
+    }
 }
 
 extension HostStore.Pane {
-    /// Its card's title in a notice or an answer: a card's, an agent's, else the terminal's.
-    var name: String {
-        plugin?.title ?? agentTitle ?? cardTitle
-    }
-
     /// Its plugin card, in the first window that made one.
     var card: Plugin? {
         terminalID.flatMap { id in WindowPages.windows.lazy.compactMap { $0.terminals.plugins[id] }.first }
@@ -308,9 +329,17 @@ struct CardFlash: View {
         ZStack {
             if store.flashing == id {
                 CardSurface.shape.strokeBorder(Color.accentColor, lineWidth: 2).transition(.opacity)
-                    .accessibilityElement().accessibilityIdentifier("pane.\(id).flash")
+                    .allowsHitTesting(false)
+                    .accessibilityElement().accessibilityLabel("Revealed").accessibilityIdentifier("pane.\(id).flash")
             }
         }
         .animation(.easeOut(duration: 0.25), value: store.flashing == id)
+    }
+}
+
+extension AgentError {
+    /// A control character or over 1024 characters.
+    static func noLabel(_ arg: String) -> AgentError {
+        AgentError(code: "bad_argument", message: "\(arg) makes no label: a control character, or over 1024 characters")
     }
 }
