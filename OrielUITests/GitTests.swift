@@ -84,6 +84,7 @@ extension OrielUITests {
         let home = element("git.\(card).page")
         let initialize = home.buttons["Initialize Repository"]
         XCTAssertTrue(initialize.has(\.isHittable, true, within: 10))
+        XCTAssertTrue(text("Not a Git repository", in: home).exists)
         initialize.click()
         XCTAssertTrue(text("No changes", in: home).exists(within: 10))
         XCTAssertFalse(home.textViews["Message"].exists)
@@ -91,8 +92,10 @@ extension OrielUITests {
 
         // 501 commits, then a new file.
         try await send("git config user.name e2e && git config user.email e2e@oriel && git config commit.gpgsign false "
-            + "&& seq 501 | awk '{printf \"commit refs/heads/main\\ncommitter e2e <e2e@oriel> %d +0000\\ndata <<E\\n"
-            + "c%d\\nE\\n\\n\", 1000000000+$1, $1}' | git fast-import --quiet && echo a >a.txt && clear\r", to: left)
+            + "&& seq 501 | awk -v ref=$(git symbolic-ref HEAD) '{printf \"commit %s\\n"
+            + "committer e2e <e2e@oriel> %d +0000\\ndata <<E\\nc%d\\nE\\n\\n\", ref, 1000000000+$1, $1}' "
+            + "| git fast-import --quiet && echo a >a.txt && clear\r",
+            to: left)
         let message = home.textViews["Message"]
         XCTAssertTrue(message.has(\.isHittable, true, within: 10))
         message.click()

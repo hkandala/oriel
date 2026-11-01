@@ -82,17 +82,19 @@ extension PaneLabel {
 }
 
 extension Image {
-    /// An SF Symbol, else the app's own symbol of that name (`Assets.xcassets`: Git's `source.branch`), for what a
-    /// manifest names: a plugin's icon, a control's or a menu item's symbol.
+    /// An SF Symbol, or the app's own symbol of that name (`Assets.xcassets`), for what a manifest names: a plugin's
+    /// icon, a control's or a menu item's symbol.
     init(symbol name: String) {
-        self = NSImage(systemSymbolName: name, accessibilityDescription: nil) == nil ? Image(name) :
-            Image(systemName: name)
+        self = NSImage.own.contains(name) ? Image(name) : Image(systemName: name)
     }
 }
 
 extension NSImage {
+    /// The app's own symbols: Git's `source.branch` (Material Design Icons' `source-branch`).
+    static let own: Set = ["source.branch"]
+
     static func symbol(_ name: String) -> NSImage? {
-        NSImage(systemSymbolName: name, accessibilityDescription: nil) ?? NSImage(named: name)
+        own.contains(name) ? NSImage(named: name) : NSImage(systemSymbolName: name, accessibilityDescription: nil)
     }
 }
 

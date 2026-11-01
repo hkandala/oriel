@@ -32,6 +32,7 @@ document.body.append(page)
 
 const notice = page.querySelector<HTMLElement>("#failure")!
 const noRepository = page.querySelector<HTMLElement>("#no-repository")!
+const initialize = page.querySelector<HTMLButtonElement>("#initialize")!
 const clean = page.querySelector<HTMLElement>("#clean")!
 const changesBox = page.querySelector<HTMLElement>("#changes")!
 const content = page.querySelector("main")!
@@ -107,11 +108,13 @@ export async function load() {
 }
 
 async function read() {
-  const at = root
+  const at = root, asked = limit
   const [changes, head, list, commits] = await Promise.allSettled([
-    oriel.git.changes(at), oriel.git.head(at), oriel.git.branches(at), oriel.git.log(at, { limit }),
+    oriel.git.changes(at), oriel.git.head(at), oriel.git.branches(at), oriel.git.log(at, { limit: asked }),
   ])
   // git's message when git cannot read a repository; none when the folder is no repository: it can become one.
+  // ponytail: any failure of `git.root` (a folder gone, a repository git refuses) reads as none; match git's message
+  // if those must show it.
   const bare = changes.status === "rejected" && (await oriel.git.root(at).catch(() => "")) === null
   if (at !== root) return
   failure = changes.status === "rejected" ? (changes.reason as Error).message : undefined
@@ -132,9 +135,10 @@ async function read() {
   control("git.pull", count(branch?.behind ?? 0, "Pull"))
   control("git.push", count(branch?.ahead ?? 0, "Push"))
   buttons()
-  // None before the first commit.
+  // None before the first commit. A full page may have more.
+  const history = commits.status === "fulfilled" ? commits.value : []
   const state = changes.status === "fulfilled"
-    ? { ...changes.value, commits: commits.status === "fulfilled" ? commits.value : [] }
+    ? { ...changes.value, commits: history, more: history.length >= asked }
     : { failure, bare }
   // Keys sorted: the app's replies come in any key order, and a draw under a click loses the click.
   const json = JSON.stringify(state, (_, value) => value && typeof value === "object" && !Array.isArray(value)
@@ -152,8 +156,11 @@ function buttons() {
   for (const name of ["fetch", "pull", "push"]) control(`git.${name}`, { busy: running[0] === name, enabled: !off })
 }
 
-function draw(state: { staged?: Change[]; unstaged?: Change[]; commits?: Commit[]; failure?: string; bare?: boolean }) {
+function draw(state: {
+  staged?: Change[]; unstaged?: Change[]; commits?: Commit[]; more?: boolean; failure?: string; bare?: boolean
+}) {
   noRepository.hidden = !state.bare
+  // ponytail: any user's home reads `~`: the plugin API has no home folder.
   noRepository.querySelector(".path")!.textContent = root.replace(/^\/(Users|home)\/[^/]+(?=\/|$)/, "~")
   notice.hidden = !state.failure || Boolean(state.bare)
   notice.textContent = state.failure ?? ""
@@ -167,16 +174,16 @@ function draw(state: { staged?: Change[]; unstaged?: Change[]; commits?: Commit[
   section("staged", "Staged Changes", staged, true)
   section("unstaged", "Changes", unstaged, false)
   const commits = state.commits ?? []
-  const more = element("button", "row more", "Show More")
-  more.onclick = () => {
-    limit += 500
-    void load()
+  const rows = page.querySelector("#history .rows")!
+  rows.replaceChildren(...(commits.length ? graph(commits) : [element("p", "empty", "No commits yet")]))
+  if (state.more) {
+    const more = element("button", "row more", "Show More")
+    more.onclick = () => {
+      limit += 500
+      void load()
+    }
+    rows.append(more)
   }
-  page.querySelector("#history .rows")!.replaceChildren(
-    ...(commits.length ? graph(commits) : [element("p", "empty", "No commits yet")]),
-    // A full page: there may be more.
-    ...(commits.length >= limit ? [more] : []),
-  )
   enable()
 }
 
@@ -325,7 +332,11 @@ export function pick(id: string, value?: string) {
   else if (id === "git.push") void write(oriel.git.push(root), "push")
 }
 
-page.querySelector<HTMLButtonElement>("#initialize")!.onclick = () => void write(oriel.git.init(root))
+initialize.onclick = () => {
+  // Once at a time.
+  initialize.disabled = true
+  void write(oriel.git.init(root)).then(() => (initialize.disabled = false))
+}
 
 // The message grows to five lines, then scrolls; the card keeps it (`state`). Commit is on the accent when it can
 // commit: a message and changes. With none staged it is Commit All, which stages everything first. ⌘↩ commits.

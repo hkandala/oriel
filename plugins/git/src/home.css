@@ -10,12 +10,14 @@
     background: color-mix(in srgb, var(--text) 6%, transparent); }
   #message::placeholder { color: var(--dim); }
   #message:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent); }
-  #commit-button { all: unset; height: 30px; padding: 0 16px; border-radius: 15px; font-weight: 500; color: var(--on-accent);
-    background: var(--accent); }
-  #commit-button:hover { filter: brightness(1.08); }
-  #commit-button:active { filter: brightness(0.92); }
-  #commit-button:disabled { color: var(--dim); background: color-mix(in srgb, var(--text) 8%, transparent); filter: none; }
-  #commit-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  /* Commit and Initialize Repository: on the accent. */
+  #commit-button, #initialize { all: unset; height: 30px; padding: 0 16px; border-radius: 15px; font-weight: 500;
+    color: var(--on-accent); background: var(--accent); }
+  :is(#commit-button, #initialize):hover { filter: brightness(1.08); }
+  :is(#commit-button, #initialize):active { filter: brightness(0.92); }
+  :is(#commit-button, #initialize):disabled { color: var(--dim); background: color-mix(in srgb, var(--text) 8%, transparent);
+    filter: none; }
+  :is(#commit-button, #initialize):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   section { margin-bottom: 16px; }
   /* The history apart from the changes above it. */
   #history { margin-top: 26px; padding-top: 10px; border-top: 0.5px solid var(--divider); }
@@ -31,11 +33,7 @@
   .placeholder h2 { margin: 2px 0 0; font-size: 13px; font-weight: 600; color: var(--text); }
   .placeholder .path { margin: 0; font-size: 11px; }
   #no-repository { position: fixed; inset: 0; justify-content: center; }
-  #initialize { all: unset; margin-top: 8px; height: 26px; padding: 0 14px; border-radius: 13px; font-weight: 500;
-    color: var(--on-accent); background: var(--accent); }
-  #initialize:hover { filter: brightness(1.08); }
-  #initialize:active { filter: brightness(0.92); }
-  #initialize:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  #initialize { margin-top: 8px; }
   .open { all: unset; display: flex; align-items: center; gap: 7px; flex: 1; min-width: 0; height: 100%; }
   .open:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 7px; }
   .open > span { overflow: hidden; text-overflow: ellipsis; flex: none; }
