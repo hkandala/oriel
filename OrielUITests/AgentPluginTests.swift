@@ -1,8 +1,7 @@
 import XCTest
 
 /// `oriel plugins` (agent-control/cli, plugins): the registry for agents, and New Plugin, Reload Plugin and Install
-/// from
-/// a pane on This Mac, each in a config folder of the test's own.
+/// from a pane on This Mac, each in a config folder of the test's own.
 extension OrielUITests {
     /// The list with a package that did not load, `--for` with its default, then an install of a local folder: the
     /// trust prompt names the asking pane, Cancel is `declined`, Install answers with the plugin, which then opens CSV
@@ -45,6 +44,9 @@ extension OrielUITests {
         XCTAssertTrue(installed.contains("\n1\ninstalled-42-0"), installed)
         try await run("\(oriel) plugins --for a.csv | head -1 | grep -c '^oriel-e2e-csv-table.*\(csv).*default'",
                       in: pane, "default", 0, "1")
+        // A folder by the disk, also one with a file's name.
+        try await run("mkdir \(csv)/d.csv && \(oriel) plugins --for \(csv)/d.csv | head -1 | grep -c "
+            + "'^explorer.*default'", in: pane, "folder", 0, "1")
         try await run("\(oriel) plugins --json | grep -c '\"log\":\"\(config)/logs/plugins/oriel-e2e-csv-table.log\"'",
                       in: pane, "log", 0, "1")
         // Again is an Update: the user's, in the Plugins panel.

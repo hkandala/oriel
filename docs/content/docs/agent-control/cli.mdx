@@ -156,9 +156,10 @@ explorer   File Explorer  files,folders          app
 - With `--for`, the list holds only the plugins that open the argument, in
   the order of
   [Which plugin opens a file](/docs/plugins/manifest#which-plugin-opens-a-file),
-  each with `"default": true` or `false`. End a folder with `/`. A relative
-  path is read from the command's folder. `open` picks its default plugin by
-  the same order.
+  each with `"default": true` or `false`. A relative path is read from the
+  command's folder, and a folder is one on the disk of the pane's machine (a
+  missing path counts by its name, or as a folder when it ends in `/`).
+  `open` picks its default plugin by the same order.
 
 ### plugins new
 

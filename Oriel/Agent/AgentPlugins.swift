@@ -9,7 +9,7 @@ extension AgentCommand {
         summary: "Lists the kinds an agent can open; makes, reloads and installs plugins",
         help: """
         plugins: the browser and every plugin, and why a package did not load. --for: only the ones that open a \
-        file, folder (ending in /) or URL, best first, the default marked.
+        file, folder or URL, best first, the default marked.
         new <name>: a plugin from the template in the plugins folder, built and trusted (This Mac only). Pass a long \
         --timeout: it installs the template's dependencies and builds it.
         reload [<id>]: builds one plugin, or every plugin with an open card, and loads its cards again (This Mac \
@@ -27,11 +27,11 @@ extension AgentCommand {
         case "new": return try await newPlugin(&call)
         case "reload": return try await reloadPlugins(&call)
         case "install": return try await installPlugin(&call)
-        default: return try listPlugins(&call)
+        default: return try await listPlugins(&call)
         }
     }
 
-    private static func listPlugins(_ call: inout AgentCall) throws -> AgentOutput {
+    private static func listPlugins(_ call: inout AgentCall) async throws -> AgentOutput {
         let path = try call.value("--for")
         try call.done()
         let rows = AgentPluginRows(call)
@@ -44,10 +44,13 @@ extension AgentCommand {
             let entries = Registry.all.map { (rows.entry($0), rows.line($0)) } + broken
             return AgentOutput(entries.map(\.0), text: table(entries.map(\.1)))
         }
-        // A relative path from the command's folder, as `open` takes it.
-        let folder = path.hasSuffix("/") || path == "." || path == ".."
-        let full = URL(string: path)?.scheme != nil || path.hasPrefix("/") ? path
-            : URL(filePath: call.cwd).appending(path: path).standardized.path + (folder ? "/" : "")
+        // As `open` takes it: from the command's folder, a folder by the disk; a missing path by its name.
+        var full = path
+        if URL(string: path)?.scheme == nil {
+            full = call.absolute(path)
+            let folder = await call.store.machine.exec().succeeds(#"[ -d "$1" ]"#, [full])
+            full += path.hasSuffix("/") || folder ? "/" : ""
+        }
         let openers = Registry.openers(for: full)
         return AgentOutput(
             openers.enumerated()
@@ -68,7 +71,7 @@ extension AgentCommand {
         let typed = try call.argument("source")
         try call.done()
         // A relative folder from the command's folder, not the settings' as in settings.json.
-        let source = typed.hasPrefix(".") ? URL(filePath: call.cwd).appending(path: typed).standardized.path : typed
+        let source = typed.hasPrefix(".") ? call.absolute(typed) : typed
         guard PluginSource(source) != nil else {
             throw AgentError(
                 code: "bad_argument",

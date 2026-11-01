@@ -252,7 +252,7 @@ extension AgentCall {
     }
 
     /// A path from the request's working folder, without `.` and `..`.
-    private func absolute(_ path: String) -> String {
+    func absolute(_ path: String) -> String {
         URL(filePath: path, relativeTo: URL(filePath: cwd, directoryHint: .isDirectory)).standardized.path
     }
 
