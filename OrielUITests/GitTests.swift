@@ -159,8 +159,9 @@ extension OrielUITests {
 
     /// The diff's own controls, on the diff of the commit that changes lines 1-150 and 290.
     private func diff(_ page: XCUIElement, card: String, tab: String, root: String) async throws {
-        // VoiceOver reads the subject too; the page names the parent.
-        XCTAssertEqual(element("pane.\(card)").label, "second")
+        // VoiceOver reads the subject too, once Forward's place drew; the page names the parent.
+        let surface = element("pane.\(card)")
+        XCTAssertTrue(surface.has(\.label, "second", within: 10), surface.label)
         XCTAssertTrue(page.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Parent '")).firstMatch.exists)
         // Clicks in the page wait for what it draws: its layout comes back late after the card was hidden.
         let open = page.buttons["Open a.txt"]
