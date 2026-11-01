@@ -290,4 +290,18 @@ Files: `Oriel/Views/Sidebar*.swift`, the state capsule in the card header, the a
 - **Not a repository.** The home asks `git.root` only after `git.changes` fails: null shows "Not a Git repository",
   the short path and Initialize Repository (`git init -q`, a new `git.init` call); another failure still shows git's
   message.
-- **Pictures.** Before `/tmp/oriel-shots/t49c-home-before.png`, after `/tmp/oriel-shots/t49c-home-after1.png`.
+- **Cause (item 25).** The Uncommitted diff did follow the work tree, but only for new files: CodeView keeps a record
+  whose `version` did not change, and the items had none, so a file already shown kept its old text while the list's
+  counts moved (`/tmp/oriel-shots/live-before-crop-2.png`). **Fix:** each item's version goes up when its text or fold
+  changes, and an unchanged file keeps its old `fileDiff` object, so only changed files draw and the scroll stays
+  (`/tmp/oriel-shots/live-crop-2.png`).
+- **Decisions (item 25).** No new 2 s `git status` poll: `files.watch` already calls back only while the card shows,
+  with FSEvents on This Mac and the 2 s check on a remote machine. The place is named Working Tree (title and label
+  word); a bordered Working Tree button on the home's row 2 opens it, disabled when git cannot read.
+- **Decisions (items 22-24).** The file header is pierre's `renderCustomHeader`: a 30 pt row in the home's row style
+  on the 40 pt opaque sticky band (`diffHeaderHeight: 40`). The commit's subject is `document.title`, which the app
+  shows as the card's and the tab's title (`WebCard.title`): no new API. A commit's facts come from a new
+  `git.show` (`%s` as the history's, `%b`). Word Wrap is a header toggle; Side by Side always wraps, so it is
+  disabled there.
+- **Pictures.** Home: before `/tmp/oriel-shots/t49c-home-before.png`, after `/tmp/oriel-shots/t49c-home-after1.png`.
+  Diff, commit page, Working Tree: before the bottom right of the first, after `/tmp/oriel-shots/t49c-diff-after2.png`.

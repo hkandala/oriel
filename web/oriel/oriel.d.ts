@@ -113,7 +113,7 @@ export interface Git {
   /** The patch as git prints it: "uncommitted" (staged, unstaged and untracked against HEAD) or a commit against its
    *  first parent. Up to 16 MB. */
   diff(root: string, source: string): Promise<string>
-  /** A commit's page: its subject and body (the message after its first line, trimmed), author, email, date in
+  /** A commit's page: its subject (git's `%s`, as `log` gives it) and body (`%b`, trimmed), author, email, date in
    *  milliseconds since 1970, and the full hashes of its parents. */
   show(root: string, hash: string): Promise<{
     hash: string; parents: string[]; author: string; email: string; date: number; subject: string; body: string

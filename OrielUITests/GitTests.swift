@@ -204,12 +204,16 @@ extension OrielUITests {
 
     /// Side by Side puts the old line and the new one on one row; the file list hides and comes back.
     private func sideBySide(_ card: String, _ page: XCUIElement, _ far: XCUIElement) async throws {
-        // Word Wrap is on while Unified; Side by Side always wraps, so there it is off.
+        // Word Wrap wraps the long line in Unified; Side by Side always wraps, so there it is off.
         let wrap = element("pane.\(card).diff.wrap")
+        // By the next line's top: a wrapped line pushes it down.
+        let wide = page.staticTexts.matching(NSPredicate(format: "value BEGINSWITH 'wide289'")).firstMatch
+        XCTAssertTrue(wide.exists)
+        let gap = { far.frame.minY - wide.frame.minY }, row = gap()
         wrap.click()
-        XCTAssertTrue(wrap.has(\.isSelected, true, within: 3))
+        XCTAssertTrue(until(3) { gap() > row * 2 }, "one row \(row), wrapped \(gap())")
         wrap.click()
-        XCTAssertTrue(wrap.has(\.isSelected, false, within: 3))
+        XCTAssertTrue(until(3) { gap() < row * 1.5 }, "one row \(row), now \(gap())")
         element("pane.\(card).diff.layout.side by side").click()
         XCTAssertTrue(wrap.has(\.isEnabled, false, within: 3))
         let old = page.staticTexts.matching(NSPredicate(format: "value CONTAINS 'line 290'")).firstMatch
@@ -226,7 +230,7 @@ extension OrielUITests {
 
     /// A repository with two commits and uncommitted changes, made in the shell pane; HEAD's hash.
     private func makeRepo(_ repo: String, in pane: String) async throws -> String {
-        // A commit that changes lines 1-150 and line 290: its second change is far below the first.
+        // A commit that changes lines 1-150, 289 and 290: its second change is far below the first; line 289 is long.
         // A side branch with its own commit, a bare remote as the upstream, no signing.
         try await send("rm -rf \(repo) \(repo).git && git init -q --bare -b main \(repo).git && mkdir \(repo) "
             + "&& cd \(repo) && git init -q -b main && git config user.name e2e && git config user.email e2e@oriel "
@@ -234,7 +238,8 @@ extension OrielUITests {
             + "&& seq 300 | sed 's/^/line /' >a.txt && git add a.txt "
             + "&& git commit -qm first && git switch -qc side && echo s >s.txt && git add s.txt "
             + "&& git commit -qm 'on the side' && git switch -q main "
-            + "&& sed -i '' '1,150s/line/LINE/; s/^line 290$/far290/' a.txt "
+            + "&& sed -i '' '1,150s/line/LINE/; s/^line 289$/wide289\(String(repeating: " wrap", count: 60))/; "
+            + "s/^line 290$/far290/' a.txt "
             + "&& git commit -qam second && git push -qu origin main && echo new >b.md "
             + "&& sed -i '' 's/^line 200$/changed 200/' a.txt && clear && echo ready-$((6*7))\r", to: pane)
         try await waitFor(pane) { $0.contains("ready-42") }

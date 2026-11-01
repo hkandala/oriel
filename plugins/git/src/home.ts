@@ -149,11 +149,14 @@ async function read() {
   draw(state)
 }
 
-/** The branch and the three buttons: a spinner on the one that runs, all off while one runs or git cannot read. */
+/** The branch, Working Tree and the three buttons: a spinner on the one that runs, all off while one runs or git cannot
+ *  read (Working Tree only then). */
 function buttons() {
   const off = Boolean(failure || running.length)
   control("git.branch", { busy: running[0] === "switch", enabled: branches.length > 0 && !running.length })
   for (const name of ["fetch", "pull", "push"]) control(`git.${name}`, { busy: running[0] === name, enabled: !off })
+  // Nothing to show where git cannot read.
+  control("git.working", { enabled: !failure })
 }
 
 function draw(state: {

@@ -165,7 +165,7 @@ public struct PluginCalls: Sendable {
         case "git.diff":
             let source = try args.need(\.source, "source")
             return try await Git.patch(root, commit: source == "uncommitted" ? nil : source, exec: exec)
-        case "git.show": return try await Git.show(root, args.need(\.source, "hash"), exec: exec)
+        case "git.show": return try await Git.show(root, args.need(\.source, "source"), exec: exec)
         default: throw PluginError("failed", "No call \(name)")
         }
     }

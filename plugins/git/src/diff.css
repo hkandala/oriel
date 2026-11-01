@@ -18,7 +18,7 @@
   .letter.A, .letter.R { color: var(--finished) } .letter.D { color: var(--error) }
   .diff { flex: 1; min-width: 0; overflow: auto }
   .empty { position: fixed; inset: 0; margin: auto; height: fit-content; text-align: center; color: var(--dim) }
-  /* A file's header: a row as the card's (28 pt, radius 7) on the opaque band pierre keeps sticky (40 pt). */
+  /* A file's header: a 30 pt row, radius 7 as the card's rows, on the opaque band pierre keeps sticky (40 pt). */
   .file { box-sizing: border-box; display: flex; align-items: center; gap: 6px; height: 30px; margin: 5px 8px;
     padding: 0 6px 0 4px; border-radius: 7px; white-space: nowrap; font: 13px system-ui; color: var(--text);
     background: color-mix(in srgb, var(--text) 6%, transparent); box-shadow: inset 0 0 0 0.5px var(--divider) }

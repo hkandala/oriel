@@ -93,7 +93,7 @@ git -C <root> log --branches --remotes --tags HEAD -n <500, 1000, …> --topo-or
 env GIT_TERMINAL_PROMPT=0 git -C <root> <write>     # the Git home's writes, one at a time: fetch --all, pull, -c push.autoSetupRemote=true push, --literal-pathspecs add -A -- <path>, --literal-pathspecs reset -q -- <path>, add -A, reset -q, commit -m <message>, switch [--track] <branch>, init -q
 sh -c 'cd "$1"; h=$(git rev-parse -q --verify HEAD || git hash-object -t tree /dev/null); { git diff … "$h" --; git ls-files -z -o --exclude-standard | head -c 65536 | xargs -0 -r -n 1 git diff … --no-index -- /dev/null; } …' sh <root> …   # a diff: the working tree, with untracked files
 git -C <root> show --no-color --no-ext-diff -M -m --first-parent --format= <hash>   # a diff: one commit
-git -C <root> show -s --no-show-signature --format=%H%x1f%P%x1f%an%x1f%ae%x1f%at%x1f%B <hash> --   # a commit's page: its message, author, date and parents
+git -C <root> show -s --no-show-signature --format=%H%x1f%P%x1f%an%x1f%ae%x1f%at%x1f%s%x1f%b <hash> --   # a commit's page: its message, author, date and parents
 ```
 
 A plugin's `oriel.run` runs its argv on the card's machine, inside the envelope.

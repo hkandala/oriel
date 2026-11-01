@@ -249,7 +249,7 @@ function draw(next: string) {
   files = parsePatchFiles(patch).flatMap((parsed) => parsed.files)
     .map((file) => {
       const was = item(file.name)?.fileDiff
-      return was && text(was) === text(file) && was.type === file.type ? was : file
+      return was && text(was) === text(file) && was.type === file.type && was.prevName === file.prevName ? was : file
     })
   const changed = new Set<string>()
   for (const [name, was] of viewed) {
