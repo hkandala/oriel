@@ -153,6 +153,7 @@ viewer.setup(main)
  *  a repository, a machine away) shows git's error and reads again at the next change in the work tree. */
 export async function show(nextRoot: string, nextSource: string, at?: string) {
   control("diff.file-list", { title: list ? "Hide File List" : "Show File List" })
+  control("diff.wrap", { enabled: !split })
   // The diff shown, with a landing: only a scroll to the file.
   if (!page.hidden && page.style.visibility === "" && nextRoot === root && nextSource === source && patch !== undefined) {
     if (at && files.some((file) => file.name === at)) reveal(at)
@@ -424,13 +425,14 @@ export const failed = () => patch === undefined
 /** Side by Side wraps each column's lines: a line scrolled past its narrow column was cut off where a click lands.
  *  Unified wraps with Word Wrap. */
 function overflow() {
-  control("diff.wrap", { enabled: !split })
   return split || wrap ? "wrap" : "scroll"
 }
 
 export function layout(next: { split?: boolean; wrap?: boolean }) {
   split = next.split ?? split
   wrap = next.wrap ?? wrap
+  // Side by Side always wraps.
+  control("diff.wrap", { enabled: !split })
   options.diffStyle = split ? "split" : "unified"
   options.overflow = overflow()
   viewer.setOptions({ ...options })
