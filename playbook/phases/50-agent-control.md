@@ -202,7 +202,9 @@ simple and brief."
   `usage` there, so `agent` rejects it before.
 - **For the user.** Run `oriel open git . --tab` and `oriel reveal <pane of another tab>` from an agent with Oriel
   in the background: the notice shows in each window of the session, Show selects the card there, and Oriel does not
-  come to the front. `oriel open … --float` should open its window without activating Oriel (track A's float).
+  come to the front. An agent's float (`oriel float`, `open --float`) orders its window to the front without
+  activating Oriel and gives the keyboard back to the window that had it; check that with Oriel in the background
+  and while typing in Oriel.
 
 ### Track C
 
