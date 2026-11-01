@@ -268,3 +268,21 @@ simple and brief."
   that those banners stop. Run `oriel agent claude --tab` and check that the view does not move and that Claude Code
   starts with the chat view. `oriel chat` on an idle agent clears a draft the user is typing into it (⌃C, then the
   quit command), and the loader takes the keys until the agent is back: the design accepts this, as chat never asks.
+
+### Final review
+
+- **Script 1.2.** The script's own errors print `{"error":…}` with `--json` too (`usage`, `no_oriel`, `timeout`,
+  `no_herdr`), its link points to the built page, and `copy` writes at most 1 MiB and one byte. `make test` checks
+  that cli.mdx shows the script as Oriel carries it.
+- **Cause (lost rings).** A ring that came while the events stream opened again (any agent starting or stopping)
+  had no event, so the command exited 3. **Fix:** `oriel-req` is read off each snapshot too, once per id.
+- **Cause (lost edits).** An agent's reload checked for edits before the build and reloaded every card after it.
+  **Fix:** `Plugin.reload(keepEdits:)` keeps a card that got edits during the build, and the agent gets `dirty`.
+- **Decisions.** One in-view set (`HostStore.inView`, the shown tab of each visible window's page in view, plus the
+  floats) feeds `oriel-shown` and `open`, `reveal`, `card` and `shown`: the design's definition, so a pane behind a
+  zoomed card counts as shown. `plugins --for` reads a folder off the disk, as `open` does. A reused card stays
+  where it is with `--float`. `agent` tells a bad name or `--replace` before a bad place.
+- **Decisions (Mac safety).** A `file:` URL from a remote pane is `bad_argument` for every kind, not only the
+  browser. An agent's trust prompt with no window left fails instead of running a modal alert. An agent's failed
+  float shows no warning in the user's window.
+- **For the user.** Start or stop an agent in a session while another agent runs `oriel` in a loop: no call exits 3.
