@@ -1,5 +1,6 @@
 // A Git card's diff: a source's patch in @pierre/diffs' CodeView, one scroll with a sticky header per file, and the
-// file list beside it. Row 2 has the layout, the list and previous / next change (`main.ts`).
+// file list beside it; a commit's subject, body and facts above its files. Row 2 has the layout, the wrap, the list and
+// previous / next change (`main.ts`).
 import {
   CodeView,
   type CodeViewDiffItem,
@@ -7,7 +8,7 @@ import {
   type FileDiffMetadata,
   parsePatchFiles,
 } from "@pierre/diffs"
-import { control, element, type How, how, keep, open, oriel, symbol } from "./lib"
+import { control, element, failed as toast, home, type How, how, keep, open, oriel, symbol } from "./lib"
 
 const letters = { change: "M", "rename-pure": "R", "rename-changed": "R", new: "A", deleted: "D" }
 const page = element("div")
@@ -16,6 +17,8 @@ page.hidden = true
 const nav = element("nav", "list")
 const main = element("main", "diff")
 const empty = element("p", "empty")
+/** A commit's subject, body and facts, at the top of the scroll; empty for the working tree. */
+const about = element("header", "about")
 page.append(nav, main, empty)
 document.body.append(page)
 
@@ -30,8 +33,9 @@ let changes: { id: string; lineNumber: number; side: "additions" | "deletions" }
 let change = -1
 /** The files marked Viewed, with their text then: a file that changes since drops the mark. */
 const viewed = new Map<string, string>()
-// Side by Side and the file list, kept per card.
-const split = oriel.controls.get("diff.layout") === "split"
+// Side by Side, the wrap and the file list, kept per card.
+let split = oriel.controls.get("diff.layout") === "split"
+let wrap = oriel.controls.get("diff.wrap") === true
 let list = oriel.state.get<{ list?: boolean }>()?.list ?? true
 nav.hidden = !list
 
@@ -39,8 +43,7 @@ const options: CodeViewOptions<undefined, undefined> = {
   theme: { dark: "pierre-dark", light: "pierre-light" },
   themeType: oriel.theme.dark ? "dark" : "light",
   diffStyle: split ? "split" : "unified",
-  // Side by Side wraps each column's lines: a line scrolled past its narrow column was cut off where a click lands.
-  overflow: split ? "wrap" : "scroll",
+  overflow: overflow(),
   lineDiffType: "word",
   // `N unmodified lines`, not expandable: that needs each file's whole text.
   hunkSeparators: "line-info-basic",
@@ -48,9 +51,10 @@ const options: CodeViewOptions<undefined, undefined> = {
   // Clicks right after Next Change or a pick in the list (CodeView drops them while it scrolls).
   pointerEventsOnScroll: true,
   layout: { paddingTop: 0, paddingBottom: 24, gap: 0 },
+  // The file header's band (`.file` in diff.css).
+  itemMetrics: { diffHeaderHeight: 40 },
   // The card's fill shows through; the sticky header is opaque in the card's color, with a line under it.
   unsafeCSS: `
-    [data-diffs-header] :is([data-additions-count], [data-deletions-count]) { display: none }
     :host {
       --diffs-light-bg: transparent !important;
       --diffs-dark-bg: transparent !important;
@@ -73,48 +77,28 @@ const options: CodeViewOptions<undefined, undefined> = {
     }
     [data-separator] { border-block: 0.5px solid var(--divider) }
     [data-separator-content] { background: none !important; color: var(--dim) }
-    [data-diffs-header] {
-      background: var(--card) !important;
-      box-shadow: inset 0 -0.5px var(--divider);
-      cursor: default;
-    }`,
-  // A diff item's file is its diff.
-  renderHeaderPrefix: (file) => {
+    [data-diffs-header] { height: 40px; background: var(--card); cursor: default; }`,
+  renderCodeViewHeader: () => about,
+  // The file's own row, as the card's rows: the disclosure, its icon, name and folder, its counts and letter, then
+  // Viewed and Open File. A diff item's file is its diff.
+  renderCustomHeader: (file) => {
     const diff = file as FileDiffMetadata
-    const button = header(diff, "prefix", () => {
-      const button = element("button", "disclosure", "›")
-      button.ariaLabel = "Show or hide the file"
-      button.onclick = () => collapse(diff.name, !item(diff.name).collapsed)
-      return button
+    const node = header(diff, (diff) => {
+      const row = element("div", "file"), disclosure = element("button", "disclosure", "›")
+      disclosure.ariaLabel = "Show or hide the file"
+      disclosure.onclick = () => collapse(diff.name, !item(diff.name).collapsed)
+      const slash = diff.name.lastIndexOf("/")
+      const name = element("span", "name", diff.name.slice(slash + 1))
+      // A rename names its old path in the folder's place.
+      const folder = element("span", "folder", diff.prevName && diff.prevName !== diff.name
+        ? `from ${diff.prevName}` : diff.name.slice(0, Math.max(slash, 0)))
+      row.title = diff.name
+      row.append(disclosure, symbol("doc"), name, folder, ...counts(diff), letter(diff), actions(diff))
+      return row
     })
-    button.classList.toggle("shut", Boolean(item(diff.name)?.collapsed))
-    return button
+    node.querySelector(".disclosure")!.classList.toggle("shut", Boolean(item(diff.name)?.collapsed))
+    return node
   },
-  renderHeaderMetadata: (file) => header(file as FileDiffMetadata, "metadata", (diff) => {
-    const box = element("span", "actions")
-    box.append(...counts(diff))
-    const label = element("label", "mark")
-    const check = element("input", "")
-    check.type = "checkbox"
-    check.ariaLabel = `Viewed ${diff.name}`
-    check.checked = viewed.has(diff.name)
-    check.onchange = () => {
-      if (check.checked) viewed.set(diff.name, text(diff))
-      else viewed.delete(diff.name)
-      collapse(diff.name, check.checked)
-      row(diff.name)?.classList.toggle("viewed", check.checked)
-    }
-    label.append(check, "Viewed")
-    box.append(label)
-    // A deleted file has nothing to open.
-    if (diff.type !== "deleted") {
-      const open = element("button", "open", "Open File")
-      open.ariaLabel = `Open ${diff.name}`
-      open.onclick = (event) => openFile(diff.name, undefined, how(event))
-      box.append(open)
-    }
-    return box
-  }),
   // ⌘-click: the file at the line in a new tab (⌥-click: to the side), or for a removed line at the one after it.
   onLineClick: (line, context) => {
     const { event, lineNumber } = line, file = files.find((file) => file.name === context.item.id)
@@ -129,12 +113,37 @@ const options: CodeViewOptions<undefined, undefined> = {
  * highlighter's answer), and a click whose press and release land on two different nodes does nothing.
  */
 const headers = new Map<string, { text: string; node: HTMLElement }>()
-function header(diff: FileDiffMetadata, slot: string, make: (diff: FileDiffMetadata) => HTMLElement) {
-  const key = `${slot} ${diff.name}`, body = text(diff), made = headers.get(key)
+function header(diff: FileDiffMetadata, make: (diff: FileDiffMetadata) => HTMLElement) {
+  const body = text(diff), made = headers.get(diff.name)
   if (made?.text === body) return made.node
   const node = make(diff)
-  headers.set(key, { text: body, node })
+  headers.set(diff.name, { text: body, node })
   return node
+}
+
+/** Viewed, and Open File but on a deleted file. */
+function actions(diff: FileDiffMetadata) {
+  const box = element("span", "actions"), label = element("label", "mark")
+  const check = element("input", "")
+  check.type = "checkbox"
+  check.ariaLabel = `Viewed ${diff.name}`
+  check.checked = viewed.has(diff.name)
+  check.onchange = () => {
+    if (check.checked) viewed.set(diff.name, text(diff))
+    else viewed.delete(diff.name)
+    collapse(diff.name, check.checked)
+    row(diff.name)?.classList.toggle("viewed", check.checked)
+  }
+  label.append(check, "Viewed")
+  box.append(label)
+  // A deleted file has nothing to open.
+  if (diff.type !== "deleted") {
+    const open = element("button", "open", "Open File")
+    open.ariaLabel = `Open ${diff.name}`
+    open.onclick = (event) => openFile(diff.name, undefined, how(event))
+    box.append(open)
+  }
+  return box
 }
 
 const viewer = new CodeView(options)
@@ -155,7 +164,7 @@ export async function show(nextRoot: string, nextSource: string, at?: string) {
   // Drawn unseen over the place before, which stays until the patch drew: no blank page while git answers.
   page.style.visibility = "hidden"
   page.hidden = false
-  await refresh()
+  await Promise.all([refresh(), commit()])
   // Not after another move meanwhile.
   if (root !== nextRoot || source !== nextSource) return false
   page.style.visibility = ""
@@ -169,6 +178,52 @@ export const hide = () => {
   page.style.visibility = ""
   root = source = ""
   clear()
+  document.title = ""
+}
+
+/** A commit's subject (also the card's title), its body, and its author, date, hash and parents. */
+async function commit() {
+  const at = `${root} ${source}`
+  about.replaceChildren()
+  document.title = ""
+  if (source === "uncommitted") return
+  const facts = await oriel.git.show(root, source).catch(() => undefined)
+  if (!facts || at !== `${root} ${source}`) return
+  document.title = facts.subject
+  const date = new Date(facts.date), list = element("dl")
+  const fact = (term: string, ...value: (Node | string)[]) => {
+    const line = element("dd")
+    line.append(...value)
+    list.append(element("dt", "", term), line)
+  }
+  fact("Author", facts.author, element("span", "dim", ` <${facts.email}>`))
+  fact("Date", ago(date), element("span", "dim", ` · ${date.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}`))
+  const copy = element("button", "hash", facts.hash.slice(0, 10))
+  copy.title = "Copy"
+  copy.ariaLabel = `Copy ${facts.hash}`
+  copy.onclick = () => oriel.clipboard.write(facts.hash).then(() => {
+    copy.textContent = "Copied"
+    setTimeout(() => (copy.textContent = facts.hash.slice(0, 10)), 1200)
+  }, toast)
+  fact("Commit", copy)
+  if (facts.parents.length) {
+    fact(facts.parents.length > 1 ? "Parents" : "Parent", ...facts.parents.map((parent) => {
+      const button = element("button", "hash", parent.slice(0, 10))
+      button.ariaLabel = `Parent ${parent}`
+      button.onclick = (event) => open(`${home(root)} ${parent}`, { how: how(event), plugin: "git" })
+      return button
+    }))
+  }
+  about.append(element("h1", "", facts.subject), ...(facts.body ? [element("p", "body", facts.body)] : []), list)
+}
+
+/** "3 hours ago", "yesterday", "in 2 days": the nearest unit. */
+function ago(date: Date) {
+  const seconds = (date.getTime() - Date.now()) / 1000
+  const units: [Intl.RelativeTimeFormatUnit, number][] = [["year", 31536000], ["month", 2592000], ["week", 604800],
+    ["day", 86400], ["hour", 3600], ["minute", 60]]
+  const [unit, size] = units.find(([, size]) => Math.abs(seconds) >= size) ?? ["second", 1]
+  return new Intl.RelativeTimeFormat(undefined, { numeric: "auto" }).format(Math.round(seconds / size), unit)
 }
 
 function clear() {
@@ -185,12 +240,17 @@ function clear() {
 }
 
 /**
- * Draws a new patch. A file keeps its place, its fold and its Viewed while its text is the same; a Viewed file that
- * changed opens again. A file new to the card with over 2,000 changed lines starts folded.
+ * Draws a new patch. A file keeps its place, its fold and its Viewed while its text is the same, and draws nothing new:
+ * CodeView draws a kept item again only for a new `version`. A Viewed file that changed opens again. A file new to the
+ * card with over 2,000 changed lines starts folded.
  */
 function draw(next: string) {
   patch = next
   files = parsePatchFiles(patch).flatMap((parsed) => parsed.files)
+    .map((file) => {
+      const was = item(file.name)?.fileDiff
+      return was && text(was) === text(file) && was.type === file.type ? was : file
+    })
   const changed = new Set<string>()
   for (const [name, was] of viewed) {
     const file = files.find((file) => file.name === name)
@@ -202,7 +262,10 @@ function draw(next: string) {
   viewer.setItems(files.map((fileDiff) => {
     const { added, removed } = sums(fileDiff), was = item(fileDiff.name)
     const folded = was ? was.collapsed && !changed.has(fileDiff.name) : added + removed > 2000
-    return { id: fileDiff.name, type: "diff", fileDiff, collapsed: viewed.has(fileDiff.name) || folded }
+    const collapsed = viewed.has(fileDiff.name) || folded
+    // The same file folded the same: the same version, so nothing draws.
+    const version = was && (was.fileDiff !== fileDiff || was.collapsed !== collapsed) ? (was.version ?? 0) + 1 : was?.version
+    return { id: fileDiff.name, type: "diff", fileDiff, collapsed, version }
   }))
   changes = files.flatMap(blocks)
   change = -1
@@ -220,7 +283,7 @@ function draw(next: string) {
       element("span", "name", file.name.slice(slash + 1)),
       element("span", "folder", file.name.slice(0, Math.max(slash, 0))),
       ...counts(file),
-      element("span", `letter ${letters[file.type]}`, letters[file.type]),
+      letter(file),
     )
     button.title = file.name
     button.ariaLabel = file.name
@@ -246,6 +309,10 @@ function counts(file: FileDiffMetadata) {
     element("span", "added", added ? `+${added}` : ""),
     element("span", "removed", removed ? `−${removed}` : ""),
   ]
+}
+
+function letter(file: FileDiffMetadata) {
+  return element("span", `letter ${letters[file.type]}`, letters[file.type])
 }
 
 function blocks(file: FileDiffMetadata) {
@@ -356,9 +423,18 @@ export async function refresh() {
 /** A first read failed: a change in the work tree reads again. */
 export const failed = () => patch === undefined
 
-export function layout(split: boolean) {
+/** Side by Side wraps each column's lines: a line scrolled past its narrow column was cut off where a click lands.
+ *  Unified wraps with Word Wrap. */
+function overflow() {
+  control("diff.wrap", { enabled: !split })
+  return split || wrap ? "wrap" : "scroll"
+}
+
+export function layout(next: { split?: boolean; wrap?: boolean }) {
+  split = next.split ?? split
+  wrap = next.wrap ?? wrap
   options.diffStyle = split ? "split" : "unified"
-  options.overflow = split ? "wrap" : "scroll"
+  options.overflow = overflow()
   viewer.setOptions({ ...options })
   keepChange()
 }

@@ -151,6 +151,11 @@ export interface Git {
   /** The patch as git prints it: "uncommitted" (staged, unstaged and untracked against HEAD) or a commit against its
    *  first parent. Up to 16 MB. */
   diff(root: string, source: string): Promise<string>
+  /** A commit's page: its subject and body (the message after its first line, trimmed), author, email, date in
+   *  milliseconds since 1970, and the full hashes of its parents. */
+  show(root: string, hash: string): Promise<{
+    hash: string; parents: string[]; author: string; email: string; date: number; subject: string; body: string
+  }>
   /** `git add -A` of the paths (literal, not patterns), or of everything. */
   stage(root: string, paths?: string[]): Promise<void>
   unstage(root: string, paths?: string[]): Promise<void>
@@ -315,6 +320,9 @@ Markdown, or Git's home and a diff. The plugin draws every place itself:
   rename`). So a page draws its places in one handler. After Back, `at` is
   the place it came back from: that place's landing, else its argument. So
   the tree reveals the file it opened.
+- The page's `document.title`, when it is not empty, is the card's and the
+  tab's title in place of the one from the label (Git's commit subject). A
+  place that has no title of its own sets it back to "".
 - A heavy place loads with a dynamic `import()`, so a tree card does not
   load CodeMirror or pdf.js. A bundler links no CSS for a dynamic chunk, so
   the entry imports all the CSS, scoped per place.

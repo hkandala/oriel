@@ -37,7 +37,7 @@ Side by Side and its file list ([State](/docs/plugins/api#state)).
 | `explorer` | a folder's absolute path, ending in `/` | the tree, rooted there | the folder's name | `File Explorer oriel` |
 | `explorer` | a file's absolute path | File, Preview or Markdown, by the file's name | the file's name | `File Explorer main.swift` |
 | `git` | the repository's root, ending in `/` | the Git home | the root's name | `Git oriel` |
-| `git` | the root with its `/`, a space, then `uncommitted` or a commit hash | a diff | `Changes`, or the short hash | `Git Changes` |
+| `git` | the root with its `/`, a space, then `uncommitted` or a commit hash | a diff | `Working Tree`, or the commit's subject (the short hash until the page has read it) | `Git Working Tree` |
 
 - The tab and the floating window read "‹name› ‹title›", the title in
   secondary text, as a terminal tab's "zsh oriel"
@@ -107,7 +107,9 @@ apply:
 | the tree: a file | double-click or Return | the file, with its page |
 | the tree: a folder | ⌘-click, ⌥-click, or Open as Root | the tree rooted there |
 | a file's **Show in File Explorer** | click | the tree, with the file revealed |
-| the Git home: a change | click | the Uncommitted diff, scrolled to that file |
+| the Git home: a change | click | the Working Tree diff, scrolled to that file |
+| the Git home: **Working Tree** | click | the Working Tree diff |
+| a commit's page: a parent | click (⌘: a new tab, ⌥: to the side) | that parent's diff |
 | the Git home: a commit | click | the diff of that commit |
 | a diff's **Git Home** | click | the Git home |
 | a diff: a file header's **Open File** | click (⌥: to the side) | the file in a File Explorer, in a new tab |
@@ -223,7 +225,7 @@ File and Markdown edit the file. Both use the same editor and the same rules.
   shows the info view: the system's icon for its type, its name, its kind
   and its size.
 - Preview reloads its file on a change too. The tree, the Git home and an
-  Uncommitted diff follow their folder.
+  Working Tree diff follow their folder.
 
 ## Open With
 
@@ -374,10 +376,11 @@ The repository's state on one page, in the app's style: rows as the
 sidebar's (28 pt, radius 7), SF Symbols drawn in the text's color, the
 app's fonts and `Look` colors. From the top:
 
-- **Row 2** (native): Back and Forward, the branch, then Fetch
+- **Row 2** (native): Back and Forward, the branch, **Working Tree**
+  (`plus.forwardslash.minus`), then Fetch
   (`arrow.clockwise`), Pull (`arrow.down`, with the number of commits
-  behind) and Push (`arrow.up`, with the number of commits ahead). The three
-  are small bordered buttons with their symbol and word. A button
+  behind) and Push (`arrow.up`, with the number of commits ahead). Working
+  Tree and the three are small bordered buttons with their symbol and word. A button
   shows a spinner while its command runs. The three and the branch are
   disabled while one of them, a switch or Commit runs, and when git cannot
   read the repository.
@@ -397,7 +400,7 @@ app's fonts and `Look` colors. From the top:
   with its count and the words **Unstage All** or **Stage All**, then one
   row per file: `doc`, its name, its folder in secondary, the Stage (`plus`)
   or Unstage (`minus`) button that shows under the pointer, and its letter
-  in the tree's colors. A click opens the Uncommitted diff at that file.
+  in the tree's colors. A click opens the Working Tree diff at that file.
 - **No changes:** with nothing to commit, the message, Commit and both lists
   give way to one placeholder: `checkmark.circle` and "No changes".
 - **History**, 26 pt under the changes, after a hairline: the last 500
@@ -448,19 +451,33 @@ app's fonts and `Look` colors. From the top:
 
 The changes of one source in one scroll (`@pierre/diffs`).
 - **Row 2:** Back and Forward, **Git Home** (`house`), then
-  `Unified | Side by Side`, the file list button (`sidebar.left`, its title
+  `Unified | Side by Side`, **Word Wrap** (`arrow.turn.down.left`, a
+  toggle in the accent while on; Side by Side always wraps, so it is
+  disabled there), the file list button (`sidebar.left`, its title
   Hide File List or Show File List), Previous Change (`chevron.up`) and Next
   Change (`chevron.down`). There is no source
   pop-up: another source opens from the home.
-- **Uncommitted** is the staged, unstaged and untracked changes against
-  `HEAD` (against the empty tree before the first commit), up to 16 MB of
-  patch. It follows the work tree while the card shows: on a change the page
-  asks for the patch again and draws only when the text changed. **A
-  commit** shows against its first parent.
-- **The scroll.** Each file has a sticky header with a disclosure, the path,
-  `+n −m`, a **Viewed** box and **Open File** (not on a deleted file). The
-  header is opaque in the card's color (`--card`, `Look.cardSolid`), with a
-  hairline under it, and no blur. Viewed folds the file and dims its row in
+- **Working Tree** (`uncommitted` in the label) is the staged, unstaged and
+  untracked changes against `HEAD` (against the empty tree before the first
+  commit), up to 16 MB of patch. It is a live view: while the card shows,
+  each change under the root (an agent's edits) asks for the patch again.
+  Only the files whose text changed draw again: CodeView keeps every other
+  file, and the scroll stays where it was. With no changes it says "No
+  changes" and fills as files change. **A commit** shows against its first
+  parent.
+- **A commit's page** starts with its subject (15 pt, semibold), its body,
+  then Author (name and email), Date (relative, then the date and time),
+  Commit (the short hash: a click copies the full one and says "Copied")
+  and Parent or Parents (each short hash opens that commit). The subject is
+  the card's and the tab's title (`document.title`). The text can be
+  selected.
+- **The scroll.** Each file has a sticky 40 pt header. On an opaque band in
+  the card's color (`--card`, `Look.cardSolid`, no blur) sits a 30 pt row in
+  the home's row style (radius 7, a faint fill and hairline): a disclosure,
+  `doc`, the file's name in semibold, its folder in secondary ("from ‹old
+  path›" for a rename), `+n −m` in the finished and error colors, its
+  letter, a **Viewed** box and **Open File** (not on a deleted file). In a
+  card under 480 pt the folder and the counts give way. Viewed folds the file and dims its row in
   the list. A refresh keeps each file's fold and Viewed while its text is
   the same. A Viewed file whose text changed opens again. A file new to the
   card with over 2,000 changed lines starts folded. Changes inside a line
@@ -479,8 +496,8 @@ The changes of one source in one scroll (`@pierre/diffs`).
 - "No changes" shows when the patch is empty. A failed first read (not a
   repository yet, a machine away) shows git's error and asks again at the
   next change in the work tree.
-- Side by Side (the header's value) and the file list (the card's state) are
-  kept per card, also across a new source, and saved in the state file, so
+- Side by Side and Word Wrap (the header's values) and the file list (the
+  card's state) are kept per card, also across a new source, and saved in the state file, so
   they survive a drop, a reload and a relaunch. Viewed marks last while the
   page runs.
 - A file with no hunks (binary, a mode change, a pure rename) shows its
@@ -529,7 +546,7 @@ the machine. The limits:
   folder shows "No folder ‹path›".
 - No file system events: while a card shows, the app checks every 2 s. For a
   file it compares the file's `cksum`. For a folder (the tree, the Git home,
-  an Uncommitted diff) it compares the folder's entries, its `git status`
+  a Working Tree diff) it compares the folder's entries, its `git status`
   and the changed files' text. A hidden card checks nothing.
 - git comes from the machine's `PATH`, and a remote machine's git always
   runs: one without git shows no git and roots File Explorer and Git at the

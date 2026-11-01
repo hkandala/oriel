@@ -42,7 +42,7 @@ extension Page {
             return ("Browser", browserTitle(pane, label))
         }
         if let label = pane.plugin {
-            return (label.manifest?.name ?? label.plugin, label.title)
+            return (label.manifest?.name ?? label.plugin, pluginTitle(pane, label))
         }
         return pane.agentTitle.map { (pane.agentLabel ?? "", $0) }
     }

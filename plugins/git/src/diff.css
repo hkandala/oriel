@@ -12,25 +12,43 @@
   .folder { flex: 1 1000 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis;
     color: var(--dim); font-size: 11px }
   .added, .removed, .letter { flex: none; font: 11px ui-monospace, monospace }
-  .actions .added, .actions .removed { font-size: inherit }
   .added { color: var(--finished) } .removed { color: var(--error) }
   /* As the Git home's and the File Explorer's letters. */
   .letter { width: 1.5ch; text-align: right; font-weight: 600; color: var(--needs-you) }
   .letter.A, .letter.R { color: var(--finished) } .letter.D { color: var(--error) }
   .diff { flex: 1; min-width: 0; overflow: auto }
   .empty { position: fixed; inset: 0; margin: auto; height: fit-content; text-align: center; color: var(--dim) }
-  .disclosure, .open { all: unset; color: var(--dim); border-radius: 5px; padding: 1px 6px }
-  .disclosure:hover, .open:hover { color: var(--text); background: color-mix(in srgb, var(--text) 10%, transparent) }
+  /* A file's header: a row as the card's (28 pt, radius 7) on the opaque band pierre keeps sticky (40 pt). */
+  .file { box-sizing: border-box; display: flex; align-items: center; gap: 6px; height: 30px; margin: 5px 8px;
+    padding: 0 6px 0 4px; border-radius: 7px; white-space: nowrap; font: 13px system-ui; color: var(--text);
+    background: color-mix(in srgb, var(--text) 6%, transparent); box-shadow: inset 0 0 0 0.5px var(--divider) }
+  .file > .symbol { color: var(--dim) }
+  .file > .name { font-weight: 600 }
+  .file > .actions { margin-left: auto }
+  .disclosure, .open, .hash { all: unset; color: var(--dim); border-radius: 5px; padding: 1px 6px }
+  .disclosure:hover, .open:hover, .hash:hover { color: var(--text);
+    background: color-mix(in srgb, var(--text) 10%, transparent) }
+  .disclosure:focus-visible, .open:focus-visible, .hash:focus-visible { outline: 2px solid var(--accent) }
   .actions { display: flex; align-items: center; gap: 10px; margin-left: 10px; font: 12px system-ui;
     color: var(--dim) }
+  /* A commit's subject, body and facts, above its files. */
+  .about:not(:empty) { padding: 14px 16px 10px; border-bottom: 0.5px solid var(--divider); font: 13px system-ui;
+    color: var(--text); user-select: text; -webkit-user-select: text; cursor: auto }
+  .about h1 { margin: 0 0 6px; font-size: 15px; font-weight: 600; line-height: 1.35 }
+  .about .body { margin: 0 0 10px; white-space: pre-wrap; line-height: 1.45; color: var(--dim) }
+  .about dl { display: grid; grid-template-columns: max-content 1fr; gap: 3px 12px; margin: 0; font-size: 12px }
+  .about dt { color: var(--dim) }
+  .about dd { margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+  .about .dim { color: var(--dim) }
+  .about .hash { font: 11px ui-monospace, monospace; padding: 1px 5px; margin-left: -5px; margin-right: 4px }
   .mark { display: flex; align-items: center; gap: 4px }
-  .disclosure { display: inline-block; transform: rotate(90deg); transition: transform 0.15s }
+  .disclosure { display: inline-block; width: 10px; text-align: center; transform: rotate(90deg);
+    transition: transform 0.15s }
   .disclosure.shut { transform: none }
-  /* A narrow card keeps Viewed and Open File in sight in each file's header: the counts, also in the file list, give way.
-     The header does not wrap: its height is fixed for the scroll. */
+  /* A narrow card keeps Viewed and Open File in sight in each file's header: the folder and the counts, also in the
+     file list, give way. The header does not wrap: its height is fixed for the scroll. */
   @media (max-width: 480px) {
-    .actions .added,
-    .actions .removed {
+    .file > :is(.folder, .added, .removed) {
       display: none;
     }
   }

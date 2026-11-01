@@ -44,10 +44,10 @@ extension PaneLabel {
     }
 
     /// The card's and the tab's title, from the label alone (menus ask for every tab's): the file's or the root's
-    /// name, a diff's `Changes` or short hash.
+    /// name, a diff's `Working Tree` or short hash. A page's `document.title` comes first (`Page.pluginTitle`).
     var title: String {
         if manifest?.id == "git", let source = diffSource {
-            return source == "uncommitted" ? "Changes" : String(source.prefix(7))
+            return source == "uncommitted" ? "Working Tree" : String(source.prefix(7))
         }
         let name = (arg as NSString).lastPathComponent
         return name.isEmpty ? manifest?.name ?? plugin : name
@@ -78,6 +78,14 @@ extension PaneLabel {
         while kill -0 $! 2>/dev/null; do wait $!; done
         """#
         return ["sh", "-c", script, "sh", manifest?.name ?? plugin, arg]
+    }
+}
+
+extension Page {
+    /// A plugin card's title: its page's `document.title` once its card is made, else the label's.
+    func pluginTitle(_ pane: HostStore.Pane, _ label: PaneLabel) -> String {
+        let title = pane.terminalID.flatMap(terminals.builtPlugin)?.web.title ?? ""
+        return title.isEmpty ? label.title : title
     }
 }
 

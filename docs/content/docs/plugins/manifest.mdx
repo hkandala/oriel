@@ -99,7 +99,7 @@ label's argument holds, and the card's title.
 |---|---|---|---|
 | `files` | a file's absolute path | the file's name | `{ "files": ["*.csv", "public.comma-separated-values-text"] }` |
 | `folders` | a folder's path, ending in `/`: the root of its git repository, else the folder | the folder's name | `{ "folders": true }` |
-| `git` | a repository's root with its `/`, then optionally a space and `uncommitted` or a commit hash | the root's name, `Changes` or the short hash | `{ "git": true }` |
+| `git` | a repository's root with its `/`, then optionally a space and `uncommitted` or a commit hash | the root's name, `Working Tree` or the short hash (the page's title, a commit's subject, once it loads) | `{ "git": true }` |
 | `urls` | a URL | its last part | `{ "urls": ["https://github.com/*/*/pull/*"] }` |
 
 - `files` is a list of patterns. Each is a name glob (`*.csv`, `Makefile`),

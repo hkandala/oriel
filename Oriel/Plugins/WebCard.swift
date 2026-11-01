@@ -30,6 +30,9 @@ final class WebCard {
     /// Reloads asked for, so only the last one's page loads (`reload`).
     @ObservationIgnored var loads = 0
     @ObservationIgnored private var css = ""
+    /// The page's `document.title`: the card's title while it is not empty (Git's commit subject).
+    private(set) var title = ""
+    @ObservationIgnored private var titleObservation: NSKeyValueObservation?
 
     init(plugin: String, arg: String, place: String?, store: HostStore) {
         self.plugin = plugin
@@ -48,6 +51,9 @@ final class WebCard {
         let relay = Relay(card: self)
         configuration.userContentController.addScriptMessageHandler(relay, contentWorld: .page, name: "oriel")
         view.navigationDelegate = relay
+        titleObservation = view.observe(\.title) { [weak self] view, _ in
+            MainActor.assumeIsolated { self?.title = view.title ?? "" }
+        }
     }
 
     /// The app's colors as CSS variables. The first call loads the page; the script also starts a page still loading

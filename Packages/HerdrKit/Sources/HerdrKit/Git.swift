@@ -207,6 +207,27 @@ public extension Git {
 }
 
 public extension Git {
+    /// A commit's page, as the plugin API's `git.show` gives it: its hash, parents, author and their email, its date
+    /// in milliseconds, its subject and its body.
+    static func show(_ root: String, _ hash: String, exec: any Exec) async throws -> [String: any Sendable] {
+        // Never an option.
+        guard !hash.isEmpty, hash.allSatisfy(\.isHexDigit) else { throw HerdrError.failed("No commit \(hash)") }
+        let fields = try await exec.checkedOutput(
+            ["git", "-C", root, "show", "-s", "--no-show-signature", "--format=%H%x1f%P%x1f%an%x1f%ae%x1f%at%x1f%B",
+             hash, "--"],
+            timeout: .seconds(30),
+        )
+        .split(separator: "\u{1F}", maxSplits: 5, omittingEmptySubsequences: false)
+        guard fields.count == 6,
+              let time = TimeInterval(fields[4]) else { throw HerdrError.failed("No commit \(hash)") }
+        let message = fields[5].trimmingCharacters(in: .whitespacesAndNewlines)
+        let subject = message.prefix { $0 != "\n" }
+        return ["hash": String(fields[0]), "parents": fields[1].split(separator: " ").map(String.init),
+                "author": String(fields[2]), "email": String(fields[3]), "date": time * 1000,
+                "subject": String(subject),
+                "body": message.dropFirst(subject.count).trimmingCharacters(in: .whitespacesAndNewlines)]
+    }
+
     /// The patch as git prints it, with renames, of one commit against its first parent, or with `commit` nil of the
     /// uncommitted changes: staged, unstaged and untracked files against HEAD (the plugin API's `git.diff`).
     static func patch(_ root: String, commit: String?, exec: any Exec) async throws -> String {

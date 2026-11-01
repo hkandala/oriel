@@ -9,8 +9,8 @@ import * as Home from "./home"
 import { bind, control, home, parse } from "./lib"
 
 /** Each place's own header controls; the spacer is both's. */
-const HOME = ["git.branch", "git.fetch", "git.pull", "git.push"]
-const DIFF = ["diff.home", "diff.layout", "diff.file-list", "diff.previous", "diff.next"]
+const HOME = ["git.branch", "git.working", "git.fetch", "git.pull", "git.push"]
+const DIFF = ["diff.home", "diff.layout", "diff.wrap", "diff.file-list", "diff.previous", "diff.next"]
 
 export default async function main(oriel: Oriel) {
   bind(oriel)
@@ -50,8 +50,8 @@ export default async function main(oriel: Oriel) {
     Home.hide()
   }
 
-  /** While the card shows: the home reads again after each change under the root, Uncommitted asks for its patch
-   *  again, and a diff whose first read failed tries again. */
+  /** While the card shows: the home reads again after each change under the root, the working tree asks for its
+   *  patch again (and draws only the files that changed), and a diff whose first read failed tries again. */
   function watch(root: string) {
     if (root === watched) return
     off?.()
@@ -66,7 +66,9 @@ export default async function main(oriel: Oriel) {
   oriel.on("control", ({ id, value }) => {
     switch (id) {
       case "diff.home": return oriel.card.go(home(place.root))
-      case "diff.layout": return Diff?.layout(value === "split")
+      case "git.working": return oriel.card.go(`${home(place.root)} uncommitted`)
+      case "diff.layout": return Diff?.layout({ split: value === "split" })
+      case "diff.wrap": return Diff?.layout({ wrap: value === true })
       case "diff.file-list": return Diff?.toggleList()
       case "diff.previous": return Diff?.step(-1)
       case "diff.next": return Diff?.step(1)

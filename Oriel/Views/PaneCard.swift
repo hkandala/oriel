@@ -246,8 +246,8 @@ struct PaneCard: View {
                     Text("New Pane").lineLimit(1)
                 } else if let pane, let label = pane.browser {
                     Text(page.browserTitle(pane, label) ?? "New Tab").lineLimit(1)
-                } else if let label = pane?.plugin {
-                    Text(label.title).lineLimit(1).truncationMode(.middle)
+                } else if let pane, let label = pane.plugin {
+                    Text(page.pluginTitle(pane, label)).lineLimit(1).truncationMode(.middle)
                 } else if agent {
                     Text(pane?.agentTitle ?? pane?.programName ?? "").lineLimit(1)
                 } else {

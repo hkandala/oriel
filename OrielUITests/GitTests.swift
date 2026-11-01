@@ -6,10 +6,11 @@ import XCTest
 extension OrielUITests {
     /// The home lists every branch's commits and the changes; Stage moves a file to the staged list, Commit commits it
     /// with the typed message, Push sends it to the remote; a commit opens its diff in the card, and Back and Forward
-    /// walk between the home and the diff; the branch menu switches the branch. The diff: Uncommitted from a change
-    /// follows the work tree; Open File opens the file in a new tab right after this one; Viewed folds the file;
-    /// Next Change scrolls to a change the page has not drawn; ⌘-click on a line opens the file at the line, in
-    /// Unified and in Side by Side; the file list hides.
+    /// walk between the home and the diff; the branch menu switches the branch. The diff: a commit's subject is its
+    /// title, and its page names its parent; the working tree from a change follows the work tree, also in a file it
+    /// shows; Open File opens the file in a new tab right after this one; Viewed folds the file; Next Change scrolls to
+    /// a change the page has not drawn; ⌘-click on a line opens the file at the line, in Unified and in Side by Side;
+    /// Word Wrap toggles in Unified only; the file list hides.
     func testGitCardCommitsPushesAndOpensDiffs() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, left) = try await newTab("git")
@@ -31,9 +32,11 @@ extension OrielUITests {
         // A commit opens its diff in the card; Back and Forward walk the card's places.
         commit("second", in: home).click()
         try await expect("the label names the commit") { try await paneLabel(card).hasSuffix(" \(root)/ \(hash)") }
-        XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, String(hash.prefix(7)), within: 3))
+        // The commit's subject is the title; its page names its parent.
+        XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, "second", within: 10))
         let page = element("git.\(card).page")
         XCTAssertTrue(page.buttons["a.txt"].exists(within: 10))
+        XCTAssertTrue(page.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Parent '")).firstMatch.exists)
         XCTAssertFalse(page.buttons["b.md"].exists)
         element("pane.\(card).go-back").click()
         try await expect("back home") { try await paneLabel(card).hasSuffix("e2egit \(root)/") }
@@ -41,14 +44,18 @@ extension OrielUITests {
         try await expect("forward to the commit") { try await paneLabel(card).hasSuffix(" \(root)/ \(hash)") }
         try await diff(page, card: card, tab: tab, root: root)
         element("pane.\(card).diff.home").click()
-        // A change opens Uncommitted at its file, which follows the work tree.
+        // A change opens the working tree at its file, which follows the work tree.
         XCTAssertTrue(home.buttons["Modified: a.txt"].exists(within: 10))
         home.buttons["Modified: a.txt"].click()
         try await expect("the label is Uncommitted") { try await paneLabel(card).hasSuffix(" \(root)/ uncommitted") }
         XCTAssertTrue(page.buttons["a.txt"].exists(within: 10))
-        XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, "Changes", within: 3))
+        XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, "Working Tree", within: 3))
         try await send("echo new >c.txt\r", to: left)
         XCTAssertTrue(page.buttons["c.txt"].exists(within: 10))
+        // A file already shown draws its new text.
+        try await send("sed -i '' 's/^changed 200$/live 200/' a.txt\r", to: left)
+        XCTAssertTrue(page.staticTexts.matching(NSPredicate(format: "value CONTAINS 'live 200'")).firstMatch
+            .exists(within: 10))
 
         element("pane.\(card).diff.home").click()
         let branch = element("pane.\(card).git.branch")
@@ -197,7 +204,14 @@ extension OrielUITests {
 
     /// Side by Side puts the old line and the new one on one row; the file list hides and comes back.
     private func sideBySide(_ card: String, _ page: XCUIElement, _ far: XCUIElement) async throws {
+        // Word Wrap is on while Unified; Side by Side always wraps, so there it is off.
+        let wrap = element("pane.\(card).diff.wrap")
+        wrap.click()
+        XCTAssertTrue(wrap.has(\.isSelected, true, within: 3))
+        wrap.click()
+        XCTAssertTrue(wrap.has(\.isSelected, false, within: 3))
         element("pane.\(card).diff.layout.side by side").click()
+        XCTAssertTrue(wrap.has(\.isEnabled, false, within: 3))
         let old = page.staticTexts.matching(NSPredicate(format: "value CONTAINS 'line 290'")).firstMatch
         // By their tops: a narrow column wraps the old line.
         XCTAssertTrue(until(3) {

@@ -138,6 +138,7 @@ const oriel: Oriel = {
     branches: (root) => call("git.branches", { root }),
     log: (root, options) => call("git.log", { root, limit: options?.limit }),
     diff: (root, source) => call("git.diff", { root, source }),
+    show: (root, hash) => call("git.show", { root, source: hash }),
     stage: (root, paths) => call("git.stage", { root, paths }),
     unstage: (root, paths) => call("git.unstage", { root, paths }),
     commit: (root, message) => call("git.commit", { root, message }),
