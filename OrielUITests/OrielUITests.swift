@@ -256,11 +256,13 @@ extension OrielUITests {
         // change; a click on an earlier frame went beside it (on CI).
         let capsule = element("tab.\(tab)")
         XCTAssertTrue(capsule.has(\.isHittable, true, within: 2))
+        // One query a look: a slow one (over 1 s on a busy CI Mac) made the two of each look outlast the wait.
         var frame = CGRect.null
-        XCTAssertTrue(until(2) {
-            defer { frame = capsule.frame }
-            return capsule.frame == frame
-        })
+        XCTAssertTrue(until(5) {
+            let now = capsule.frame
+            defer { frame = now }
+            return now == frame
+        }, "\(capsule.frame)")
         return (tab, pane)
     }
 

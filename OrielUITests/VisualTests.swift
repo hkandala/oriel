@@ -41,8 +41,9 @@ extension OrielUITests {
             XCUIElement.perform(withKeyModifiers: .option) { lights[2].click() }
             _ = until(1) { window.frame != frame }
             XCTAssertTrue(until(3) {
-                defer { frame = window.frame }
-                return window.frame == frame
+                let now = window.frame
+                defer { frame = now }
+                return now == frame
             })
             // On screen: the window opened at the screen's size, not at the 1200 pt default a zoom would give back.
             XCTAssertGreaterThanOrEqual(window.frame.minX, 0, "\(window.frame)")

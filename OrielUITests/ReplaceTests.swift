@@ -22,8 +22,9 @@ extension OrielUITests {
         }
         var frame = CGRect.null
         XCTAssertTrue(until(3) {
-            defer { frame = card.exists ? place(card) : .null }
-            return card.exists && place(card) == frame
+            let now = card.exists ? place(card) : .null
+            defer { frame = now }
+            return !now.isNull && now == frame
         })
         element("terminal.\(right)").click()
         XCTAssertTrue(hasKeyboard("terminal.\(right)"))
