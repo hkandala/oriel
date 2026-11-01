@@ -196,15 +196,14 @@ extension AgentCall {
             throw AgentError.usage("extra argument \(words[opens.git ? 2 : 1])")
         }
         if !opens.urls.isEmpty, !takes || web(first) {
-            // A path is a file URL, which the browser opens on This Mac only.
+            // A path is a file URL, and a file URL names a Mac file: for a pane on This Mac only, whatever the kind.
             let path = !first.contains("://") && ["/", "."].contains(first.prefix(1))
-            let url = plugin.id == Registry.browser.id
-                ? Browser.url(path ? URL(filePath: absolute(first)).absoluteString : first,
-                              local: !store.machine.isRemote)?.absoluteString
+            let mac = store.machine.isRemote && (path || first.lowercased().hasPrefix("file:"))
+            let url = mac ? nil : plugin.id == Registry.browser.id
+                ? Browser.url(path ? URL(filePath: absolute(first)).absoluteString : first, local: true)?.absoluteString
                 : plugin.opens(url: first) ? first : nil
             guard let url else {
-                let mac = path || first.lowercased().hasPrefix("file:")
-                throw AgentError(code: "bad_argument", message: mac ? "the browser opens a file on This Mac only"
+                throw AgentError(code: "bad_argument", message: mac ? "\(plugin.id) opens a file on This Mac only"
                     : "\(plugin.id) does not open \(first)")
             }
             return url

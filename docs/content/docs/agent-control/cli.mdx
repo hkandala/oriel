@@ -224,7 +224,8 @@ command's folder).
   not come to the front: it asks for attention in the Dock. Return does not
   press Install, so keys typed elsewhere cannot consent.
 - It answers after the install and the build, with the plugin's entry as in
-  the list. **Cancel** is `declined`.
+  the list. **Cancel** is `declined`. With no window of the session left to
+  show the prompt, the install is `failed`.
 - A source that is not one, or one already listed, is `bad_argument`.
   Update stays in the Plugins panel: it asks only when the permissions grew.
 - If the command's `--timeout` ends first, the prompt stays, and the install
@@ -283,13 +284,14 @@ oriel open explorer . --float                     # a file tree in a floating wi
   folder. Git takes a folder of a repository (the card gets its root) and
   then `uncommitted` or a commit hash (4 to 40 hex digits). File Explorer
   takes a folder as Open File Explorer Here does: the git root when there is
-  one. `browser ./page.html` is a `file://` URL, which the browser opens only
-  on This Mac. A missing or wrong argument, or one that makes no label (a
+  one. `browser ./page.html` is a `file://` URL. A `file://` URL, for the
+  browser or any plugin, opens only for a pane on This Mac. A missing or wrong argument, or one that makes no label (a
   control character, over 1024 characters), is `bad_argument`.
 - **Reuse.** Without `--new`, a card of the same kind and argument already in
   the session where the card would open is the answer (`"reused": true`), and
   nothing new opens. When it is not in view, Oriel shows the notice
-  "‹agent› points to ‹title›" with **Show**.
+  "‹agent› points to ‹title›" with **Show**. A reused card stays where it
+  is, also with `--float`: `oriel float` floats it.
 - **The view.** A split of the asking pane shows where the agent is. A new
   tab is not selected. A new card out of view gets the notice "‹agent›
   opened ‹Kind› ‹title›" with **Show**, in each window that shows the session
@@ -326,7 +328,8 @@ oriel unfloat w1:p3            # Detach: back into its tab
   clicked in a card of the asking session
   ([Floating pane](/docs/ui/window#floating-pane)). A pane of a session with
   no page gets a float-only page. A session that no window shows is
-  `failed`.
+  `failed`. A float that fails says so only in the answer: the window shows
+  no warning.
 - The window comes to the front without activating Oriel, and the keyboard
   stays in the window that had it.
 - A pane that floats already comes to the front (`"existing": true`).

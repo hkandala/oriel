@@ -82,7 +82,8 @@ extension AgentCommand {
         guard !PluginPackages.sources(Registry.settings).contains(source) else {
             throw AgentError(code: "bad_argument", message: "\(source) is installed; Update is in the Plugins panel")
         }
-        let asker = Asker(name: "\(call.agent) in pane \(call.pane)", window: call.store.windows.first?.window)
+        guard let window = call.store.windows.first?.window else { throw AgentError.noWindow(call.store.session) }
+        let asker = Asker(name: "\(call.agent) in pane \(call.pane)", window: window)
         let manifest: PluginManifest
         do {
             manifest = try await PluginInstalls.shared.install(source, for: asker)

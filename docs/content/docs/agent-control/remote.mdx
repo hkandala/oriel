@@ -84,9 +84,9 @@ the machine.
 - **Paths** are the machine's. `oriel open ./notes.md` opens the remote
   file, through the card's `Exec`, as every plugin card on that machine does.
 - **`localhost`** in a browser card is the machine's, through the SOCKS proxy
-  ([Remote localhost](/docs/ui/browser#remote-localhost)). A path or a
-  `file://` address in the browser opens only on This Mac: from a remote pane
-  it is `bad_argument`.
+  ([Remote localhost](/docs/ui/browser#remote-localhost)). A path for the
+  browser, or a `file://` URL for any kind, opens only on This Mac: from a
+  remote pane it is `bad_argument`.
 - **Plugins** live on the Mac. `oriel plugins` lists them, without `log`.
   `plugins new`, `reload` and `install` are `other_machine`.
 - **`remote`** in `oriel status` is true, so the agent knows its own `pbcopy`

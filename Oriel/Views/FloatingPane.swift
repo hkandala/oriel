@@ -132,7 +132,10 @@ extension WindowPages {
             } else {
                 "no such pane."
             }
-            cannotFloat(paneID, of: page.id, why)
+            // An agent's: its answer says so.
+            if !floatPendingForAgent {
+                cannotFloat(paneID, of: page.id, why)
+            }
         }
         // A float that failed, or went to another main window's floating window.
         if page.floating.isEmpty {

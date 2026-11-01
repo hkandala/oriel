@@ -219,6 +219,11 @@ final class PluginInstalls {
         let asks = agent.map { "\($0.name) asks to install it." }
         let text = [asks ?? "", "\(manifest.id) \(manifest.version.shown) from \(source)", manifest.description.shown,
                     PluginTrust.words(manifest, folder: folder).joined(separator: " ")].filter { !$0.isEmpty }
+        // An agent's prompt is a sheet only: a modal alert would hold every request and could come up over the
+        // user's app.
+        if let agent, agent.window == nil {
+            throw refuse("no window to ask the user for \(agent.name)")
+        }
         let alert = NSAlert()
         // Its row in the New Pane chooser, on unless the user turned it off before.
         if manifest.chooser != nil {
@@ -285,7 +290,7 @@ final class PluginInstalls {
 /// session, which the prompt's sheet goes on.
 struct Asker {
     let name: String
-    /// Weak: a closed window takes no sheet, and the prompt runs as a modal alert instead.
+    /// Weak: a closed window takes no sheet, and the install fails.
     weak var window: NSWindow?
 }
 
