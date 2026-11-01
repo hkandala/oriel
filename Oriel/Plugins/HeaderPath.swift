@@ -22,7 +22,6 @@ struct PathField: View {
 
     /// An absolute path's text with `.`, `..`, `//` and a last `/` resolved; links stay (`/private/tmp` is no `/tmp`).
     static func tidy(_ path: String) -> String {
-        guard path.hasPrefix("/") else { return path }
         var parts: [Substring] = []
         for part in path.split(separator: "/") where part != "." {
             if part == ".." {
@@ -39,7 +38,7 @@ struct PathField: View {
         let header = plugin.header, shown = remote ? value : (value as NSString).abbreviatingWithTildeInPath
         HStack(spacing: 6) {
             Button { header.send?(["id": id]) } label: {
-                Image(systemName: control.symbol ?? "folder").foregroundStyle(.secondary)
+                Image(symbol: control.symbol ?? "folder").foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
             .help("Choose Folder…")
@@ -60,7 +59,9 @@ struct PathField: View {
                     }
                 }
                 .onSubmit {
-                    let path = Self.tidy(remote ? draft : (draft as NSString).expandingTildeInPath)
+                    // A relative path goes from the root: `..`, `src`; an empty one is the root.
+                    let typed = remote ? draft : (draft as NSString).expandingTildeInPath
+                    let path = Self.tidy(typed.hasPrefix("/") ? typed : value + "/" + typed)
                     if path == value {
                         editing = false
                     } else {
