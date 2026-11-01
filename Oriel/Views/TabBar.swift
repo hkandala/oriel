@@ -65,6 +65,8 @@ struct TabBar: View {
                                 .opacity(page.dragging == .tab(tab.id) ? 0.4 : 1)
                                 .offset(x: shift(index))
                         }
+                        // A new tab grows in, a closed one shrinks away (`Transaction.tabMotion`).
+                        .transition(.scale(scale: 0.6).combined(with: .opacity))
                     }
                 }
                 // A container of its own: without it, a row of one tab that grew to two kept the first capsule's
@@ -130,6 +132,12 @@ struct TabBar: View {
             }
         }
         .frame(height: Self.height + 10)
+        // Only an open or a close here moves the bar; the page shows at once (phase 48).
+        .transaction {
+            if $0.tabMotion {
+                $0.animation = reduceMotion && !Animation.forceMotion ? nil : .smooth(duration: 0.2)
+            }
+        }
         .testValue("tabs.fades", "Tab Fades", [hidden.leading ? "leading" : nil, hidden.trailing ? "trailing" : nil]
             .compactMap(\.self).joined(separator: ", "))
         .keycapHints(.command, shown: $hints)
@@ -162,10 +170,20 @@ struct TabBar: View {
         Pill(shape: RoundedRectangle(cornerRadius: Self.radius - Self.inset, style: .continuous))
             .frame(width: Self.width, height: Self.height - 2 * Self.inset)
             .offset(x: CGFloat(selected) * (Self.width + 1))
-            // It jumps, also in another change's animation (a tab drag's slide).
-            .animation(nil, value: selected)
+            // It glides only for an open or a close here; else it jumps, also in another change's animation (a tab
+            // drag's slide).
+            .transaction {
+                if !$0.tabMotion {
+                    $0.animation = nil
+                }
+            }
             .allowsHitTesting(false)
     }
+}
+
+extension Transaction {
+    /// A tab opened or closed in this window (⌘T, ⌘W): the tab bar alone animates it.
+    @Entry var tabMotion = false
 }
 
 extension Page {

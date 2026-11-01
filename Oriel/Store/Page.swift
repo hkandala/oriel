@@ -1,6 +1,5 @@
-import AppKit
 import HerdrKit
-import Observation
+import SwiftUI
 
 /// One session's page in a window: its store, and the window's own selection in it (design D43). Switching
 /// pages brings the selection back.
@@ -369,9 +368,13 @@ extension Page {
         let tabs = [selectedTabIDs[workspace.id]] + (usedTabIDs[workspace.id] ?? []).reversed()
         let pane = (workspace.id == selectedWorkspaceID ? keyboardPane : nil)
             ?? tabs.lazy.compactMap { self.keyboardCard($0) }.first
-        let standIn = store.standIn(in: workspace.id)
-        let chooser = store.choose(standIn: standIn)
-        select(workspace, tab: standIn)
+        // The new tab grows in on the tab bar.
+        let (standIn, chooser) = withTransaction(\.tabMotion, true) {
+            let standIn = store.standIn(in: workspace.id)
+            let chooser = store.choose(standIn: standIn)
+            select(workspace, tab: standIn)
+            return (standIn, chooser)
+        }
         guard let made = await store.newTab(in: workspace.id, cwd: pane?.cwd, of: pane?.id) else {
             store.dropStandIn(standIn)
             store.drop(chooser)

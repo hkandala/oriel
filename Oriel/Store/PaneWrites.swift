@@ -1,5 +1,5 @@
-import Foundation
 import HerdrKit
+import SwiftUI
 
 /// Layout writes: panes and splits, tab and workspace order; each is one `write`,
 /// then a snapshot read.
@@ -238,7 +238,7 @@ extension Page {
                 self.close(close, discarded: discarded.union([card.terminalID]))
             }
         }
-        guard let asked = store.ask(close) else { return }
+        guard let asked = withTransaction(\.tabMotion, true, { store.ask(close) }) else { return }
         let hidden = (selectedWorkspaceID, selectedTabIDs)
         asking.insert(key)
         Task {
