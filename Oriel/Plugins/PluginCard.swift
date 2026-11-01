@@ -228,7 +228,7 @@ struct FloatingPlugin: View {
 /// title's x-height (a little under the line's middle), as a document window's.
 struct DirtyDot: View {
     let paneID: String
-    private static let drop = {
+    private nonisolated static let drop: CGFloat = {
         let font = NSFont.systemFont(ofSize: NSFont.systemFontSize)
         return (font.ascender + font.descender - font.xHeight) / 2
     }()
