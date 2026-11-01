@@ -230,3 +230,28 @@ Files: `Oriel/Views/Sidebar*.swift`, the state capsule in the card header, the a
   and `tab-pills-before-strip.png` (the old bar: every change in one frame).
 - **For the user:** when the tabs overflow the bar, a new tab's scroll into view lands just after the glide (one
   small step at its end); check ⌘T and ⌘W by hand with Reduce Motion off.
+
+### Track B
+
+- **Cause, item 9 (speed).** The tree already listed one folder at a time. Each listing also ran
+  `git status --ignored -- .`, which walks the whole repository (ignored folders too) to mark the ignored names,
+  plus a `git rev-parse`. **Fix:** a listing asks `git check-ignore` about its own names only, in the same shell
+  call; git's letters stay one `git status` for the tree. Measured with the listing's exact commands (median of 7, a
+  load of about 250): this repository's root 2374 → 135 ms, `web/` 354 → 105 ms, `web/node_modules` 264 → 162 ms.
+- **Cause, item 10 (icons).** Not phase 47's move: phase 46's home (`db3bb45f`) set `@pierre/trees`' `minimal` icon
+  set and drew one `doc` glyph for every file. **Fix:** the default `complete` set (per-type icons in their colors);
+  folders keep their own glyph, now in the Finder's folder blue (sampled from `NSWorkspace`'s folder icon: `#76D0F6`
+  to `#52B9E8`, the same in light and dark).
+- **Decisions, item 5.** The root is a `field` with `"style": "path"` in the manifest, drawn natively like the
+  browser's address. Return sends the typed path (`~` expanded on This Mac); the page checks it is a folder
+  (`files.info`) and moves, else `controls.set("root", { refused: true })` shakes the field. Choose Folder… stays, as
+  the folder icon before the path. `..` is a row above the tree (not a tree row), so it never moves with the
+  keys; `controls.set(id, { focus: true })` gives ⌘F's filter the keyboard.
+- **Decisions, item 8.** Hidden files are names that start with `.`; the eye (`hidden-files`) is a header toggle, so
+  its value stays with the card's controls. **Item 15:** the tree takes the keyboard on the page's focus (when the card
+  opens or gets the keyboard); the ring was there but drawn 0 px wide, now 1.5 px in the accent.
+- **Item 11.** `@pierre/diffs` already used its defaults, Pierre Light and Pierre Dark (`@pierre/theme`); File's
+  CodeMirror now maps each tag to the same TextMate scope's color (keywords `#D32A61`/`#FF678D`, strings
+  `#199F43`/`#5ECC71`, functions `#693ACF`/`#9D6AFB`, types `#A631BE`/`#D568EA`, variables `#D47628`/`#FFA359`, …).
+- **Item 13.** Open With already opened the default app first, with the others in its menu, but showed only the
+  app's icon: it now shows the icon and the app's name.
