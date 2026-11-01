@@ -4,19 +4,21 @@ extension OrielUITests {
     /// A tab comes into view in every way: from the change on, each of its cards shows its last
     /// picture, then herdr's screen, and nothing between. The app records each commit (`-recordFrames`): no card gone,
     /// blank, fading, with a third picture or moved. Every tab is shown once first: a new card's first reveal fades in
-    /// on purpose. w1's second tab is a middle one (of three).
+    /// on purpose. w1's second tab is a middle one (of three). Last a close (⇧⌘W): only the tab bar moves, not the
+    /// page.
     func testATabComesIntoViewWithoutAFlicker() async throws {
         relaunch(one, ["-recordFrames", "YES", "-forceMotion", "YES"])
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
-        _ = try await newTab("third", in: "w1")
-        for pane in ["w1:p1", "w1:p2", "w1:p3", "w1:p4", "w2:p1"] {
+        let (_, third) = try await newTab("third", in: "w1")
+        for pane in ["w1:p1", "w1:p2", "w1:p3", "w1:p4", "w2:p1", third] {
             try await fill(pane)
         }
         openPage(two)
         // Keys for the tabs: right after a session change a click went beside the capsule (CI).
         for (act, panes) in [(click("sidebar.dot.\(one)"), ["w1:p1"]), (key("2"), ["w1:p4"]),
                              (click("workspace.w2"), ["w2:p1"]), (click("workspace.w1"), ["w1:p4"]),
-                             (key("1"), ["w1:p1", "w1:p2", "w1:p3"])]
+                             (key("1"), ["w1:p1", "w1:p2", "w1:p3"]), (key("3"), [third]),
+                             (key("w", [.command, .shift]), ["w1:p1", "w1:p2", "w1:p3"])]
         {
             act()
             try await expectText(panes, "warm-up")

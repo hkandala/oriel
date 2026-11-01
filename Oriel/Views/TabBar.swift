@@ -42,7 +42,9 @@ struct TabBar: View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal) {
                 HStack(spacing: 0) {
-                    ForEach(Array(tabs.enumerated()), id: \.element.id) { index, tab in
+                    // By the stand-in's id for a tab made here: its view stays as herdr's tab takes its place.
+                    ForEach(viewIDs(tabs), id: \.id) { index, _ in
+                        let tab = tabs[index]
                         // One view per tab, so a scroll to its id shows the tab, not the divider before it.
                         HStack(spacing: 0) {
                             if index > 0 {
@@ -123,10 +125,11 @@ struct TabBar: View {
             // then moved the tab away from the pointer.
             .onChange(of: page.selectedTabIDs[workspace.id], initial: true) { _, new in
                 if let new, new != clicked {
-                    withTransaction(\.animation, nil) { proxy.scrollTo(new) }
+                    let id = new.born(page.store.ahead.born)
+                    withTransaction(\.animation, nil) { proxy.scrollTo(id) }
                     // A new tab's capsule lays out in this same update, and a scroll to it can miss: again
                     // once it has.
-                    Task { proxy.scrollTo(new) }
+                    Task { proxy.scrollTo(id) }
                 }
                 clicked = nil
             }
@@ -142,6 +145,11 @@ struct TabBar: View {
             .compactMap(\.self).joined(separator: ", "))
         .keycapHints(.command, shown: $hints)
         .onDisappear { spring?.cancel() }
+    }
+
+    private func viewIDs(_ tabs: [HostStore.Tab]) -> [(index: Int, id: String)] {
+        let born = page.store.ahead.born
+        return tabs.indices.map { ($0, tabs[$0].id.born(born)) }
     }
 
     /// A tab dragged along the track: it and the tabs it passes trade places as it goes (the others slide apart).
@@ -178,6 +186,13 @@ struct TabBar: View {
                 }
             }
             .allowsHitTesting(false)
+    }
+}
+
+private extension String {
+    /// A tab's view id in the tab bar (`Ahead.born`).
+    func born(_ born: [String: String]) -> String {
+        born[self] ?? self
     }
 }
 
