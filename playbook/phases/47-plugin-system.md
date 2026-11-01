@@ -13,8 +13,9 @@ page disagree, this file wins; the docs pass moves the pages from future-work to
 
 Branch: everything lands on `plugin-system` (on origin, made from main after phase 46). A track branches from
 `origin/plugin-system` and merges into it (rebase, `make lint build test`, `git push origin HEAD:plugin-system`). CI:
-`gh workflow run ci.yml --ref plugin-system` (or a tag on a track's head). main stays untouched until the user says
-merge.
+`gh workflow run ci.yml --ref plugin-system` (or a tag on a track's head). main stayed untouched until the user said
+merge; it was rebased onto main and fast-forwarded (d0b357df) after two full CI runs in a row and the on-demand
+suite passed on the branch.
 
 ## Decisions (the design's open questions, settled)
 
