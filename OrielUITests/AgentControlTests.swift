@@ -16,6 +16,8 @@ extension OrielUITests {
         XCTAssertTrue(element("terminal.\(second)").exists(within: 3))
         try await waitForPrompt(first)
         try await expectOpen("w2")
+        // Its own mark, which the workspace's does not imply.
+        try await expectShown(one, first)
         let oriel = Self.orielCommand
         try await run("\(oriel) status", in: first, "status", 0, "Shown in Oriel")
         XCTAssertTrue(hasKeyboard("terminal.\(first)"))
@@ -66,6 +68,7 @@ extension OrielUITests {
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         try await waitForPrompt("w1:p1")
         try await expectOpen("w1")
+        try await expectShown(one, "w1:p1")
         let oriel = Self.orielCommand
         // The Key Host store writes it once its session opens, beside its first marks.
         try await run("until ! grep -qx '# oriel-cli 0' \(oriel); do sleep 0.1; done", in: "w1:p1", "new", 0)

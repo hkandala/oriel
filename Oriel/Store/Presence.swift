@@ -59,14 +59,25 @@ extension HostStore {
             + openMarked.subtracting(open).map { ($0, false) }
         openMarked = open
         guard !changes.isEmpty || !opens.isEmpty else { return }
+        // The panes first: a tool reads `oriel-shown` at each click, and the workspaces' marks, one call each (a round
+        // trip on a remote machine), can be many. At quit the workspaces first: `oriel status` reads them, and the 1 s
+        // wait may cut the rest.
+        let quitting = Self.quitting
         marking = Task { [marking] in
             await marking?.value
-            // First: at quit, `oriel status` reads them, and the 1 s wait may cut the rest.
-            for (workspace, open) in opens {
-                try? await client.mark(workspace: workspace, open: open)
+            let markOpen = {
+                for (workspace, open) in opens {
+                    try? await client.mark(workspace: workspace, open: open)
+                }
+            }
+            if quitting {
+                await markOpen()
             }
             for (pane, shown) in changes {
                 try? await client.mark(pane, shown: shown)
+            }
+            if !quitting {
+                await markOpen()
             }
         }
     }
