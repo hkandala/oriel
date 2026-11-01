@@ -52,6 +52,36 @@ extension OrielUITests {
         XCTAssertTrue(shows("w1:t2"))
     }
 
+    /// A sideways scroll over a browser page wider than its card scrolls the page and changes no tab: a trackpad's
+    /// two-finger swipe and a wheel turned sideways (XCUITest's scroll).
+    func testSidewaysScrollsReachAWidePage() async throws {
+        let (tab, pane) = try await newTab("wide")
+        try await waitForPrompt(pane)
+        // The title tells the page's sideways scroll.
+        let file = "/tmp/oriel-e2e-wide.html"
+        try await send("printf '<title>x 0</title><body style=\"margin:0\"><div style=\"width:6000px;"
+            + "height:200px;background:linear-gradient(90deg,red,blue)\"></div><script>onscroll = () => "
+            + "document.title = \\x27x \\x27 + scrollX</script>' >\(file) && clear\r", to: pane)
+        try await waitFor(pane) { !$0.contains("printf") }
+        let iid = String(format: "e2e%03x", Int.random(in: 0 ..< 4096)), title = element("pane.\(pane).title")
+        try await Self.call(one, "pane.rename", ["pane_id": pane, "label": "oriel:browser#\(iid) file://\(file)"])
+        XCTAssertTrue(title.has(\.stringValue, "x 0", within: connect))
+        let page = element("browser.\(pane)"), capsule = element("tab.\(tab)")
+        XCTAssertTrue(page.has(\.isHittable, true, within: 5))
+        // Fingers right to left move the page to the right, or the other way if natural scrolling is off.
+        let swipe = "\(page.frame.midX) \(page.frame.midY)"
+        for step in [-30, 30] where title.stringValue == "x 0" {
+            try await Self.post("\(one)/swipe", Data("\(swipe) \(step) 14".utf8))
+            _ = until(2) { title.stringValue != "x 0" }
+        }
+        let swiped = title.stringValue
+        XCTAssertNotEqual(swiped, "x 0", "a swipe did not scroll the page")
+        page.scroll(byDeltaX: -200, deltaY: 0)
+        page.scroll(byDeltaX: 200, deltaY: 0)
+        XCTAssertTrue(until(2) { title.stringValue != swiped }, "a sideways wheel did not scroll the page")
+        XCTAssertTrue(capsule.isSelected)
+    }
+
     /// A closed selected tab gives way to the tab used before it, else to the one on its left.
     func testClosingTheSelectedTabGoesToTheOneUsedBefore() async throws {
         let tabs = try await newWorkspace("used", tabs: 5).tabs

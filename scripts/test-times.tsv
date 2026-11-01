@@ -231,3 +231,4 @@
 4	testSidebarFilterNarrowsTheWorkspaces
 3	testChromeButtonsNameTheirShortcuts
 2	testWindowTitleOfADefaultLabelIsTheProgramAndFolder
+25	testSidewaysScrollsReachAWidePage
