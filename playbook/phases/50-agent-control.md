@@ -181,9 +181,12 @@ simple and brief."
   opens (`HostStore.newPane`), so a split shows the temporary tab for one snapshot, as linked opens always did.
   `--replace` renames the card's label with its own iid: the card follows it as a label from elsewhere (a browser
   as a new history entry, a plugin with Back), a new kind makes the card again; a card with unsaved edits answers
-  `dirty`. A card that is not in view after `open` (a tab, a reuse, a split beside a hidden pane) gets the notice:
+  `dirty`; a browser's saved address goes first, else a card built later loaded it over the label's. A card that
+  is not in view after `open` (a tab, a reuse, a split beside a hidden pane) gets the notice:
   "opened" for a new card, the reveal wording "points to" for a reused one. Reuse looks only in the session the
-  card would open in. ‹agent› is the asking pane's agent name, else its program ("zsh"), else its card's title.
+  card would open in. ‹agent› is the asking pane's agent name, else its program ("zsh"), else its card's title;
+  ‹title› is the window's (a browser's page title). Show keeps the terminal id, which a move does not change. A
+  `--float` whose float fails closes its new pane. A test holds the notice and the flash (`-agentHoldSeconds`).
 - **Arguments.** A path whose name is no kind must exist on the asking machine (`bad_argument`); a word after an
   unknown first word is `plugin_not_found` (with the registry's reason when there is one). Git takes a folder of a
   repository (its root) and `uncommitted` or a hex commit; `browser ./page.html` is a `file://` URL, This Mac only.
@@ -193,7 +196,8 @@ simple and brief."
   `windows` counts the visible windows with the session's page in view. A floating card flashes in its own window.
 - **The place parser for track D.** `var call: AgentCall`, `let place = try call.place()` reads
   `--beside <pane> [--down]`, `--tab`, `--float` or `--replace <pane>` (at most one; else `usage`), then
-  `try await call.newPane(place)` (no label: a shell) makes the pane in the request's folder and returns
+  `try await call.newPane(place)` (no label: a shell; its writes go through `HostStore.request`, which `write` now
+  wraps) makes the pane in the request's folder and returns
   `(store, pane)` once a snapshot has it; `.tab(float: true)` floats it as `oriel float` does; `.replace` is
   `usage` there, so `agent` rejects it before.
 - **For the user.** Run `oriel open git . --tab` and `oriel reveal <pane of another tab>` from an agent with Oriel
