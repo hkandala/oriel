@@ -22,6 +22,11 @@ custom_rules:
     regex: '\b(Text|Label|message|Button)\([^\n]*"[^"\n]*(herdr --|herdr (session|workspace|tab|pane|server|attach)\b|in herdr\b)'
     message: 'No UI text tells the user to run herdr: show the button that does it'
     severity: error
+  wall_clock_bounds: # playbook/lessons.md: a busy CI runner stalls for seconds, so a unit test's time bound flakes
+    included: '/Packages/HerdrKit/Tests/'
+    regex: '#expect\([^\n]*(ContinuousClock\.now|firstRead)[^\n]*<\s*\.(milli)?seconds\('
+    message: 'Compare against a ten times larger input or count the work, not the wall clock'
+    severity: error
   fast_waits: # playbook/ci.md, Writing fast tests: XCTest's waits take a second or more even when the condition already holds
     included: '/OrielUITests/'
     regex: '\.waitFor(Non)?Existence\(|\.wait\(for: \\\.|XCTNSPredicateExpectation|XCTWaiter'
