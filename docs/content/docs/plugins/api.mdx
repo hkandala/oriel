@@ -71,8 +71,8 @@ export interface Oriel {
   /** One line on glass at the top of the card, with `buttons` (the second the default) or OK. Resolves with the title
    *  picked, or undefined when another toast took its place. */
   toast(text: string, buttons?: [other: string, main: string]): Promise<string | undefined>
-  /** An SF Symbol, or the app's `source.branch`, as a PNG data URL, `size` points tall (16 by default), black on clear:
-   *  use it as a mask. */
+  /** An SF Symbol, or the app's `source.branch` or `text.wrap`, as a PNG data URL, `size` points tall (16 by default),
+   *  black on clear: use it as a mask. */
   symbol(name: string, size?: number): Promise<string>
 
   /** A header control or a command, as the user changed it: a click (no value), a toggle, a segment, a menu item, a
@@ -159,8 +159,8 @@ export interface Git {
   /** `git add -A` of the paths (literal, not patterns), or of everything. */
   stage(root: string, paths?: string[]): Promise<void>
   unstage(root: string, paths?: string[]): Promise<void>
-  /** The paths (literal) back as HEAD has them, in the index and the work tree; untracked ones are deleted. Fails
-   *  before the first commit. */
+  /** The paths (literal) back as HEAD has them, in the index and the work tree; untracked ones are deleted. With a
+   *  tracked path it fails before the first commit. */
   revert(root: string, paths: string[]): Promise<void>
   commit(root: string, message: string): Promise<void>
   fetch(root: string): Promise<void>

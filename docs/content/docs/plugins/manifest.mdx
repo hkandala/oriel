@@ -66,7 +66,7 @@ In the `oriel` key:
 | `name` | yes | What the user reads: the tab's first part ("CSV Table data.csv"), the placeholder's title, Open With, ⌘K, the Plugins panel. |
 | `api` | yes | The API version the plugin is written for, an integer, 1 or more ([Versions](/docs/plugins/api#versions)). |
 | `entry` | yes | The built entry, relative to the package: a `.js` file inside it, for example `dist/main.js`. Its chunks, its CSS (`main.css`) and its assets sit beside it in one flat folder. |
-| `icon` | yes | An SF Symbol name, or `source.branch`, the app's own branch symbol (Material Design Icons' `source-branch`): the card's, the tab's and the chooser's icon, on the neutral tile. A control's or a menu item's `symbol` can name it too. |
+| `icon` | yes | An SF Symbol name, or one of the app's own symbols: `source.branch` (Material Design Icons' `source-branch`) or `text.wrap` (`wrap`): the card's, the tab's and the chooser's icon, on the neutral tile. A control's or a menu item's `symbol` can name it too. |
 | `opens` | no | What the card shows, and so what its label's argument is ([What a plugin opens](#what-a-plugin-opens)). No `opens`: the argument is empty, and the card uses the pane's folder. |
 | `chooser` | no | A row title for the [New pane](/docs/ui/new-pane) chooser and the command "Open ‹chooser› Here" ([How it shows](#how-it-shows)). |
 | `header` | no | The controls of the card's second header row ([Header](#header)). |

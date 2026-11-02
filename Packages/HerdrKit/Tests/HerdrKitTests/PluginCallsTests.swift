@@ -158,13 +158,18 @@ private func failure(_ name: String, _ args: [String: Any], _ calls: PluginCalls
     #expect(try await changes() == ["staged": ["*.txt"], "unstaged": ["b.txt"]])
     #expect(await failure("git.commit", ["root": root, "message": "  "]) == "failed")
     _ = try await call("git.commit", ["root": root, "message": "one\n"])
-    // Revert: a change staged and then changed again, a deleted file and an untracked one go back to the commit.
+    // Revert: a change staged and then changed again, a staged rename (both paths), a staged new file and an untracked
+    // one go back to the commit.
     _ = try await localExec.checkedOutput(["sh", "-c", #"""
-    set -e; cd "$1"; echo c >>'*.txt'; git add -A; echo d >>'*.txt'; rm b.txt; echo n >new.txt
+    set -e; cd "$1"; echo r >r.txt; git add r.txt; git commit -qm r; git mv r.txt moved.txt
+    echo c >>'*.txt'; echo a >added.txt; git --literal-pathspecs add '*.txt' added.txt
+    echo d >>'*.txt'; echo n >new.txt
     """#, "sh", root])
-    _ = try await call("git.revert", ["root": root, "paths": ["*.txt", "b.txt", "new.txt"]])
-    #expect(try await changes() == ["staged": [], "unstaged": []])
-    #expect(!FileManager.default.fileExists(atPath: root + "/new.txt"))
+    _ = try await call("git.revert", ["root": root, "paths": ["*.txt", "added.txt", "moved.txt", "r.txt", "new.txt"]])
+    // The untracked b.txt it was not given stays.
+    #expect(try await changes() == ["staged": [], "unstaged": ["b.txt"]])
+    #expect(["added.txt", "moved.txt", "new.txt"]
+        .allSatisfy { !FileManager.default.fileExists(atPath: "\(root)/\($0)") })
     #expect(await failure("git.revert", ["root": root]) == "failed")
     _ = try await call("git.push", ["root": root])
     _ = try await call("git.fetch", ["root": root])

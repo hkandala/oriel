@@ -114,8 +114,9 @@ extension Image {
 }
 
 extension NSImage {
-    /// The app's own symbols: Git's `source.branch` (Material Design Icons' `source-branch`).
-    static let own: Set = ["source.branch"]
+    /// The app's own symbols: Git's `source.branch` and Word Wrap's `text.wrap` (Material Design Icons'
+    /// `source-branch` and `wrap`).
+    static let own: Set = ["source.branch", "text.wrap"]
 
     static func symbol(_ name: String) -> NSImage? {
         own.contains(name) ? NSImage(named: name) : NSImage(systemSymbolName: name, accessibilityDescription: nil)

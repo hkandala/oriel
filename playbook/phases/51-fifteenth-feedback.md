@@ -240,6 +240,7 @@ Files: the card drag and drop code (`Oriel/Views/Drag*.swift`, the web card host
 - **For the user.** In herdr's TUI, type an address into a browser card in Oriel: the placeholder shows it. Run
   `oriel agent claude --tab` and check that the card opens on Chat (CI has no `claude`, and this Mac's real one
   would start, so no test reaches it).
+
 ### Track D
 
 - **Cause (item 18).** The graph's open and Parent take the same path (`oriel.open`, then the `place` event). The
@@ -266,5 +267,11 @@ Files: the card drag and drop code (`Oriel/Views/Drag*.swift`, the web card host
   its button off. Show More is a plain gray button, and the home ends 10 pt under it (was 32 pt).
 - **Pictures** (headless page, dark): `/tmp/oriel-shots/t51d/harness-{before,after}-{diff,empty,home}.png`,
   `harness-after-home-hover.png` (Revert and Stage under the pointer).
+- **Review.** Word Wrap's new symbol drew blank (the app's own symbols are a list in `Plugin.swift`); Back during a
+  pending Parent drew the parent under the old place; a work-tree read during a move drew into the old place; a
+  staged new file was deleted without being named. All fixed, with a rename and a staged new file in the unit test.
+- **Runs.** Chosen tests (GitTests) on d2b33916: 41435025054, green on the first try. CI's screenshots show no web
+  content, so the look pictures come from the headless page.
 - **For the user.** Revert on a staged file also drops its unstaged edits (back to HEAD). Check the Live marker and
-  the new Word Wrap symbol on row 2, and the file icons in light mode.
+  the new Word Wrap symbol on row 2, and the file icons in light mode. On a narrow card (about 370 pt, CI's half
+  width) row 2 is full and Live cuts to "…".

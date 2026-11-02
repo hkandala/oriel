@@ -161,13 +161,14 @@ viewer.setup(main)
 export async function show(nextRoot: string, nextSource: string, at?: string) {
   control("diff.file-list", { title: list ? "Hide File List" : "Show File List" })
   control("diff.wrap", { enabled: !split })
+  // Also back to the place drawn while another one reads: that read is stale.
+  root = nextRoot
+  source = nextSource
   // The diff shown, with a landing: only a scroll to the file.
-  if (!page.hidden && drawn === `${nextRoot} ${nextSource}` && patch !== undefined) {
+  if (drawn === `${nextRoot} ${nextSource}` && patch !== undefined) {
     if (at && files.some((file) => file.name === at)) reveal(at)
     return true
   }
-  root = nextRoot
-  source = nextSource
   // Read first, then draw all of it in one go: the place before (the home, or the diff a Parent or Back leaves) stays
   // until then, with no blank page while git answers.
   const [next, facts] = await Promise.all([read(), source === "uncommitted"
@@ -178,9 +179,11 @@ export async function show(nextRoot: string, nextSource: string, at?: string) {
   page.hidden = false
   drawn = `${root} ${source}`
   clear()
-  apply(next)
   describe(facts)
+  apply(next)
   if (at && files.some((file) => file.name === at)) reveal(at)
+  // A change in the work tree while it read: its patch was not drawn.
+  if (missed) void refresh()
   return true
 }
 
@@ -404,9 +407,11 @@ oriel.on("theme", (theme) => {
   viewer.setOptions({ ...options })
 })
 
-// One patch at a time; a change during one asks again after it.
+// One patch at a time; a change during one asks again after it. A patch read for a place not drawn yet is dropped and
+// read again once that place drew (`show`).
 let asking: Promise<void> | undefined
 let again = false
+let missed = false
 
 /** The patch again, drawn only when its text changed: Working Tree follows the work tree. */
 export async function refresh() {
@@ -419,9 +424,11 @@ export async function refresh() {
     try {
       do {
         again = false
+        missed = false
         const at = `${root} ${source}`
         const next = await read()
-        if (at === `${root} ${source}`) apply(next)
+        if (at === drawn) apply(next)
+        else missed = at === `${root} ${source}`
       } while (again)
     } finally {
       asking = undefined

@@ -118,7 +118,7 @@ extension OrielUITests {
         XCTAssertTrue(page.buttons["a.txt"].exists(within: 10))
         XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, "Working Tree", within: 3))
         // It follows the work tree, and says so.
-        XCTAssertTrue(element("pane.\(card).diff.live").exists)
+        XCTAssertTrue(element("pane.\(card).diff.live").exists(within: 3))
         try await send("echo new >c.txt\r", to: left)
         XCTAssertTrue(page.buttons["c.txt"].exists(within: 10))
         // A file already shown draws its new text.
@@ -133,12 +133,14 @@ extension OrielUITests {
         try await expect("Working Tree from row 2") { try await paneLabel(card).hasSuffix(" \(root)/ uncommitted") }
     }
 
-    /// Revert puts a.txt back after a question; Revert All then deletes the untracked c.txt, which its question names.
-    /// Working Tree with no changes shows "No changes", with the file list button off.
+    /// Revert puts a.txt back after a question; Revert All then deletes the untracked c.txt and d.txt, which its
+    /// question names. Working Tree with no changes shows "No changes", with the file list button off.
     private func revert(_ home: XCUIElement, _ page: XCUIElement, card: String, shell left: String,
                         repo: String) async throws
     {
         let toast = element("pane.\(card).toast"), yes = element("pane.\(card).toast.main")
+        try await send("echo d >d.txt\r", to: left)
+        XCTAssertTrue(home.buttons["Untracked: d.txt"].exists(within: 10))
         home.buttons["Modified: a.txt"].hover()
         keepScreenshot("git home, revert")
         home.buttons["Revert a.txt"].click()
@@ -146,8 +148,11 @@ extension OrielUITests {
         yes.click()
         XCTAssertTrue(home.buttons["Modified: a.txt"].vanishes(within: 10))
         XCTAssertTrue(home.buttons["Untracked: c.txt"].exists)
-        home.buttons["Revert All"].click()
-        XCTAssertTrue(until(5) { toast.stringValue.contains("deletes the untracked c.txt") }, toast.stringValue)
+        home.buttons["Revert All Changes"].click()
+        XCTAssertTrue(
+            until(5) { toast.stringValue.contains("Revert all 2 files? This deletes the new files c.txt, d.txt.") },
+            toast.stringValue,
+        )
         yes.click()
         XCTAssertTrue(text("No changes", in: home).exists(within: 10))
         try await expectGit("status --porcelain | wc -l", "0", in: left, repo: repo)
@@ -192,11 +197,12 @@ extension OrielUITests {
         // card, and Back comes back. A commit is not live.
         let surface = element("pane.\(card)"), title = element("pane.\(card).title")
         XCTAssertTrue(surface.has(\.label, "second", within: 10), surface.label)
-        XCTAssertFalse(element("pane.\(card).diff.live").exists)
+        // XCUITest sees no blank frame: Parent's draw in one step is shown in the Findings, not here.
         page.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Parent '")).firstMatch.click()
         XCTAssertTrue(title.has(\.stringValue, "first", within: 10), title.stringValue)
         element("pane.\(card).go-back").click()
         XCTAssertTrue(title.has(\.stringValue, "second", within: 10), title.stringValue)
+        XCTAssertFalse(element("pane.\(card).diff.live").exists)
         // Clicks in the page wait for what it draws: its layout comes back late after the card was hidden.
         let open = page.buttons["Open a.txt"]
         XCTAssertTrue(open.has(\.isHittable, true, within: 3))

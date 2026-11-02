@@ -40,20 +40,24 @@ public extension Git {
         return local + remote
     }
 
-    /// Puts the paths (literal, from the root) back as HEAD has them, in the index and the work tree: the untracked
-    /// ones are deleted (`git clean`, which leaves ignored files), the rest restored (`git restore`, which knows no
-    /// untracked path). Before the first commit it fails with git's message: there is no HEAD to go back to.
+    /// Puts the paths (literal, from the root) back as HEAD has them, in the index and the work tree: the tracked
+    /// ones restored (`git restore`, which knows no untracked path), then the untracked ones deleted (`git clean`,
+    /// which leaves ignored files), so a failed restore deletes nothing. With a tracked path it fails before the first
+    /// commit: there is no HEAD to go back to.
+    /// ponytail: the paths go in argv, twice; thousands of them (an unignored `node_modules`) can pass the argument
+    /// limit, then `--pathspec-from-file=-` on stdin.
     static func revert(_ root: String, _ paths: [String], exec: any Exec) async throws {
-        let untracked = try await Set(run(root, ["--literal-pathspecs", "ls-files", "-z", "--others",
-                                                 "--exclude-standard", "--"] + paths, exec: exec)
-                .split(separator: "\0").map(String.init))
-        if !untracked.isEmpty {
-            try await run(root, ["--literal-pathspecs", "clean", "-fq", "--"] + untracked.sorted(), exec: exec)
-        }
-        let tracked = paths.filter { !untracked.contains($0) }
+        let untracked = try await run(root, ["--literal-pathspecs", "ls-files", "-z", "--others", "--exclude-standard",
+                                             "--"] + paths, timeout: .seconds(30), exec: exec)
+            .split(separator: "\0").map(String.init)
+        let gone = Set(untracked), tracked = paths.filter { !gone.contains($0) }
         if !tracked.isEmpty {
             try await run(root, ["--literal-pathspecs", "restore", "--staged", "--worktree", "--source=HEAD", "--"]
-                + tracked, exec: exec)
+                + tracked, timeout: .seconds(30), exec: exec)
+        }
+        if !untracked.isEmpty {
+            try await run(root, ["--literal-pathspecs", "clean", "-fq", "--"] + untracked, timeout: .seconds(30),
+                          exec: exec)
         }
     }
 

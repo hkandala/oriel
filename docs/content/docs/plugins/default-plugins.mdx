@@ -444,12 +444,14 @@ app's fonts and `Look` colors. From the top:
 - A failed write shows git's message in the card's toast, with **Copy** and
   **OK**.
 - **Revert** asks first in the card's toast, with **Cancel** and **Revert**:
-  "Revert changes to ‹name›? This cannot be undone.", for an untracked file
-  "Delete the untracked file ‹name›? This cannot be undone.", and for Revert
-  All "Revert all ‹n› files? This deletes the untracked ‹names›. This cannot
-  be undone." (three names at most, else two and "and ‹n› more"). It puts each
-  file back as `HEAD` has it, in the index and the work tree, from either
-  list, and the old path of a rename too.
+  "Revert changes to ‹name›? This cannot be undone." A new file (untracked,
+  or added in the index) is deleted, so the question names it: "Delete the
+  new file ‹name›? This cannot be undone." Revert All with more than one file
+  asks "Revert all ‹n› files? This deletes the new files ‹names›. This cannot
+  be undone." (three names at most, else two and "and ‹n› more"). Revert puts
+  each file back as `HEAD` has it, in the index and the work tree, from
+  either list, and the old path of a rename too. VoiceOver reads the two
+  Revert All buttons as "Revert All Staged Changes" and "Revert All Changes".
 
 | Control | Runs |
 |---|---|
@@ -459,10 +461,9 @@ app's fonts and `Look` colors. From the top:
 | Stage, Stage All | `git --literal-pathspecs add -A -- <path>` (and the old path of a rename), `git add -A` |
 | Unstage, Unstage All | `git --literal-pathspecs reset -q -- <path>`, `git reset -q` (also before the first commit) |
 | Commit | `git commit -m <message>`; Commit All runs `git add -A` first |
-| Revert, Revert All | the untracked paths (`git ls-files --others --exclude-standard`) go with `git clean -fq`, the rest with `git restore --staged --worktree --source=HEAD`, each with `--literal-pathspecs`. Before the first commit it fails with git's message |
+| Revert, Revert All | `git restore --staged --worktree --source=HEAD` of the tracked paths, then `git clean -fq` of the untracked ones (`git ls-files --others --exclude-standard`), each with `--literal-pathspecs`. With a tracked path it fails before the first commit, with git's message, and deletes nothing |
 | Initialize Repository | `git init -q` |
 | a branch | `git switch <branch>`, `git switch --track <remote branch>` |
-
 
 ### Diff
 
@@ -470,8 +471,8 @@ The changes of one source in one scroll (`@pierre/diffs`).
 - **Row 2:** Back and Forward, **Git Home** (`house`), on Working Tree
   **Live** (`dot.radiowaves.left.and.right` and the word, dim), then
   `Unified | Side by Side`, **Word Wrap** (`text.wrap`, the app's symbol
-  from Material Design Icons' `wrap`, a toggle in the accent while on; Side by Side always wraps, so it is
-  disabled there), the file list button (`sidebar.left`, its title
+  from Material Design Icons' `wrap`, a toggle in the accent while on; Side
+  by Side always wraps, so it is disabled there), the file list button (`sidebar.left`, its title
   Hide File List or Show File List), Previous Change (`chevron.up`) and Next
   Change (`chevron.down`). There is no source
   pop-up: another source opens from the home.

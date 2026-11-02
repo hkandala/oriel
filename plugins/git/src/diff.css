@@ -18,7 +18,8 @@
   .letter.A, .letter.R { color: var(--finished) } .letter.D { color: var(--error) }
   .diff { flex: 1; min-width: 0; overflow: auto }
   .failure { position: fixed; inset: 0; margin: auto; height: fit-content; text-align: center; color: var(--dim) }
-  > .placeholder { position: fixed; inset: 0; justify-content: center }
+  /* In the middle, over nothing it would block: an empty commit's facts stay usable. */
+  > .placeholder { position: fixed; inset: 0; margin: auto; height: fit-content; pointer-events: none }
   /* A file's header: a flat 32 pt row the width of its diff, a hairline under it, on the opaque band pierre keeps
      sticky. */
   .file { box-sizing: border-box; display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 8px 0 6px;
