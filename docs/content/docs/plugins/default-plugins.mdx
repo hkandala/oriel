@@ -189,7 +189,9 @@ apply:
   state file when it shows
   ([What stays in memory](/docs/ui/browser#what-stays-in-memory)). A
   card with unsaved edits and a floated card are never dropped.
-- A plugin card takes the keyboard as a browser card does.
+- A plugin card takes the keyboard as a browser card does. Its page cannot
+  take the keyboard by itself, also on a refresh or when its tab shows again
+  ([What each part does](/docs/plugins/api#what-each-part-does)).
 
 ## Edits, saves and reloads
 
@@ -638,7 +640,7 @@ the machine. The limits:
 
 - Go to File in ⌘K, search across a project, and ⌘-click on a path in a
   terminal.
-- Discard, stash, merge and rebase in Git.
+- Stash, merge and rebase in Git.
 - Quick Look for other file types: they show the info view.
 - Expandable `N unmodified lines` rows in a diff (they need each file's whole
   text).

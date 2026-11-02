@@ -137,7 +137,7 @@ Oriel answers the rest.
 | `protocol` | 2 | the request's version is newer than this Oriel speaks |
 | `pane_not_found` | 1 | a pane argument: no such pane, or no such session running on the asking pane's machine |
 | `plugin_not_found` | 1 | no browser or plugin with that id; with the reason when its manifest did not load |
-| `bad_argument` | 1 | the argument does not fit: not a pane, a missing path, a kind that does not open it, a label over 1024 characters or with a control character, a source that is not one, standard input over 1 MiB, an unknown agent, a pane with no agent for `chat` |
+| `bad_argument` | 1 | the argument does not fit: not a pane, a missing path, a kind that does not open it, a label over 1024 characters or with a control character, a source that is not one, standard input over 1 MiB, an unknown agent, a pane with no agent for `chat`, an agent with no chat view for `view` |
 | `other_machine` | 1 | `plugins new`, `reload` or `install` from a pane on a remote machine |
 | `not_floating` | 1 | `unfloat` of a pane that does not float |
 | `busy` | 1 | `chat` while the agent works or needs you, or while a relaunch runs |
