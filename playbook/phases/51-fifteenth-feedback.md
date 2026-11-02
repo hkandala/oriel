@@ -150,4 +150,16 @@ skill in pi-hkandala, their tests.
 The `oriel` skill (`~/code/pi-hkandala/skills/oriel/`) gets items 25–28 in the right topic files; push pi-hkandala
 master when the Oriel side is on main.
 
+## Track F: dragging over web cards (item 29)
+
+Files: the card drag and drop code (`Oriel/Views/Drag*.swift`, the web card hosts), its tests.
+
+29. **Drop targets over web cards.** "one more bug i noticed with the plugin panes, drag and positioning them is bit
+    janky like i don't see the blue hover thing clearly sometimes, it works well on regular terminal panes though".
+    While a card is dragged, the blue drop highlight over a browser or plugin card must show and follow the pointer
+    as smoothly as over a terminal. Likely cause: the WKWebView takes the drag session itself (it registers for
+    dragged types) and the card's drop delegate gets late or no updates. Find the cause (record the drag at 60 fps
+    over both kinds) and fix it once for every web card, without breaking drops of files or text into a page where
+    that is meant to work (decide and write which).
+
 ## Findings
