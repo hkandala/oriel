@@ -200,6 +200,14 @@ for (const level of ["log", "info", "warn", "error", "debug"] as const) {
   }
 }
 addEventListener("error", (event) => console.error(event.error ?? event.message))
+
+// The app alone gives a card the keyboard. WebKit makes the web view the window's first responder on any `focus()` while
+// its page has none, which took the keyboard from the pane in use (a tree putting back its focused row after a
+// refresh). A page takes the keyboard on its window's `focus` event.
+const focus = HTMLElement.prototype.focus
+HTMLElement.prototype.focus = function (options) {
+  if (context.keyboard || document.hasFocus()) focus.call(this, options)
+}
 addEventListener("unhandledrejection", (event) => console.error(event.reason))
 
 // The card is ready when `main` returns or calls `card.ready()`; an error from it shows in the card.

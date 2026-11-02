@@ -48,8 +48,12 @@ const look = {
   [data-item-type="folder"] > [data-item-section="icon"] { justify-content: space-between; }
   [data-item-type="folder"] > [data-item-section="icon"]::after { content: ""; flex: none; width: 16px; height: 16px;
     background: var(--folder-blue); -webkit-mask: var(--folder) center / 16px no-repeat; }
-  [data-item-selected="true"] > [data-item-section="icon"] { color: var(--dim); }`,
+  [data-item-selected="true"] > [data-item-section="icon"] { color: var(--dim); }
+  :host(:not([data-keys])) [data-type="item"]::before { outline: none !important; }`,
 }
+/** Each root's open folders and scroll as the card left it: the tree comes back as it was (Back, a root again). */
+const memory = new Map<string, { open: string[]; scroll: number }>()
+
 /** Whether a name is a dotfile's, which the tree hides unless row 2's Hidden Files is on. */
 const dotted = (path: string) => /(^|\/)\.[^/]/.test(path)
 
@@ -93,24 +97,44 @@ export async function show(place: Place): Promise<Reveal> {
   let repository = false
   const rooted = () => oriel.git.root(top).then((found) => found === top, () => false)
 
-  root.innerHTML = `<button id="up" aria-label="Parent Folder" hidden><span class="icon"></span>..</button><p id="message" hidden></p>
-    <div id="tree"></div><div id="matches" hidden></div>`
+  root.innerHTML = `<button id="up" aria-label="Parent Folder" hidden><span class="icon"></span>..</button>
+    <div id="message" hidden><span class="symbol"></span><p></p></div><div id="tree"></div><div id="matches" hidden></div>`
   const tree = new FileTree({ paths: [], ...look })
   const results = new FileTree({ paths: [], ...look })
   const host = root.querySelector<HTMLElement>("#tree")!
   const message = root.querySelector<HTMLElement>("#message")!
   const matches = root.querySelector<HTMLElement>("#matches")!
-  // The parent folder as the root, on a double-click of `..`; none at `/`.
+  // The parent folder as the root, on a double-click of `..`; none at `/`, nor while the filter has text.
   const up = root.querySelector<HTMLElement>("#up")!
   up.hidden = !above
-  // A double-click's second click, or a press (VoiceOver, a key: no clicks counted).
+  // A double-click's second click, or a press (Return, VoiceOver: no clicks counted).
   up.onclick = (event) => event.detail !== 1 && oriel.card.go(above === "/" ? "/" : `${above}/`)
+  // ↓ from `..`: the first row.
+  up.onkeydown = (event) => {
+    if (event.key !== "ArrowDown") return
+    event.preventDefault()
+    take(tree.getVisibleRows(0, 0)[0]?.path)
+  }
   tree.render({ containerWrapper: host })
   results.render({ containerWrapper: matches })
+  /** The tree's scroll view, in its shadow root. */
+  const scroller = () =>
+    tree.getFileTreeContainer()?.shadowRoot?.querySelector<HTMLElement>("[data-file-tree-virtualized-scroll]")
   keep(() => {
+    memory.set(top, {
+      open: [...children.keys()].filter((at) => at && folder(at)?.isExpanded()),
+      scroll: scroller()?.scrollTop ?? 0,
+    })
     tree.cleanUp()
     results.cleanUp()
   })
+  /** The focus ring shows from an arrow key on, and goes with a click, as `:focus-visible` does. */
+  const ring = (on: boolean) => {
+    root.toggleAttribute("data-keys", on)
+    for (const each of [tree, results]) each.getFileTreeContainer()?.toggleAttribute("data-keys", on)
+  }
+  root.addEventListener("keydown", (event) => event.key.startsWith("Arrow") && ring(true), true)
+  root.addEventListener("pointerdown", () => ring(false), true)
 
   /** One at a time: two listings of a folder at once would add its entries twice. None once the place left. */
   let queue = Promise.resolve()
@@ -186,11 +210,16 @@ export async function show(place: Place): Promise<Reveal> {
     if (!at) show()
   }
 
-  /** The message over the trees: the root's listing failed, or the filter matches nothing. */
+  /** The message in the middle of the card: the root's listing failed, or the filter matches nothing. */
   function show() {
     const none = Boolean(filter) && !matched
     message.hidden = !failed && !none
-    message.textContent = failed ? `Can't list ${top}` : none ? "No matching files" : ""
+    message.querySelector("p")!.textContent = failed ? `Can't list ${top}` : none ? "No matching files" : ""
+    const icon = failed ? "folder.badge.questionmark" : "magnifyingglass"
+    if (!message.hidden && message.dataset.icon !== icon) {
+      message.dataset.icon = icon
+      void oriel.symbol(icon, 30).then((url) => message.style.setProperty("--symbol", `url(${url})`), () => {})
+    }
   }
 
   /** The files whose name has the filter's text, with their folders, open.
@@ -204,6 +233,7 @@ export async function show(place: Place): Promise<Reveal> {
     matched = found.length
     host.hidden = Boolean(filter)
     matches.hidden = !filter
+    up.hidden = !above || Boolean(filter)
     results.resetPaths(filter ? found : [], { initialExpandedPaths: [...new Set(found.flatMap(folders))] })
     show()
   }
@@ -240,9 +270,9 @@ export async function show(place: Place): Promise<Reveal> {
     showStatus()
   }
 
-  /** A path under the root (absolute, as the app sends it) shown: its folders listed and open, its row selected in the
-   *  middle of the card. */
-  async function reveal(path: string) {
+  /** A path under the root (absolute, as the app sends it) shown: its folders listed and open, its row selected, in the
+   *  middle of the card unless `scroll` is false. */
+  async function reveal(path: string, scroll = true) {
     if (!path.startsWith(`${base}/`)) return
     const relative = path.slice(base.length + 1)
     // A dotfile shows only with the hidden files: the eye turns on (Show in File Explorer on `.gitignore`).
@@ -259,7 +289,17 @@ export async function show(place: Place): Promise<Reveal> {
     if (!item) return
     item.select()
     tree.focusPath(item.getPath())
-    tree.scrollToPath(item.getPath())
+    if (scroll) tree.scrollToPath(item.getPath())
+  }
+
+  /** The folders open as the card left this root, parents first; each depth's listings at once. */
+  async function reopen(open: string[]) {
+    const depth = (at: string) => at.split("/").length
+    for (const level of [...new Set(open.map(depth))].sort((a, b) => a - b)) {
+      const here = open.filter((at) => depth(at) === level && folder(at))
+      await Promise.all(here.map((at) => (unlisted.has(at) || !children.has(at) ? list(at) : undefined)))
+      for (const at of here) folder(at)?.expand()
+    }
   }
 
   // A folder lists when the user opens it.
@@ -315,28 +355,53 @@ export async function show(place: Place): Promise<Reveal> {
     tree.batch(operations)
   }
 
-  /** The row's path from the root, and whether it is a folder's. */
+  /** The row's absolute path, its id in the tree, and whether it is a folder's. */
   const row = (event: Event) => {
     const node = event.composedPath().find((n): n is HTMLElement => n instanceof HTMLElement && Boolean(n.dataset.itemPath))
-    return node && { path: `${base}/${node.dataset.itemPath!.replace(/\/$/, "")}`, folder: node.dataset.itemType === "folder" }
+    const id = node?.dataset.itemPath
+    return id === undefined ? undefined
+      : { path: `${base}/${id.replace(/\/$/, "")}`, id, folder: node!.dataset.itemType === "folder" }
+  }
+  /** The click is on a folder's chevron, at the left of its icon. */
+  const chevron = (event: MouseEvent) => {
+    const icon = event.composedPath().find((n): n is HTMLElement => n instanceof HTMLElement && n.dataset.itemSection === "icon")
+    const right = icon?.querySelector("svg")?.getBoundingClientRect().right
+    return right !== undefined && event.clientX <= right
   }
 
   for (const trees of [host, matches]) {
     // A file: double-click or Return in the card, ⌘-click in a new tab, ⌥-click to the side; a folder the same way
-    // as the root. In the capture phase, before the tree's own click (⌘ adds to its selection), so a folder's second
-    // click toggles nothing.
+    // as the root. As in the Finder, a click on a folder's name only selects it: its chevron, → and Return open it, so
+    // a double-click never shows it open first. In the capture phase, before the tree's own click (⌘ adds to its
+    // selection, a click toggles a folder).
     trees.addEventListener(
       "click",
       (event) => {
         const at = row(event)
+        if (!at) return
         // A ⌘- or ⌥-double-click opens once.
-        if (at && event.detail > 1 && (event.metaKey || event.altKey)) return event.stopPropagation()
-        if (!at || !(event.metaKey || event.altKey || event.detail >= 2)) return
-        event.stopPropagation()
-        open(oriel, at.folder ? `${at.path}/` : at.path, how(event))
+        if (event.detail > 1 && (event.metaKey || event.altKey)) return event.stopPropagation()
+        const toggle = at.folder && chevron(event)
+        if (event.metaKey || event.altKey || (event.detail >= 2 && !toggle)) {
+          event.stopPropagation()
+          open(oriel, at.folder ? `${at.path}/` : at.path, how(event))
+        } else if (at.folder && !toggle && event.detail === 1 && !event.shiftKey && !event.ctrlKey) {
+          event.stopPropagation()
+          const shown = filter ? results : tree
+          for (const path of shown.getSelectedPaths()) shown.getItem(path)?.deselect()
+          shown.getItem(at.id)?.select()
+          take(at.id)
+        }
       },
       true,
     )
+    // ↑ on the first row: `..`.
+    trees.addEventListener("keydown", (event) => {
+      if (event.key !== "ArrowUp" || up.hidden || tree.getFocusedPath() !== tree.getVisibleRows(0, 0)[0]?.path) return
+      event.preventDefault()
+      event.stopPropagation()
+      up.focus()
+    }, true)
     trees.addEventListener("keydown", (event) => {
       const at = event.key === "Enter" ? row(event) : undefined
       if (at && !at.folder) open(oriel, at.path, how(event))
@@ -349,11 +414,11 @@ export async function show(place: Place): Promise<Reveal> {
     })
   }
 
-  /** The shown tree takes the keyboard, on its focused row, else its first: ↑↓ move, → opens, ← closes or goes to the
-   *  parent. A row with the keyboard shows its ring. */
-  function take() {
+  /** The shown tree takes the keyboard, on `path`, else its focused row, else its first: ↑↓ move, → opens, ← closes or
+   *  goes to the parent. A row with the keyboard shows its ring once a key moved it. */
+  function take(path?: string) {
     const shown = filter ? results : tree
-    const path = shown.getFocusedPath() ?? shown.getVisibleRows(0, 0)[0]?.path
+    path ??= shown.getFocusedPath() ?? shown.getVisibleRows(0, 0)[0]?.path
     if (!path) return
     // Any row first: the tree moves the keyboard to its focused row only while it holds it.
     const any = shown.getFileTreeContainer()?.shadowRoot?.querySelector<HTMLElement>("button[data-item-path]")
@@ -369,11 +434,19 @@ export async function show(place: Place): Promise<Reveal> {
   keep(() => removeEventListener("focus", given))
 
   // Whether the root is a repository's with the first listing, so it dims what git ignores (one wait for both, as
-  // each starts a process); the rows, then git's letters.
+  // each starts a process); the rows as the card left them, and a landing's, before the tree shows; then git's letters.
+  const kept = memory.get(top)
   await run(() => list("", rooted()))
-  run(async () => {
-    if (place.at) await reveal(place.at)
-    await git()
+  await run(async () => {
+    if (kept) await reopen(kept.open)
+    if (place.at) await reveal(place.at, !kept)
   })
+  if (kept) {
+    const view = scroller()
+    if (view) view.scrollTop = kept.scroll
+    // The tree draws the rows of its new scroll a frame later.
+    await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))
+  }
+  run(git)
   return (at) => void run(() => reveal(at))
 }
