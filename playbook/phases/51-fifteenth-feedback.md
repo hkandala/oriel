@@ -181,6 +181,9 @@ Files: the card drag and drop code (`Oriel/Views/Drag*.swift`, the web card host
   an upload). Only panes have drop zones on a card, so a tab or a workspace dragged over a web card does nothing, as
   over a terminal. The drop highlight is placed with padding, not an offset, so its accessibility frame is where it is
   drawn (the new test reads it mid-drag).
-- **Runs.** RUNS.
+- **Runs.** The new test with the fix reverted: red twice, on the browser card (no highlight). Its plugin half passed
+  there on CI: whether a card's drop target lies in front of or behind its web view depends on the order SwiftUI added
+  them (a plugin card relabeled live got it in front on CI, a session opened with it behind locally), which is the
+  user's "sometimes". With the fix, the new test and every DragTests test green.
 - **For the user.** Drag a pane slowly over a browser page and over a File Explorer or Git card: the half or whole-card
   highlight follows the pointer as over a terminal. Then drop a file from Finder on a page that takes uploads.
