@@ -25,14 +25,15 @@ extension OrielUITests {
         // Through the helper's drag, which leaves XCUITest free to read the highlight while it holds.
         let from = card(first, 0, 0).withOffset(CGVector(dx: 60, dy: 17)).screenPoint
         let over = [browser, plugin].map { card($0, 0.9, 0.6).screenPoint }
-        let path = "\(from.x) \(from.y) \(over[0].x) \(over[0].y) 2.5 \(over[1].x) \(over[1].y) 2.5"
+        let path = "\(from.x) \(from.y) \(over[0].x) \(over[0].y) 4 \(over[1].x) \(over[1].y) 4"
         let drag = Task.detached { [one] in try await Self.post("\(one)/drag", Data(path.utf8)) }
         let indicator = element("drop.indicator")
         for pane in [browser, plugin] {
             let frame = element("pane.\(pane)").frame
             let right = CGRect(x: frame.midX, y: frame.minY, width: frame.width / 2, height: frame.height)
             var seen = CGRect.null
-            XCTAssertTrue(until(4) {
+            // A hold of 4 s: a snapshot near a web view can take seconds.
+            XCTAssertTrue(until(8) {
                 // One snapshot a look: the last card's highlight may still fade out beside the new one.
                 seen = (try? indicator.firstMatch.snapshot())?.frame ?? .null
                 return abs(seen.minX - right.minX) < 3 && abs(seen.maxX - right.maxX) < 3
