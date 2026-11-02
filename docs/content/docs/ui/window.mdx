@@ -252,8 +252,11 @@ session open in this window (D43).
   rows' size, primary, as in the Agents view); for a machine's `default`
   session, the machine's name instead: This Mac's own name (System Settings,
   "Hari's MacBook Pro") or the remote machine's name from the list. The Open
-  Session panel and the palette keep the real names. 22 pt in
-  from the window's edge and 3 pt above the first row, and, at the trailing
+  Session panel and the palette keep the real names. Its text starts where
+  the text of the rows under it starts: 38 pt in from the window's edge over
+  the workspace rows (after their state slot), 18 pt in over the Agents view
+  (with its group labels and program tiles). It sits 3 pt above the first
+  row, and, at the trailing
   end, a `+` that makes a new workspace in that session, in `$HOME`. The
   snapshot after it selects the new workspace.
 - **Middle.** The [workspace rows](#workspace-rows), or the
@@ -281,14 +284,15 @@ The sidebar never shows tabs, and its bottom never shows agent activity.
 
 One row per herdr workspace of the session, in herdr's order, like herdr's
 Spaces panel.
-- **Line 1.** The name (13 pt), then at the line's end the strongest state
-  of the workspace's panes as a state label, as t3code shows a thread's
-  status: "Working 42s", "Needs you" or "Done"
-  ([Status](/docs/ui/theme-and-accessibility#status)). An idle agent, or no
-  agent, shows nothing there. The name is medium weight while the row calls
-  for the user (needs you or done). VoiceOver adds the state word to the
-  row's value.
-- **Line 2**, only for a git repository, under the name: a branch glyph, the branch, then
+- **Line 1.** A 14 pt state slot, then 6 pt on, the name (13 pt). The slot
+  shows the state icon of the strongest state of the workspace's panes:
+  Working's spinner, Needs you's raised hand or Done's check, with no word and
+  no time ([Status](/docs/ui/theme-and-accessibility#status)). An idle agent,
+  or no agent, leaves the slot empty. Every row keeps the slot, so all the
+  names start at one x, with the page header's text. The name is medium
+  weight while the row calls for the user (needs you or done). VoiceOver adds
+  the state word to the row's value.
+- **Line 2**, only for a git repository, under the name and starting where it starts: a branch glyph, the branch, then
   ↑ahead in the finished color and ↓behind in the error color when they are
   not zero. All 11 pt, secondary. There is no changed-file count. A workspace
   that is not a git repository has one line and no text about git (D67,
@@ -303,7 +307,7 @@ Spaces panel.
   With no such workspace in the session, it is a normal row.
 - **Keycap hints.** If the user holds ⌘ (with the tabs' keycaps) or ⌃⌘ for 0.7 s while the window is key,
   each of the first nine rows (in the order ⌃⌘1–9 jumps) shows a keycap
-  "⌃⌘1"… at the end of its first line, in the state label's place; the name
+  "⌃⌘1"… at the end of its first line; the name
   gives way to it and never runs under it. Same look and fades as the tabs' keycaps.
 - **Click** selects the workspace in the app only ([Selection and "seen" are
   the app's own](/docs/layout#selection-and-seen-are-the-apps-own)).
@@ -337,9 +341,9 @@ or below ([Swiping](/docs/ui/swiping)). The page dots and the footer stay.
   each with a count, herdr's order inside a group) or **Workspace**
   (the groups are the workspaces, under each name with a count, in herdr's order of
   workspaces, tabs and panes). Priority is the default.
-  Each window keeps its choice. The name sits where the workspaces view has it
-  (22 pt in, on the `+`'s 28 pt row), so it does not move when the view
-  changes; the sort label's text ends where the times end.
+  Each window keeps its choice. The name sits on the `+`'s 28 pt row, as in
+  the workspaces view, and 18 pt in, on the edge of the group labels and the
+  program tiles; the sort label's text ends where the times end.
   The name is the title (13 pt bold, primary, as in the workspaces view); the sort menu is a
   small quiet button (11 pt, secondary, a capsule filled on hover, its edge on the rows' edge); a long
   name shortens before it does.
@@ -352,10 +356,10 @@ or below ([Swiping](/docs/ui/swiping)). The page dots and the footer stay.
   folded group keeps its label and count. The folds are kept per session and
   per order, across relaunches.
 - **Rows.** One row per agent pane, even when several share a tab. 48 pt, two
-  lines, 4 pt apart; the program tile with its badge centers on both. Line 1,
+  lines, 4 pt apart; the program tile, with no badge, centers on both. Line 1,
   on one centered line: the pane's name (its label, else its session's title,
   else "Untitled": [Session titles](/docs/ui/chat-view#session-titles)),
-  then on the right, as t3code's thread rows, the state label: "Needs you"
+  then on the right the state label: "Needs you"
   (amber), "Working 42s" (blue) or "Done" (green). An idle agent shows its
   age instead ("now", "3m", "2h", "4d"), counted from the time the app saw
   the change, in secondary text. The name is medium weight for needs you and

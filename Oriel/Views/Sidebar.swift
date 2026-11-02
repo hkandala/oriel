@@ -138,8 +138,8 @@ private struct SidebarPage: View {
                         .clearsDrop(page) { plus = false }
                 }
             }
-            // The same in both views (it moved 4 pt left in the Agents view).
-            .padding(.leading, 22)
+            // On the text's edge: the workspace rows' names, or the Agents view's group labels and tiles.
+            .padding(.leading, Sidebar.rowInsets.leading + (agents == nil ? WorkspaceRow.textInset : 8))
             // The `+` and the sort capsule end where the rows do: the sort label's text where the times end.
             .padding(.trailing, Sidebar.rowInsets.trailing)
             // Rex's first row sits 31.5 pt below the header's baseline.

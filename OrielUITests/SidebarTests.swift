@@ -21,8 +21,7 @@ extension OrielUITests {
         XCTAssertTrue(filter.vanishes(within: 2))
     }
 
-    /// With the sidebar collapsed, the light of the workspace menu, of Open Session and of the palette follows the
-    /// pointer.
+    /// With the sidebar collapsed, the light of the workspace menu, Open Session and the palette follows the pointer.
     func testMenuLightFollowsThePointer() {
         XCTAssertTrue(element("tab.w1:t2").exists(within: connect))
         app.typeKey("s", modifierFlags: [.command, .control])
@@ -117,8 +116,8 @@ extension OrielUITests {
         let place = header.frame.origin
         app.typeKey(".", modifierFlags: .command)
         XCTAssertTrue(element("agents.sort").exists(within: 2))
-        // The name stays where the workspaces view has it (it moved up and left).
-        XCTAssertEqual(header.frame.origin, place)
+        // The name stays on its line and moves from the rows' names (after their 20 pt state slot) to the tiles' edge.
+        XCTAssertEqual(header.frame.origin, CGPoint(x: place.x - 20, y: place.y))
         try await swipe(sidebar, until: header, \.stringValue, two)
     }
 

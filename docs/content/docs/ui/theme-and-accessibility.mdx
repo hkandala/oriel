@@ -57,9 +57,9 @@ the Agents view and popover, the hover card, notifications):
 
 | Shown as | Word | Dark | Light | herdr status |
 |---|---|---|---|---|
-| three working dots on a tab; a dashed circle and "Working" with its time | working | `#58a6ff` | `#0667d8` | `working` |
-| an amber badge on the program icon; a question bubble and "Needs you" | needs you | `#d29922` | `#9d5c00` | `blocked` |
-| a green badge on the program icon; a check circle and "Done" | finished | `#3fb950` | `#116329` | finished and not yet seen by this device |
+| three working dots on a tab; a turning spinner and "Working" with its time | working | `#58a6ff` | `#0667d8` | `working` |
+| an amber badge on a tab's program icon; a raised hand and "Needs you" | needs you | `#d29922` | `#9d5c00` | `blocked` |
+| a green badge on a tab's program icon; a check circle and "Done" | finished | `#3fb950` | `#116329` | finished and not yet seen by this device |
 | ↓behind on a workspace row, the error tone of a notice; an alert circle and "Error" on a chat card | error | `#f85149` | `#cf222e` | — |
 
 - **Working dots.** Three dots, 3.5 pt, 5.5 pt apart, in a 14 pt box. Each
@@ -67,26 +67,30 @@ the Agents view and popover, the hover card, notifications):
   one before. The wall clock drives them, so every tab is in step. Core
   Animation runs them at 15 frames a second or less, so the app does no work
   per frame (a SwiftUI timeline per dots laid the window out at every tick).
-- **Badges.** A 7 pt dot on the top right of a tab's front program icon and
-  of an Agents row's tile, cut out of the tile by a 1.5 pt ring.
-- **State label.** Workspace rows, the Agents view and popover, the hover
-  card, the overview and the agent card's header show a state as t3code's
-  sidebar shows a thread's: an SF Symbol and the word, both 11 pt medium in
-  the status color, with no fill. The symbols follow t3code's: `circle.dashed`
-  (Working), `questionmark.bubble` (Needs you), `checkmark.circle` (Done) and
-  `exclamationmark.circle` (Error). In workspace rows, the Agents view and
-  popover and the hover card's pane rows, Working adds the time since this
-  app saw the agent start (after a launch, since the launch: herdr gives no
-  start time): "Working 42s", "Working 3m", "Working 1h 5m". It counts each second
-  for the first minute, then each minute, every label on the same second.
-  The symbol does not move; the counting time shows that the agent works.
-- An idle agent shows no state label. In the Agents view its row shows the
-  age instead ("5m"), as t3code shows a settled thread's time. Tabs show
+- **Badges.** A 7 pt dot on the top right of a tab's front program icon, cut
+  out of the icon by a 1.5 pt ring. Agents rows have no badge: their state
+  label shows the state.
+- **State label.** The Agents view and popover, the hover card, the overview
+  and the agent card's header show a state as an SF Symbol and the word, both
+  11 pt medium in the status color, with no fill. The symbols are Oriel's
+  own: `progress.indicator` (Working), `hand.raised.fill` (Needs you),
+  `checkmark.circle` (Done) and `exclamationmark.circle` (Error). Working's
+  spinner turns, as the macOS spinner does. Core Animation runs it, so the app
+  does no work per frame. It stands still under Reduce Motion and on a
+  sidebar page that is off to the side. In the Agents view and popover and
+  the hover card's pane rows, Working adds the time since this app saw the
+  agent start (after a launch, since the launch: herdr gives no start time):
+  "Working 42s", "Working 3m", "Working 1h 5m". It counts each second for the
+  first minute, then each minute, every label on the same second.
+- **State icon.** A workspace row shows only the symbol, 11 pt medium in the
+  status color, in a 14 pt slot before the name. It shows no word and no
+  time.
+- An idle agent shows no state label and no state icon. In the Agents view its row shows the
+  age instead ("5m"). Tabs show
   nothing for idle agents. A workspace menu row shows an idle agent as a 7 pt
   gray ring.
 - A row that calls for the user (needs you, or done and not seen) has its
-  name in medium weight; other rows are regular, as t3code's rows that need
-  nothing recede.
+  name in medium weight; other rows are regular.
 
 ## Accessibility
 
@@ -111,7 +115,8 @@ the Agents view and popover, the hover card, notifications):
   with View ▸ Increase Font Size (⌘+ or ⌘=), Decrease Font Size (⌘-) and Reset
   Font Size (⌘0)
   ([Settings](/docs/ui/settings)).
-- Reduce Motion stops the working dots (three still dots at 0.6), makes the
+- Reduce Motion stops the working dots (three still dots at 0.6) and the
+  Working spinner, makes the
   sidebar's session pages jump, and turns off the icon bounce, the layout
   motion, the tab pills' growth and glide, the reorder slides, the
   spring-load pulse, the sidebar's slide, the plugins' sidebar slide and the

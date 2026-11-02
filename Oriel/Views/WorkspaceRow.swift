@@ -1,10 +1,12 @@
 import HerdrKit
 import SwiftUI
 
-/// A workspace: its name and its state on the right as t3code's thread rows show it, and its branch with ahead and
-/// behind on a second line in a repository. A linked worktree sits indented under its repository's row, on a guide
-/// line.
+/// A workspace: its state's symbol in a leading slot and its name, and its branch with ahead and behind on a second
+/// line in a repository. A linked worktree sits indented under its repository's row, on a guide line.
 struct WorkspaceRow: View {
+    /// The text's inset in a row, after the state slot (14 pt and a 6 pt gap); the page header's text lines up.
+    static let textInset: CGFloat = 8 + 14 + 6
+
     let workspace: HostStore.Workspace
     let parent: HostStore.Workspace?
     let page: Page
@@ -21,7 +23,6 @@ struct WorkspaceRow: View {
         let selected = workspace.id == page.selectedWorkspaceID
         let git = workspace.git
         let state = workspace.state
-        let label = state?.label(look, since: state == .working ? workspace.since : nil)
         let height: CGFloat = git == nil ? 30 : 44
         Button {
             page.select(workspace)
@@ -33,15 +34,15 @@ struct WorkspaceRow: View {
         } label: {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
+                    // The state's slot (`stateSlot`), the same width on every row.
+                    Color.clear.frame(width: 14, height: 14)
                     Text(workspace.label).font(.system(size: 13, weight: state?.calls == true ? .medium : .regular))
                         .lineLimit(1).opacity(renaming ? 0 : 1)
                         .foregroundStyle(selected ? look.selected : look.chrome)
                     Spacer(minLength: 0)
-                    // The room of the keycap, else of the state: the name gives way to it.
+                    // The keycap's room: the name gives way to it.
                     if let keycap {
                         Keycap(text: "⌃⌘\(keycap)").hidden()
-                    } else {
-                        label.hidden()
                     }
                 }
                 if let git {
@@ -57,6 +58,7 @@ struct WorkspaceRow: View {
                     }
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
+                    .padding(.leading, 20)
                 }
             }
             .padding(.horizontal, 8)
@@ -68,16 +70,13 @@ struct WorkspaceRow: View {
         .accessibilityAddTraits(selected ? .isSelected : [])
         .accessibilityValue([state?.word, git.map { "\($0.branch) ahead \($0.ahead) behind \($0.behind)" },
                              parent.map { "worktree of \($0.label)" }].compactMap(\.self).joined(separator: ", "))
+        .overlay(alignment: .topLeading) { stateSlot(state) }
         // At the end of the name's line, never over the name. Over the button, so a test sees it.
         .overlay(alignment: .topTrailing) {
             if let keycap, !renaming {
                 Keycap(text: "⌃⌘\(keycap)").frame(height: 30).padding(.trailing, 8)
                     .transition(Keycap.transition)
                     .accessibilityIdentifier("workspace.\(workspace.id).keycap")
-            } else if let label, !renaming {
-                // Its own element, for tests; the row's value has the state word for VoiceOver.
-                label.frame(height: 30).padding(.trailing, 8).allowsHitTesting(false)
-                    .accessibilityIdentifier("workspace.\(workspace.id).state")
             }
         }
         .overlay(alignment: .leading) {
@@ -87,7 +86,7 @@ struct WorkspaceRow: View {
                     Task { await page.store.rename(workspace: workspace.id, label: label) }
                 }, end: stopRenaming)
                     .font(.system(size: 13))
-                    .padding(.leading, 8)
+                    .padding(.leading, Self.textInset)
                     .padding(.trailing, 8)
                     .frame(height: 30, alignment: .leading)
                     .frame(maxHeight: .infinity, alignment: .top)
@@ -105,6 +104,17 @@ struct WorkspaceRow: View {
                     .padding(.bottom, guideBelow ? -2 : height / 2)
                     .padding(.leading, 15)
             }
+        }
+    }
+
+    /// The state's symbol on the name's line, before it; nothing while idle or with no agent. Over the button, so a
+    /// test sees it; the row's value has the state word for VoiceOver.
+    @ViewBuilder
+    private func stateSlot(_ state: AgentState?) -> some View {
+        if let state, state != .idle {
+            StateIcon(state: state).frame(height: 30).padding(.leading, 8).allowsHitTesting(false)
+                .accessibilityElement().accessibilityAddTraits(.isStaticText).accessibilityValue(state.title)
+                .accessibilityIdentifier("workspace.\(workspace.id).state")
         }
     }
 
