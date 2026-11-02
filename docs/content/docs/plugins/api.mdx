@@ -159,6 +159,9 @@ export interface Git {
   /** `git add -A` of the paths (literal, not patterns), or of everything. */
   stage(root: string, paths?: string[]): Promise<void>
   unstage(root: string, paths?: string[]): Promise<void>
+  /** The paths (literal) back as HEAD has them, in the index and the work tree; untracked ones are deleted. Fails
+   *  before the first commit. */
+  revert(root: string, paths: string[]): Promise<void>
   commit(root: string, message: string): Promise<void>
   fetch(root: string): Promise<void>
   /** git's own way (the user's `pull.rebase`). */

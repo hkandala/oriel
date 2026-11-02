@@ -1,9 +1,9 @@
-// The Git card's home: the commit message and Commit, the staged and the unstaged changes with Stage and Unstage (or
-// "No changes"), then the history of every branch as a graph. Row 2 has the branch, Working Tree, Fetch, Pull and Push
+// The Git card's home: the commit message and Commit, the staged and the unstaged changes with Revert, Stage and
+// Unstage (or "No changes"), then the history of every branch as a graph. Row 2 has the branch, Working Tree, Fetch, Pull and Push
 // (`main.ts`).
 // A folder that is no repository shows Initialize Repository instead.
 import type { Change, Commit } from "@oriel/plugin-api"
-import { control, element, failed, home, how, keep, menu, nameAndFolder, open, oriel, symbol } from "./lib"
+import { control, element, failed, fileIcon, home, how, keep, menu, nameAndFolder, open, oriel, symbol } from "./lib"
 
 const page = element("div")
 page.id = "home"
@@ -181,7 +181,7 @@ function draw(state: {
   const rows = page.querySelector("#history .rows")!
   rows.replaceChildren(...(commits.length ? graph(commits) : [element("p", "empty", "No commits yet")]))
   if (state.more) {
-    const more = element("button", "row more", "Show More")
+    const more = element("button", "more", "Show More")
     more.onclick = () => {
       more.disabled = true
       limit += 500
@@ -192,15 +192,18 @@ function draw(state: {
   enable()
 }
 
-/** A list's header with its count and Stage All or Unstage All, then a row per file; only when it has files. */
+/** A list's header with its count, Revert All, and Stage All or Unstage All, then a row per file; only when it has
+ *  files. */
 function section(id: string, title: string, changes: Change[], staged: boolean) {
   const node = page.querySelector<HTMLElement>(`#${id}`)!
   node.hidden = !changes.length
   const header = element("header", "title")
   header.append(element("h2", "", title), element("span", "count", String(changes.length)))
+  const revertAll = element("button", "all", "Revert All")
   const all = element("button", "all", staged ? "Unstage All" : "Stage All")
+  revertAll.onclick = () => void revert(changes, true)
   all.onclick = () => void write(staged ? oriel.git.unstage(root) : oriel.git.stage(root))
-  header.append(all)
+  header.append(revertAll, all)
   const rows = element("div", "rows")
   rows.append(...changes.map((change) => changeRow(change, staged)))
   node.replaceChildren(header, rows)
@@ -256,14 +259,30 @@ function changeRow(change: Change, staged: boolean) {
   const toggle = staged ? "Unstage" : "Stage", letter = element("span", `letter ${change.letter}`, change.letter)
   // The label says it.
   letter.ariaHidden = "true"
-  open.append(symbol("doc"), element("span", "name", base), element("span", "folder", folder))
-  const paths = [change.path, ...(change.oldPath ? [change.oldPath] : [])]
+  open.append(fileIcon(name), element("span", "name", base), element("span", "folder", folder))
   node.append(
+    button("arrow.uturn.backward", `Revert ${name}`, () => void revert([change], false)),
     button(staged ? "minus" : "plus", `${toggle} ${name}`, () =>
-      write(staged ? oriel.git.unstage(root, paths) : oriel.git.stage(root, paths))),
+      write(staged ? oriel.git.unstage(root, paths(change)) : oriel.git.stage(root, paths(change)))),
     letter,
   )
   return node
+}
+
+/** A change's path, and a rename's old one. */
+const paths = (change: Change) => [change.path, ...(change.oldPath ? [change.oldPath] : [])]
+
+/** Asks, then puts the files back as HEAD has them (both lists'). The question names the untracked ones, which go. */
+async function revert(changes: Change[], all: boolean) {
+  const untracked = changes.filter((change) => change.letter === "U").map((change) => nameAndFolder(change.path)[0])
+  const named = untracked.length > 3 ? `${untracked.slice(0, 2).join(", ")} and ${untracked.length - 2} more`
+    : untracked.join(", ")
+  const base = nameAndFolder(changes[0].path)[0]
+  const question = all
+    ? `Revert all ${changes.length} files?${untracked.length ? ` This deletes the untracked ${named}.` : ""}`
+    : untracked.length ? `Delete the untracked file ${base}?` : `Revert changes to ${base}?`
+  if ((await oriel.toast(`${question} This cannot be undone.`, ["Cancel", "Revert"])) !== "Revert") return
+  await write(oriel.git.revert(root, changes.flatMap(paths)))
 }
 
 const LANE = 14, HEIGHT = 28

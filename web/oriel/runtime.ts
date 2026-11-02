@@ -141,6 +141,7 @@ const oriel: Oriel = {
     show: (root, hash) => call("git.show", { root, source: hash }),
     stage: (root, paths) => call("git.stage", { root, paths }),
     unstage: (root, paths) => call("git.unstage", { root, paths }),
+    revert: (root, paths) => call("git.revert", { root, paths }),
     commit: (root, message) => call("git.commit", { root, message }),
     fetch: (root) => call("git.fetch", { root }),
     pull: (root) => call("git.pull", { root }),

@@ -132,7 +132,7 @@ private func failure(_ name: String, _ args: [String: Any], _ calls: PluginCalls
     #expect(await failure("git.status", ["root": repo.path], none) == "failed")
 }
 
-@Test func `git writes: stage, unstage, commit, switch, and a remote's fetch, push and pull`() async throws {
+@Test func `git writes: stage, unstage, commit, revert, switch, and a remote's fetch, push and pull`() async throws {
     let folder = try scratchFolder()
     defer { try? FileManager.default.removeItem(at: folder) }
     _ = try await localExec.checkedOutput(["sh", "-c", #"""
@@ -158,6 +158,14 @@ private func failure(_ name: String, _ args: [String: Any], _ calls: PluginCalls
     #expect(try await changes() == ["staged": ["*.txt"], "unstaged": ["b.txt"]])
     #expect(await failure("git.commit", ["root": root, "message": "  "]) == "failed")
     _ = try await call("git.commit", ["root": root, "message": "one\n"])
+    // Revert: a change staged and then changed again, a deleted file and an untracked one go back to the commit.
+    _ = try await localExec.checkedOutput(["sh", "-c", #"""
+    set -e; cd "$1"; echo c >>'*.txt'; git add -A; echo d >>'*.txt'; rm b.txt; echo n >new.txt
+    """#, "sh", root])
+    _ = try await call("git.revert", ["root": root, "paths": ["*.txt", "b.txt", "new.txt"]])
+    #expect(try await changes() == ["staged": [], "unstaged": []])
+    #expect(!FileManager.default.fileExists(atPath: root + "/new.txt"))
+    #expect(await failure("git.revert", ["root": root]) == "failed")
     _ = try await call("git.push", ["root": root])
     _ = try await call("git.fetch", ["root": root])
     _ = try await call("git.pull", ["root": root])

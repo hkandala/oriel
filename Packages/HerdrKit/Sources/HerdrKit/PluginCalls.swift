@@ -59,7 +59,7 @@ public struct PluginCalls: Sendable {
 
     /// The git writes, which a card runs one at a time.
     public static let gitWrites: Set = ["git.stage", "git.unstage", "git.commit", "git.fetch", "git.pull", "git.push",
-                                        "git.switch", "git.init"]
+                                        "git.switch", "git.init", "git.revert"]
 
     /// Runs one call; its JSON reply. Throws `denied` without its permission, `failed` for a call it does not know.
     public func call(_ name: String, _ arguments: Data) async throws(PluginError) -> Data {
@@ -138,11 +138,21 @@ public struct PluginCalls: Sendable {
 
     private func git(_ name: String, _ args: Args) async throws -> Any? {
         let root = try name == "git.root" ? args.path(\.folder, "folder") : args.path(\.root, "root")
+        if name == "git.revert" {
+            guard let paths = args.paths, !paths.isEmpty else { throw PluginError("failed", "paths is missing") }
+            try await Git.revert(root, paths, exec: exec)
+            return nil
+        }
         if Self.gitWrites.contains(name) {
             let (arguments, long) = try await write(name, root, args)
             try await Git.run(root, arguments, timeout: .seconds(long ? 120 : 30), exec: exec)
             return nil
         }
+        return try await read(name, root, args)
+    }
+
+    /// A git read's reply.
+    private func read(_ name: String, _ root: String, _ args: Args) async throws -> Any? {
         switch name {
         case "git.root": return await Git.root(root, exec: exec)
         case "git.status": return try await Git.status(root, exec: exec).map(Self.json)

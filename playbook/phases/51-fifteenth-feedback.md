@@ -240,3 +240,31 @@ Files: the card drag and drop code (`Oriel/Views/Drag*.swift`, the web card host
 - **For the user.** In herdr's TUI, type an address into a browser card in Oriel: the placeholder shows it. Run
   `oriel agent claude --tab` and check that the card opens on Chat (CI has no `claude`, and this Mac's real one
   would start, so no test reaches it).
+### Track D
+
+- **Cause (item 18).** The graph's open and Parent take the same path (`oriel.open`, then the `place` event). The
+  difference was where they start: from the home, the diff drew unseen over the home, which stayed; from a diff, the
+  page first emptied itself (`clear()`) and hid while git read the parent, so the card was blank for the read. **Fix:**
+  a move reads the patch and the commit's facts first, then clears and draws all of it in one task (also Back between
+  two diffs). Shown in a headless page with a stand-in API and a slow `git.diff`: before
+  `/tmp/oriel-shots/t51d/harness-before-parent.png` (blank), after `harness-after-parent.png` (the old diff stays).
+- **Decisions (item 19).** The "enter icon" was Word Wrap's `arrow.turn.down.left`, not a reload marker. No SF Symbol
+  reads as wrapping, so Word Wrap is a new app symbol `text.wrap` (Material Design Icons' `wrap`, as `source.branch`).
+  Working Tree also gets a quiet **Live** marker on row 2 (`dot.radiowaves.left.and.right` and the word, dim; a
+  native text control, so it does not pulse).
+- **Decisions (item 15).** Git depends on `@pierre/trees` (the version File Explorer pins) and takes its resolver,
+  sprite and stylesheet: each icon is a tiny shadow root that adopts the tree's own sheet (`ensureFileTreeStyles`),
+  so the per-type colors come from the package, not a copy. The home's change rows use it too. The entry chunk grows
+  by about 86 KB (minified).
+- **Decisions (item 20).** One call, `git.revert(root, paths)`: the untracked paths go with `git clean -fq`, the rest
+  with `git restore --staged --worktree --source=HEAD`. A file's Revert puts it back to HEAD from either list; each
+  list's header has Revert All for its own files. The question is the card's toast (Cancel, **Revert**) and names
+  the untracked files it deletes (three at most, else two and "and n more"). Before the first commit it fails with
+  git's message.
+- **Fix (items 14, 16, 17).** The file header is a flat 32 pt row joined to its diff with a hairline under it. A
+  Working Tree with no changes shows the home's `checkmark.circle` placeholder in the middle, with no file list and
+  its button off. Show More is a plain gray button, and the home ends 10 pt under it (was 32 pt).
+- **Pictures** (headless page, dark): `/tmp/oriel-shots/t51d/harness-{before,after}-{diff,empty,home}.png`,
+  `harness-after-home-hover.png` (Revert and Stage under the pointer).
+- **For the user.** Revert on a staged file also drops its unstaged edits (back to HEAD). Check the Live marker and
+  the new Word Wrap symbol on row 2, and the file icons in light mode.

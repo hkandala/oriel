@@ -218,6 +218,7 @@ File and Markdown edit the file. Both use the same editor and the same rules.
   | the save failed | "‹name› was not saved: ‹reason›" | Cancel, **Try Again** |
   | Back, Forward, an open in the card or a close with unsaved edits | "‹name› has unsaved edits." | Discard, **Keep Editing** |
   | a Git write failed | git's message, on one line | Copy, **OK** |
+  | Git's Revert or Revert All | the question (see Writes) | Cancel, **Revert** |
 
   Keep Mine takes the disk's new hash, so the next ⌘S writes over that
   version without a question. Reload drops the edits.
@@ -402,10 +403,13 @@ app's fonts and `Look` colors. From the top:
   stays while the card moves to a diff and back, and over a drop, a reload
   and a relaunch. It empties after the commit.
 - **Staged Changes** and **Changes**, each only when it has files: a header
-  with its count and the words **Unstage All** or **Stage All**, then one
-  row per file: `doc`, its name, its folder in secondary, the Stage (`plus`)
-  or Unstage (`minus`) button that shows under the pointer, and its letter
-  in the tree's colors. A click opens the Working Tree diff at that file.
+  with its count and the words **Revert All** and **Unstage All** or
+  **Stage All**, then one row per file: the file's icon by its type (File
+  Explorer's icons and colors, from the same `@pierre/trees` package), its
+  name, its folder in secondary, the Revert (`arrow.uturn.backward`) and the
+  Stage (`plus`) or Unstage (`minus`) buttons that show under the pointer,
+  and its letter in the tree's colors. A click opens the Working Tree diff
+  at that file.
 - **No changes:** with nothing to commit, the message, Commit and both lists
   give way to one placeholder: `checkmark.circle` and "No changes".
 - **History**, 26 pt under the changes, after a hairline: the last 500
@@ -418,8 +422,9 @@ app's fonts and `Look` colors. From the top:
   a ring. The first parent stays in its child's lane, as in `git log
   --graph`. Lane colors cycle through the accent, finished, working,
   needs-you and error colors. A click opens the commit's diff. "No commits
-  yet" before the first commit. A full page ends with **Show More**, which
-  reads 500 more (`git log -n 1000`, and so on).
+  yet" before the first commit. A full page ends with **Show More**, a plain
+  gray button in the middle, which reads 500 more (`git log -n 1000`, and so
+  on). The page ends 10 pt under the last row.
 - **Not a Git repository:** when the root is in no repository
   (`git.root` is null), the page shows `folder.badge.questionmark`, "Not a
   Git repository", the folder's short path (`~/…`) and **Initialize
@@ -438,6 +443,13 @@ app's fonts and `Look` colors. From the top:
   others 30 s.
 - A failed write shows git's message in the card's toast, with **Copy** and
   **OK**.
+- **Revert** asks first in the card's toast, with **Cancel** and **Revert**:
+  "Revert changes to ‹name›? This cannot be undone.", for an untracked file
+  "Delete the untracked file ‹name›? This cannot be undone.", and for Revert
+  All "Revert all ‹n› files? This deletes the untracked ‹names›. This cannot
+  be undone." (three names at most, else two and "and ‹n› more"). It puts each
+  file back as `HEAD` has it, in the index and the work tree, from either
+  list, and the old path of a rename too.
 
 | Control | Runs |
 |---|---|
@@ -447,17 +459,18 @@ app's fonts and `Look` colors. From the top:
 | Stage, Stage All | `git --literal-pathspecs add -A -- <path>` (and the old path of a rename), `git add -A` |
 | Unstage, Unstage All | `git --literal-pathspecs reset -q -- <path>`, `git reset -q` (also before the first commit) |
 | Commit | `git commit -m <message>`; Commit All runs `git add -A` first |
+| Revert, Revert All | the untracked paths (`git ls-files --others --exclude-standard`) go with `git clean -fq`, the rest with `git restore --staged --worktree --source=HEAD`, each with `--literal-pathspecs`. Before the first commit it fails with git's message |
 | Initialize Repository | `git init -q` |
 | a branch | `git switch <branch>`, `git switch --track <remote branch>` |
 
-- There is no Discard, because it loses work.
 
 ### Diff
 
 The changes of one source in one scroll (`@pierre/diffs`).
-- **Row 2:** Back and Forward, **Git Home** (`house`), then
-  `Unified | Side by Side`, **Word Wrap** (`arrow.turn.down.left`, a
-  toggle in the accent while on; Side by Side always wraps, so it is
+- **Row 2:** Back and Forward, **Git Home** (`house`), on Working Tree
+  **Live** (`dot.radiowaves.left.and.right` and the word, dim), then
+  `Unified | Side by Side`, **Word Wrap** (`text.wrap`, the app's symbol
+  from Material Design Icons' `wrap`, a toggle in the accent while on; Side by Side always wraps, so it is
   disabled there), the file list button (`sidebar.left`, its title
   Hide File List or Show File List), Previous Change (`chevron.up`) and Next
   Change (`chevron.down`). There is no source
@@ -467,8 +480,9 @@ The changes of one source in one scroll (`@pierre/diffs`).
   commit), up to 16 MB of patch. It is a live view: while the card shows,
   each change under the root (an agent's edits) asks for the patch again.
   Only the files whose text changed draw again: CodeView keeps every other
-  file, and the scroll stays where it was. With no changes it says "No
-  changes" and fills as files change. **A commit** shows against its first
+  file, and the scroll stays where it was. With no changes it shows
+  `checkmark.circle` and "No changes" in the middle, as the home does, with
+  no file list and its button off, and fills as files change. **A commit** shows against its first
   parent.
 - **A commit's page** starts with its subject (15 pt, semibold), its body,
   then Author (name and email), Date (relative, then the date and time),
@@ -477,10 +491,10 @@ The changes of one source in one scroll (`@pierre/diffs`).
   the card's and the tab's title (`document.title`), and VoiceOver reads it
   as the card's name. The text can be
   selected.
-- **The scroll.** Each file has a sticky 40 pt header. On an opaque band in
-  the card's color (`--card`, `Look.cardSolid`, no blur) sits a 30 pt row in
-  the home's row style (radius 7, a faint fill and hairline): a disclosure,
-  `doc`, the file's name in semibold, its folder in secondary ("from ‹old
+- **The scroll.** Each file has a sticky header: a flat 32 pt row the width
+  of its diff, joined to it, with a hairline under it, opaque in the card's
+  color (`--card`, `Look.cardSolid`, no blur) under a faint fill: a
+  disclosure, the file's icon, the file's name in semibold, its folder in secondary ("from ‹old
   path›" for a rename), `+n −m` in the finished and error colors, its
   letter, a **Viewed** box and **Open File** (not on a deleted file). In a
   card under 480 pt the folder and the counts give way. Viewed folds the file and dims its row in
@@ -491,7 +505,7 @@ The changes of one source in one scroll (`@pierre/diffs`).
   lines the error color, and word marks 28 %.
 - **The file list** is a column at the left (28 % of the card, 160 to
   260 pt) in the home's row style: a title with the file count, then one row
-  per file with its name, its folder in secondary, `+n −m` and its letter
+  per file with its icon, its name, its folder in secondary, `+n −m` and its letter
   (`M A D R`, in the tree's colors). A click scrolls to the file. The file
   list button slides it out and in (0.25 s, the plugins' shared sidebar in
   `card.css`; at once with Reduce Motion).
@@ -503,6 +517,9 @@ The changes of one source in one scroll (`@pierre/diffs`).
 - "No changes" shows when the patch is empty. A failed first read (not a
   repository yet, a machine away) shows git's error and asks again at the
   next change in the work tree.
+- **A move between places** (a commit from the home, Parent, Back) reads the
+  new patch and the commit's facts first and then draws them in one step: the
+  place before stays until then, with no blank page between.
 - Side by Side and Word Wrap (the header's values) and the file list (the
   card's state) are kept per card, also across a new source, and saved in the state file, so
   they survive a drop, a reload and a relaunch. Viewed marks last while the

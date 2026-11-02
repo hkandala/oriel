@@ -40,6 +40,23 @@ public extension Git {
         return local + remote
     }
 
+    /// Puts the paths (literal, from the root) back as HEAD has them, in the index and the work tree: the untracked
+    /// ones are deleted (`git clean`, which leaves ignored files), the rest restored (`git restore`, which knows no
+    /// untracked path). Before the first commit it fails with git's message: there is no HEAD to go back to.
+    static func revert(_ root: String, _ paths: [String], exec: any Exec) async throws {
+        let untracked = try await Set(run(root, ["--literal-pathspecs", "ls-files", "-z", "--others",
+                                                 "--exclude-standard", "--"] + paths, exec: exec)
+                .split(separator: "\0").map(String.init))
+        if !untracked.isEmpty {
+            try await run(root, ["--literal-pathspecs", "clean", "-fq", "--"] + untracked.sorted(), exec: exec)
+        }
+        let tracked = paths.filter { !untracked.contains($0) }
+        if !tracked.isEmpty {
+            try await run(root, ["--literal-pathspecs", "restore", "--staged", "--worktree", "--source=HEAD", "--"]
+                + tracked, exec: exec)
+        }
+    }
+
     /// `git <arguments>` in the repository, for a button: git never asks for a password (it fails instead), and
     /// git's own message is the error. Its output.
     @discardableResult

@@ -14,3 +14,11 @@ body { overflow-y: auto; user-select: none; -webkit-user-select: none; }
 /* An SF Symbol from the app (`main.ts`), in the text's color. */
 .symbol { display: inline-block; flex: none; width: 13px; height: 13px; background: currentColor;
   -webkit-mask: var(--symbol) center / contain no-repeat; mask: var(--symbol) center / contain no-repeat; }
+/* A file's icon by its type (`fileIcon`), as the File Explorer's. */
+/* The tree's own root fill and font stay out. */
+.file-icon { display: block; flex: none; width: 16px; height: 16px; background: none; }
+/* No changes, and no repository: an icon and words in the middle of their space (the home, the diff). */
+.placeholder { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center;
+  color: var(--dim); }
+.placeholder > .symbol { width: 30px; height: 30px; opacity: 0.7; }
+.placeholder h2 { margin: 2px 0 0; font-size: 13px; font-weight: 600; color: var(--text); }

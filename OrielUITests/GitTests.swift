@@ -6,11 +6,12 @@ import XCTest
 extension OrielUITests {
     /// The home lists every branch's commits and the changes; Stage moves a file to the staged list, Commit commits it
     /// with the typed message, Push sends it to the remote; a commit opens its diff in the card, and Back and Forward
-    /// walk between the home and the diff; the branch menu switches the branch. The diff: a commit's subject is its
-    /// title, and its page names its parent; the working tree from a change follows the work tree, also in a file it
-    /// shows; Open File opens the file in a new tab right after this one; Viewed folds the file; Next Change scrolls to
-    /// a change the page has not drawn; ⌘-click on a line opens the file at the line, in Unified and in Side by Side;
-    /// Word Wrap toggles in Unified only; the file list hides.
+    /// walk between the home and the diff; Revert and Revert All put the changes back; the branch menu switches the
+    /// branch. The diff: a commit's subject is its title, and its Parent opens in the card; the working tree from a
+    /// change follows the work tree, also in a file it shows, and is marked Live; Open File opens the file in a new
+    /// tab right after this one; Viewed folds the file; Next Change scrolls to a change the page has not drawn;
+    /// ⌘-click on a line opens the file at the line, in Unified and in Side by Side; Word Wrap toggles in Unified
+    /// only; the file list hides.
     func testGitCardCommitsPushesAndOpensDiffs() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, left) = try await newTab("git")
@@ -52,7 +53,7 @@ extension OrielUITests {
         let toast = element("pane.\(card).toast")
         XCTAssertTrue(until(10) { toast.stringValue.contains("overwritten") })
         element("pane.\(card).toast.main").click()
-        try await send("git -C \(repo) checkout -- a.txt\r", to: left)
+        try await revert(home, page, card: card, shell: left, repo: repo)
         branch.click()
         branch.menuItems["side"].click()
         try await expectGit("branch --show-current", "side", in: left, repo: repo)
@@ -116,6 +117,8 @@ extension OrielUITests {
         try await expect("the label is Working Tree's") { try await paneLabel(card).hasSuffix(" \(root)/ uncommitted") }
         XCTAssertTrue(page.buttons["a.txt"].exists(within: 10))
         XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, "Working Tree", within: 3))
+        // It follows the work tree, and says so.
+        XCTAssertTrue(element("pane.\(card).diff.live").exists)
         try await send("echo new >c.txt\r", to: left)
         XCTAssertTrue(page.buttons["c.txt"].exists(within: 10))
         // A file already shown draws its new text.
@@ -128,6 +131,32 @@ extension OrielUITests {
         try await expect("back home") { try await paneLabel(card).hasSuffix("e2egit \(root)/") }
         element("pane.\(card).git.working").click()
         try await expect("Working Tree from row 2") { try await paneLabel(card).hasSuffix(" \(root)/ uncommitted") }
+    }
+
+    /// Revert puts a.txt back after a question; Revert All then deletes the untracked c.txt, which its question names.
+    /// Working Tree with no changes shows "No changes", with the file list button off.
+    private func revert(_ home: XCUIElement, _ page: XCUIElement, card: String, shell left: String,
+                        repo: String) async throws
+    {
+        let toast = element("pane.\(card).toast"), yes = element("pane.\(card).toast.main")
+        home.buttons["Modified: a.txt"].hover()
+        keepScreenshot("git home, revert")
+        home.buttons["Revert a.txt"].click()
+        XCTAssertTrue(until(5) { toast.stringValue.contains("Revert changes to a.txt?") }, toast.stringValue)
+        yes.click()
+        XCTAssertTrue(home.buttons["Modified: a.txt"].vanishes(within: 10))
+        XCTAssertTrue(home.buttons["Untracked: c.txt"].exists)
+        home.buttons["Revert All"].click()
+        XCTAssertTrue(until(5) { toast.stringValue.contains("deletes the untracked c.txt") }, toast.stringValue)
+        yes.click()
+        XCTAssertTrue(text("No changes", in: home).exists(within: 10))
+        try await expectGit("status --porcelain | wc -l", "0", in: left, repo: repo)
+
+        element("pane.\(card).git.working").click()
+        XCTAssertTrue(element("pane.\(card).diff.file-list").has(\.isEnabled, false, within: 10))
+        XCTAssertTrue(text("No changes", in: page).exists)
+        keepScreenshot("working tree, no changes")
+        element("pane.\(card).diff.home").click()
     }
 
     /// A web page's text, by its value: a plain text's label is empty.
@@ -159,10 +188,15 @@ extension OrielUITests {
 
     /// The diff's own controls, on the diff of the commit that changes lines 1-150 and 290.
     private func diff(_ page: XCUIElement, card: String, tab: String, root: String) async throws {
-        // VoiceOver reads the subject too, once Forward's place drew; the page names the parent.
-        let surface = element("pane.\(card)")
+        // VoiceOver reads the subject too, once Forward's place drew; the page names the parent, which opens in the
+        // card, and Back comes back. A commit is not live.
+        let surface = element("pane.\(card)"), title = element("pane.\(card).title")
         XCTAssertTrue(surface.has(\.label, "second", within: 10), surface.label)
-        XCTAssertTrue(page.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Parent '")).firstMatch.exists)
+        XCTAssertFalse(element("pane.\(card).diff.live").exists)
+        page.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Parent '")).firstMatch.click()
+        XCTAssertTrue(title.has(\.stringValue, "first", within: 10), title.stringValue)
+        element("pane.\(card).go-back").click()
+        XCTAssertTrue(title.has(\.stringValue, "second", within: 10), title.stringValue)
         // Clicks in the page wait for what it draws: its layout comes back late after the card was hidden.
         let open = page.buttons["Open a.txt"]
         XCTAssertTrue(open.has(\.isHittable, true, within: 3))

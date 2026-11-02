@@ -8,7 +8,7 @@ import {
   type FileDiffMetadata,
   parsePatchFiles,
 } from "@pierre/diffs"
-import { control, element, failed as toast, home, type How, how, keep, nameAndFolder, open, oriel, symbol } from "./lib"
+import { control, element, failed as toast, fileIcon, home, type How, how, keep, nameAndFolder, open, oriel } from "./lib"
 
 const letters = { change: "M", "rename-pure": "R", "rename-changed": "R", new: "A", deleted: "D" }
 const page = element("div")
@@ -17,14 +17,21 @@ page.hidden = true
 // The file list slides in and out as every plugin's sidebar (card.css).
 const nav = element("nav", "list oriel-sidebar")
 const main = element("main", "diff")
-const empty = element("p", "empty")
+/** git's message when the first read failed. */
+const failure = element("p", "failure")
+/** No changes: the home's placeholder, in the middle; the file list gives way. */
+const clean = element("div", "placeholder")
+clean.hidden = true
+clean.innerHTML = `<span class="symbol" style="--symbol: var(--sf-checkmark-circle)"></span><h2>No changes</h2>`
 /** A commit's subject, body and facts, at the top of the scroll; empty for the working tree. */
 const about = element("header", "about")
-page.append(nav, main, empty)
+page.append(nav, main, failure, clean)
 document.body.append(page)
 
 let root = ""
 let source = ""
+/** The place drawn (`root source`): `root` and `source` name the next one while its reads run. */
+let drawn = ""
 /** The patch drawn, "" before the first; a failed read is undefined. */
 let patch: string | undefined
 let files: FileDiffMetadata[] = []
@@ -52,8 +59,8 @@ const options: CodeViewOptions<undefined, undefined> = {
   // Clicks right after Next Change or a pick in the list (CodeView drops them while it scrolls).
   pointerEventsOnScroll: true,
   layout: { paddingTop: 0, paddingBottom: 24, gap: 0 },
-  // The file header's band (`.file` in diff.css).
-  itemMetrics: { diffHeaderHeight: 40 },
+  // The file header's row (`.file` in diff.css).
+  itemMetrics: { diffHeaderHeight: 32 },
   // The card's fill shows through; the sticky header is opaque in the card's color, with a line under it.
   unsafeCSS: `
     :host {
@@ -78,7 +85,7 @@ const options: CodeViewOptions<undefined, undefined> = {
     }
     [data-separator] { border-block: 0.5px solid var(--divider) }
     [data-separator-content] { background: none !important; color: var(--dim) }
-    [data-diffs-header] { height: 40px; background: var(--card); cursor: default; }`,
+    [data-diffs-header] { height: 32px; background: var(--card); cursor: default; }`,
   renderCodeViewHeader: () => about,
   // The file's own row, as the card's rows: the disclosure, its icon, name and folder, its counts and letter, then
   // Viewed and Open File. A diff item's file is its diff.
@@ -93,7 +100,7 @@ const options: CodeViewOptions<undefined, undefined> = {
       // A rename names its old path in the folder's place.
       const folder = element("span", "folder", diff.prevName && diff.prevName !== diff.name ? `from ${diff.prevName}` : dir)
       row.title = diff.name
-      row.append(disclosure, symbol("doc"), name, folder, ...counts(diff), letter(diff), actions(diff))
+      row.append(disclosure, fileIcon(diff.name), name, folder, ...counts(diff), letter(diff), actions(diff))
       return row
     })
     node.querySelector(".disclosure")!.classList.toggle("shut", Boolean(item(diff.name)?.collapsed))
@@ -155,20 +162,24 @@ export async function show(nextRoot: string, nextSource: string, at?: string) {
   control("diff.file-list", { title: list ? "Hide File List" : "Show File List" })
   control("diff.wrap", { enabled: !split })
   // The diff shown, with a landing: only a scroll to the file.
-  if (!page.hidden && page.style.visibility === "" && nextRoot === root && nextSource === source && patch !== undefined) {
+  if (!page.hidden && drawn === `${nextRoot} ${nextSource}` && patch !== undefined) {
     if (at && files.some((file) => file.name === at)) reveal(at)
     return true
   }
   root = nextRoot
   source = nextSource
-  clear()
-  // Drawn unseen over the place before, which stays until the patch drew: no blank page while git answers.
-  page.style.visibility = "hidden"
-  page.hidden = false
-  await Promise.all([refresh(), commit()])
+  // Read first, then draw all of it in one go: the place before (the home, or the diff a Parent or Back leaves) stays
+  // until then, with no blank page while git answers.
+  const [next, facts] = await Promise.all([read(), source === "uncommitted"
+    ? undefined
+    : oriel.git.show(root, source).catch(() => undefined)])
   // Not after another move meanwhile.
   if (root !== nextRoot || source !== nextSource) return false
-  page.style.visibility = ""
+  page.hidden = false
+  drawn = `${root} ${source}`
+  clear()
+  apply(next)
+  describe(facts)
   if (at && files.some((file) => file.name === at)) reveal(at)
   return true
 }
@@ -176,21 +187,17 @@ export async function show(nextRoot: string, nextSource: string, at?: string) {
 /** The home shows: the diff lets go of its patch, as each place starts from its top. */
 export const hide = () => {
   page.hidden = true
-  page.style.visibility = ""
-  root = source = ""
+  root = source = drawn = ""
   clear()
-  document.title = ""
+  describe(undefined)
 }
 
-/** A commit's subject (also the card's title), its body, and its author, date, hash and parents. */
-async function commit() {
-  const at = `${root} ${source}`
+/** A commit's subject (also the card's title), its body, and its author, date, hash and parents; none for the working
+ *  tree. */
+function describe(facts: Awaited<ReturnType<typeof oriel.git.show>> | undefined) {
   about.replaceChildren()
-  document.title = ""
-  if (source === "uncommitted") return
-  const facts = await oriel.git.show(root, source).catch(() => undefined)
-  if (!facts || at !== `${root} ${source}`) return
-  document.title = facts.subject
+  document.title = facts?.subject ?? ""
+  if (!facts) return
   const date = new Date(facts.date), list = element("dl")
   const fact = (term: string, ...value: (Node | string)[]) => {
     const line = element("dd")
@@ -235,7 +242,8 @@ function clear() {
   viewed.clear()
   viewer.setItems([])
   nav.replaceChildren()
-  empty.textContent = ""
+  failure.textContent = ""
+  shown()
   main.scrollTop = 0
 }
 
@@ -268,7 +276,7 @@ function draw(next: string) {
     return { id: fileDiff.name, type: "diff", fileDiff, collapsed, version }
   }))
   changes = files.flatMap(blocks)
-  empty.textContent = files.length ? "" : "No changes"
+  shown()
   // As the Git home's lists: a title, its count after it.
   const title = element("header", "title")
   title.append(element("h2", "", "Files"), element("span", "count", files.length ? String(files.length) : ""))
@@ -278,7 +286,7 @@ function draw(next: string) {
     button.dataset.id = file.name
     const [name, folder] = nameAndFolder(file.name)
     button.append(
-      symbol("doc"),
+      fileIcon(file.name),
       element("span", "name", name),
       element("span", "folder", folder),
       ...counts(file),
@@ -289,6 +297,13 @@ function draw(next: string) {
     button.onclick = () => reveal(file.name)
     nav.append(button)
   }
+}
+
+/** The file list and its button only with files to list; No changes when a read found none. */
+function shown() {
+  nav.hidden = !files.length
+  clean.hidden = Boolean(files.length) || patch === undefined
+  control("diff.file-list", { enabled: files.length > 0 })
 }
 
 function sums(file: FileDiffMetadata) {
@@ -405,18 +420,23 @@ export async function refresh() {
       do {
         again = false
         const at = `${root} ${source}`
-        const next = await oriel.git.diff(root, source).catch((error: Error) => error)
-        if (at !== `${root} ${source}`) continue
-        if (next instanceof Error) {
-          // A diff drawn keeps its patch; a first read shows why it failed.
-          if (patch === undefined) empty.textContent = next.message
-        } else if (next !== patch) draw(next)
+        const next = await read()
+        if (at === `${root} ${source}`) apply(next)
       } while (again)
     } finally {
       asking = undefined
     }
   })()
   return asking
+}
+
+const read = () => oriel.git.diff(root, source).catch((error: Error) => error)
+
+/** A patch drawn when its text changed. A diff drawn keeps its patch on a failed read; a first read shows why. */
+function apply(next: string | Error) {
+  if (!(next instanceof Error)) {
+    if (next !== patch) draw(next)
+  } else if (patch === undefined) failure.textContent = next.message
 }
 
 /** A first read failed: a change in the work tree reads again. */

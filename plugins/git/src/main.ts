@@ -8,7 +8,7 @@ import "./diff.css"
 import * as Home from "./home"
 import { bind, control, home, parse } from "./lib"
 
-/** Each place's own header controls; the spacer is both's. */
+/** Each place's own header controls; the spacer is both's, and Live only Working Tree's. */
 const HOME = ["git.branch", "git.working", "git.fetch", "git.pull", "git.push"]
 const DIFF = ["diff.home", "diff.layout", "diff.wrap", "diff.file-list", "diff.previous", "diff.next"]
 
@@ -18,7 +18,7 @@ export default async function main(oriel: Oriel) {
   // draws under the card's loader, which goes once both are done (`main` returns). One the app lacks draws nothing.
   // The placeholders' at their size.
   const big = ["checkmark.circle", "folder.badge.questionmark"]
-  const names = ["doc", "plus", "minus", "source.branch", "cloud", "tag", ...big]
+  const names = ["plus", "arrow.uturn.backward", "minus", "source.branch", "cloud", "tag", ...big]
   const symbols = Promise.all(names.map((name) => oriel.symbol(name, big.includes(name) ? 30 : 12).catch(() => "")))
   .then((urls) => {
     const sheet = document.createElement("style")
@@ -36,6 +36,8 @@ export default async function main(oriel: Oriel) {
     const controls = (diff: boolean) => {
       for (const id of HOME) control(id, { hidden: diff })
       for (const id of DIFF) control(id, { hidden: !diff })
+      // Live: Working Tree follows the work tree (`watch`).
+      control("diff.live", { hidden: !diff || shown.source !== "uncommitted" })
     }
     watch(shown.root)
     if (shown.source === undefined) {

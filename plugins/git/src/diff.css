@@ -17,12 +17,13 @@
   .letter { width: 1.5ch; text-align: right; font-weight: 600; color: var(--needs-you) }
   .letter.A, .letter.R { color: var(--finished) } .letter.D { color: var(--error) }
   .diff { flex: 1; min-width: 0; overflow: auto }
-  .empty { position: fixed; inset: 0; margin: auto; height: fit-content; text-align: center; color: var(--dim) }
-  /* A file's header: a 30 pt row, radius 7 as the card's rows, on the opaque band pierre keeps sticky (40 pt). */
-  .file { box-sizing: border-box; display: flex; align-items: center; gap: 6px; height: 30px; margin: 5px 8px;
-    padding: 0 6px 0 4px; border-radius: 7px; white-space: nowrap; font: 13px system-ui; color: var(--text);
-    background: color-mix(in srgb, var(--text) 6%, transparent); box-shadow: inset 0 0 0 0.5px var(--divider) }
-  .file > .symbol { color: var(--dim) }
+  .failure { position: fixed; inset: 0; margin: auto; height: fit-content; text-align: center; color: var(--dim) }
+  > .placeholder { position: fixed; inset: 0; justify-content: center }
+  /* A file's header: a flat 32 pt row the width of its diff, a hairline under it, on the opaque band pierre keeps
+     sticky. */
+  .file { box-sizing: border-box; display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 8px 0 6px;
+    white-space: nowrap; font: 13px system-ui; color: var(--text);
+    background: color-mix(in srgb, var(--text) 4%, transparent); border-bottom: 0.5px solid var(--divider) }
   .file > .name { font-weight: 600 }
   .file > .actions { margin-left: auto }
   .disclosure, .open, .hash { all: unset; color: var(--dim); border-radius: 5px; padding: 1px 6px }

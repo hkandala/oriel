@@ -1,5 +1,7 @@
 // What the home and the diff share: the card's `oriel`, its places, opens and elements.
 import type { Oriel } from "@oriel/plugin-api"
+import { createFileTreeIconResolver, getBuiltInSpriteSheet } from "@pierre/trees"
+import { ensureFileTreeStyles } from "@pierre/trees/web-components"
 
 export let oriel: Oriel
 export const bind = (api: Oriel) => {
@@ -52,6 +54,21 @@ export function symbol(name: string, className = "symbol") {
   const node = element("span", className)
   node.style.setProperty("--symbol", `var(--sf-${name.replaceAll(".", "-")})`)
   node.ariaHidden = "true"
+  return node
+}
+
+const icons = createFileTreeIconResolver("complete")
+const sprite = new DOMParser().parseFromString(getBuiltInSpriteSheet("complete"), "text/html")
+
+/** A file's icon by its type, in its color, as File Explorer's tree draws it: the tree's own icons and stylesheet
+ *  (`@pierre/trees`), in a shadow root of its own, where the tree's colors apply. */
+export function fileIcon(path: string) {
+  const { name, token } = icons.resolveIcon("file-tree-icon-file", path), shape = sprite.getElementById(name)
+  const node = element("span", "file-icon"), root = node.attachShadow({ mode: "open" })
+  node.ariaHidden = "true"
+  ensureFileTreeStyles(root)
+  root.innerHTML = `<div data-file-tree-colored-icons="true"><svg data-icon-token="${token ?? ""}" width="16" height="16"
+    style="display: block" viewBox="${shape?.getAttribute("viewBox") ?? "0 0 16 16"}">${shape?.innerHTML ?? ""}</svg></div>`
   return node
 }
 
