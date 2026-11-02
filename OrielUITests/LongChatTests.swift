@@ -69,7 +69,7 @@ extension OrielUITests {
     }
 
     /// A long chat shows its newest rows under Show Earlier, in its own row, which adds the rows before them without
-    /// moving what is in view, until the first message.
+    /// moving what is in view, until the first message; they stay back at the bottom.
     func testALongChatShowsEarlierRowsInPlace() async throws {
         let pane = try await startChat().pane
         // 25 turns: about 100 rows, the newest 34 and the blocks above.
@@ -117,6 +117,13 @@ extension OrielUITests {
         XCTAssertGreaterThanOrEqual(clicks, 2)
         up()
         XCTAssertTrue(first.isHittable)
+        XCTAssertFalse(earlier.exists)
+        // Back at the bottom, the earlier rows stay: the button goes in the same update that would drop them.
+        let bottom = element("chat.\(pane).bottom")
+        bottom.click()
+        XCTAssertTrue(bottom.vanishes(within: 3))
+        XCTAssertTrue(until(3) { last.isHittable })
+        XCTAssertTrue(first.exists)
         XCTAssertFalse(earlier.exists)
     }
 

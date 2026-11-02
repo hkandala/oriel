@@ -21,7 +21,7 @@ struct ChatMessages: View, Equatable {
     @State private var width: CGFloat?
     @State private var settling: Task<Void, Never>?
     /// The oldest row shown, once the chat left the bottom (new rows then do not move it) or Show Earlier was
-    /// clicked; nil: the newest `block` rows.
+    /// clicked, kept until a new chat starts; nil: the newest `block` rows.
     @State private var first: String?
     /// Show Earlier's rows are on their way: its spinner shows.
     @State private var earlier = false
@@ -170,10 +170,8 @@ struct ChatMessages: View, Equatable {
                 geometry.contentSize.height + geometry.contentInsets.bottom - geometry.visibleRect.maxY < 40
             } action: {
                 atBottom = $1
-                // Back at the bottom: the newest block again.
                 if $1 {
                     hold(nil)
-                    first = nil
                 }
             }
             .focusEffectDisabled()

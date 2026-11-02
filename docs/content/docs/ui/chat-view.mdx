@@ -407,15 +407,16 @@ A run is one quiet line with no card: its summary and a chevron.
   at the top stays at the top instead, from when the scroll first passes a
   message's top. Until then (scrolled up inside the newest message), the
   bottom keeps its place. Once the chat leaves the bottom, its block stays
-  put: new rows do not take rows from its top. Back at the bottom, it is the
-  newest 34 again.
+  put: new rows do not take rows from its top. The rows stay shown, also
+  back at the bottom, until the card closes or a new chat starts.
 - **Show Earlier.** When a chat has older rows, a glass pill "Show Earlier"
   (12 pt, 28 pt tall) is the stack's first row, centered, with the
   messages' top padding above it and the rows' 10 pt gap under it. A click
   shows a small spinner in place of its words, and the next block of 34
   comes above on the next run loop turn, so the spinner draws before the
   rows lay out. The scroll is held by its offset, which then grows by the
-  new rows' height, so the rows in view stay where they are.
+  new rows' height, so the rows in view stay where they are. The rows it
+  adds stay when the chat scrolls back to the bottom.
 - **Resizing.** A narrow card (under 824 pt, where the column narrows too)
   lays its messages out at its new width once the width stops changing for
   150 ms, as a terminal does: a split's motion or a drag wraps the text once,
