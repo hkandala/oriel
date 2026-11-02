@@ -306,10 +306,11 @@ struct MenuRow: View {
                 HStack(spacing: 3) {
                     ForEach(Array(item.keys.enumerated()), id: \.offset) { Keycap(text: $1) }
                 }
-                .foregroundStyle(selected ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
                 .accessibilityElement(children: .ignore).accessibilityLabel(item.keys.joined())
             }
         }
+        // White on the accent pill: the symbol, the title and the keycaps (the note and the detail set their own).
+        .foregroundStyle(selected ? Color.white : .primary)
         .padding(.horizontal, 8)
         .frame(height: height)
     }
