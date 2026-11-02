@@ -54,7 +54,7 @@ struct ChatSwitch: View {
     }
 }
 
-/// An agent card's state as t3code draws a thread's (`StateLabel`). A chat's follows its phase and shows none while
+/// An agent card's state as a `StateLabel`. A chat's follows its phase and shows none while
 /// idle; another agent's is herdr's.
 struct CardState: View {
     let chat: Chat?

@@ -58,11 +58,12 @@ export function symbol(name: string, className = "symbol") {
 }
 
 const icons = createFileTreeIconResolver("complete")
-const sprite = new DOMParser().parseFromString(getBuiltInSpriteSheet("complete"), "text/html")
+let sprite: Document | undefined
 
 /** A file's icon by its type, in its color, as File Explorer's tree draws it: the tree's own icons and stylesheet
  *  (`@pierre/trees`), in a shadow root of its own, where the tree's colors apply. */
 export function fileIcon(path: string) {
+  sprite ??= new DOMParser().parseFromString(getBuiltInSpriteSheet("complete"), "text/html")
   const { name, token } = icons.resolveIcon("file-tree-icon-file", path), shape = sprite.getElementById(name)
   const node = element("span", "file-icon"), root = node.attachShadow({ mode: "open" })
   node.ariaHidden = "true"

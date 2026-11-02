@@ -32,7 +32,7 @@ extension AgentState {
         }
     }
 
-    /// Its `StateLabel`, none while idle (t3code shows none for a settled thread); Working counts its time from
+    /// Its `StateLabel`, none while idle; Working counts its time from
     /// `since`.
     func label(_ look: Look, since: Date? = nil) -> StateLabel? {
         self == .idle ? nil : StateLabel(
@@ -43,7 +43,7 @@ extension AgentState {
         )
     }
 
-    /// Needs you or done and not seen: its row's name is medium, as t3code's rows that do not recede.
+    /// Needs you or done and not seen: its row's name is medium; the others recede.
     var calls: Bool {
         self >= .finishedUnseen
     }
@@ -102,7 +102,7 @@ struct AgentButton: View {
         HStack(spacing: 8) {
             // No badge: the state label says it.
             ProgramTile(icon: pane.iconID, letter: pane.letter)
-            // Line 1 the name and, as t3code's thread rows, the state or (idle) the age on one centered line; line 2
+            // Line 1 the name and the state or (idle) the age on one centered line; line 2
             // the place.
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {

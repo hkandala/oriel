@@ -203,7 +203,7 @@ addEventListener("error", (event) => console.error(event.error ?? event.message)
 addEventListener("unhandledrejection", (event) => console.error(event.reason))
 
 // The app alone gives a card the keyboard. WebKit makes the web view the window's first responder on any `focus()` while
-// its page has none, which took the keyboard from the pane in use (a tree putting back its focused row after a
+// its page has none, which would take the keyboard from the pane in use (a tree that puts back its focused row after a
 // refresh). A page takes the keyboard on its window's `focus` event.
 const focus = HTMLElement.prototype.focus
 /** A press in the page, until its event ends: it can reach the page before WebKit marks the page focused. */

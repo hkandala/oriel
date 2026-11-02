@@ -34,7 +34,7 @@ struct StateSymbol: View {
     }
 }
 
-/// A state as t3code's sidebar draws a thread's: its icon and word in the state's color, 11 pt medium. Working adds
+/// A state: its icon and word in the state's color, 11 pt medium. Working adds
 /// its time ("Working 42s", "3m", "1h 5m").
 struct StateLabel: View {
     let text: String, symbol: String, color: Color
@@ -52,7 +52,7 @@ struct StateLabel: View {
     }
 
     /// Each second for the first minute, then each minute, when the text changes: from a whole second, so every label
-    /// ticks in the same update, as t3code's shared tick (a hundred labels on their own phases laid out a hundred
+    /// ticks in the same update (a hundred labels on their own phases laid out a hundred
     /// times a second).
     private struct Ticks: TimelineSchedule {
         let start: Date
@@ -81,7 +81,7 @@ struct StateLabel: View {
         .accessibilityValue(words)
     }
 
-    /// t3code's working time: seconds, then minutes, then hours and minutes (shorter than a chat turn's "1m 48s",
+    /// The working time: seconds, then minutes, then hours and minutes (shorter than a chat turn's "1m 48s",
     /// `ChatHistory.duration`, to fit a sidebar row).
     static func elapsed(_ interval: TimeInterval) -> String {
         let seconds = max(0, Int(interval)), minutes = seconds / 60

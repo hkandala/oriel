@@ -174,8 +174,8 @@ struct ChatMessages: View, Equatable {
                 atBottom = $1
                 if $1 {
                     hold(nil)
-                    // The body built for the bottom would put back the row the scroll view named as the last scroll
-                    // began, which the kept rows still hold: the chat jumped back up (offset 4608, then 16).
+                    // Else the body built for the bottom puts back the row the scroll view named as the last scroll
+                    // began, which the kept rows still hold, and the chat jumps up to it.
                     position.scrollTo(id: Self.end, anchor: .bottom)
                 }
             }
