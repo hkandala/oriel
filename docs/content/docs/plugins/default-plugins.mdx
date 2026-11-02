@@ -106,7 +106,7 @@ apply:
 | From | Gesture | Opens |
 |---|---|---|
 | the tree: a file | double-click or Return | the file, with its page |
-| the tree: a folder | ⌘-click, ⌥-click, or Open as Root | the tree rooted there |
+| the tree: a folder | double-click, ⌘-click, ⌥-click, or Open as Root | the tree rooted there |
 | a file's **Show in File Explorer** | click | the tree, with the file revealed |
 | the Git home: a change | click | the Working Tree diff, scrolled to that file |
 | the Git home: **Working Tree** | click | the Working Tree diff |
@@ -194,6 +194,7 @@ apply:
 ## Edits, saves and reloads
 
 File and Markdown edit the file. Both use the same editor and the same rules.
+The caret has the text's color: white in dark, black in light.
 
 - **The Edited dot.** A 7 pt dot in secondary after the title, centered on
   the title's x-height as in a document window, while the text differs from
@@ -264,8 +265,9 @@ selection in the accent at 24 %. A 6 pt gap sits under the header.
   `src` or `..` works, and an empty one is the root. The folder icon before the path is **Choose Folder…**: the folder
   panel on This Mac, a "Go to Folder" field on a remote machine (`~` is the
   home folder there). A folder's own menu has **Open as Root**.
-- **`..`** is a row above the tree, except at `/`. A double-click or a press (VoiceOver, a key) on it
-  makes the parent folder the root. The arrow keys move only in the tree.
+- **`..`** is a row above the tree, except at `/`. A double-click or a press (Return, VoiceOver) on it
+  makes the parent folder the root. ↑ on the tree's first row moves the keyboard to `..`, and ↓ moves it back.
+  `..` hides while the filter has text.
 - **The tree** shows the root's listing first and lists a folder only when
   it opens. `.git` is hidden, and links to folders are folders. Files and
   folders whose name starts with `.` show only while Show Hidden Files is on.
@@ -275,22 +277,27 @@ selection in the accent at 24 %. A 6 pt gap sits under the header.
   (`git check-ignore`), and those are dimmed. Modified is the needs-you color,
   added, untracked and renamed the finished color, and deleted the error
   color. A root inside a repository, but not its root, shows no letters.
+- **Coming back.** The card keeps each root's open folders and scroll position when it leaves the tree. Back, or the
+  same root again, lists those folders before the tree shows, so its first frame is the tree as the card left it.
 - **The filter** matches file names, case blind, and shows the matches with
   their folders open, at most 5,000. The first letter loads every path under
   the root: in a repository the files git does not ignore (`git ls-files`),
-  else every file, up to 8 MB of names. "No matching files" shows when none
-  match. A page that loads again starts with no filter. ⌘F over the tree
+  else every file, up to 8 MB of names. When none match, the middle of the
+  card shows a magnifying glass and "No matching files". A page that loads again starts with no filter. ⌘F over the tree
   gives the filter the keyboard.
-- **Opening.** A double-click or Return on a file shows it in the card. A
-  double-click on a folder makes it the root. ⌘ and ⌥ open as in
+- **Opening.** A double-click or Return on a file shows it in the card. As in
+  the Finder, a click on a folder's name only selects it, and a click on its
+  chevron opens or closes it. So a double-click on a folder makes it the root,
+  and the folder does not open first. ⌘ and ⌥ open as in
   [Opening](#opening).
 - **Keys.** The tree has the keyboard when the card opens or gets the
-  keyboard. ↑ and ↓ move, → opens a folder, ← closes it or goes to the
-  parent, Return opens a file. The row with the keyboard has a ring in the
-  accent.
+  keyboard, never by itself (a refresh, a tab shown again). ↑ and ↓ move, →
+  opens a folder, ← closes it or goes to the parent, Return opens a file or
+  opens and closes a folder. The row with the keyboard has a ring in the
+  accent from the first arrow key on. A click hides the ring again.
 - The tree and the letters update after each change under the root while
   the card shows. The open folders list again. A root that cannot be listed
-  shows "Can't list ‹root›".
+  shows "Can't list ‹root›" in the middle of the card, under a folder icon.
 
 ### File
 
@@ -343,9 +350,11 @@ An editable text view (CodeMirror 6).
   caret's line.
 - **Read** is the view with every line drawn and no caret. Marks are hidden:
   a heading's `#`, emphasis, a link's brackets and address, code ticks,
-  quote marks and code fences. Headings have their size (an h2 a line under
-  it), bullets are `•` and numbers stay, at their depth, with the line
-  hanging after them. Task items show boxes. Quotes have a bar at the left
+  quote marks and code fences. Headings have their size and no line under
+  them: only a `---` rule draws a line. Bullets are `•` and numbers stay. Each
+  list depth indents 1.5 em, and the bullet sits at the end of its indent, so
+  the text and its wrapped lines start at one x. A task's box takes the
+  bullet's place: a top-level box starts at the text's left edge. Quotes have a bar at the left
   and secondary text. Code blocks have a rounded fill. A `---` rule is a
   line. Tables and HTML blocks are drawn by markdown-it; HTML comments draw
   nothing; an escape's backslash hides. Bare addresses are links, except inside a link. Images are
@@ -353,6 +362,11 @@ An editable text view (CodeMirror 6).
   YAML in 12 pt monospace, secondary. Copy gives the Markdown source of the
   selection, and Select All the whole file. For VoiceOver, Read is an article
   with headings, not a text box.
+- **Task boxes.** A click on a box ticks it or clears it: one character, `x`
+  or a space, changes in the file. In Read the card saves it at once, as ⌘S
+  does. In Edit it is an edit like a typed one, saved with ⌘S. Undo takes it
+  back in Edit. The boxes of a file that is read only are dimmed and do not
+  change.
 - **Edit** makes the view editable. The lines with the caret or the
   selection show their marks; every other line looks as in Read. A table or
   an HTML block shows its source while the caret is in it; a click on one
