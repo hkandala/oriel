@@ -66,3 +66,4 @@ run and test it is in the root `README.md`.
 | 48 | Instant tabs: no strip, no tab animations, simpler code | [48-instant-tabs.md](phases/48-instant-tabs.md) |
 | 49 | Fourteenth feedback: full chat turns, File Explorer and Git polish, statuses, tab pills | [49-fourteenth-feedback.md](phases/49-fourteenth-feedback.md) |
 | 50 | Agent control: the `oriel` command, its protocol and the `oriel` skill (merged into main) | [50-agent-control.md](phases/50-agent-control.md) |
+| 51 | Fifteenth feedback: our own states, File Explorer and Git polish, palette keycaps, CLI additions | [51-fifteenth-feedback.md](phases/51-fifteenth-feedback.md) |
