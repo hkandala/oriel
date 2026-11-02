@@ -210,3 +210,33 @@ Files: the card drag and drop code (`Oriel/Views/Drag*.swift`, the web card host
 - **For the user.** Open a long chat, click Show Earlier a few times, scroll down to the bottom with the trackpad
   (and once with Scroll to Bottom), then scroll up: the earlier rows are still there, and the chat did not jump back
   up. No look changed, so no pictures.
+
+### Track E
+
+- **Decisions, palette (22, 23).** A shortcut is one `Keycap` per key, the tab bar's ⌘1 cap (10 pt semibold on
+  glass), white on the lit row; a one-glyph cap is at least as wide as ⌘, so the caps line up. The palette is
+  `.controlSize(.large)`, which `fieldCapsule` reads: the field's text 13 → 15 pt, its padding 8/5 → 12/9 pt; rows
+  28 → 32 pt; the panel's inset 8 → 10 pt; the width stays 480 pt. Other filter fields keep their size. Pictures:
+  before `/tmp/oriel-shots/t51e/before/palette-{root,filtered}-crop.png`, after
+  `/tmp/oriel-shots/t51e/after/palette-{root,filtered}-crop.png`.
+- **Cause, browser placeholder (24).** The placeholder prints the argument it was started with. A browser opened
+  from the chooser (or `oriel open browser` with no address) starts empty, and a typed address, a link or
+  `--replace` changes only the label: every browser placeholder on the user's Mac ran with an empty argument.
+  **Fix:** on SIGWINCH the script reads its label from herdr (`herdr pane get $HERDR_PANE_ID`, one `sed`) and draws
+  again; Oriel sends SIGWINCH by pid to the placeholder's processes when a snapshot shows a new label on a pane
+  that runs it (one `kill` on the pane's machine, only on a label change, also one made while the new pane was still
+  starting). The address shows without its scheme. A placeholder from before Oriel started keeps its old argument
+  until its label changes: a redraw of every placeholder at launch would cost one run per pane on each machine.
+  Also fixed: under dash (`/bin/sh` on Debian and Ubuntu) `cat <&0 &` read `/dev/null` and the placeholder ended at
+  once; it now reads standard input through descriptor 3.
+  Not stdin: the placeholder's only reader must stay its `cat` (`Program.isPlaceholder`), and a shell `read` that a
+  trapped signal interrupts cannot tell that from the end of input on dash.
+- **Decisions, CLI (25-28).** `view` creates the pane's chat if no card drew it yet (`HostStore.chat`, moved from
+  `Page`), so it works for a pane out of view. `card` keeps `chat` and adds `view` only for an agent with a chat
+  view. `agent` sets the pane's `relaunched`, the flag Relaunch with Chat uses, so the card opens on Chat whenever
+  it is first drawn. `plugins --for` adds a file's `option` plugins after the ranked list (not for folders or
+  URLs, where Open With has none). `balance` answers `{pane, tab}`; Balance Splits now evens out herdr's tree read
+  inside its write, the same code for the menu and the agent.
+- **For the user.** In herdr's TUI, type an address into a browser card in Oriel: the placeholder shows it. Run
+  `oriel agent claude --tab` and check that the card opens on Chat (CI has no `claude`, and this Mac's real one
+  would start, so no test reaches it).
