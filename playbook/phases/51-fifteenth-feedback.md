@@ -339,3 +339,28 @@ Files: the card drag and drop code (`Oriel/Views/Drag*.swift`, the web card host
   folder's name (selects), its chevron (opens), double-click (root, nothing opens). Open folders, open a file, Back.
   Click Fetch in Git beside a File Explorer; switch tabs and back with a terminal beside one. With a terminal's
   keyboard, click Edit in a Markdown card's header and type.
+
+### Final review fixes
+
+- **Cause, the pacing flake.** The spacing test took the first read after the events began as the one that waits.
+  On a busy Mac the next event can come after that read ended, so a later read made the wait and the deadline check
+  failed (shown by delaying one event 40 ms: red on the old test, green on the new). Also, the fake client's 1 s
+  timeout let a starved start-up read fail, and the heartbeat then read again at any moment. **Fix:** the test takes
+  the newest read before the wait and its lower bound from the read before; the fake client waits 30 s (1 s for the
+  timeout test). Under `yes` ×8 the pacing tests passed three runs out of three. HerdrKit's process tests still time
+  out at a load in the hundreds (lessons: a starved Mac).
+- **Docs pass.** The tracks had written their pages. Added: Git's Revert in D94, the features list and Not built (no
+  more "no Discard"); a plugin page never takes the keyboard by itself; `view`'s `bad_argument`.
+- **Fix, the private drag method (should).** `BrowserView` now calls WKWebView's own `_hitTest:dragTypes:` for drags
+  that are not the app's, after checking the method's type encoding once, instead of a copy of WebKit's rule. If the
+  method's shape changes, no drag reaches the page (pane drags still reach the drop zones), but nothing reads a wrong
+  argument. If AppKit stops calling it, the override goes quiet and WebDragTests turns red on the browser half.
+- **Nits taken.** `balance` evens out the pane's tab as it is after earlier writes; the placeholder signal skips pids
+  under 2; WebDragTests holds 4 s over each card; Git parses its icon sprite on first use; comments say why (no probe
+  numbers, no t3code); the Revert All question's plural in the docs.
+- **Nits left.** The placeholder keeps SIGWINCH for Oriel's redraw (one `herdr pane get` per resize): a new signal
+  such as USR1 would end every placeholder started before the update, whose shell has no trap for it. The `relaunched`
+  flag stays on a pane whose agent never started, as after Relaunch with Chat. The Spinner keeps its two lines of
+  phase code beside the working dots'. `SVGElement.focus` and `window.focus` stay unguarded: no plugin calls them.
+- **For the user.** Drop a file from Finder on a browser page that takes uploads (the page still gets it), and drag a
+  pane over a browser and a plugin card.
