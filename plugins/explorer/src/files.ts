@@ -51,8 +51,9 @@ const look = {
   [data-item-selected="true"] > [data-item-section="icon"] { color: var(--dim); }
   :host(:not([data-keys])) [data-type="item"]::before { outline: none !important; }`,
 }
-/** Each root's open folders and scroll as the card left it: the tree comes back as it was (Back, a root again). */
-const memory = new Map<string, { open: string[]; scroll: number }>()
+/** Each root's open folders, scroll and git's letters as the card left it: the tree comes back as it was (Back, the
+ *  root again). */
+const memory = new Map<string, { open: string[]; scroll: number; changes: Change[] }>()
 
 /** Whether a name is a dotfile's, which the tree hides unless row 2's Hidden Files is on. */
 const dotted = (path: string) => /(^|\/)\.[^/]/.test(path)
@@ -120,11 +121,16 @@ export async function show(place: Place): Promise<Reveal> {
   /** The tree's scroll view, in its shadow root. */
   const scroller = () =>
     tree.getFileTreeContainer()?.shadowRoot?.querySelector<HTMLElement>("[data-file-tree-virtualized-scroll]")
+  /** The tree drew: a place left before it did keeps the root's memory as it was. */
+  let drawn = false
   keep(() => {
-    memory.set(top, {
-      open: [...children.keys()].filter((at) => at && folder(at)?.isExpanded()),
-      scroll: scroller()?.scrollTop ?? 0,
-    })
+    if (drawn) {
+      memory.set(top, {
+        open: [...children.keys()].filter((at) => at && folder(at)?.isExpanded()),
+        scroll: scroller()?.scrollTop ?? 0,
+        changes,
+      })
+    }
     tree.cleanUp()
     results.cleanUp()
   })
@@ -271,8 +277,8 @@ export async function show(place: Place): Promise<Reveal> {
   }
 
   /** A path under the root (absolute, as the app sends it) shown: its folders listed and open, its row selected, in the
-   *  middle of the card unless `scroll` is false. */
-  async function reveal(path: string, scroll = true) {
+   *  middle of the card, or only scrolled into view (`nearest`). */
+  async function reveal(path: string, offset?: "nearest") {
     if (!path.startsWith(`${base}/`)) return
     const relative = path.slice(base.length + 1)
     // A dotfile shows only with the hidden files: the eye turns on (Show in File Explorer on `.gitignore`).
@@ -289,7 +295,7 @@ export async function show(place: Place): Promise<Reveal> {
     if (!item) return
     item.select()
     tree.focusPath(item.getPath())
-    if (scroll) tree.scrollToPath(item.getPath())
+    tree.scrollToPath(item.getPath(), offset && { offset })
   }
 
   /** The folders open as the card left this root, parents first; each depth's listings at once. */
@@ -395,13 +401,6 @@ export async function show(place: Place): Promise<Reveal> {
       },
       true,
     )
-    // ↑ on the first row: `..`.
-    trees.addEventListener("keydown", (event) => {
-      if (event.key !== "ArrowUp" || up.hidden || tree.getFocusedPath() !== tree.getVisibleRows(0, 0)[0]?.path) return
-      event.preventDefault()
-      event.stopPropagation()
-      up.focus()
-    }, true)
     trees.addEventListener("keydown", (event) => {
       const at = event.key === "Enter" ? row(event) : undefined
       if (at && !at.folder) open(oriel, at.path, how(event))
@@ -413,6 +412,14 @@ export async function show(place: Place): Promise<Reveal> {
       else event.preventDefault()
     })
   }
+
+  // ↑ on the first row: `..` (hidden while the filter has text).
+  host.addEventListener("keydown", (event) => {
+    if (event.key !== "ArrowUp" || up.hidden || tree.getFocusedPath() !== tree.getVisibleRows(0, 0)[0]?.path) return
+    event.preventDefault()
+    event.stopPropagation()
+    up.focus()
+  }, true)
 
   /** The shown tree takes the keyboard, on `path`, else its focused row, else its first: ↑↓ move, → opens, ← closes or
    *  goes to the parent. A row with the keyboard shows its ring once a key moved it. */
@@ -428,7 +435,9 @@ export async function show(place: Place): Promise<Reveal> {
   // The app gives the card the keyboard (also as it opens, from main.ts); a frame later, so a click that gave a row
   // the keyboard keeps it (else the tree scrolls to its old row between the press and the release).
   const given = () => requestAnimationFrame(() => {
-    if (!(filter ? results : tree).getFileTreeContainer()?.shadowRoot?.activeElement) take()
+    if (document.activeElement !== up && !(filter ? results : tree).getFileTreeContainer()?.shadowRoot?.activeElement) {
+      take()
+    }
   })
   addEventListener("focus", given)
   keep(() => removeEventListener("focus", given))
@@ -436,17 +445,23 @@ export async function show(place: Place): Promise<Reveal> {
   // Whether the root is a repository's with the first listing, so it dims what git ignores (one wait for both, as
   // each starts a process); the rows as the card left them, and a landing's, before the tree shows; then git's letters.
   const kept = memory.get(top)
+  /** The tree draws its rows a frame after a change. */
+  const frame = () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))
   await run(() => list("", rooted()))
   await run(async () => {
-    if (kept) await reopen(kept.open)
-    if (place.at) await reveal(place.at, !kept)
+    if (kept) {
+      await reopen(kept.open)
+      await frame()
+      const view = scroller()
+      if (view) view.scrollTop = kept.scroll
+      changes = kept.changes
+      showStatus()
+    }
+    // With a memory, the landing only comes into view: a file opened from the filter left no scroll.
+    if (place.at) await reveal(place.at, kept && "nearest")
+    if (kept) await frame()
   })
-  if (kept) {
-    const view = scroller()
-    if (view) view.scrollTop = kept.scroll
-    // The tree draws the rows of its new scroll a frame later.
-    await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))
-  }
+  drawn = true
   run(git)
   return (at) => void run(() => reveal(at))
 }

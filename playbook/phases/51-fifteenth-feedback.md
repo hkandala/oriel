@@ -300,3 +300,40 @@ Files: the card drag and drop code (`Oriel/Views/Drag*.swift`, the web card host
   `/tmp/oriel-shots/t51a/states.png` (the three states side by side), `looks.png` (both views in dark Glass, light
   Glass and dark Classic, with and without git rows).
 - **For the user.** The spinner on a Retina screen, and that it stands still with Reduce Motion on.
+
+### Track C
+
+- **Cause, items 12 and 13.** WebKit makes a web view the window's first responder when its page calls an element's
+  `focus()` while the page has no focus (a probe: `PageClientImpl::makeFirstResponder`; `acceptsFirstResponder` is
+  never asked). The tree keeps its focused row and puts it back after each re-render: a refresh after a change under
+  the root (a fetch, pull or push writes `.git`), or the refresh when the card shows again (a tab or workspace return).
+  **Fix:** the plugin runtime lets `HTMLElement.focus()` act only while the card has the keyboard, the page has focus,
+  or a press in the page is being handled (it can come before WebKit marks the page focused), so no plugin page can
+  take the keyboard; a page focuses on its window's `focus` event, as before. The review asked whether a click on a row-2 control
+  still gives its card the keyboard without the steal: it does (a local run of a header click with no new code).
+  **Runs:** red without the guard, 41432221156 (the terminal never got its typed line); green with it, 41432259223.
+- **Decisions, item 7.** The user chose Finder's way: a click on a folder's name selects it and gives the tree the
+  keyboard; its chevron, → and Return open and close it; a double-click makes it the root with nothing opened first.
+  A click on a file's name selects it, as before (a file opens on a double-click or Return; nothing conflicts). A click
+  in the folder icon's area left of the chevron's right edge counts as the chevron.
+- **Item 6.** The tree kept nothing across places: Back made a new tree, drew the root's listing, then revealed the
+  file. **Fix:** each root's open folders and scroll stay in the page (a map in `files.ts`) when the card leaves it;
+  coming back lists those folders (one depth at a time, the listings of a depth at once) and the landing before the
+  tree shows, sets the scroll and git's letters, brings the landing into view (`nearest`: a file opened from the
+  filter left no scroll), then waits two frames for the rows. The old place stays shown meanwhile.
+- **Item 5.** The ring is Pierre's `data-item-focused` outline, hidden by our CSS until an arrow key sets `data-keys`
+  on the place and both tree hosts; a pointer press clears it. ↑ on the first row focuses `..`, ↓ there the first row,
+  Return on it goes up (its click). **Item 11:** `..` hides while the filter has text; no match and a failed listing
+  draw a centered SF Symbol (`magnifyingglass`, `folder.badge.questionmark`) and the words.
+- **Items 8–10.** CodeMirror draws its own caret, black unless a theme says dark: `.cm-cursor` takes `--text`. A list
+  depth is 1.5 em with the bullet, number or task box right-aligned at its end (0.4 em gap), so a top-level box sits at
+  the text's edge (the test measures under 6 pt; it was about 30) and wrapped lines hang at the text. h2 lost its rule.
+  A task box is the bullet's widget; a click writes `x` or a space through a transaction (undo and the dirty dot as an
+  edit); in Read the card saves it at once (one save after another, with any unsaved edits); a read-only file's boxes
+  are disabled. File Explorer is 1.4.0.
+- **Pictures** (the built pages in headless Chrome with a stand-in API, before at 7be0267b and after):
+  `/tmp/oriel-shots/51c/{before,after}-markdown.png`, `-markdown-light.png`, `-no-match.png`.
+- **For the user.** Dark mode caret in File and Markdown Edit. The ring: open a tree, see no ring, press ↓. Click a
+  folder's name (selects), its chevron (opens), double-click (root, nothing opens). Open folders, open a file, Back.
+  Click Fetch in Git beside a File Explorer; switch tabs and back with a terminal beside one. With a terminal's
+  keyboard, click Edit in a Markdown card's header and type.

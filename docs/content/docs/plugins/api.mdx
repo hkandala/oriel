@@ -291,7 +291,9 @@ export interface OrielError extends Error {
   back), on its window's `focus` event. Only the app gives a card the
   keyboard: while the card does not have it, an element's `focus()` does
   nothing, because WebKit would make the page take the keyboard from the
-  pane in use. Keys that no menu item takes reach the page. A plugin cannot take
+  pane in use. A press in the page is the exception: during its event,
+  `focus()` works, so a widget that focuses itself on `mousedown` gets the
+  first click. Keys that no menu item takes reach the page. A plugin cannot take
   the app's ⌘ keys: the menu goes first (D93). Its own keys go in `commands`.
 - **Theme.** Before the first paint, the app sets the colors as CSS
   variables on the root (`--text`, `--dim`, `--divider`, `--card`,

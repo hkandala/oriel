@@ -110,12 +110,13 @@ const ticked = Annotation.define<boolean>()
 /** A list item's bullet, number or task box, at the end of its depth's indent: the text and its wrapped lines start
  *  after it. A box is `marker` characters after the item's line start, and a click ticks it (a writable file). */
 class Bullet extends WidgetType {
-  constructor(readonly text: string, readonly width: number, readonly task?: { checked: boolean; marker: number }) {
+  constructor(readonly text: string, readonly width: number,
+    readonly task?: { checked: boolean; marker: number; label: string }) {
     super()
   }
   eq(other: Bullet) {
     return other.text === this.text && other.width === this.width && other.task?.checked === this.task?.checked
-      && other.task?.marker === this.task?.marker
+      && other.task?.marker === this.task?.marker && other.task?.label === this.task?.label
   }
   toDOM(view: EditorView) {
     const bullet = Object.assign(document.createElement("span"), { className: "cm-md-bullet", textContent: this.text })
@@ -125,6 +126,7 @@ class Bullet extends WidgetType {
     const box = Object.assign(document.createElement("input"), {
       type: "checkbox", checked: task.checked, disabled: view.state.readOnly,
     })
+    box.setAttribute("aria-label", task.label)
     // The file's character, not the box's own state: the widget draws again with it.
     box.onclick = (event) => {
       event.preventDefault()
@@ -237,11 +239,12 @@ function preview(view: EditorView): DecorationSet {
           if (!raw(node.from)) {
             // A task's box takes its bullet's place.
             const marker = parent.getChild("Task")?.getChild("TaskMarker") ?? undefined
+            const end = past(marker?.to ?? node.to)
             const task = marker && {
               checked: state.sliceDoc(marker.from + 1, marker.to - 1) !== " ", marker: marker.from - each.from,
+              label: state.sliceDoc(end, each.to),
             }
             const text = task ? "" : parent.parent?.name === "OrderedList" ? state.sliceDoc(node.from, node.to) : "•"
-            const end = past(marker?.to ?? node.to)
             ranges.push(Decoration.replace({ widget: new Bullet(text, width, task) }).range(each.from, end))
           }
         }
@@ -404,6 +407,8 @@ export async function show(place: Place): Promise<Reveal> {
   oriel.controls.set("outline", { value: false })
   oriel.controls.set("edit-mode", { enabled: true, checked: false })
   let shown: Editor
+  /** The saves of Read's ticks, one after the other: a save under way skips a second one. */
+  let ticks = Promise.resolve()
   // Before the editor's own: ⌘F, ⌘G and ⇧⌘G in Read show Edit, where the search panel is.
   for (const name of ["find", "findNext", "findPrevious"] as const) {
     keep(oriel.on(name, () => shown && !edit && present(shown.view, true, outlined)))
@@ -429,8 +434,9 @@ export async function show(place: Place): Promise<Reveal> {
       },
     })),
     EditorView.updateListener.of((update) => {
-      // A box ticked in Read is saved at once, as the card's ⌘S; in Edit it waits for ⌘S as any edit.
-      if (!edit && update.transactions.some((tr) => tr.annotation(ticked))) void shown?.save()
+      // A box ticked in Read is saved at once, as the card's ⌘S, after any save under way; in Edit it waits for ⌘S
+      // as any edit.
+      if (!edit && update.transactions.some((tr) => tr.annotation(ticked))) ticks = ticks.then(() => shown?.save())
       // Also as the background parse reaches more headings.
       if (outlined && (update.docChanged || syntaxTree(update.startState) !== syntaxTree(update.state))) {
         list(update.view)

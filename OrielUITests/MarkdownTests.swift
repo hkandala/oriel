@@ -112,7 +112,7 @@ extension OrielUITests {
         )
         try await waitFor(shell) { $0.contains("ticked-42") }
         XCTAssertTrue(until(3) { box.value as? Int == 1 }, "\(box.value ?? "no value")")
-        XCTAssertFalse(element("pane.\(card).dirty").exists)
+        XCTAssertTrue(element("pane.\(card).dirty").vanishes(within: 3))
     }
 
     /// Select All and Copy in Read give the whole source, past the lines drawn.

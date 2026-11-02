@@ -67,7 +67,6 @@ extension OrielUITests {
     private func openAndCollapse(_ card: String, _ tree: XCUIElement) {
         row("src", in: tree).click()
         XCTAssertTrue(hasKeyboard(row("src", in: tree)))
-        XCTAssertFalse(row("deep", in: tree).exists)
         app.typeKey(.rightArrow, modifierFlags: [])
         XCTAssertTrue(row("deep", in: tree).exists(within: 3))
         element("pane.\(card).collapse").click()
