@@ -98,14 +98,25 @@ class BrowserView: WKWebView {
     }
 
     /// WebKit claims every drag over the page, whatever it carries (WKWebView's `_hitTest:dragTypes:`), so a card's
-    /// drop zones heard nothing of a pane dragged over it. The app's own drags go on to them; other drags (files, text)
-    /// reach the page as before, as WebKit decides: the point within the view's frame.
+    /// drop zones would never hear of a pane dragged over it. The app's own drags go on to them; WebKit decides the
+    /// rest (files, text), so a page can take an upload.
     @objc(_hitTest:dragTypes:) private func hitTest(_ point: UnsafeMutablePointer<NSPoint>,
                                                     dragTypes types: NSSet?) -> NSView?
     {
-        guard types?.contains(UTType.orielDrag.identifier) != true else { return nil }
-        return superview?.isMousePoint(point.pointee, in: frame) == true ? self : nil
+        guard let hit = Self.webKitHit, types?.contains(UTType.orielDrag.identifier) != true else { return nil }
+        return hit(self, Self.dragHit, point, types)
     }
+
+    private static let dragHit = NSSelectorFromString("_hitTest:dragTypes:")
+    private typealias DragHit = @convention(c) (AnyObject, Selector, UnsafeMutablePointer<NSPoint>, NSSet?) -> NSView?
+    /// WebKit's own answer (NSView's, if WebKit stops overriding it). A private method: if its shape ever changes,
+    /// nil, so a drag reaches the card's drop zones and never the page, instead of reading a wrong argument.
+    private static let webKitHit: DragHit? = {
+        guard let method = class_getInstanceMethod(WKWebView.self, dragHit),
+              let types = method_getTypeEncoding(method), String(cString: types) == "@32@0:8^{CGPoint=dd}16@24"
+        else { return nil }
+        return unsafeBitCast(method_getImplementation(method), to: DragHit.self)
+    }()
 
     func dropClaim() {
         wantsKeyboard = false
