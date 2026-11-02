@@ -311,7 +311,9 @@ Files: the card drag and drop code (`Oriel/Views/Drag*.swift`, the web card host
   or a press in the page is being handled (it can come before WebKit marks the page focused), so no plugin page can
   take the keyboard; a page focuses on its window's `focus` event, as before. The review asked whether a click on a row-2 control
   still gives its card the keyboard without the steal: it does (a local run of a header click with no new code).
-  **Runs:** red without the guard, 41432221156 (the terminal never got its typed line); green with it, 41432259223.
+  **Runs:** red without the guard, 41432221156 (the terminal never got its typed line). Green on the pushed code
+  (6632d95e, before a rebase over sidebar commits only): 41438540837 (FilesTests, Markdown, File, the API page) and
+  41438544071 (Git, the header, plugin panes, Preview).
 - **Decisions, item 7.** The user chose Finder's way: a click on a folder's name selects it and gives the tree the
   keyboard; its chevron, → and Return open and close it; a double-click makes it the root with nothing opened first.
   A click on a file's name selects it, as before (a file opens on a double-click or Return; nothing conflicts). A click
