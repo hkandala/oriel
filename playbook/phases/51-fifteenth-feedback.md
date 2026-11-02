@@ -163,3 +163,24 @@ Files: the card drag and drop code (`Oriel/Views/Drag*.swift`, the web card host
     that is meant to work (decide and write which).
 
 ## Findings
+
+### Track F
+
+- **Cause.** WKWebView overrides AppKit's private `_hitTest:dragTypes:` and claims every drag inside its frame, whatever
+  it carries (WebKit's `WebViewImpl::hitTestForDragTypes`, for page drags that put nothing on the pasteboard). A
+  card's `onDrop` is a SwiftUI `_PlatformDraggingDestinationView` beside the page, not above it, so AppKit gave the
+  drag to the web view, which ignored it: the highlight showed only over the card's header and its 6 pt margin. A
+  terminal registers drag types too but does not claim drags it cannot read, so AppKit goes on to the card there.
+- **Before / after.** `CardDrop.dropUpdated` counted during one scripted drag (66 moves a second, four legs over the
+  page of each web card): a terminal card heard about 2 updates per move; before the fix the browser card heard 1 (on
+  its margin) and the plugin card none; after, about 2 per move over both (103 and 77 updates on the same path).
+- **Fix.** `BrowserView` (the browser's view, its popups and every plugin card's `WebCardView`) answers
+  `_hitTest:dragTypes:` itself: no view for the app's own drag type, WebKit's rule for every other drag. A private
+  selector, but the one WebKit itself overrides; if AppKit drops it, both overrides go quiet together.
+- **Decisions.** Files, text and links dragged from other apps or pages still go to the page, as in a browser (a page may take
+  an upload). Only panes have drop zones on a card, so a tab or a workspace dragged over a web card does nothing, as
+  over a terminal. The drop highlight is placed with padding, not an offset, so its accessibility frame is where it is
+  drawn (the new test reads it mid-drag).
+- **Runs.** RUNS.
+- **For the user.** Drag a pane slowly over a browser page and over a File Explorer or Git card: the half or whole-card
+  highlight follows the pointer as over a terminal. Then drop a file from Finder on a page that takes uploads.
