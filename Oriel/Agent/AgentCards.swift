@@ -65,8 +65,8 @@ extension AgentCommand {
     static let card = AgentCommand(
         name: "card", usage: "card <pane>", summary: "What a card shows: kind, argument, title, unsaved edits",
         help: """
-        kind is a browser or plugin id, terminal or agent; an agent card adds agent and chat. arg is a card's \
-        argument, a terminal's folder.
+        kind is a browser or plugin id, terminal or agent; an agent card adds agent and chat, and view (chat or tui) \
+        when it has the chat view. arg is a card's argument, a terminal's folder.
         """,
     ) { call in
         let target = try call.target(call.argument("pane"))
@@ -87,7 +87,9 @@ extension AgentCommand {
             json["dirty"] = false
             if let agent = pane.agent {
                 json["agent"] = agent
-                json["chat"] = pane.terminalID.flatMap { store.chats[$0] }?.showsChat == true
+                let chat = store.chat(pane)
+                json["chat"] = chat?.showsChat == true
+                json["view"] = chat.map { $0.showsChat ? "chat" : "tui" }
             }
         }
         return AgentOutput(json)

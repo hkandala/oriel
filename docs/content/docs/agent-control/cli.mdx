@@ -90,7 +90,7 @@ What the Oriel that takes the request offers.
 ```sh
 $ oriel info --json
 {"agents":["claude","codex","pi","opencode"],"app":"0.1","appearance":"dark",
- "commands":["help","info","float","unfloat","copy","plugins","open","reveal","card","shown","notify","agent","chat"],
+ "commands":["help","info","float","unfloat","copy","plugins","open","reveal","card","shown","notify","agent","chat","view","balance"],
  "machine":"This Mac","protocol":1}
 ```
 
@@ -127,6 +127,7 @@ broken     not loaded                            ~/.config/oriel/plugins/broken 
 $ oriel plugins --for data.csv      # the plugins that open this file, folder or URL, the default first
 csv-table  CSV Table      files                  ~/.config/oriel/plugins/csv-table  default
 explorer   File Explorer  files,folders          app
+csv-chart  CSV Chart      files                  ~/.config/oriel/plugins/csv-chart
 ```
 
 ```json
@@ -156,7 +157,9 @@ explorer   File Explorer  files,folders          app
 - With `--for`, the list holds only the plugins that open the argument, in
   the order of
   [Which plugin opens a file](/docs/plugins/manifest#which-plugin-opens-a-file),
-  each with `"default": true` or `false`. A relative path is read from the
+  each with `"default": true` or `false`. For a file, the plugins that open it
+  only as a choice in Open With (`"priority": "option"`) come after them:
+  `oriel open <id> <file>` opens the file with any of them. A relative path is read from the
   command's folder, and a folder is one on the disk of the pane's machine (a
   missing path counts by its name, or as a folder when it ends in `/`).
   `open` picks its default plugin by the same order.
@@ -364,7 +367,9 @@ $ oriel card w1:p3 --json
 ```
 
 - `kind` is a browser or plugin id, `terminal` or `agent`. An agent card adds
-  `"agent": "claude"` and `"chat": true` when it shows the chat view.
+  `"agent": "claude"` and `"chat": true` when it shows the chat view. An agent
+  that has the chat view also has `"view"`: `"chat"` or `"tui"`, the card's
+  Chat | TUI switch.
 - `arg` is the label's argument. For a terminal or an agent, it is the
   folder.
 - `title` is the card's title
@@ -410,13 +415,14 @@ $ oriel notify "Review ready" --pane w2:p1
 - If macOS does not let Oriel post notifications, it is `failed` with
   macOS's words.
 
-## agent and chat
+## agent, chat and view
 
 ```sh
 $ oriel agent claude --json            # beside me, with the chat view
 {"agent":"claude","pane":"w1:p9"}
 $ oriel agent pi --tab
 $ oriel --timeout 20 chat w1:p4        # Relaunch with Chat, for an idle agent
+$ oriel view w1:p4 tui                 # the card's Chat | TUI switch
 ```
 
 - `agent <name>` takes `claude`, `codex`, `pi` or `opencode`. Another name is
@@ -426,7 +432,7 @@ $ oriel --timeout 20 chat w1:p4        # Relaunch with Chat, for an idle agent
   launch flags, as Start Agent Here does
   ([New pane](/docs/ui/new-pane#agent)). It answers `pane` and `agent` when
   the line is typed, not when the agent is ready. A pane that closes first is
-  `failed`.
+  `failed`. The card opens on the chat, as after Relaunch with Chat.
 - `chat <pane>` runs [Relaunch with Chat](/docs/ui/chat-view#relaunch-with-chat)
   and answers `pane` and `agent` when the new line is typed, in about 3 s.
   It never asks the user, so it refuses instead, in this order:
@@ -440,6 +446,25 @@ $ oriel --timeout 20 chat w1:p4        # Relaunch with Chat, for an idle agent
   4 first.
 - `chat` clears a draft that the user types into the agent (⌃C, then the
   quit command), and the loader takes the keys until the agent is back.
+- `view <pane> chat|tui` flips the card's
+  [Chat | TUI switch](/docs/ui/chat-view#switching-views) in every window of
+  the session, as a click on it does, and answers `pane` and `view`. It
+  changes only what the card draws. A pane whose agent has no chat view is
+  `bad_argument`; another word than `chat` or `tui` is `usage`.
+
+## balance
+
+Evens out the splits of a pane's tab, as
+[Balance Splits](/docs/layout#dividers) does: each run of panes side by side
+or stacked gets equal shares. Without a pane, it is the asking pane's tab.
+
+```sh
+$ oriel balance
+pane: w1:p2
+tab: w1:t1
+$ oriel balance w2:p1 --json
+{"pane":"w2:p1","tab":"w2:t3"}
+```
 
 ## copy
 

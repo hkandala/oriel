@@ -51,7 +51,7 @@ shows when herdr reports the agent and its session (`agent_session`, of the
 same agent), the pane's processes carry no marker, and the agent takes that
 session value. An agent in another pane runs it with `oriel chat <pane>`,
 which never asks: it refuses a working or waiting agent with `busy`
-([CLI](/docs/agent-control/cli#agent-and-chat)).
+([CLI](/docs/agent-control/cli#agent-chat-and-view)).
 
 | Agent | Session from herdr | Added to the launch line |
 |---|---|---|
@@ -486,8 +486,10 @@ A run is one quiet line with no card: its summary and a chevron.
 - Chat | TUI is in the card header, not a swipe. TUI is the agent's own
   terminal interface.
 - A card of a marked pane opens on its TUI; the user switches to Chat. After
-  [Relaunch with Chat](#relaunch-with-chat) it opens on the chat. The choice
-  is kept in memory per pane, for every window of the session. The card keeps
+  [Relaunch with Chat](#relaunch-with-chat), and for an agent that an agent
+  started with `oriel agent`, it opens on the chat. An agent flips it with
+  `oriel view` ([CLI](/docs/agent-control/cli#agent-chat-and-view)). The
+  choice is kept in memory per pane, for every window of the session. The card keeps
   the keyboard across a switch: the reply box or the terminal.
 - A floated chat pane shows its chat in its floating window, with Chat | TUI
   in the window's title row

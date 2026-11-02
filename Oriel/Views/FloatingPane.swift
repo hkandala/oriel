@@ -193,7 +193,7 @@ struct FloatingWindow: View {
     private func content(_ pages: WindowPages, _ page: Page, _ pane: HostStore.Pane?) -> some View {
         let terminal = pane.flatMap(page.terminal), chooser = pane.flatMap { page.store.chooser($0.id) }
         let browser = pane.flatMap(page.browser), plugin = pane.flatMap(page.plugin)
-        let chat = chooser == nil ? pane.flatMap(page.chat) : nil
+        let chat = chooser == nil ? pane.flatMap(page.store.chat) : nil
         let commands = CommandList(pages: pages, palette: $palette, settings: settings,
                                    floating: floating)
         return VStack(spacing: 0) {

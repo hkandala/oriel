@@ -1,12 +1,12 @@
 import HerdrKit
 import SwiftUI
 
-extension Page {
+extension HostStore {
     /// The pane's chat when its agent carries an adapter's launch marker (ui/chat-view#which-panes-have-it),
     /// one per pane for every window of the session.
-    func chat(_ pane: HostStore.Pane) -> Chat? {
+    func chat(_ pane: Pane) -> Chat? {
         guard let terminalID = pane.terminalID, let adapter = ChatAdapters.recognize(pane.program) else { return nil }
-        if let chat = store.chats[terminalID], chat.adapter.token == adapter.token {
+        if let chat = chats[terminalID], chat.adapter.token == adapter.token {
             // Only a change: Observation reports equal writes too, and every card body asks.
             if chat.paneID != pane.id {
                 chat.paneID = pane.id
@@ -14,16 +14,19 @@ extension Page {
             return chat
         }
         // A new launch is a new chat (a closed pane's goes with the snapshot that drops it).
-        let chat = Chat(adapter: adapter, paneID: pane.id, store: store)
+        let chat = Chat(adapter: adapter, paneID: pane.id, store: self)
         chat.showsChat = pane.relaunched
         pane.relaunched = false
-        store.chats[terminalID] = chat
+        chats[terminalID] = chat
         return chat
     }
+}
 
+extension Page {
     /// The chat a pane's card shows in place of its terminal: not under a chooser, not floated, its switch on Chat.
     func shownChat(_ pane: HostStore.Pane) -> Chat? {
-        guard store.chooser(pane.id) == nil, !floats(pane), let chat = chat(pane), chat.showsChat else { return nil }
+        guard store.chooser(pane.id) == nil, !floats(pane), let chat = store.chat(pane),
+              chat.showsChat else { return nil }
         return chat
     }
 

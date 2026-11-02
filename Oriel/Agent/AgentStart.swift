@@ -14,7 +14,7 @@ extension AgentCommand {
         """,
     ) { call in
         let target = try call.value("--pane").map(call.target)
-            ?? PaneTarget(session: call.store.session, id: call.pane, machine: call.store.machine)
+            ?? call.asking
         let title = try call.argument("title"), body = try call.optionalArgument() ?? ""
         try call.done()
         let (store, pane) = try call.found(target)
@@ -53,6 +53,8 @@ extension AgentCommand {
             """)
         }
         let (store, id) = try await call.newPane(place.get())
+        // Its card opens on the chat, as after Relaunch with Chat.
+        store.pane(id)?.relaunched = true
         let chooser = Chooser()
         chooser.paneID = id
         chooser.terminalID = store.pane(id)?.terminalID
@@ -96,6 +98,21 @@ extension AgentCommand {
         store.enableChat(pane)
         try await store.typed(store.chooser(pane.id), "\(name) did not start again with chat")
         return AgentOutput(["pane": target.id, "agent": agent])
+    }
+
+    static let view = AgentCommand(
+        name: "view", usage: "view <pane> chat|tui", summary: "Switches a chat agent's card to its chat or its TUI",
+        help: "As the card's Chat | TUI switch, in every window of the session.",
+    ) { call in
+        let target = try call.target(call.argument("pane")), view = try call.argument("chat|tui")
+        try call.done()
+        guard ["chat", "tui"].contains(view) else { throw AgentError.usage("\(view) is not chat or tui") }
+        let (store, pane) = try call.found(target)
+        guard let chat = store.chat(pane) else {
+            throw AgentError(code: "bad_argument", message: "pane \(target.id) runs no agent with a chat view")
+        }
+        chat.showsChat = view == "chat"
+        return AgentOutput(["pane": target.id, "view": view])
     }
 }
 

@@ -68,6 +68,9 @@ extension OrielUITests {
         XCTAssertTrue(new.contains("\n1\nnew-42-0"), new)
         try await run("test -f \(made)/dist/main.js && grep -c oriel-e2e-agent \(config)/trust.json", in: pane,
                       "made", 0, "1")
+        // The template opens text files as an Open With choice: after the default.
+        try await run("\(oriel) plugins --for a.txt | awk '{ printf \"%s,\", $1 } END { print \"\" }'", in: pane, "for",
+                      0, "explorer,oriel-e2e-agent,")
         try await run("\(oriel) plugins reload oriel-e2e-agent", in: pane, "reload", 0, "built: true", "cards: 0")
         try await run("echo 'export default {' >> \(made)/src/main.ts", in: pane, "broke", 0)
         // The code on standard output, the toast's title and the build's own lines on standard error.

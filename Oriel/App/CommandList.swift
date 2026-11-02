@@ -305,7 +305,7 @@ extension CommandList {
                               key: .init("=", modifiers: [.command, .option]), symbol: "equal.square",
                               keywords: "pane even", enabled: tab != nil, action: {
                                   if let page = pages?.current, let tab = page.selectedTab {
-                                      Task { await page.store.balance(tab) }
+                                      Task { await page.store.write { try await page.store.balance(tab.id, $0) } }
                                   }
                               })
         return [balance] +

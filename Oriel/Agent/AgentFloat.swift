@@ -46,6 +46,18 @@ extension AgentCommand {
         return AgentOutput(["pane": target.id, "floating": false])
     }
 
+    static let balance = AgentCommand(
+        name: "balance", usage: "balance [<pane>]",
+        summary: "Evens out the splits of a pane's tab, this pane's by default",
+        help: "As Balance Splits: each run of side-by-side or stacked panes gets equal shares.",
+    ) { call in
+        let target = try call.optionalArgument().map(call.target) ?? call.asking
+        try call.done()
+        let (store, pane) = try call.found(target)
+        try await store.request { try await store.balance(pane.tabID, $0) }
+        return AgentOutput(["pane": target.id, "tab": pane.tabID])
+    }
+
     static let copy = AgentCommand(
         name: "copy", usage: "copy", summary: "Puts standard input on the Mac's clipboard",
         help: "At most 1 MiB of text. It never reads the clipboard.",

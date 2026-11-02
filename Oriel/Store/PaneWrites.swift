@@ -63,13 +63,10 @@ extension HostStore {
         }
     }
 
-    /// Every run of the tab evened out (Balance Splits).
-    func balance(_ tab: Tab) async {
-        let changes = tab.tree?.evened() ?? []
-        await write { client in
-            for change in changes {
-                try await client.setRatio(tab: tab.id, path: change.path, ratio: change.ratio)
-            }
+    /// Every run of the tab evened out (Balance Splits), inside a write: herdr's tree, which the writes before changed.
+    func balance(_ tabID: String, _ client: any Multiplexer) async throws {
+        for change in try await client.snapshot().trees[tabID]?.evened() ?? [] {
+            try await client.setRatio(tab: tabID, path: change.path, ratio: change.ratio)
         }
     }
 

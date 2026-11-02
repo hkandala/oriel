@@ -1,7 +1,7 @@
 import XCTest
 
-/// `oriel notify`, `oriel agent` and `oriel chat` (agent-control/cli): a notification on the Mac, an agent in a new
-/// pane, and Relaunch with Chat, asked from a pane.
+/// `oriel notify`, `oriel agent`, `oriel chat`, `oriel view` and `oriel balance` (agent-control/cli): a notification on
+/// the Mac, an agent in a new pane, Relaunch with Chat, the Chat | TUI switch and Balance Splits, asked from a pane.
 extension OrielUITests {
     /// A split beside the asking pane, then a tab after its tab: each shell gets Claude Code's line with Oriel's flags,
     /// the answer comes once it is typed, and the keyboard and the selected tab stay. CI only past the errors: a new
@@ -79,5 +79,43 @@ extension OrielUITests {
         try await run("\(oriel) chat \(agent)", in: asking, "chat", 0, "agent: claude")
         XCTAssertTrue(element("chat.\(agent).composer").exists(within: 20))
         XCTAssertFalse(element("pane.\(agent).enable-chat").exists)
+    }
+
+    /// The card's Chat | TUI switch from a pane, which `card` reports; a pane with no chat view and a third word are
+    /// refused.
+    func testViewSwitchesAChatAgentsCard() async throws {
+        let (_, agent) = try await startChat(chat: false)
+        XCTAssertTrue(element("pane.\(agent).view.tui").exists(within: 15))
+        let asking = try await split(agent)
+        try await waitForPrompt(asking)
+        let oriel = Self.orielCommand, composer = element("chat.\(agent).composer")
+        try await run("\(oriel) view \(agent) chat", in: asking, "chat", 0, "view: chat")
+        XCTAssertTrue(composer.exists(within: 5))
+        try await run("\(oriel) --json card \(agent) | grep -o '\"view\":\"[a-z]*\"'", in: asking, "card", 0,
+                      #""view":"chat""#)
+        try await run("\(oriel) view \(agent) tui", in: asking, "tui", 0, "view: tui")
+        XCTAssertTrue(composer.vanishes(within: 5))
+        XCTAssertTrue(element("pane.\(agent).view.tui").isSelected)
+        // Wrapped at the pane's width (about 45 columns on CI).
+        try await run("\(oriel) view \(asking) chat", in: asking, "plain", 1, "oriel: pane \(asking) runs no agent")
+        try await run("\(oriel) view \(agent) both", in: asking, "both", 2, "oriel: both is not chat or tui")
+    }
+
+    /// Balance Splits from a pane: its own tab by default, another pane's tab by name.
+    func testBalanceEvensOutAPanesTab() async throws {
+        let (tab, pane) = try await newTab("balance")
+        try await split(pane)
+        try await waitForPrompt(pane)
+        let (otherTab, far) = try await newTab("balance-other")
+        try await split(far)
+        try await expectOpen("w2")
+        let oriel = Self.orielCommand
+        for (marker, target, ratioTab) in [("own", "", tab), ("other", " \(far)", otherTab)] {
+            try await Self.call(one, "layout.set_split_ratio", ["tab_id": ratioTab, "path": [Bool](), "ratio": 0.3])
+            try await run("\(oriel) balance\(target)", in: pane, marker, 0, "tab: \(ratioTab)")
+            let ratio = try await root(ratioTab)["ratio"] as? Double ?? 0
+            XCTAssertEqual(ratio, 0.5, accuracy: 0.01, "\(ratioTab) after balance\(target)")
+        }
+        try await run("\(oriel) balance w9:p9", in: pane, "none", 1, "oriel: pane w9:p9 is not in")
     }
 }

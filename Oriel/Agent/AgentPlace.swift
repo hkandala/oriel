@@ -33,7 +33,7 @@ extension AgentCall {
         let near: PaneTarget, split: SplitNode.Direction?
         switch place {
         case let .beside(target, down): (near, split) = (target, down ? .down : .right)
-        case .tab: (near, split) = (PaneTarget(session: store.session, id: pane, machine: store.machine), nil)
+        case .tab: (near, split) = (asking, nil)
         case .replace: throw AgentError.usage("--replace makes no pane")
         }
         let found = try found(near), store = found.0

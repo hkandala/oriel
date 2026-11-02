@@ -41,7 +41,7 @@ struct PaneCard: View {
         // A new pane's chooser hides its terminal (ui/new-pane).
         let chooser = store.chooser(id), (browser, plugin) = page.cards(pane)
         // An agent Oriel started with its flags: its chat or its terminal (ui/chat-view).
-        let chat = chooser == nil && !floated ? pane.flatMap(page.chat) : nil
+        let chat = chooser == nil && !floated ? pane.flatMap(page.store.chat) : nil
         VStack(spacing: 0) {
             header(
                 pane ?? store.parked[id],

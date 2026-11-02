@@ -9,7 +9,7 @@ extension AgentCommand {
         summary: "Lists the kinds an agent can open; makes, reloads and installs plugins",
         help: """
         plugins: the browser and every plugin, and why a package did not load. --for: only the ones that open a \
-        file, folder or URL, best first, the default marked.
+        file, folder or URL, best first, the default marked, then a file's other Open With choices.
         new <name>: a plugin from the template in the plugins folder, built and trusted (This Mac only). Pass a long \
         --timeout: it installs the template's dependencies and builds it.
         reload [<id>]: builds one plugin, or every plugin with an open card, and loads its cards again (This Mac \
@@ -45,13 +45,19 @@ extension AgentCommand {
             return AgentOutput(entries.map(\.0), text: table(entries.map(\.1)))
         }
         // As `open` takes it: from the command's folder, a folder by the disk; a missing path by its name.
-        var full = path
+        var full = path, file = false
         if URL(string: path)?.scheme == nil {
             full = call.absolute(path)
             let folder = await call.store.machine.exec().succeeds(#"[ -d "$1" ]"#, [full])
             full += path.hasSuffix("/") || folder ? "/" : ""
+            file = !full.hasSuffix("/")
         }
-        let openers = Registry.openers(for: full)
+        var openers = Registry.openers(for: full)
+        // A file's Open With choices after them: `open <id> <file>` opens with those too.
+        if file {
+            openers += Registry.openers(full, options: true)
+                .filter { plugin in !openers.contains { $0.id == plugin.id } }
+        }
         return AgentOutput(
             openers.enumerated()
                 .map { index, manifest in rows.entry(manifest).merging(["default": index == 0]) { $1 } },

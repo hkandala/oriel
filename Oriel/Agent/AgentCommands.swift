@@ -33,6 +33,8 @@ enum AgentCommands {
         .notify,
         .agent,
         .chat,
+        .view,
+        .balance,
     ]
 
     /// The script Oriel writes to `~/.cache/oriel/bin/oriel` on each machine it opens a session on.
@@ -165,6 +167,11 @@ struct AgentCall {
     func done() throws {
         guard let extra = args.first else { return }
         throw AgentError.usage(extra.hasPrefix("--") ? "unknown option \(extra)" : "extra argument \(extra)")
+    }
+
+    /// The asking pane.
+    var asking: PaneTarget {
+        PaneTarget(session: store.session, id: pane, machine: store.machine)
     }
 
     /// A pane argument: `w1:p3` in the asking session, or `‹session›/‹pane›` of a session on the same machine. The
