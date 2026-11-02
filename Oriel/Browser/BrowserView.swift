@@ -1,4 +1,5 @@
 import AppKit
+import UniformTypeIdentifiers
 import WebKit
 
 /// The web view, which takes the keyboard as a terminal does (`PaneSurfaceView`): now, or once it is in a window.
@@ -94,6 +95,14 @@ class BrowserView: WKWebView {
                 taken?(image)
             }
         }
+    }
+
+    /// WebKit claims every drag over the page, whatever it carries (WKWebView's `_hitTest:dragTypes:`), so a card's
+    /// drop zones heard nothing of a pane dragged over it. The app's own drags go on to them; other drags (files, text)
+    /// reach the page as before, as WebKit decides: the point within the view's frame.
+    @objc(_hitTest:dragTypes:) func hitTest(_ point: UnsafeMutablePointer<NSPoint>, dragTypes types: NSSet) -> NSView? {
+        guard !types.contains(UTType.orielDrag.identifier) else { return nil }
+        return superview?.isMousePoint(point.pointee, in: frame) == true ? self : nil
     }
 
     func dropClaim() {

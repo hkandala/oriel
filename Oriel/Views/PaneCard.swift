@@ -133,7 +133,8 @@ struct PaneCard: View {
                 DropIndicator()
                     .frame(width: zone == .left || zone == .right ? half.width : size.width,
                            height: zone == .up || zone == .down ? half.height : size.height)
-                    .offset(x: zone == .right ? half.width : 0, y: zone == .down ? half.height : 0)
+                    // Padding, not an offset: the accessibility frame keeps to what is drawn.
+                    .padding(.leading, zone == .right ? half.width : 0).padding(.top, zone == .down ? half.height : 0)
                     .transition(.opacity)
             }
         }
