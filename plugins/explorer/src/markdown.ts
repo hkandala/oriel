@@ -7,7 +7,7 @@ import { markdown, markdownLanguage } from "@codemirror/lang-markdown"
 import { yamlFrontmatter } from "@codemirror/lang-yaml"
 import { ensureSyntaxTree, HighlightStyle, syntaxHighlighting, syntaxTree } from "@codemirror/language"
 import { closeSearchPanel } from "@codemirror/search"
-import { Compartment, EditorState, Prec, type Range, StateField } from "@codemirror/state"
+import { Annotation, Compartment, EditorState, Prec, type Range, StateField } from "@codemirror/state"
 import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate, WidgetType } from "@codemirror/view"
 import type { SyntaxNode } from "@lezer/common"
 import { tags } from "@lezer/highlight"
@@ -104,31 +104,35 @@ const blockField = StateField.define<DecorationSet>({
   provide: (field) => EditorView.decorations.from(field),
 })
 
-/** A list item's bullet or number, at its depth: the line hangs after it, as Read's list. */
+/** A task's box ticked by a click: Read saves it (`show`). */
+const ticked = Annotation.define<boolean>()
+
+/** A list item's bullet, number or task box, at the end of its depth's indent: the text and its wrapped lines start
+ *  after it. A box is `marker` characters after the item's line start, and a click ticks it (a writable file). */
 class Bullet extends WidgetType {
-  constructor(readonly text: string, readonly width: number) {
+  constructor(readonly text: string, readonly width: number, readonly task?: { checked: boolean; marker: number }) {
     super()
   }
   eq(other: Bullet) {
-    return other.text === this.text && other.width === this.width
+    return other.text === this.text && other.width === this.width && other.task?.checked === this.task?.checked
+      && other.task?.marker === this.task?.marker
   }
-  toDOM() {
+  toDOM(view: EditorView) {
     const bullet = Object.assign(document.createElement("span"), { className: "cm-md-bullet", textContent: this.text })
-    bullet.style.width = `${this.width}em`
+    bullet.style.minWidth = `${this.width - GAP}em`
+    const task = this.task
+    if (!task) return bullet
+    const box = Object.assign(document.createElement("input"), {
+      type: "checkbox", checked: task.checked, disabled: view.state.readOnly,
+    })
+    // The file's character, not the box's own state: the widget draws again with it.
+    box.onclick = (event) => {
+      event.preventDefault()
+      const at = view.posAtDOM(bullet) + task.marker + 1
+      view.dispatch({ changes: { from: at, to: at + 1, insert: task.checked ? " " : "x" }, annotations: ticked.of(true) })
+    }
+    bullet.append(box)
     return bullet
-  }
-}
-
-/** A task's box, as Read draws it. */
-class Box extends WidgetType {
-  constructor(readonly checked: boolean) {
-    super()
-  }
-  eq(other: Box) {
-    return other.checked === this.checked
-  }
-  toDOM() {
-    return Object.assign(document.createElement("input"), { type: "checkbox", disabled: true, checked: this.checked })
   }
 }
 
@@ -151,8 +155,9 @@ const code = Decoration.mark({ class: "cm-md-code" })
 // code ticks. A setext heading's underline stays: hidden, it would leave an empty line.
 const marks = new Set(["HeaderMark", "EmphasisMark", "StrikethroughMark", "LinkMark", "URL", "LinkTitle", "CodeMark"])
 const kept = new Set(["FencedCode", "Autolink", "LinkReference", "SetextHeading1", "SetextHeading2"])
-/** One em per depth for a bullet, as Read's lists indent. */
-const INDENT = 1.6
+/** Each list depth's indent, and the space between a bullet and its text, in em. */
+const INDENT = 1.5
+const GAP = 0.4
 
 /** The link a Link, Image or Autolink node points to. */
 function href(node: SyntaxNode, state: EditorState) {
@@ -227,19 +232,20 @@ function preview(view: EditorView): DecorationSet {
           // On the caret's line the mark shows where the bullet was, its text a little to the right.
           const style = raw(node.from)
             ? `padding-left: calc(${width - 1}em + 6px)`
-            : `padding-left: calc(${width + 0.4}em + 6px); text-indent: -${width + 0.4}em`
+            : `padding-left: calc(${width}em + 6px); text-indent: -${width}em`
           ranges.push(Decoration.line({ class: "cm-md-li", attributes: { style } }).range(each.from))
           if (!raw(node.from)) {
-            const task = parent.getChild("Task")
+            // A task's box takes its bullet's place.
+            const marker = parent.getChild("Task")?.getChild("TaskMarker") ?? undefined
+            const task = marker && {
+              checked: state.sliceDoc(marker.from + 1, marker.to - 1) !== " ", marker: marker.from - each.from,
+            }
             const text = task ? "" : parent.parent?.name === "OrderedList" ? state.sliceDoc(node.from, node.to) : "•"
-            ranges.push(Decoration.replace({ widget: new Bullet(text, width) }).range(each.from, past(node.to)))
+            const end = past(marker?.to ?? node.to)
+            ranges.push(Decoration.replace({ widget: new Bullet(text, width, task) }).range(each.from, end))
           }
         }
         if (name === "QuoteMark" && !raw(node.from)) ranges.push(hide.range(node.from, past(node.to)))
-        if (name === "TaskMarker" && !raw(node.from)) {
-          const checked = state.sliceDoc(node.from + 1, node.to - 1) !== " "
-          ranges.push(Decoration.replace({ widget: new Box(checked) }).range(node.from, past(node.to)))
-        }
         if (!marks.has(name) || !parent || kept.has(parent.name)) return
         // A bare address (GFM) is the text itself.
         if (name === "URL" && parent.name !== "Link" && parent.name !== "Image") return
@@ -423,6 +429,8 @@ export async function show(place: Place): Promise<Reveal> {
       },
     })),
     EditorView.updateListener.of((update) => {
+      // A box ticked in Read is saved at once, as the card's ⌘S; in Edit it waits for ⌘S as any edit.
+      if (!edit && update.transactions.some((tr) => tr.annotation(ticked))) void shown?.save()
       // Also as the background parse reaches more headings.
       if (outlined && (update.docChanged || syntaxTree(update.startState) !== syntaxTree(update.state))) {
         list(update.view)

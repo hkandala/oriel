@@ -21,6 +21,8 @@ const theme = EditorView.theme({
   "&.cm-focused": { outline: "none" },
   ".cm-scroller": { fontFamily: "ui-monospace, monospace", lineHeight: "1.5" },
   ".cm-content": { caretColor: "var(--text)" },
+  // CodeMirror draws its own caret, black unless a theme says dark.
+  ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--text)" },
   ".cm-gutters": { background: "transparent", color: "var(--dim)", border: "none" },
   ".cm-activeLine, .cm-activeLineGutter": { background: "color-mix(in srgb, var(--text) 6%, transparent)" },
   "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection": {
@@ -31,8 +33,8 @@ const theme = EditorView.theme({
   ".cm-panels-top": { borderBottom: "1px solid var(--divider)" },
 })
 
-/** The editor and the caret's landing; undefined when the info view shows instead. */
-export type Editor = { view: EditorView; land(at: string | undefined): void } | undefined
+/** The editor, the caret's landing and ⌘S's save; undefined when the info view shows instead. */
+export type Editor = { view: EditorView; land(at: string | undefined): void; save(): Promise<void> } | undefined
 
 /** The place's file in an editor under `parent`, or the info view when it is not text or too large to show. A file
  *  that becomes read only, writable, too large or not text shows the place anew (`again`). */
@@ -205,5 +207,5 @@ export async function editor(place: Place, extensions: Extension[], parent: HTML
   addEventListener("focus", focus)
   keep(() => removeEventListener("focus", focus))
   if (document.hasFocus()) view.focus()
-  return { view, land }
+  return { view, land, save: () => save() }
 }

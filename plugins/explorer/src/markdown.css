@@ -48,8 +48,6 @@ nav button:hover {
 }
 .cm-md-h2 {
   font-size: 1.3em;
-  padding-bottom: 0.25em;
-  border-bottom: 1px solid var(--divider);
 }
 .cm-md-h3 {
   font-size: 1.1em;
@@ -90,15 +88,17 @@ nav button:hover {
   color: var(--dim);
   box-shadow: inset 9px 0 0 -6px var(--divider);
 }
+/* A list item's bullet, number or task box at the end of its indent (markdown.ts's INDENT and GAP). */
 .cm-md-bullet {
   display: inline-block;
   margin-right: 0.4em;
   text-align: right;
   text-indent: 0;
 }
-.cm-md-li input,
-.cm-md-li .cm-md-bullet:empty + input {
-  margin: 0 0.4em 0 0;
+.cm-md-bullet input {
+  margin: 0;
+  vertical-align: -0.1em;
+  accent-color: var(--accent);
 }
 .cm-md-hr {
   display: inline-block;

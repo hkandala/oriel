@@ -14,8 +14,8 @@ extension OrielUITests {
             _ = try? await Self.call(one, "pane.send_text", ["pane_id": shell, "text": "rm -rf \(folder)\r"])
         }
         try await send("mkdir -p \(folder) && cd \(folder) && printf '%s\\n' '---' 'title: Hidden' '---' '# Notes' "
-            + "'Some *words*.' '## Second' '[Other](other.md)' '' '| A | B |' '| - | - |' '| 1 | 2 |' >notes.md"
-            + " && printf '# Other\\n' >other.md && clear "
+            + "'Some *words*.' '## Second' '- [ ] Ship it' '' '[Other](other.md)' '' '| A | B |' '| - | - |' "
+            + "'| 1 | 2 |' >notes.md && printf '# Other\\n' >other.md && clear "
             + "&& echo ready-$((6*7))\r", to: shell)
         try await waitFor(shell) { $0.contains("ready-42") }
         let (tab, card) = try await markdownCard("\(folder)/notes.md")
@@ -31,6 +31,7 @@ extension OrielUITests {
         XCTAssertTrue(page.buttons["Second"].exists(within: 3))
         XCTAssertFalse(page.buttons["title: Hidden"].exists)
         keepScreenshot("markdown card, read, outline")
+        try await tick(card, page: page, shell: shell)
 
         try await editAndSave(card, page: page, shell: shell)
 
@@ -91,6 +92,27 @@ extension OrielUITests {
         XCTAssertTrue(element("pane.\(card).dirty").vanishes(within: 5))
         try await send("clear && grep -q '^x# Notes$' notes.md && echo saved-$((6*7))\r", to: shell)
         try await waitFor(shell) { $0.contains("saved-42") }
+    }
+
+    /// A task's box sits at the text's left edge, as the heading's; a click on it in Read writes `[x]` to the file and
+    /// leaves the card clean.
+    private func tick(_ card: String, page: XCUIElement, shell: String) async throws {
+        let box = page.checkBoxes.firstMatch
+        let heading = page.staticTexts.matching(NSPredicate(format: "value == 'Second'")).firstMatch
+        XCTAssertTrue(box.exists(within: 5))
+        XCTAssertLessThan(
+            abs(box.frame.minX - heading.frame.minX),
+            6,
+            "the box at \(box.frame), the heading at \(heading.frame)",
+        )
+        box.click()
+        try await send(
+            "clear && until grep -q '^- \\[x\\] Ship it$' notes.md; do sleep 0.1; done && echo ticked-$((6*7))\r",
+            to: shell,
+        )
+        try await waitFor(shell) { $0.contains("ticked-42") }
+        XCTAssertTrue(until(3) { box.value as? Int == 1 }, "\(box.value ?? "no value")")
+        XCTAssertFalse(element("pane.\(card).dirty").exists)
     }
 
     /// Select All and Copy in Read give the whole source, past the lines drawn.
