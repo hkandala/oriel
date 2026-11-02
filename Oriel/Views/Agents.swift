@@ -22,7 +22,7 @@ extension AgentState {
         }
     }
 
-    /// Oriel's own: a raised hand, macOS's spinner (it turns: `StateSymbol`) and a check.
+    /// Oriel's own: a raised hand, macOS's spinner (drawn by `Spinner`) and a check.
     var symbol: String {
         switch self {
         case .needsYou: "hand.raised.fill"

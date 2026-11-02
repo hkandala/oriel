@@ -34,8 +34,6 @@ struct WorkspaceRow: View {
         } label: {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
-                    // The state's slot (`stateSlot`), the same width on every row.
-                    Color.clear.frame(width: 14, height: 14)
                     Text(workspace.label).font(.system(size: 13, weight: state?.calls == true ? .medium : .regular))
                         .lineLimit(1).opacity(renaming ? 0 : 1)
                         .foregroundStyle(selected ? look.selected : look.chrome)
@@ -58,10 +56,10 @@ struct WorkspaceRow: View {
                     }
                     .font(.system(size: 11))
                     .foregroundStyle(.secondary)
-                    .padding(.leading, 20)
                 }
             }
-            .padding(.horizontal, 8)
+            // After the state's slot (`stateSlot`), the same on every row.
+            .padding(.leading, Self.textInset).padding(.trailing, 8)
             .frame(maxWidth: .infinity, minHeight: height, maxHeight: height, alignment: .leading)
         }
         .buttonStyle(ChromeStyle(selected: selected, radius: 10))
@@ -112,9 +110,10 @@ struct WorkspaceRow: View {
     @ViewBuilder
     private func stateSlot(_ state: AgentState?) -> some View {
         if let state, state != .idle {
-            StateIcon(state: state).frame(height: 30).padding(.leading, 8).allowsHitTesting(false)
+            StateIcon(state: state)
                 .accessibilityElement().accessibilityAddTraits(.isStaticText).accessibilityValue(state.title)
                 .accessibilityIdentifier("workspace.\(workspace.id).state")
+                .frame(height: 30).padding(.leading, 8).allowsHitTesting(false)
         }
     }
 

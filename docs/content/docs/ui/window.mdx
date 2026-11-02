@@ -284,12 +284,13 @@ The sidebar never shows tabs, and its bottom never shows agent activity.
 
 One row per herdr workspace of the session, in herdr's order, like herdr's
 Spaces panel.
-- **Line 1.** A 14 pt state slot, then 6 pt on, the name (13 pt). The slot
+- **Line 1.** A 14 pt state slot, a 6 pt gap, then the name (13 pt). The slot
   shows the state icon of the strongest state of the workspace's panes:
   Working's spinner, Needs you's raised hand or Done's check, with no word and
   no time ([Status](/docs/ui/theme-and-accessibility#status)). An idle agent,
   or no agent, leaves the slot empty. Every row keeps the slot, so all the
-  names start at one x, with the page header's text. The name is medium
+  names and the page header's text start at the same place. So do the drag
+  ghost "New Workspace" and "No matching workspaces". The name is medium
   weight while the row calls for the user (needs you or done). VoiceOver adds
   the state word to the row's value.
 - **Line 2**, only for a git repository, under the name and starting where it starts: a branch glyph, the branch, then

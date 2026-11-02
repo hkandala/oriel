@@ -275,3 +275,28 @@ Files: the card drag and drop code (`Oriel/Views/Drag*.swift`, the web card host
 - **For the user.** Revert on a staged file also drops its unstaged edits (back to HEAD). Check the Live marker and
   the new Word Wrap symbol on row 2, and the file icons in light mode. On a narrow card (about 370 pt, CI's half
   width) row 2 is full and Live cuts to "…".
+
+### Track A
+
+- **Decisions, icons (1).** Working is a spinner as macOS draws one: eight ticks, the front one brightest, stepping
+  clockwise every 0.1 s, all spinners on the wall clock's phase. Needs you is `hand.raised.fill`; Done keeps
+  `checkmark.circle`. The spinner stands still under Reduce Motion and on a sidebar page off to the side, as the
+  tab's working dots.
+- **Cost.** SF Symbols' own `symbolEffect` on `progress.indicator` took 30.9 % of a core with five working rows
+  (Release, `top -l 2 -s 10`), against 0.9 % with the same rows still. So the spinner is our own Core Animation
+  layer (a replicator, one discrete rotation, at most 20 frames a second): 0.8 % with the same five rows.
+- **Decisions, layout (3).** Each view lines up on its own (orchestrator's option B). Workspaces view: a 14 pt state
+  slot and a 6 pt gap on every row, so the page header, the names, the branch lines, the drag ghost and "No matching
+  workspaces" start 38 pt in; the slot shows the symbol only, no word and no time. Agents view: the header sits 18 pt
+  in, on the edge of the group labels and the tiles; the state label and time stay at the row's end. The header moves
+  20 pt when the view changes.
+- **Cause (3).** The page header was 22 pt in for both views while the rows' text was 18 pt in, and the state label
+  sat at the row's end, so nothing shared an edge.
+- **Fix (2).** Agents rows (and the Agents popover, the same row) have no badge on the tile; tabs keep theirs.
+- **Tests.** AgentTests measure the slot's center, the header on the names' edge, the header on the group labels'
+  edge in the Agents view, and the 20 pt move; the Working label's counting time no longer has a test (only the
+  Agents view, popover and hover card show it, inside button labels).
+- **Pictures.** Before: `/tmp/oriel-shots/t49e/after-sidebar-crop.png`, `after-agents-crop.png`. After:
+  `/tmp/oriel-shots/t51a/states.png` (the three states side by side), `looks.png` (both views in dark Glass, light
+  Glass and dark Classic, with and without git rows).
+- **For the user.** The spinner on a Retina screen, and that it stands still with Reduce Motion on.

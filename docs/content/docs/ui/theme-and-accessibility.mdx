@@ -71,12 +71,14 @@ the Agents view and popover, the hover card, notifications):
   out of the icon by a 1.5 pt ring. Agents rows have no badge: their state
   label shows the state.
 - **State label.** The Agents view and popover, the hover card, the overview
-  and the agent card's header show a state as an SF Symbol and the word, both
+  and the agent card's header show a state as a symbol and the word, both
   11 pt medium in the status color, with no fill. The symbols are Oriel's
-  own: `progress.indicator` (Working), `hand.raised.fill` (Needs you),
-  `checkmark.circle` (Done) and `exclamationmark.circle` (Error). Working's
-  spinner turns, as the macOS spinner does. Core Animation runs it, so the app
-  does no work per frame. It stands still under Reduce Motion and on a
+  own. Working is a 12 pt spinner, as macOS draws one: eight ticks, the front
+  one brightest, that step one tick clockwise every 0.1 s. Every spinner is
+  in step with the wall clock. Core Animation runs it at 10 to 20 frames a
+  second, so the app does no work per frame. Needs you is `hand.raised.fill`,
+  Done is `checkmark.circle` and Error is `exclamationmark.circle`. The
+  spinner stands still under Reduce Motion and on a
   sidebar page that is off to the side. In the Agents view and popover and
   the hover card's pane rows, Working adds the time since this app saw the
   agent start (after a launch, since the launch: herdr gives no start time):

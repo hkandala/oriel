@@ -12,8 +12,7 @@ struct StateIcon: View {
             switch state {
             case .idle: Circle().strokeBorder(.secondary, lineWidth: 1.5).frame(width: 7, height: 7)
             case let .some(state):
-                StateSymbol(name: state.symbol).font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(state.color(look))
+                StateSymbol(name: state.symbol, color: state.color(look)).font(.system(size: 11, weight: .medium))
             // A workspace with no agent: a quiet dot, so the slot does not look missing.
             case nil: Circle().fill(.tertiary).frame(width: 4, height: 4)
             }
@@ -22,18 +21,16 @@ struct StateIcon: View {
     }
 }
 
-/// A state's symbol. Working's turns as macOS's spinner does, a symbol effect that Core Animation runs; still under
-/// Reduce Motion (but with `-forceMotion`) and on a sidebar page off to the side, as the working dots.
+/// A state's symbol in `color`; Working's is a `Spinner`.
 struct StateSymbol: View {
-    let name: String
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.offscreen) private var offscreen
+    let name: String, color: Color
 
     var body: some View {
-        Image(systemName: name).symbolEffect(
-            .variableColor.iterative.dimInactiveLayers.nonReversing,
-            isActive: name == AgentState.working.symbol && !(reduceMotion && !Animation.forceMotion) && !offscreen,
-        )
+        if name == AgentState.working.symbol {
+            Spinner(color: color)
+        } else {
+            Image(systemName: name).foregroundStyle(color)
+        }
     }
 }
 
@@ -74,7 +71,7 @@ struct StateLabel: View {
 
     private func row(_ words: String) -> some View {
         HStack(spacing: 4) {
-            StateSymbol(name: symbol)
+            StateSymbol(name: symbol, color: color)
             Text(words).monospacedDigit()
         }
         .font(.system(size: 11, weight: .medium)).foregroundStyle(color)

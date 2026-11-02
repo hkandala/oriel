@@ -182,12 +182,13 @@ private struct SidebarPage: View {
                                 .background { Color.clear.id("into view \(id)").padding(.vertical, -18) }
                         }
                         if drop.ghost, page.dragging != nil {
-                            Text("New Workspace").foregroundStyle(.secondary).padding(.horizontal, 8)
+                            Text("New Workspace").foregroundStyle(.secondary).padding(.leading, WorkspaceRow.textInset)
                                 .frame(maxWidth: .infinity, minHeight: 30, alignment: .leading)
                                 .background { DropIndicator() }
                         }
                         if rows.isEmpty, !store.workspaces.isEmpty {
-                            Text("No matching workspaces").foregroundStyle(.secondary).padding(8)
+                            Text("No matching workspaces").foregroundStyle(.secondary).padding(.vertical, 8)
+                                .padding(.leading, WorkspaceRow.textInset)
                         }
                     }
                     .padding(Sidebar.rowInsets)
@@ -279,8 +280,7 @@ private struct PageDots: View {
     }
 }
 
-/// The handle at the sidebar's trailing edge, beside the pages and over the tab page's 8 pt gap: a drag resizes it
-/// within `Sidebar.widths`.
+/// The handle at the sidebar's trailing edge, over the tab page's 8 pt gap: a drag resizes it in `Sidebar.widths`.
 private struct ResizeHandle: View {
     @Binding var width: Double
     @State private var start: Double?
