@@ -11,7 +11,8 @@ final class FakeExec: Exec {
         var argv: [[String]] = []
         var written: [String] = []
         var reads = 0
-        var firstRead: ContinuousClock.Instant?
+        /// Each snapshot read's start, as herdr got the request.
+        var readStarts: [ContinuousClock.Instant] = []
         var inFlight = 0
         var maxInFlight = 0
         var terminated = 0
@@ -71,7 +72,7 @@ final class FakeExec: Exec {
             Task {
                 let (agents, panes) = state.withLock {
                     $0.reads += 1
-                    $0.firstRead = $0.firstRead ?? .now
+                    $0.readStarts.append(.now)
                     $0.inFlight += 1
                     $0.maxInFlight = max($0.maxInFlight, $0.inFlight)
                     return ($0.agents, $0.panes)
@@ -140,15 +141,16 @@ final class Gate: Sendable {
     }
 }
 
-func client(_ exec: FakeExec, _ gate: Gate? = nil) -> HerdrClient {
-    guard let gate else { return HerdrClient(session: "s", exec: exec, timeout: .seconds(1)) }
-    return HerdrClient(session: "s", exec: exec, timeout: .seconds(1), wait: gate.wait)
+/// The timeout outlasts `eventually`: a read that timed out on a starved Mac would make the heartbeat read again at any
+/// moment, and the pacing tests count reads.
+func client(_ exec: FakeExec, _ gate: Gate? = nil, timeout: Duration = .seconds(30)) -> HerdrClient {
+    guard let gate else { return HerdrClient(session: "s", exec: exec, timeout: timeout) }
+    return HerdrClient(session: "s", exec: exec, timeout: timeout, wait: gate.wait)
 }
 
 /// Starts updates and waits for the opening reads (one before and one after subscribing).
 func started(_ client: HerdrClient, _ exec: FakeExec, _ gate: Gate? = nil) async throws -> AsyncStream<Update> {
     let updates = await client.updates()
-    // At least two: timing on a loaded machine can add a read; the tests count from the reset below.
     try #require(await eventually {
         gate?.open()
         return exec[\.subscribes].count == 1 && exec[\.reads] >= 2 && exec[\.inFlight] == 0
@@ -162,7 +164,7 @@ func started(_ client: HerdrClient, _ exec: FakeExec, _ gate: Gate? = nil) async
     }
     exec.state.withLock {
         $0.reads = 0
-        $0.firstRead = nil
+        $0.readStarts = []
     }
     return updates
 }
@@ -188,7 +190,7 @@ func started(_ client: HerdrClient, _ exec: FakeExec, _ gate: Gate? = nil) async
         try await failing.snapshot()
     }
     let silent = FakeExec { _ in nil }
-    await #expect(throws: HerdrError.timeout) { try await client(silent).snapshot() }
+    await #expect(throws: HerdrError.timeout) { try await client(silent, timeout: .seconds(1)).snapshot() }
     #expect(silent[\.terminated] == 1)
     let old = client(FakeExec { _ in snapshot(version: "0.9.2") })
     await #expect(throws: HerdrError.unsupported("herdr 0.9.2 is too old; 0.9.3 or newer needed")) {
@@ -245,15 +247,17 @@ private func keepComing(_ exec: FakeExec) -> Task<Void, Never> {
     let sent = ContinuousClock.now, waits = gate[\.deadlines].count
     let events = keepComing(exec)
     defer { events.cancel() }
-    // The first read at once, then a wait to its start plus the spacing, however many events come meanwhile.
+    // A read at once, then a wait to its start plus the spacing, however many events come meanwhile. Not always the
+    // first read: on a busy Mac the next event can come after it ended, so the read with events during it is the last.
     #expect(await eventually { gate[\.waiting] == 1 })
-    let first = try #require(exec[\.firstRead]), deadline = try #require(gate[\.deadlines].dropFirst(waits).first)
-    #expect(deadline >= sent + HerdrClient.spacing && deadline <= first + HerdrClient.spacing)
+    let starts = exec[\.readStarts], deadline = try #require(gate[\.deadlines].dropFirst(waits).first)
+    let start = try #require(starts.last), before = starts.dropLast().last ?? sent
+    #expect(deadline >= before + HerdrClient.spacing && deadline <= start + HerdrClient.spacing)
     try? await Task.sleep(for: .milliseconds(200))
-    #expect(exec[\.reads] == 1, "\(exec[\.reads]) reads")
+    #expect(exec[\.reads] == starts.count, "\(exec[\.reads]) reads, \(starts.count) before the wait")
     // Its end: one read more, then the next wait.
     gate.open()
-    #expect(await eventually { exec[\.reads] == 2 && gate[\.waiting] == 1 })
+    #expect(await eventually { exec[\.reads] == starts.count + 1 && gate[\.waiting] == 1 })
     #expect(exec[\.maxInFlight] == 1)
     withExtendedLifetime(updates) {}
 }
