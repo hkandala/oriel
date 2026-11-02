@@ -102,6 +102,8 @@ extension HostStore {
         /// The shell process the placeholder was typed into, and the terminal looked at again (`keepPlaceholder`).
         @ObservationIgnored var placed: Int?
         @ObservationIgnored var rechecked: String?
+        /// The label its placeholder last drew (`redrawPlaceholder`).
+        @ObservationIgnored var drawnLabel: String?
         /// Relaunch with Chat restarted its agent: the user asked for the chat, so it shows first.
         @ObservationIgnored var relaunched = false
         /// herdr was asked for the program at least once.
@@ -287,6 +289,7 @@ extension HostStore {
             pane.program = nil
             pane.asked = false
             pane.asks += 1 // the old terminal's answer in flight
+            pane.drawnLabel = new.label
         }
         let word = { (title: String?) in title?.split(separator: " ").first }
         // A new label too: a pane labeled a card by hand gets its placeholder (`keepPlaceholder`).

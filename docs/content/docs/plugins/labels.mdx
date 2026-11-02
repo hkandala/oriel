@@ -67,10 +67,16 @@ Browser and plugin panes are created the same way.
    ```
    - `cwd` is the source pane's cwd, so a diff split from an agent's pane
      opens in that agent's repository.
-   - The script prints the title, the argument and "Shown in Oriel" in the
-     middle of the pane, and again on `SIGWINCH` (a resize). It runs
-     `stty raw -echo` and a background `cat <&0 >/dev/null`, and waits on
-     it. `stty raw` makes Ctrl-C and Ctrl-D plain bytes, so a herdr TUI user
+   - The script prints the title, the argument without its scheme and "Shown
+     in Oriel" in the middle of the pane. On `SIGWINCH` it reads the label's
+     argument from herdr (`herdr pane get $HERDR_PANE_ID`) and draws again: on
+     a resize, and when the app signals its processes by pid after the label
+     changed (a browser's new address). herdr still finds a pane by its old id
+     after a move to another workspace. A placeholder from before the app
+     started shows its old argument until its label changes. It runs
+     `stty raw -echo` and a background `cat <&3 >/dev/null` (standard input
+     copied to descriptor 3 first: dash gives a background job `/dev/null`),
+     and waits on it. `stty raw` makes Ctrl-C and Ctrl-D plain bytes, so a herdr TUI user
      cannot end the pane by accident (checked on 0.9.5).
    - herdr runs the argv itself. No login shell, quoting or envelope is
      involved: the title and argument are plain argv (`"$1"`, `"$2"`).

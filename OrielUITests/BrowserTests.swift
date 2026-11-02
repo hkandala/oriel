@@ -82,6 +82,9 @@ extension OrielUITests {
         // Its `<link rel=icon>`, a `data:` SVG with spaces and escapes.
         XCTAssertTrue(element("browser.\(browser).icon").has(\.stringValue, "page", within: 5))
         try await expect("the typed address in the label") { try await paneLabel(browser) == "\(made) \(page)" }
+        // The placeholder in herdr follows the label: the address without its scheme.
+        let short = page.replacing("file://", with: "")
+        try await waitFor(browser, in: nil) { $0.contains(short) && !$0.contains("file:") }
         keepScreenshot("browser card")
         // window.open: over the card, gone on window.close().
         app.webViews.buttons["Pop"].click()

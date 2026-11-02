@@ -60,11 +60,14 @@ A browser pane comes from the chooser's Browser
 
 ## In herdr's TUI
 
-The placeholder, about 20 lines of `sh` that herdr runs as the pane's command,
-prints "Browser", the address it started with (nothing for none) and "Shown in
-Oriel" in the middle of the pane. It draws them again when the pane is resized
-(`SIGWINCH`). Keys typed into the pane do nothing. The TUI's border shows the
-current label. After a cold restart herdr brings the pane back as a plain shell
+The placeholder, about 25 lines of `sh` that herdr runs as the pane's command,
+prints "Browser", the address without its scheme (`example.com/docs`, or
+`/Users/me/report.html` for a `file:` address; nothing for none) and "Shown in
+Oriel" in the middle of the pane. It follows the page: when the label changes
+(a typed address, a link, an agent's `oriel open --replace`), the app sends the
+placeholder `SIGWINCH`, and it reads its label from herdr (`herdr pane get`)
+and draws again. A resize draws it again the same way. Keys typed into the pane
+do nothing. The TUI's border shows the current label. After a cold restart herdr brings the pane back as a plain shell
 with its label, and the app types the placeholder into it again
 ([The placeholder](/docs/plugins/labels#the-placeholder)).
 

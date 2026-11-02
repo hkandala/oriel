@@ -53,11 +53,18 @@ extension PaneLabel {
         return name.isEmpty ? manifest?.name ?? plugin : name
     }
 
-    /// The pane's command in herdr (ui/browser#in-herdrs-tui): the kind's name, the argument and "Shown in Oriel",
-    /// centered and drawn again on a resize. Keys do nothing: `stty raw` makes Ctrl-C and Ctrl-D plain bytes for the
-    /// `cat` that swallows them. herdr runs the argv itself, with no shell quoting.
+    /// The pane's command in herdr (ui/browser#in-herdrs-tui): the kind's name, the argument without its scheme
+    /// (`example.com/a`) and "Shown in Oriel", centered. A resize, or Oriel's SIGWINCH after a new label
+    /// (`HostStore.redrawPlaceholder`), draws it again with the label's argument as herdr has it now. Keys do nothing:
+    /// `stty raw` makes Ctrl-C and Ctrl-D plain bytes for the `cat` that swallows them. herdr runs the argv itself,
+    /// with no shell quoting.
     var placeholder: [String] {
         let script = #"""
+        relabel() {
+          p=$("${HERDR_BIN_PATH:-herdr}" --session "${HERDR_SESSION:-default}" pane get "$HERDR_PANE_ID" 2>/dev/null) &&
+            U=$(printf %s "$p" | sed -n 's/.*"label":"oriel:[^ "]*\( \([^"\\]*\(\\.[^"\\]*\)*\)\)\{0,1\}".*/\2/p' |
+              sed 's/\\\(.\)/\1/g')
+        }
         draw() {
           set -- $(stty size 2>/dev/null || echo "24 80"); r=$1 c=$2
           printf '\033[?25l\033[2J'
@@ -67,14 +74,16 @@ extension PaneLabel {
           }
           y=$(( r / 2 - 2 ))
           line $y "$T" '\033[1m'
-          [ -n "$U" ] && line $((y + 2)) "$U" '\033[4;34m'
+          [ -n "$U" ] && line $((y + 2)) "${U#*://}" '\033[4;34m'
           line $((y + 4)) "Shown in Oriel" '\033[2m'
         }
         T=$1 U=$2
         stty raw -echo 2>/dev/null
-        trap draw WINCH
+        trap 'relabel; draw' WINCH
         draw
-        cat <&0 >/dev/null &
+        # Through fd 3: dash gives a background job /dev/null as its stdin.
+        exec 3<&0
+        cat <&3 >/dev/null &
         while kill -0 $! 2>/dev/null; do wait $!; done
         """#
         return ["sh", "-c", script, "sh", manifest?.name ?? plugin, arg]
@@ -316,6 +325,9 @@ extension HostStore {
     func keepPlaceholder(_ pane: Pane) {
         guard let label = pane.plugin, let program = pane.program, let client else { return }
         guard program.isShell else {
+            if program.isPlaceholder {
+                redrawPlaceholder(pane, program)
+            }
             // A slow shell startup after a restart can outlast the first look: one more, later.
             if !program.isPlaceholder, pane.rechecked != pane.terminalID {
                 pane.rechecked = pane.terminalID
@@ -328,11 +340,23 @@ extension HostStore {
         }
         guard let shell = program.foreground.first?.pid, pane.placed != shell else { return }
         pane.placed = shell
+        pane.drawnLabel = pane.label
         // In place of the shell, so the pane runs only the placeholder; base64, which any login shell passes on. ⌃U
         // first clears a line half typed in a herdr TUI (spiked: zsh). The space keeps it out of a history that
         // ignores such lines (fish; zsh and bash when set to).
         let line = "\u{15} exec " + SSHExec.envelope(["exec"] + label.placeholder)
         Task { try? await client.sendInput(line, keys: ["enter"], pane: pane.id) }
+    }
+
+    /// After a new label (a browser's typed address; a label change asks for the program again), the placeholder
+    /// draws the label's argument: SIGWINCH to its processes, by pid (its `cat` ignores it; a pid gone stale meanwhile
+    /// gets a harmless resize signal). Not one it drew already: a placeholder from before this launch shows its old
+    /// argument until its label changes.
+    private func redrawPlaceholder(_ pane: Pane, _ program: Program) {
+        guard pane.drawnLabel != pane.label, !program.foreground.isEmpty else { return }
+        pane.drawnLabel = pane.label
+        let pids = program.foreground.map { String($0.pid) }
+        Task { await machine.exec().succeeds(#"kill -WINCH "$@""#, pids) }
     }
 
     /// A new plugin pane's label, its iid unique in the session.
