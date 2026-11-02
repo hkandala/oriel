@@ -139,8 +139,8 @@ struct ChatMessages: View, Equatable {
                 .frame(maxWidth: ChatView.column)
                 .frame(maxWidth: .infinity)
             }
-            // Only kept, for Show Earlier's offset: the scroll view named a row in it seldom (on CI, only as a scroll
-            // began).
+            // Kept for Show Earlier's offset, and set to the end at the bottom: the scroll view named a row in it
+            // seldom (on CI, only as a scroll began), and puts that row back when a body is built.
             .scrollPosition(Binding(get: { position }, set: { position = $0 }), anchor: .top)
             // The row at the top (any part of it in view) as the rows in view change: not at the bottom, which follows
             // new rows. Kept here, not in an onChange, so the body is not built again per row scrolled past.
@@ -174,6 +174,9 @@ struct ChatMessages: View, Equatable {
                 atBottom = $1
                 if $1 {
                     hold(nil)
+                    // The body built for the bottom would put back the row the scroll view named as the last scroll
+                    // began, which the kept rows still hold: the chat jumped back up (offset 4608, then 16).
+                    position.scrollTo(id: Self.end, anchor: .bottom)
                 }
             }
             .focusEffectDisabled()

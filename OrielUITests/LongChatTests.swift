@@ -118,13 +118,25 @@ extension OrielUITests {
         up()
         XCTAssertTrue(first.isHittable)
         XCTAssertFalse(earlier.exists)
-        // Back at the bottom, the earlier rows stay: the button goes in the same update that would drop them.
-        let bottom = element("chat.\(pane).bottom")
-        bottom.click()
+        // Back at the bottom by the button, then by the wheel (the user's way), the earlier rows stay.
+        staysAtTheBottom(pane, first) { element("chat.\(pane).bottom").click() }
+        up()
+        staysAtTheBottom(pane, first) {
+            for _ in 0 ..< 5 where !last.isHittable {
+                chat.scroll(byDeltaX: 0, deltaY: -5000)
+            }
+        }
+    }
+
+    /// After `scroll` the chat is at the bottom and stays there, with the first message still in the stack. The button
+    /// goes in the same update that dropped the earlier rows, or put back the row a scroll began at (a jump back up).
+    private func staysAtTheBottom(_ pane: String, _ first: XCUIElement, _ scroll: () -> Void) {
+        let bottom = element("chat.\(pane).bottom"), last = row(pane, "reply", "Last.")
+        scroll()
         XCTAssertTrue(bottom.vanishes(within: 3))
         XCTAssertTrue(until(3) { last.isHittable })
+        XCTAssertFalse(bottom.exists)
         XCTAssertTrue(first.exists)
-        XCTAssertFalse(earlier.exists)
     }
 
     /// The values of the replies' blocks and the user's messages along the top 100 pt of the chat, from one snapshot.

@@ -197,9 +197,15 @@ Files: the card drag and drop code (`Oriel/Views/Drag*.swift`, the web card host
 - **Fix, the reviewer's should.** Without the reset, a kept row that left the rows (a new session behind an outgoing
   message, a re-read with new ids) would have stopped the block from pinning again, so new rows would take rows off
   the top while scrolled up. The block now pins again whenever its kept row is not in the rows.
+- **Cause, found on CI: the jump back up.** With the rows kept, Scroll to Bottom reached the bottom and then jumped to
+  the first message. The scroll view had named that row as the last wheel scroll began and put it back in the body
+  built for the bottom (a probe: offset 4608, then 16). The trim had hidden this: it removed that row. The bottom
+  now sets the scroll position to the end, so the button and the wheel both stay down.
 - **Decisions.** Any scroll up pins the block too, so the plain stack grows with every new row until the card closes,
   and a split lays all of it out again (D95 says so). The user asked for this over the trim.
-- **Runs.** The new check (Scroll to Bottom after Show Earlier reached the first message; the first message is still
-  in the stack) was red on the old code (41430825917, at the check) and green with the fix.
-- **For the user.** Open a long chat, click Show Earlier a few times, click Scroll to Bottom, then scroll up: the
-  earlier rows are still there. No look changed, so no pictures.
+- **Runs.** The new check (back at the bottom after Show Earlier reached the first message, by the button and by the
+  wheel; the first message is still in the stack and the chat stays down) was red on the old code, at the check, and
+  red on the first fix, at the jump back up; green with both fixes.
+- **For the user.** Open a long chat, click Show Earlier a few times, scroll down to the bottom with the trackpad
+  (and once with Scroll to Bottom), then scroll up: the earlier rows are still there, and the chat did not jump back
+  up. No look changed, so no pictures.
