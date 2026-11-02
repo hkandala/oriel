@@ -10,14 +10,17 @@ extension OrielUITests {
         try await waitForPrompt(first)
         let page = try await writePages(from: first)
         let browser = try await split(first), plugin = try await split(browser)
-        for (pane, label) in [(browser, "oriel:browser#e2edrb \(page)"), (plugin, "oriel:explorer#e2edrp /tmp/")] {
+        let explorer = "oriel:explorer#e2edrp /private/tmp/oriel-e2e-browser/"
+        for (pane, label) in [(browser, "oriel:browser#e2edrb \(page)"), (plugin, explorer)] {
             try await Self.call(one, "pane.rename", ["pane_id": pane, "label": label])
             try await Self.call(one, "pane.report_metadata", ["pane_id": pane, "source": "oriel-panes",
                                                               "tokens": ["oriel-label": "1"], "ttl_ms": 1000])
         }
         restoreHerdrFocusAfter()
         XCTAssertTrue(pageText("oriel-page-one").exists(within: 10))
-        XCTAssertTrue(element("files.\(plugin).page").exists(within: 10))
+        // Its tree drawn, not its loader: the page is what the drag crosses.
+        XCTAssertTrue(element("files.\(plugin).page").descendants(matching: .any)
+            .matching(NSPredicate(format: "label == %@", "one.html")).firstMatch.exists(within: 10))
 
         // Through the helper's drag, which leaves XCUITest free to read the highlight while it holds.
         let from = card(first, 0, 0).withOffset(CGVector(dx: 60, dy: 17)).screenPoint
@@ -30,7 +33,8 @@ extension OrielUITests {
             let right = CGRect(x: frame.midX, y: frame.minY, width: frame.width / 2, height: frame.height)
             var seen = CGRect.null
             XCTAssertTrue(until(4) {
-                seen = indicator.exists ? indicator.frame : .null
+                // One snapshot a look: the last card's highlight may still fade out beside the new one.
+                seen = (try? indicator.firstMatch.snapshot())?.frame ?? .null
                 return abs(seen.minX - right.minX) < 3 && abs(seen.maxX - right.maxX) < 3
                     && abs(seen.minY - right.minY) < 3 && abs(seen.maxY - right.maxY) < 3
             }, "the highlight over \(pane)'s right half \(right): \(seen)")
