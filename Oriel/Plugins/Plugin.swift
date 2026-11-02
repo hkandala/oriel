@@ -356,7 +356,9 @@ extension HostStore {
     private func redrawPlaceholder(_ pane: Pane, _ program: Program) {
         guard pane.drawnLabel != pane.label, !program.foreground.isEmpty else { return }
         pane.drawnLabel = pane.label
-        let pids = program.foreground.map { String($0.pid) }
+        // Never 0 or -1: `kill` would signal a process group, or every process of the user.
+        let pids = program.foreground.filter { $0.pid > 1 }.map { String($0.pid) }
+        guard !pids.isEmpty else { return }
         Task { await machine.exec().succeeds(#"kill -WINCH "$@""#, pids) }
     }
 

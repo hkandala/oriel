@@ -54,8 +54,13 @@ extension AgentCommand {
         let target = try call.optionalArgument().map(call.target) ?? call.asking
         try call.done()
         let (store, pane) = try call.found(target)
-        try await store.request { try await store.balance(pane.tabID, $0) }
-        return AgentOutput(["pane": target.id, "tab": pane.tabID])
+        // Its tab once the writes before it are done: they can move the pane.
+        let tab = try await store.request { client in
+            let tab = store.pane(pane.id)?.tabID ?? pane.tabID
+            try await store.balance(tab, client)
+            return tab
+        }
+        return AgentOutput(["pane": target.id, "tab": tab])
     }
 
     static let copy = AgentCommand(
