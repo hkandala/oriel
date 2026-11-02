@@ -29,7 +29,7 @@ struct Palette: View {
             }
             palette(command, list)
         }
-        .padding(8)
+        .padding(10)
         .frame(width: 480)
         .floatingGlass(in: .rect(cornerRadius: 14))
         // Rex's preview delay.
@@ -58,8 +58,9 @@ struct Palette: View {
             text: command?.name?.current ?? "",
             submit: command?.name.map { name in { text in Task { await name.save(text) } } },
             back: sub == nil ? nil : { back() },
-            rowHeight: 28,
+            rowHeight: 32,
         ) { open = false }
+            .controlSize(.large)
             // A new page starts with a new field and list.
             .id(sub)
     }
@@ -113,7 +114,7 @@ struct Palette: View {
                     .flatMap { command.setting ? "Turn \($0 ? "Off" : "On") \(command.title)" : nil }
                     ?? (opens ? Self.pageTitle(command) : command.title)
                 let item = FilterList.Item(id: "command.\(command.title)", symbol: command.symbol, title: title,
-                                           detail: command.key?.glyphs ?? "",
+                                           keys: command.key?.caps ?? [],
                                            section: (command.group ?? command.section.group).rawValue, opens: opens,
                                            act: {
                                                if opens {

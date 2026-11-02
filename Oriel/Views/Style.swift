@@ -302,6 +302,13 @@ struct MenuRow: View {
                     .foregroundStyle(selected ? Color.white.opacity(0.75) : .secondary).lineLimit(1)
                     .truncationMode(.middle)
             }
+            if !item.keys.isEmpty {
+                HStack(spacing: 3) {
+                    ForEach(Array(item.keys.enumerated()), id: \.offset) { Keycap(text: $1) }
+                }
+                .foregroundStyle(selected ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
+                .accessibilityElement(children: .ignore).accessibilityLabel(item.keys.joined())
+            }
         }
         .padding(.horizontal, 8)
         .frame(height: height)

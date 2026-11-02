@@ -14,6 +14,8 @@ struct FilterList: View {
         var state: AgentState??
         let title: String
         var detail = ""
+        /// A shortcut, one keycap per key (⌘, ⇧, T), after the detail.
+        var keys: [String] = []
         /// Where it changes from the row before: a header above the row, or a divider when empty.
         var section: String?
         /// A dimmed word after the title: a typed palette row's group.
@@ -285,10 +287,9 @@ struct RenameField: View {
 }
 
 extension View {
-    /// A text field in a soft capsule.
+    /// A text field in a soft capsule; roomier and in a larger font at `.controlSize(.large)` (the palette).
     func fieldCapsule() -> some View {
-        textFieldStyle(.plain).padding(.horizontal, 8).padding(.vertical, 5)
-            .background(.primary.opacity(0.07), in: .capsule)
+        modifier(FieldCapsule())
     }
 
     /// Focuses the field as it appears.
@@ -302,6 +303,17 @@ extension View {
                 focused.wrappedValue = true
             }
         }
+    }
+}
+
+private struct FieldCapsule: ViewModifier {
+    @Environment(\.controlSize) private var size
+
+    func body(content: Content) -> some View {
+        let large = size == .large
+        content.textFieldStyle(.plain).transformEnvironment(\.font) { font in font = large ? .system(size: 15) : font }
+            .padding(.horizontal, large ? 12 : 8).padding(.vertical, large ? 9 : 5)
+            .background(.primary.opacity(0.07), in: .capsule)
     }
 }
 

@@ -1,13 +1,15 @@
 import SwiftUI
 
-/// A jump key's hint ("⌘1") on a tab or a workspace row while its modifiers are held.
+/// A jump key's hint ("⌘1") on a tab or a workspace row while its modifiers are held; a palette row's keys, one
+/// cap each.
 struct Keycap: View {
     let text: String
     static let transition = AnyTransition.asymmetric(insertion: .opacity.animation(.easeOut(duration: 0.13)),
                                                      removal: .opacity.animation(.easeOut(duration: 0.1)))
 
     var body: some View {
-        Text(text).font(.system(size: 10, weight: .semibold)).fixedSize()
+        // One glyph's cap is as wide as the widest (⌘), so a palette row's caps line up.
+        Text(text).font(.system(size: 10, weight: .semibold)).fixedSize().frame(minWidth: 10)
             .padding(.horizontal, 4).padding(.vertical, 1)
             .glassEffect(.regular, in: .rect(cornerRadius: 4))
     }
