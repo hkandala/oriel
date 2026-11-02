@@ -200,12 +200,13 @@ Files: the card drag and drop code (`Oriel/Views/Drag*.swift`, the web card host
 - **Cause, found on CI: the jump back up.** With the rows kept, Scroll to Bottom reached the bottom and then jumped to
   the first message. The scroll view had named that row as the last wheel scroll began and put it back in the body
   built for the bottom (a probe: offset 4608, then 16). The trim had hidden this: it removed that row. The bottom
-  now sets the scroll position to the end, so the button and the wheel both stay down.
+  action now sets the scroll position to the end. The fix is in that action, not in the button, so it covers every way
+  down at no cost, though a wheel scroll down did not jump on CI even with the fix only in the button.
 - **Decisions.** Any scroll up pins the block too, so the plain stack grows with every new row until the card closes,
   and a split lays all of it out again (D95 says so). The user asked for this over the trim.
 - **Runs.** The new check (back at the bottom after Show Earlier reached the first message, by the button and by the
-  wheel; the first message is still in the stack and the chat stays down) was red on the old code, at the check, and
-  red on the first fix, at the jump back up; green with both fixes.
+  wheel; the first message is still in the stack and the chat stays down) was red on the old code at the check, red
+  with only the trim removed at the jump back up, and green with both fixes.
 - **For the user.** Open a long chat, click Show Earlier a few times, scroll down to the bottom with the trackpad
   (and once with Scroll to Bottom), then scroll up: the earlier rows are still there, and the chat did not jump back
   up. No look changed, so no pictures.
