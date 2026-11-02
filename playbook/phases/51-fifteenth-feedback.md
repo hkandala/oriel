@@ -187,3 +187,19 @@ Files: the card drag and drop code (`Oriel/Views/Drag*.swift`, the web card host
   user's "sometimes". With the fix, the new test and every DragTests test green.
 - **For the user.** Drag a pane slowly over a browser page and over a File Explorer or Git card: the half or whole-card
   highlight follows the pointer as over a terminal. Then drop a file from Finder on a page that takes uploads.
+
+### Track B
+
+- **Cause.** Reaching the bottom set the chat's oldest shown row (`first`) back to nil, which trimmed the stack to
+  the newest 34 rows and dropped every block Show Earlier had added.
+- **Fix.** The reset at the bottom is gone. The kept row now lasts until the card closes or shows its TUI, or a new
+  chat starts (the empty view's reset). No other code served only the trim.
+- **Fix, the reviewer's should.** Without the reset, a kept row that left the rows (a new session behind an outgoing
+  message, a re-read with new ids) would have stopped the block from pinning again, so new rows would take rows off
+  the top while scrolled up. The block now pins again whenever its kept row is not in the rows.
+- **Decisions.** Any scroll up pins the block too, so the plain stack grows with every new row until the card closes,
+  and a split lays all of it out again (D95 says so). The user asked for this over the trim.
+- **Runs.** The new check (Scroll to Bottom after Show Earlier reached the first message; the first message is still
+  in the stack) was red on the old code (41430825917, at the check) and green with the fix.
+- **For the user.** Open a long chat, click Show Earlier a few times, click Scroll to Bottom, then scroll up: the
+  earlier rows are still there. No look changed, so no pictures.
