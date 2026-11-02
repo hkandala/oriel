@@ -62,7 +62,7 @@ struct WorkingDots: NSViewRepresentable {
 }
 
 extension EnvironmentValues {
-    /// A sidebar page off to the side: its dots stand still.
+    /// A sidebar page off to the side: its working dots and spinners stand still.
     @Entry var offscreen = false
 }
 
@@ -102,7 +102,7 @@ struct Spinner: NSViewRepresentable {
             spin.duration = 0.8
             spin.repeatCount = .infinity
             // A frame per step and no more.
-            spin.preferredFrameRateRange = CAFrameRateRange(minimum: 10, maximum: 20, preferred: 10)
+            spin.preferredFrameRateRange = CAFrameRateRange(minimum: 10, maximum: 20, preferred: 20)
             let phase = Date.now.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 0.8)
             spin.beginTime = ticks.convertTime(CACurrentMediaTime(), from: nil) - phase
             ticks.add(spin, forKey: "spin")
