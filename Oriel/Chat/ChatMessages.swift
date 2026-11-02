@@ -21,7 +21,7 @@ struct ChatMessages: View, Equatable {
     @State private var width: CGFloat?
     @State private var settling: Task<Void, Never>?
     /// The oldest row shown, once the chat left the bottom (new rows then do not move it) or Show Earlier was
-    /// clicked, kept until a new chat starts; nil: the newest `block` rows.
+    /// clicked, kept until the card shows its TUI or a new chat starts; nil: the newest `block` rows.
     @State private var first: String?
     /// Show Earlier's rows are on their way: its spinner shows.
     @State private var earlier = false
@@ -103,7 +103,9 @@ struct ChatMessages: View, Equatable {
 
     private var messages: some View {
         let rows = chat.history.rows(working: chat.phase == .working)
-        let start = first.flatMap { id in rows.firstIndex { $0.id == id } } ?? Self.start(rows[...])
+        // A kept row that is gone (a new session behind an outgoing message, a re-read with new ids) pins again.
+        let kept = first.flatMap { id in rows.firstIndex { $0.id == id } }
+        let start = kept ?? Self.start(rows[...])
         // The view's state and environment the reader's content draws with, read here: a change of either read inside
         // it does not build it again, only a change of what its closure holds (the Scroll to Bottom button never
         // showed). The chat's observed values are tracked inside.
@@ -144,7 +146,7 @@ struct ChatMessages: View, Equatable {
             // new rows. Kept here, not in an onChange, so the body is not built again per row scrolled past.
             .onScrollTargetVisibilityChange(idType: String.self, threshold: 0.01) { visible in
                 hold(atBottom ? nil : visible.first)
-                if !atBottom, first == nil, rows.indices.contains(start) {
+                if !atBottom, kept == nil, rows.indices.contains(start) {
                     first = rows[start].id
                 }
             }
