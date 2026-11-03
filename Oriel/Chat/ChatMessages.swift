@@ -9,7 +9,7 @@ struct ChatMessages: View, Equatable {
     /// In a floating window: the card starts right under its title row, with no header of its own above.
     let floats: Bool
     var composing: FocusState<Bool>.Binding
-    /// While scrolled up, the row at the top, which stays there when the card resizes; nil at the bottom.
+    /// The row at the top, which stays there when the card resizes while scrolled up.
     @State private var top: String?
     /// The newest message is in view.
     @State private var atBottom = true
@@ -136,10 +136,10 @@ struct ChatMessages: View, Equatable {
             // The row at the top (any part of it in view) as the rows in view change. Kept here, not in an onChange, so
             // the body is not built again per row scrolled past.
             .onScrollTargetVisibilityChange(idType: String.self, threshold: 0.01) { visible in
-                top = atBottom ? nil : visible.first
+                top = visible.first
             }
             // From the first rows shown: a new row that took one off the top would move what is in view.
-            .task(id: kept == nil) {
+            .task(id: kept == nil && rows.indices.contains(start)) {
                 if kept == nil, rows.indices.contains(start) {
                     first = rows[start].id
                 }
@@ -149,10 +149,13 @@ struct ChatMessages: View, Equatable {
             .defaultScrollAnchor(.bottom)
             // Scrolled up, rows that change height above (a new width) or come (Show Earlier) would move what is in
             // view: the row that was at the top goes back there; the offset grows by the earlier rows' height.
+            // x: how far the bottom is out of view; at 0 the anchor holds the bottom instead.
             .onScrollGeometryChange(for: CGRect.self) { geometry in
-                CGRect(origin: CGPoint(x: 0, y: geometry.contentOffset.y), size: geometry.contentSize)
+                CGRect(x: geometry.contentSize.height + geometry.contentInsets.bottom - geometry.visibleRect.maxY,
+                       y: geometry.contentOffset.y, width: geometry.contentSize.width,
+                       height: geometry.contentSize.height)
             } action: { old, new in
-                if let top, old.width != new.width {
+                if let top, old.width != new.width, old.minX > 0.5 {
                     proxy.scrollTo(top, anchor: .top)
                 } else if earlier, old.height != new.height {
                     position.scrollTo(y: new.minY + new.height - old.height)

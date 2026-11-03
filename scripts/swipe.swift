@@ -1,10 +1,10 @@
 // A two-finger trackpad swipe at a known speed, for the session swipe test: the pointer to x y (screen
 // points, top left), then a scroll that begins, moves `step` pt sideways `steps` times 16 ms apart and ends, then
 // momentum that decays for about 0.6 s, as a trackpad sends; with `pause` ms, the fingers stop that long before they
-// lift, with no momentum. Posted to the HID system: the sandboxed UI test runner cannot post events, and the app takes
-// scrolls posted to its pid without scrolling. Only over an Oriel window: never into another app (a herdr client).
-// With `vertical` 1, the scroll goes up or down instead, for the stress test's frame meter. With `option` 1, ⌥ is
-// held.
+// lift, and an empty momentum follows at once, as a trackpad sends. Posted to the HID system: the sandboxed UI test
+// runner cannot post events, and the app takes scrolls posted to its pid without scrolling. Only over an Oriel
+// window: never into another app (a herdr client). With `vertical` 1, the scroll goes up or down instead, for the
+// stress test's frame meter. With `option` 1, ⌥ is held.
 // Usage: swift scripts/swipe.swift <x> <y> <step> <steps> [pause [vertical [option]]]
 import CoreGraphics
 import Foundation
@@ -48,11 +48,8 @@ Thread.sleep(forTimeInterval: pause)
 // Fingers that rested lift with an empty momentum right after, as a trackpad's: with none, AppKit goes on at the last
 // moves' speed for about 9 pt.
 post(0, .scrollWheelEventScrollPhase, 4, wait: pause == 0)
-if pause > 0 {
-    post(0, .scrollWheelEventMomentumPhase, 1)
-    post(0, .scrollWheelEventMomentumPhase, 3)
-}
-
-for index in 0 ..< (pause > 0 ? 0 : 41) {
-    post(args[2] * pow(0.9, Double(index)), .scrollWheelEventMomentumPhase, index == 0 ? 1 : index == 40 ? 3 : 2)
+let count = pause > 0 ? 2 : 41
+for index in 0 ..< count {
+    post(pause > 0 ? 0 : args[2] * pow(0.9, Double(index)), .scrollWheelEventMomentumPhase,
+         index == 0 ? 1 : index == count - 1 ? 3 : 2)
 }

@@ -129,7 +129,8 @@ extension OrielUITests {
     }
 
     /// Slow trackpad scrolls at the end of a chat move it exactly as far as the fingers: no snap to the bottom as it
-    /// comes near, no jump as it leaves. A run of tool calls is as wide as a reply's bubble.
+    /// comes near, no jump as it leaves, and new rows move nothing in view. A run of tool calls is as wide as a reply's
+    /// bubble.
     func testTheChatsEndMovesWithTheFingers() async throws {
         let pane = try await startChat().pane
         app.typeText("many 25\r")
@@ -174,6 +175,14 @@ extension OrielUITests {
         XCTAssertEqual(stack.frame.minX, last.frame.minX - 18, accuracy: 1, "\(stack.frame) \(last.frame)")
         XCTAssertEqual(stack.frame.maxX, user.frame.maxX - 18 - 48, accuracy: 1, "\(stack.frame) \(user.frame)")
         XCTAssertEqual(tool.frame.maxX, stack.frame.maxX, accuracy: 1, "\(tool.frame) \(stack.frame)")
+
+        // Scrolled up a little, a new turn comes below without moving what is in view: no row leaves the top.
+        let place = user.frame.minY
+        app.typeText("many 3\r")
+        let lasts = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == %@ AND value == %@", "chat.\(pane).reply", "Last."))
+        XCTAssertTrue(until(10) { lasts.count == 2 })
+        XCTAssertEqual(user.frame.minY, place, accuracy: 1)
     }
 
     /// After `scroll` the chat is at the bottom and stays there, with the first message still in the stack. The button

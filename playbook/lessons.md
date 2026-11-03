@@ -83,6 +83,10 @@ Problems that came back across phases, and the rule that stops each. How we work
 
 ## SwiftUI and AppKit
 
+- **Never give a `ScrollPosition` binding back what the scroll view wrote into it.** It names a row as a scroll
+  begins or ends, and the next body puts that row back at the top: a jump (phases 49, 51 and 52). Use a binding that
+  drops the writes and set it only for the app's own scrolls. `defaultScrollAnchor(.bottom)` alone follows new rows
+  only at the exact bottom, and keeps the offset when scrolled up by any amount.
 - **Inside a sideways scroll view, a SwiftUI scroll view of both axes gets no vertical wheel**: only its
   scroll bar moves it. Nest one scroll view per axis. A probe window that sends wheel events to itself
   (`window.sendEvent`) shows it without the GUI.

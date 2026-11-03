@@ -214,9 +214,10 @@ then working and no status when all idle". Build exactly `resources/research/ui/
   amount it keeps its offset. Gone: the `held` state and `hold`, the anchor switch for size changes, the scroll to
   the end at the bottom, the Show Earlier offset kept per frame and its pre-pin. The `ScrollPosition` binding now
   drops what the scroll view writes, and the app writes it only for Show Earlier's offset. The oldest row shown is
-  pinned from the first rows shown, not when the chat leaves the bottom, so a new row never takes a row off the top
-  while the chat is between 1 and 40 pt above the end. Kept: the top row put back after a new width while scrolled
-  up, which is not about the bottom.
+  pinned as soon as rows show (also when a new chat's first message showed before any row), not when the chat leaves
+  the bottom, so a new row never takes a row off the top while the chat is between 1 and 40 pt above the end. Kept:
+  the top row put back after a new width while scrolled up, now at any offset above the exact bottom, not only past
+  the button's 40 pt.
 - **Measured** (real trackpad scrolls posted to the HID system, `scripts/swipe.swift`, 2 pt every 16 ms, the
   offset logged at every frame by a temporary probe): before, 50 pt of fingers moved the chat 61.5 pt (a 9 pt step
   in one frame as the scroll began); after, each scroll near the end moved the fingers' distance plus 1–3.5 pt, all
@@ -225,8 +226,10 @@ then working and no status when all idle". Build exactly `resources/research/ui/
   at the last moves' speed, about 9 pt, in every scroll view (a bare SwiftUI probe window did it too). A trackpad
   sends an empty momentum right after a rested lift; `swipe.swift` with a pause now does too, which cuts it to a
   frame or two before that event lands. The new test allows 4 pt for it.
-- **Runs.** The new test (slow scrolls up past the button's 40 pt, down past it, and around; then the run's edges)
-  was red on the old code (61.5 against 50) and is green.
+- **Runs.** The new test (slow scrolls up past the button's 40 pt, down past it, and around; the run's edges; a new
+  turn while 40 pt up) was red on the old code (61.5 against 50) and is green. The new turn's check is red with no pin
+  (the row in view moved 859 pt); the reviewer's case, a pin missed because a new chat's first message showed before any
+  row, depends on timing and stayed green without its fix, so its fix stands by its reading.
 - **For the user.** In a long chat at the bottom, scroll up and down slowly by a few lines with the trackpad: the
   messages move only as far as the fingers, with no snap as the Scroll to Bottom button shows or hides. Let an agent
   work while scrolled up a few points: what is in view stays put. Open a run of tool calls: its rows end where a long
