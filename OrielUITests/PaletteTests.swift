@@ -46,9 +46,10 @@ extension OrielUITests {
         XCTAssertTrue(lit.exists(within: 2))
         lit.hover()
         XCTAssertTrue(lit.has(\.isSelected, true, within: 2))
-        let top = lit.frame.minY
+        // The pointer rests on the row's middle: the scroll takes the row off it.
+        let pointer = lit.frame.midY
         lit.scroll(byDeltaX: 0, deltaY: -40)
-        XCTAssertTrue(until(2) { lit.frame.minY < top - 10 }, "not scrolled: \(top) → \(lit.frame.minY)")
+        XCTAssertTrue(until(2) { lit.frame.maxY < pointer }, "not scrolled off: \(pointer) → \(lit.frame)")
         XCTAssertFalse(until(1) { !lit.isSelected }, "the light followed the scroll")
         other.hover()
         XCTAssertTrue(other.has(\.isSelected, true, within: 2))

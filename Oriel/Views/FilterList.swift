@@ -142,8 +142,13 @@ struct FilterList: View {
         }
         .onAppear {
             filter = text
+            scrolls.map(NSEvent.removeMonitor)
             scrolls = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { event in
-                MainActor.assumeIsolated { pointer = NSEvent.mouseLocation }
+                MainActor.assumeIsolated {
+                    if pointer != NSEvent.mouseLocation {
+                        pointer = NSEvent.mouseLocation
+                    }
+                }
                 return event
             }
         }

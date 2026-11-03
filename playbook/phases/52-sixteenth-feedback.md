@@ -159,3 +159,22 @@ then working and no status when all idle". Build exactly `resources/research/ui/
     text x in both views and the left x of every row's first element and every group label.
 
 ## Findings
+
+### Track E
+
+- **Cause, palette hover (19).** A row lit on hover only when the pointer had moved since the panel opened or the keys
+  last moved the light. After the first move that held forever, so every row that scrolled under the resting pointer
+  took the light. **Fix:** a local monitor takes the pointer's place on each scroll event, before the rows move, so
+  only a real move lights a row. Not the last hover's place: a busy app runs hovers late (phase 24).
+- **Decisions, address bar (20).** Return searches Google (`https://www.google.com/search?q=…`) for text with a space,
+  or with no scheme, no dot and a host that is neither `localhost` nor IPv6. So `localhost:3000`, `example.com` and
+  `foo/bar.html` load; `swift actors`, `oriel` and `devbox:3000` search. A typed path (`/tmp/x.html`) does nothing, as
+  before. Only the address field searches: labels, links and `oriel open` never do. Placeholder "Ask Google or type a
+  URL". Pictures: `/tmp/oriel-shots/t52e/address-before.png` → `address-after.png`.
+- **Fix, tab pills (21).** The phase 49 motion is gone in full (`Transaction.tabMotion`, the scale transition,
+  `Ahead.born`, FlickerTests' ⇧⌘W step): `git diff c034b5c3^` is empty for the files it touched, except later work.
+- **Cause, `oriel open` query (26).** `URL(filePath:)` encodes `?` and `#` into the file name (`x.html%3Fv=3`).
+  **Fix:** the path ends at the first `?` or `#`; the rest is appended to the file URL. A file whose name holds `?` or
+  `#` opens only as a `file://` URL with them encoded.
+- **For the user.** In ⌘K, rest the pointer on a row and scroll with the wheel and the trackpad: the light stays. Type
+  `swift actors` and `localhost:3000` in a browser card's address field. Press ⌘T and ⌘W: the bar changes at once.

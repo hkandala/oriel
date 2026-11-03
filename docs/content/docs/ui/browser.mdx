@@ -103,11 +103,11 @@ server's terminal.
   the needs-you color on a 0.18 fill of it). Under the pointer it shows the
   text cursor and its fill goes to 0.1. A click or ⌘L selects the whole
   address under a 1.5 pt accent edge. Return loads it and gives the keyboard
-  to the page. Text that is no address goes to a Google search
+  to the page. Text that is not an address goes to a Google search
   (`https://www.google.com/search?q=…`): text with a space, or text with no
-  scheme (`https://`), no dot and no loopback host (`localhost`, `::1`). So
-  `localhost:3000` and `example.com` load, and `swift actors` and `oriel`
-  search. Esc puts back the current address and gives the keyboard to the
+  scheme (`https://`), no dot, and a host that is not `localhost` or an IPv6
+  address (`[::1]`). So `localhost:3000` and `example.com` load, and
+  `swift actors`, `oriel` and `devbox:3000` search. Esc puts back the current address and gives the keyboard to the
   page.
 - **Empty card.** Until its first page, the card shows a 44 pt `globe` in
   tertiary. A click on it gives the address field the keyboard. The web view
