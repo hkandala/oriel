@@ -10,9 +10,9 @@ words are quoted; the decisions under them are the orchestrator's.
 
 Screenshots in `.build/fb52/` (not committed): `1.08.48.png` (chat tool rows), `1.26.38.png` (Git toast),
 `1.31.25.png` (Working Tree header), `1.34.54.png` (Markdown task boxes), `1.41.11.png` (Markdown table),
-`1.44.12.png` (Markdown lists). Mockups: `~/Downloads/oriel-research/sidebar-mockups.html`.
+`1.44.12.png` (Markdown lists), `2.29.45.png` (the tab hover card). Mockups: `~/Downloads/oriel-research/sidebar-mockups.html`.
 
-**Do not start until the user picks a sidebar design.** Tracks push straight to main after review and green checks.
+**Do not start until the user confirms.** The sidebar design is picked: B as in `~/Downloads/oriel-research/sidebar-mockup-B.html` (Track F). Tracks push straight to main after review and green checks.
 
 ## Track A: the chat (items 1–2)
 
@@ -97,7 +97,7 @@ we were in one page and go back to previous page? is there a way to cache it or 
 18. **No empty outline.** "in markdown if there is no outline to show, don't show the sidebar, right now it opens up
     to an empty sidebar". No headings: the outline toggle is disabled and the sidebar stays closed.
 
-## Track E: the app (items 19–21)
+## Track E: the app (items 19–21, 26)
 
 19. **Palette hover.** "in cmd+k when my mouse is in one position hovering on top of cmd+k menu and i scroll using
     mouse, i see that highlighted blue section keeps moving and that's distracting, highlighted blue thing should move
@@ -110,8 +110,44 @@ we were in one page and go back to previous page? is there a way to cache it or 
 21. **No tab pill animations.** "recently we added tab pill animations right showing the tab pill movements on cmd+t
     and cmd+w, can we drop those animations and go back as before, i am not liking them much". Remove the tab motion
     (the transaction, the born views kept for it, the test step) and go back to the instant bar.
+26. **`oriel open` of a local file with a query.** Found by the orchestrator: `oriel open browser "/tmp/x.html?v=3"`
+    encodes the `?` into the file name (`x.html%3Fv=3`), so the page does not load. A local path keeps its `?query`
+    and `#fragment` as the URL's.
 
-## Track F: the sidebar (items 22–24) — waits for the user's pick
+## Track F: the sidebar, tab pills and hover card (items 22–26) — design B
+
+The user picked design B and refined it: "okay i like B, but let's improve it a bit more, let's use all t3code icons
+for each status, just the icons and color scheme, workspace view is good, in agents view, instead of showing icon
+space time, let's wrap them in a box of color same as status color, with icon and time in same status color", then
+"i don't like blocked icon, is there anything in red or orange color and circular in shape so all icons are
+circular, and in agent view that status thing should take only first line, right now i see it takes up both lines
+and then in middle, that's weird as hell, and also in workspace view, tell me the order of status priority, coz
+within workspace there can be many agents in different status, we should show needs you first, followed by done and
+then working and no status when all idle". Build exactly `sidebar-mockup-B.html`:
+
+- **Icons, static, all circular** (lucide shapes drawn as the app's own symbols, like `source.branch`): Working
+  `circle-dashed` in blue, Needs you `circle-alert` in orange, Done `circle-check` in emerald. Dark: blue #60a5fa,
+  orange #fb923c, emerald #34d399; light: #3b82f6, #ea580c, #10b981. Idle: no icon. No animation anywhere: the
+  spinner (`Spinner`) and the working dots (`WorkingDots`) go, with their code.
+- **Workspaces view:** no leading slot. The session header's text, the names, the branch lines and "No matching
+  workspaces" start at one x. The state icon (16 pt) sits at the row's right end. No word, no time.
+- **Agents view:** the program tile on the header's x, the name after it. At the end of the **first line** a box in
+  the state color: a 14 % tint, a 1 px border at 45 %, 6 pt corners, the icon and the time in the state color
+  (tabular digits). The second line (workspace · program) runs full width under it. Idle: no box, its age in gray.
+  Group labels on the header's x. The header stays where it is in the Workspaces view.
+- **Priority** (a workspace or a tab with several agents): Needs you, then Done (unseen), then Working; nothing when
+  all are idle. This is `AgentState`'s order today; write it in the design pages.
+
+22. **Static icons everywhere.** "in workspace view, we don't need to show any timer or status full text, just an
+    icon should be good to indicate things, and any working icon etc let's not have animations please, same with tab
+    pill as well, right now in tab pill we show a working dot animation, instead one standard static icon for working
+    no animated ones" and "also same status icons should be shown in tab pills as well instead of dots". The tab pill
+    loses the dot on its program tile and the working dots; its state icon (12 pt, by the priority above) sits at the
+    pill's trailing end, where the close button shows on hover. The card header uses the same icons.
+25. **The tab hover card.** "on tab hover we show the same icon with no text, but that icon should be shown only for
+    the agent, like in the screenshot you see there are two dones, where there is only one pane, for tab header also
+    we show done, let's not show that, only show status beside the pane info". Screenshot `2.29.45.png`. The card's
+    title row shows no state; each agent pane's row ends with its state icon only (no word); other panes show none.
 
 22. **The picked design.** "essentially we should have regular workspace view and agents view, in workspace view, we
     don't need to show any timer or status full text, just an icon should be good to indicate things, and any
