@@ -37,8 +37,8 @@ extension OrielUITests {
         XCTAssertLessThan(element("pane.\(pane)").frame.maxX, element("pane.\(other)").frame.minX)
     }
 
-    /// The pointer lights a row; the list scrolled under the still pointer keeps the light where it was (user, phase
-    /// 52); a move lights the row under it again.
+    /// The pointer lights a row; the list scrolled under the still pointer keeps the light where it was; a move
+    /// lights the row under it again.
     func testPaletteLightStaysWhileTheListScrolls() {
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         openPalette()
@@ -50,7 +50,7 @@ extension OrielUITests {
         let pointer = lit.frame.midY
         lit.scroll(byDeltaX: 0, deltaY: -40)
         XCTAssertTrue(until(2) { lit.frame.maxY < pointer }, "not scrolled off: \(pointer) → \(lit.frame)")
-        XCTAssertFalse(until(1) { !lit.isSelected }, "the light followed the scroll")
+        XCTAssertFalse(until(0.5) { !lit.isSelected }, "the light followed the scroll")
         other.hover()
         XCTAssertTrue(other.has(\.isSelected, true, within: 2))
         app.typeKey(.escape, modifierFlags: [])

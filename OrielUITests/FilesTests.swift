@@ -259,9 +259,10 @@ extension OrielUITests {
             try await labelEnds(pane, " \(root)/\(name)")
             let last = try await isLast(opened)
             XCTAssertTrue(last, "\(name)'s tab is not last")
-            // Once the bar shows the new tab: a selection that follows it would have come with it.
+            // Once the bar shows the new tab, the card's tab stays selected: the app follows a new tab only after it
+            // shows.
             XCTAssertTrue(element("tab.\(opened)").exists(within: 5), name)
-            XCTAssertTrue(element("tab.\(tab)").isSelected, name)
+            XCTAssertFalse(until(0.5) { !element("tab.\(tab)").isSelected }, name)
             XCTAssertTrue(hasKeyboard(row(name, in: tree)), name)
         }
         try await send("rm -rf \(repo)\r", to: shell)

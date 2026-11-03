@@ -308,9 +308,14 @@ extension OrielUITests {
         action()
         let opened = try await newTabID(after: before)
         closeAfter("tab", opened)
-        // Once the bar shows it: a ⌘-click opens behind, and the card's tab stays selected.
+        // Once the bar shows it: a ⌘-click opens behind, and the card's tab stays selected (the app follows a new tab
+        // only after it shows).
         XCTAssertTrue(element("tab.\(opened)").exists(within: 5))
-        XCTAssertTrue(element("tab.\(tab ?? opened)").has(\.isSelected, true, within: 5))
+        if let tab {
+            XCTAssertFalse(until(0.5) { !element("tab.\(tab)").isSelected }, "\(opened) took the selection")
+        } else {
+            XCTAssertTrue(element("tab.\(opened)").has(\.isSelected, true, within: 5))
+        }
         // Once selected: the app selects a new tab after its last write.
         let last = try await isLast(opened)
         XCTAssertTrue(last, "\(opened) is not last")
