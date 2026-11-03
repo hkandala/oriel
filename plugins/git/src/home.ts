@@ -382,8 +382,8 @@ export async function make(place: Page, root: string) {
   // While the page shows, a read after each change under the root; when it shows again, one for the changes meanwhile.
   api.files.watch(root, () => void load())
   message.value = oriel.state.get<{ draft?: string }>()?.draft ?? ""
-  document.title = ""
   await load()
+  document.title = ""
   // Once its form shows: hidden, it has no height.
   if (message.value) grow()
   // From a diff's Git Home: at the change or the commit it opened.

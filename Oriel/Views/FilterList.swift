@@ -313,7 +313,7 @@ extension View {
 
     /// Focuses the field as it appears.
     func focusSoon(_ focused: FocusState<Bool>.Binding, _ asks: Bool = true) -> some View {
-        task {
+        task(id: asks) {
             guard asks else { return }
             // ponytail: focus asked for as the field appears is dropped (AppKit has not made it a key view yet), and
             // a single later ask was sometimes dropped too (⌘K, then typing went nowhere); ask every 50 ms until it

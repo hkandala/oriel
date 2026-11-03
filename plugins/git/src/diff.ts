@@ -437,11 +437,8 @@ export async function make(place: Page, root: string, source: string) {
   })
   // While the page shows, the working tree asks for its patch again after each change under the root (and draws only
   // the files that changed), and a diff whose first read failed tries again; also once when it shows again.
-  let drawn = false, missed = false
-  api.files.watch(root, () => {
-    if (!drawn) missed = true
-    else if (source === "uncommitted" || patch === undefined) void refresh()
-  })
+  // A change while it draws calls once when it shows.
+  api.files.watch(root, () => (source === "uncommitted" || patch === undefined) && void refresh())
   api.controls.set("diff.file-list", { title: list ? "Hide File List" : "Show File List" })
   api.controls.set("diff.wrap", { enabled: !split })
   // Read first, then draw all of it in one go: the page before (the home, or the diff a Parent leaves) stays until
@@ -451,9 +448,6 @@ export async function make(place: Page, root: string, source: string) {
     : oriel.git.show(root, source).catch(() => undefined)])
   describe(facts)
   apply(next)
-  drawn = true
-  // A change in the work tree while it read.
-  if (missed) void refresh()
   if (place.at && files.some((file) => file.name === place.at)) reveal(place.at)
   // Back at this diff with a file (a change row of the home): a scroll to it.
   api.on("place", ({ at }) => at && files.some((file) => file.name === at) && reveal(at))

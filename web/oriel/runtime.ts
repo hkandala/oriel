@@ -247,7 +247,7 @@ function make(arg: string, at?: string): Kept {
     },
     files: {
       value: Object.create(oriel.files, {
-        watch: { value: (path: string, fn: () => void) => own(oriel.files.watch(path, () => (current === kept ? fn() : kept.due.add(fn)))) },
+        watch: { value: (path: string, fn: () => void) => own(watch(path, () => (current === kept ? fn() : kept.due.add(fn)))) },
       }),
     },
   })
@@ -279,7 +279,10 @@ async function fill(arg: string, at?: string) {
   }
   if (kept.dropped) return
   kept.drawn = true
+  // Its draw set the card's title: the page's own, and the shown page's again while that one stays.
+  kept.title = document.title
   if (context.arg === arg) present(kept)
+  else if (current?.title !== undefined) document.title = current.title
   // A page drawn again takes the old one's place, unless the old one shows: the card came back to it meanwhile.
   for (const other of pages) if (other !== kept && other !== current && other.page.arg === arg) drop(other)
 }
@@ -324,6 +327,24 @@ function present(kept: Kept, again?: { arg: string; at?: string }) {
   for (const page of drawn.slice(0, Math.max(0, drawn.length - 5))) drop(page)
   // A page takes the keyboard on its window's focus, which it had.
   if (document.hasFocus()) dispatchEvent(new Event("focus"))
+}
+
+/** One watch of the machine per path for all pages: on a remote machine each one polls. */
+const watched = new Map<string, { fns: Set<() => void>; off: Off }>()
+function watch(path: string, fn: () => void): Off {
+  let shared = watched.get(path)
+  if (!shared) {
+    const fns = new Set<() => void>()
+    shared = { fns, off: oriel.files.watch(path, () => [...fns].forEach((each) => each())) }
+    watched.set(path, shared)
+  }
+  const { fns, off } = shared
+  fns.add(fn)
+  return () => {
+    if (!fns.delete(fn) || fns.size) return
+    watched.delete(path)
+    off()
+  }
 }
 
 function drop(kept: Kept) {
