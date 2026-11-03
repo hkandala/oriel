@@ -51,10 +51,6 @@ const look = {
   [data-item-selected="true"] > [data-item-section="icon"] { color: var(--dim); }
   :host(:not([data-keys])) [data-type="item"]::before { outline: none !important; }`,
 }
-/** Each root's open folders, scroll and git's letters as the card left it: the tree comes back as it was (Back, the
- *  root again). */
-const memory = new Map<string, { open: string[]; scroll: number; changes: Change[] }>()
-
 /** Whether a name is a dotfile's, which the tree hides unless row 2's Hidden Files is on. */
 const dotted = (path: string) => /(^|\/)\.[^/]/.test(path)
 
@@ -118,19 +114,7 @@ export async function show(place: Place): Promise<Reveal> {
   }
   tree.render({ containerWrapper: host })
   results.render({ containerWrapper: matches })
-  /** The tree's scroll view, in its shadow root. */
-  const scroller = () =>
-    tree.getFileTreeContainer()?.shadowRoot?.querySelector<HTMLElement>("[data-file-tree-virtualized-scroll]")
-  /** The tree drew: a place left before it did keeps the root's memory as it was. */
-  let drawn = false
   keep(() => {
-    if (drawn) {
-      memory.set(top, {
-        open: [...children.keys()].filter((at) => at && folder(at)?.isExpanded()),
-        scroll: scroller()?.scrollTop ?? 0,
-        changes,
-      })
-    }
     tree.cleanUp()
     results.cleanUp()
   })
@@ -139,7 +123,20 @@ export async function show(place: Place): Promise<Reveal> {
     root.toggleAttribute("data-keys", on)
     for (const each of [tree, results]) each.getFileTreeContainer()?.toggleAttribute("data-keys", on)
   }
-  root.addEventListener("keydown", (event) => event.key.startsWith("Arrow") && ring(true), true)
+  root.addEventListener("keydown", (event) => {
+    // Before a key moved it, the row with the keyboard shows nothing: the first ↓ goes to the first row (`..` when
+    // shown), the first ↑ to the last, rather than one past the row nobody sees.
+    const shown = filter ? results : tree, vertical = event.key === "ArrowDown" || event.key === "ArrowUp"
+    if (vertical && !event.shiftKey && !root.hasAttribute("data-keys") && document.activeElement !== up
+      && !shown.getSelectedPaths().length) {
+      event.preventDefault()
+      event.stopPropagation()
+      if (event.key === "ArrowUp") shown.focusLastItem()
+      else if (up.hidden) shown.focusFirstItem()
+      else up.focus()
+    }
+    if (event.key.startsWith("Arrow")) ring(true)
+  }, true)
   root.addEventListener("pointerdown", () => ring(false), true)
 
   /** One at a time: two listings of a folder at once would add its entries twice. None once the place left. */
@@ -216,12 +213,14 @@ export async function show(place: Place): Promise<Reveal> {
     if (!at) show()
   }
 
-  /** The message in the middle of the card: the root's listing failed, or the filter matches nothing. */
+  /** The message in the middle of the card: the root's listing failed, the filter matches nothing, or the root has
+   *  nothing to show. */
   function show() {
-    const none = Boolean(filter) && !matched
-    message.hidden = !failed && !none
-    message.querySelector("p")!.textContent = failed ? `Can't list ${top}` : none ? "No matching files" : ""
-    const icon = failed ? "folder.badge.questionmark" : "magnifyingglass"
+    const none = Boolean(filter) && !matched, empty = !filter && !failed && children.get("")?.size === 0
+    message.hidden = !failed && !none && !empty
+    message.querySelector("p")!.textContent = failed ? `Can't list ${top}`
+      : none ? "No matching files" : empty ? "This folder is empty" : ""
+    const icon = failed ? "folder.badge.questionmark" : empty ? "folder" : "magnifyingglass"
     if (!message.hidden && message.dataset.icon !== icon) {
       message.dataset.icon = icon
       void oriel.symbol(icon, 30).then((url) => message.style.setProperty("--symbol", `url(${url})`), () => {})
@@ -296,16 +295,6 @@ export async function show(place: Place): Promise<Reveal> {
     item.select()
     tree.focusPath(item.getPath())
     tree.scrollToPath(item.getPath(), offset && { offset })
-  }
-
-  /** The folders open as the card left this root, parents first; each depth's listings at once. */
-  async function reopen(open: string[]) {
-    const depth = (at: string) => at.split("/").length
-    for (const level of [...new Set(open.map(depth))].sort((a, b) => a - b)) {
-      const here = open.filter((at) => depth(at) === level && folder(at))
-      await Promise.all(here.map((at) => (unlisted.has(at) || !children.has(at) ? list(at) : undefined)))
-      for (const at of here) folder(at)?.expand()
-    }
   }
 
   // A folder lists when the user opens it.
@@ -435,7 +424,7 @@ export async function show(place: Place): Promise<Reveal> {
   // The app gives the card the keyboard (also as it opens, from main.ts); a frame later, so a click that gave a row
   // the keyboard keeps it (else the tree scrolls to its old row between the press and the release).
   const given = () => requestAnimationFrame(() => {
-    if (document.activeElement !== up && !(filter ? results : tree).getFileTreeContainer()?.shadowRoot?.activeElement) {
+    if (place.shown() && document.activeElement !== up && !(filter ? results : tree).getFileTreeContainer()?.shadowRoot?.activeElement) {
       take()
     }
   })
@@ -443,25 +432,10 @@ export async function show(place: Place): Promise<Reveal> {
   keep(() => removeEventListener("focus", given))
 
   // Whether the root is a repository's with the first listing, so it dims what git ignores (one wait for both, as
-  // each starts a process); the rows as the card left them, and a landing's, before the tree shows; then git's letters.
-  const kept = memory.get(top)
-  /** The tree draws its rows a frame after a change. */
-  const frame = () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)))
+  // each starts a process); a landing's row before the tree shows; then git's letters.
   await run(() => list("", rooted()))
-  await run(async () => {
-    if (kept) {
-      await reopen(kept.open)
-      await frame()
-      const view = scroller()
-      if (view) view.scrollTop = kept.scroll
-      changes = kept.changes
-      showStatus()
-    }
-    // With a memory, the landing only comes into view: a file opened from the filter left no scroll.
-    if (place.at) await reveal(place.at, kept && "nearest")
-    if (kept) await frame()
-  })
-  drawn = true
+  if (place.at) await run(() => reveal(place.at!))
   run(git)
-  return (at) => void run(() => reveal(at))
+  // Back on the kept tree: the row it came back from, scrolled into view only when it is out of it.
+  return (at) => void run(() => reveal(at, "nearest"))
 }

@@ -453,7 +453,7 @@ export async function show(place: Place): Promise<Reveal> {
   // Copy in Read, whose keyboard is on the scroller: the source of the selection, also of lines not drawn (Select
   // All's selection reaches past the editor).
   const copy = (event: ClipboardEvent) => {
-    const text = edit || event.defaultPrevented ? undefined : copied(view)
+    const text = edit || event.defaultPrevented || !place.shown() ? undefined : copied(view)
     if (text === undefined) return
     event.clipboardData?.setData("text/plain", text)
     event.preventDefault()

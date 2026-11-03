@@ -46,11 +46,11 @@ extension Page {
 
     /// An open from the card of terminal `source`: in the card itself when it is of that kind (`Plugin.go`); else a
     /// linked open, a new herdr tab at the end of the card's workspace, in its folder (also from a floating window),
-    /// or a pane to the card's side, which the snapshot after it selects with the keyboard; in the selected tab's
-    /// workspace once the card is gone. Its card lands at a line of a file or a diff's file, once (not in the
-    /// label).
+    /// or a pane to the card's side, which the snapshot after it selects with the keyboard unless it opens in the
+    /// `background`; in the selected tab's workspace once the card is gone. Its card lands at a line of a file or a
+    /// diff's file, once (not in the label).
     func open(_ plugin: PluginManifest, arg: String, at place: String? = nil, from source: String,
-              how: Opening) async
+              how: Opening, background: Bool = false) async
     {
         if how == .here, let shown = terminals.builtPlugin(source), shown.manifest.id == plugin.id {
             return shown.go(arg, at: place)
@@ -72,7 +72,9 @@ extension Page {
             if let place, let terminalID = pane.terminalID {
                 terminals.landings[terminalID] = place
             }
-            follow(pane, pane.terminalID)
+            if !background {
+                follow(pane, pane.terminalID)
+            }
         }
     }
 }

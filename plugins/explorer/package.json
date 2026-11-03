@@ -1,6 +1,6 @@
 {
   "name": "@oriel/explorer",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "description": "Files and folders",
   "keywords": ["files", "tree", "folder", "finder"],
@@ -46,7 +46,7 @@
   "oriel": {
     "id": "explorer",
     "name": "File Explorer",
-    "api": 1,
+    "api": 2,
     "entry": "dist/main.js",
     "icon": "folder",
     "opens": { "folders": true, "files": ["*"] },

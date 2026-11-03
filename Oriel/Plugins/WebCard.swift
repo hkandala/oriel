@@ -21,7 +21,7 @@ final class WebCard {
     /// A linked open's landing, for the first load only (`oriel.card.at`).
     @ObservationIgnored private(set) var place: String?
     /// Opens a link from the page, in the card or beside it (`Page.open(_:arg:at:from:how:)`).
-    @ObservationIgnored var open: ((PluginManifest, String, String?, Opening) -> Void)?
+    @ObservationIgnored var open: ((PluginManifest, String, String?, Opening, Bool) -> Void)?
     var dirty = false
     /// The page drew its first rows or its file: the loader goes.
     var ready = false

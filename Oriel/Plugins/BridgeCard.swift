@@ -44,7 +44,7 @@ extension Bridge {
     }
 
     /// In the card (a place of this plugin), a new tab at the end of the card's workspace (the default), or a pane to
-    /// its side.
+    /// its side; behind it in the background, the selection and the keyboard kept.
     private func open(_ args: [String: Any], _ plugin: Plugin) throws {
         guard let arg = args["arg"] as? String else { throw PluginError("failed", "arg is missing") }
         let how: Opening = switch args["how"] as? String {
@@ -52,7 +52,8 @@ extension Bridge {
         case "side": .side
         default: .tab
         }
-        try plugin.web.open?(opener(arg, args["plugin"] as? String), arg, args["at"] as? String, how)
+        try plugin.web.open?(opener(arg, args["plugin"] as? String), arg, args["at"] as? String, how,
+                             args["background"] as? Bool ?? false)
     }
 
     /// The toast the page waits on goes: its promise resolves with no button.

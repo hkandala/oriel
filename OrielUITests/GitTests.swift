@@ -219,11 +219,11 @@ extension OrielUITests {
         element("pane.\(card).diff.next").click()
         element("pane.\(card).diff.next").click()
         XCTAssertTrue(far.has(\.isHittable, true, within: 3))
-        try await commandClick(far, root: root)
+        try await commandClick(far, behind: tab, root: root)
         try await show(tab)
         try await sideBySide(card, page, far)
         XCTAssertTrue(far.has(\.isHittable, true, within: 3), "far \(far.frame), page \(page.frame)")
-        try await commandClick(far, root: root)
+        try await commandClick(far, behind: tab, root: root)
         try await show(tab)
     }
 
@@ -245,8 +245,8 @@ extension OrielUITests {
 
     /// ⌘-click on the line opens the file at the line in a new tab at the end; the editor draws only the lines in
     /// view.
-    private func commandClick(_ line: XCUIElement, root: String) async throws {
-        let file = try await opens("\(root)/a.txt") {
+    private func commandClick(_ line: XCUIElement, behind tab: String, root: String) async throws {
+        let file = try await opens("\(root)/a.txt", behind: tab) {
             XCUIElement.perform(withKeyModifiers: .command) { line.click() }
         }
         let editor = element("file.\(file).page").textViews.firstMatch
@@ -302,16 +302,21 @@ extension OrielUITests {
         }
     }
 
-    /// The action opens a file card for the path in a new tab at the end, selected; its pane.
-    private func opens(_ path: String, _ action: () -> Void) async throws -> String {
+    /// The action opens a file card for the path in a new tab at the end, selected, or behind `tab`; its pane.
+    private func opens(_ path: String, behind tab: String? = nil, _ action: () -> Void) async throws -> String {
         let before = try await tabIDs()
         action()
         let opened = try await newTabID(after: before)
         closeAfter("tab", opened)
-        XCTAssertTrue(element("tab.\(opened)").has(\.isSelected, true, within: 5))
+        // Once the bar shows it: a ⌘-click opens behind, and the card's tab stays selected.
+        XCTAssertTrue(element("tab.\(opened)").exists(within: 5))
+        XCTAssertTrue(element("tab.\(tab ?? opened)").has(\.isSelected, true, within: 5))
         // Once selected: the app selects a new tab after its last write.
         let last = try await isLast(opened)
         XCTAssertTrue(last, "\(opened) is not last")
+        if tab != nil {
+            try await show(opened)
+        }
         let pane = try await pane(of: opened), label = try await paneLabel(pane)
         XCTAssertTrue(label.hasPrefix("oriel:explorer#") && label.hasSuffix(" \(path)"), label)
         return pane

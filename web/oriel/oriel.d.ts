@@ -1,4 +1,4 @@
-// The plugin API, version 1 (plugins/api): the object a plugin's entry gets. The app ships it as the host
+// The plugin API, version 2 (plugins/api): the object a plugin's entry gets. The app ships it as the host
 // types package `@oriel/plugin-api`; a plugin lists that in `peerDependencies` as "*" and imports only its types:
 //
 //   import type { Oriel } from "@oriel/plugin-api"
@@ -15,6 +15,8 @@ export interface Oriel {
   readonly state: State
   readonly controls: Controls
   readonly theme: Theme
+  /** @since 2 */
+  readonly pages: Pages
   /** Needs `clipboard`. */
   readonly clipboard: { write(text: string): Promise<void> }
   /** The native context menu at the pointer. Resolves with the picked item's value, or undefined. */
@@ -29,7 +31,14 @@ export interface Oriel {
   /** An open of a file, a folder (ends in `/`), a URL or a plugin's argument: in this card, in a new tab at the end of
    *  this card's workspace (the default) or in a pane to its side. No `plugin`: the file's default plugin, the browser for
    *  a web address. `at`: the new card's landing (`card.at`). */
-  open(arg: string, options?: { plugin?: string; how?: "card" | "tab" | "side"; at?: string }): Promise<void>
+  open(arg: string, options?: {
+    plugin?: string
+    how?: "card" | "tab" | "side"
+    at?: string
+    /** @since 2. A new tab or pane opens behind: the selected tab and the keyboard stay where they are (a ⌘- or
+     *  ⌥-click). */
+    background?: boolean
+  }): Promise<void>
   /** One line on glass at the top of the card, with `buttons` (the second the default) or OK. Resolves with the title
    *  picked, or undefined when another toast took its place. */
   toast(text: string, buttons?: [other: string, main: string]): Promise<string | undefined>
@@ -51,6 +60,36 @@ export interface Oriel {
 
 /** Stops the handler or the watch. Every one ends with the page. */
 export type Off = () => void
+
+/** @since 2. A card of many places draws each in a page of its own, and keeps the last five pages it showed, hidden,
+ *  so Back and Forward show a place at once, as the user left it: its scroll, its open rows, its header controls. */
+export interface Pages {
+  /** Draws the card's places from now on, its place now: resolves once that page shows. A move to a place with a kept
+   *  page shows that page at once; to another place, `draw` fills a new page, which shows when its promise ends, and
+   *  the page before stays until then. A page left with unsaved edits is dropped. */
+  route(draw: (page: Page) => Promise<void>): Promise<void>
+}
+
+/** @since 2. One place's page. */
+export interface Page {
+  readonly arg: string
+  /** The landing of the move that drew it. */
+  readonly at?: string
+  /** Over the whole card (`.oriel-page`); hidden pages are `inert`. */
+  readonly element: HTMLElement
+  /** The page's own `oriel`: its `on` handlers run only while it shows (`theme` and `visible` always), its watches call
+   *  back while it shows (a change while hidden calls once when it shows again), its header controls apply while it
+   *  shows and come back when it shows again; all end when it drops. Its `place` fires when the card moves to this
+   *  page again (Back, Forward, the same place with a landing). */
+  readonly oriel: Oriel
+  readonly shown: boolean
+  /** Gone: work that ends after does nothing. */
+  readonly dropped: boolean
+  /** Runs when the page drops: a view's teardown. */
+  keep(off: Off): void
+  /** Draws the place again in a new page, which takes this one's place once drawn; a hidden page only drops. */
+  redraw(): void
+}
 
 export interface Card {
   /** The instance id from the label: stable for the pane's life. */

@@ -33,3 +33,11 @@ body {
     transition: none;
   }
 }
+/* A place's page (`oriel.pages`), over the whole card. A hidden one is `inert`: it keeps its layout and its scroll. */
+.oriel-page {
+  position: absolute;
+  inset: 0;
+}
+.oriel-page[inert] {
+  visibility: hidden;
+}

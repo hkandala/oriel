@@ -53,6 +53,8 @@ export interface Oriel {
   readonly state: State
   readonly controls: Controls
   readonly theme: Theme
+  /** @since 2 */
+  readonly pages: Pages
   /** Needs `clipboard`. */
   readonly clipboard: { write(text: string): Promise<void> }
   /** The native context menu at the pointer. Resolves with the picked item's value, or undefined. */
@@ -67,7 +69,14 @@ export interface Oriel {
   /** An open of a file, a folder (ends in `/`), a URL or a plugin's argument: in this card, in a new tab at the end of
    *  this card's workspace (the default) or in a pane to its side. No `plugin`: the file's default plugin, the browser for
    *  a web address. `at`: the new card's landing (`card.at`). */
-  open(arg: string, options?: { plugin?: string; how?: "card" | "tab" | "side"; at?: string }): Promise<void>
+  open(arg: string, options?: {
+    plugin?: string
+    how?: "card" | "tab" | "side"
+    at?: string
+    /** @since 2. A new tab or pane opens behind: the selected tab and the keyboard stay where they are (a ⌘- or
+     *  ⌥-click). */
+    background?: boolean
+  }): Promise<void>
   /** One line on glass at the top of the card, with `buttons` (the second the default) or OK. Resolves with the title
    *  picked, or undefined when another toast took its place. */
   toast(text: string, buttons?: [other: string, main: string]): Promise<string | undefined>
@@ -89,6 +98,36 @@ export interface Oriel {
 
 /** Stops the handler or the watch. Every one ends with the page. */
 export type Off = () => void
+
+/** @since 2. A card of many places draws each in a page of its own, and keeps the last five pages it showed, hidden,
+ *  so Back and Forward show a place at once, as the user left it: its scroll, its open rows, its header controls. */
+export interface Pages {
+  /** Draws the card's places from now on, its place now: resolves once that page shows. A move to a place with a kept
+   *  page shows that page at once; to another place, `draw` fills a new page, which shows when its promise ends, and
+   *  the page before stays until then. A page left with unsaved edits is dropped. */
+  route(draw: (page: Page) => Promise<void>): Promise<void>
+}
+
+/** @since 2. One place's page. */
+export interface Page {
+  readonly arg: string
+  /** The landing of the move that drew it. */
+  readonly at?: string
+  /** Over the whole card (`.oriel-page`); hidden pages are `inert`. */
+  readonly element: HTMLElement
+  /** The page's own `oriel`: its `on` handlers run only while it shows (`theme` and `visible` always), its watches call
+   *  back while it shows (a change while hidden calls once when it shows again), its header controls apply while it
+   *  shows and come back when it shows again; all end when it drops. Its `place` fires when the card moves to this
+   *  page again (Back, Forward, the same place with a landing). */
+  readonly oriel: Oriel
+  readonly shown: boolean
+  /** Gone: work that ends after does nothing. */
+  readonly dropped: boolean
+  /** Runs when the page drops: a view's teardown. */
+  keep(off: Off): void
+  /** Draws the place again in a new page, which takes this one's place once drawn; a hidden page only drops. */
+  redraw(): void
+}
 
 export interface Card {
   /** The instance id from the label: stable for the pane's life. */
@@ -270,7 +309,7 @@ export interface OrielError extends Error {
 | `state` | the card's state for drops, reloads and relaunches | [State](#state) |
 | `controls` | the header row and the card's commands | the native header (`Header`, `HeaderView`) |
 | `theme` | colors, light or dark, glass or classic, the text size | the `Look` tokens |
-| `open` | an open in this card, a new tab at the end of this card's workspace (the default) or a pane to its side | `Page.open(_:arg:at:from:how:)` |
+| `open` | an open in this card, a new tab at the end of this card's workspace (the default) or a pane to its side, in front or in the background | `Page.open(_:arg:at:from:how:)` |
 | `toast` | the card's toast | `Toast` and its view |
 | `menu.show` | the native context menu at the pointer | `NSMenu` |
 | `pick.folder` | Choose Folder…: the folder panel on This Mac, a "Go to Folder" field on a remote machine, which shows "No folder ‹path›" for a folder that is not there | `NSOpenPanel`, or an `NSAlert` with a field |
@@ -325,12 +364,28 @@ Markdown, or Git's home and a diff. The plugin draws every place itself:
   `chevron.right` ⌘]).
 - `on("place")` fires on every move: the page's own `card.go`, Back,
   Forward, or a new argument from elsewhere (an agent's `herdr pane
-  rename`). So a page draws its places in one handler. After Back, `at` is
-  the place it came back from: that place's landing, else its argument. So
-  the tree reveals the file it opened.
+  rename`). So a page draws its places in one handler, or in `pages.route`.
+  After Back, `at` is the place it came back from: that place's landing,
+  else its argument. So the tree shows the row of the file it opened.
 - The page's `document.title`, when it is not empty, is the card's and the
   tab's title in place of the one from the label (Git's commit subject). A
   place that has no title of its own sets it back to "".
+- `oriel.pages.route(draw)` draws each place in a page of its own, and the
+  card keeps the last five pages it showed. A page is an element over the
+  whole card. A hidden page stays in the document, `inert` and invisible, so
+  it keeps its scroll, its open rows and its selection. Back and Forward show
+  a kept page at once. A new place draws in a new page, and the page before
+  stays on screen until the new one has drawn.
+- Each page has its own `oriel` (`page.oriel`). Its `on` handlers run only
+  while the page shows, except `theme` and `visible`. Its watches call back
+  only while it shows: a change while it is hidden calls back once when it
+  shows again. Its header controls apply while it shows. When it shows
+  again, the controls come back as the page left them, the user's changes
+  too. Its `place` event fires when the card moves to the page again, with
+  the move's landing. The tab's title comes back with the page.
+- A page left with unsaved edits (the user chose Discard) is dropped, so it
+  draws anew next time. `page.redraw()` draws the shown place again in a new
+  page (File Explorer, when a file becomes read only).
 - A heavy place loads with a dynamic `import()`, so a tree card does not
   load CodeMirror or pdf.js. A bundler links no CSS for a dynamic chunk, so
   the entry imports all the CSS, scoped per place.
@@ -364,7 +419,7 @@ every device must see belongs in files on the machine.
 ## Versions
 
 - The manifest's `api` is the version the plugin was written for, an
-  integer. This page is version 1, and the app gives version 1.
+  integer. This page is version 2, and the app gives version 2.
 - Each change of the API raises the number, an addition too. `oriel.d.ts`
   marks each member added after version 1 with `@since <api>`.
 - The app runs a plugin whose `api` is at most its own. A change that breaks
@@ -402,7 +457,7 @@ every device must see belongs in files on the machine.
 - Calls that wait for the user (a toast) answer through an event, so no Swift
   task hangs on a page that never hears back.
 
-## Not in version 1
+## Not in version 2
 
 Network from the page (`fetch` reaches only the plugin's own files), streams
 from `run`, clipboard read, plugin settings, and the herdr snapshot as an

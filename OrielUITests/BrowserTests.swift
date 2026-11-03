@@ -348,8 +348,8 @@ extension OrielUITests {
 }
 
 extension OrielUITests {
-    /// Files ⌘-clicked in a File Explorer card open tabs at the end, one after the other: each new
-    /// tab is selected and its page shows (item 28: the selected tab showed another tab's page).
+    /// Files ⌘-clicked in a File Explorer card open tabs at the end, one after the other, behind it: the card's tab
+    /// stays selected, and each new tab shows its own page (item 28: the selected tab showed another tab's page).
     func testEachOpenInANewTabShowsItsOwnPage() async throws {
         let (_, shell) = try await newTab("opens")
         try await waitForPrompt(shell)
@@ -371,7 +371,8 @@ extension OrielUITests {
             XCUIElement.perform(withKeyModifiers: .command) { row.click() }
             let opened = try await newTabID(after: before)
             closeAfter("tab", opened)
-            XCTAssertTrue(element("tab.\(opened)").has(\.isSelected, true, within: 5), name)
+            XCTAssertTrue(element("tab.\(tab)").isSelected, name)
+            try await show(opened)
             XCTAssertTrue(element("page.\(opened)").has(\.isHittable, true, within: 5), name)
         }
         try await send("rm -rf \(repo)\r", to: shell)

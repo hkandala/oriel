@@ -49,7 +49,7 @@ final class Bridge {
     @ObservationIgnored private var loaded = false
 
     /// The API version this app gives pages.
-    static let api = 1
+    static let api = 2
 
     init(plugin: Plugin) {
         self.plugin = plugin

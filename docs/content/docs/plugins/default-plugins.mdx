@@ -86,16 +86,21 @@ apply:
 | Gesture | Where it opens |
 |---|---|
 | a click, or a double-click in the tree, or Return | in the card itself, as its next place ([Back and Forward](#back-and-forward)) |
-| ⌘-click | in a new herdr tab at the end of the card's workspace |
-| ⌥-click | in a pane to the side of the card |
+| ⌘-click | in a new herdr tab at the end of the card's workspace, in the background |
+| ⌥-click | in a pane to the side of the card, in the background |
 
 - A right click on a row of the tree or of the Git home shows the app's own
   menu: **Open** (**Open as Root** on a folder), **Open in New Tab** and
   **Open to the Side**.
+- **In the background** means that the selected tab and the keyboard stay
+  where they are: a ⌘-click or ⌥-click on one file after another opens each
+  one, and the card keeps the keyboard. The right-click menu's **Open in New
+  Tab** and **Open to the Side** open in the background too. Any other open in
+  a new tab (a Git diff's **Open File**) selects it.
 - **A new tab** opens at the end of the card's workspace, on the same
-  machine, also from a floating window. The app selects the new tab and
-  gives its card the keyboard. The call is `layout.apply` for a new tab with
-  the labeled pane; herdr adds the tab last
+  machine, also from a floating window. Unless it opens in the background,
+  the app selects the new tab and gives its card the keyboard. The call is
+  `layout.apply` for a new tab with the labeled pane; herdr adds the tab last
   ([Writes are herdr calls](/docs/talking-to-herdr#writes-are-herdr-calls)).
 - **To the side** makes the pane in a new tab, then moves it beside the
   card (`pane.move`), as Replace Pane does, because herdr's split runs no
@@ -142,8 +147,16 @@ apply:
   ([One plugin, many places](/docs/plugins/api#one-plugin-many-places)).
   They walk the card's own list of places, as a browser's history does. A
   new place clears the places after the current one.
-- Back to the tree reveals the file it opened. Back to the Git home lands at
-  the change or the commit it opened.
+- **Kept pages.** File Explorer keeps the last five places it showed as pages
+  ([One plugin, many places](/docs/plugins/api#one-plugin-many-places)). So
+  Back and Forward show a place at once, as the user left it: its scroll, its
+  open folders, its selection, its filter and its row 2. A kept page reads
+  again only what changed on the machine while it was hidden, after it
+  shows. A place not kept draws in a new page while the old one stays on
+  screen.
+- Back to the tree shows the row of the file it opened, and scrolls only when
+  that row is out of view.
+- Back to the Git home lands at the change or the commit it opened.
 - ⌘[ and ⌘] move the card only while it has a place that way. Otherwise
   they select the pane to the left or right, as elsewhere. A card made from
   its label (after a relaunch, or a dropped card shown again) has no list
@@ -271,6 +284,8 @@ selection in the accent at 24 %. A 6 pt gap sits under the header.
   home folder there). A folder's own menu has **Open as Root**.
 - **`..`** is a row above the tree, except at `/`. A double-click or a press (Return, VoiceOver) on it
   makes the parent folder the root. ↑ on the tree's first row moves the keyboard to `..`, and ↓ moves it back.
+  The first ↓ on a tree with no selected row goes to the first row (`..` when it shows), and the first ↑ to the
+  last row.
   `..` hides while the filter has text.
 - **The tree** shows the root's listing first and lists a folder only when
   it opens. `.git` is hidden, and links to folders are folders. Files and
@@ -281,13 +296,13 @@ selection in the accent at 24 %. A 6 pt gap sits under the header.
   (`git check-ignore`), and those are dimmed. Modified is the needs-you color,
   added, untracked and renamed the finished color, and deleted the error
   color. A root inside a repository, but not its root, shows no letters.
-- **Coming back.** The card keeps each root's open folders and scroll position when it leaves the tree. Back, or the
-  same root again, lists those folders before the tree shows, so its first frame is the tree as the card left it.
+- **An empty folder** shows a folder icon and "This folder is empty" in the middle of the card.
 - **The filter** matches file names, case blind, and shows the matches with
   their folders open, at most 5,000. The first letter loads every path under
   the root: in a repository the files git does not ignore (`git ls-files`),
   else every file, up to 8 MB of names. When none match, the middle of the
-  card shows a magnifying glass and "No matching files". A page that loads again starts with no filter. ⌘F over the tree
+  card shows a magnifying glass and "No matching files". A tree that draws anew starts with no filter; a kept one
+  keeps its filter. ⌘F over the tree
   gives the filter the keyboard.
 - **Opening.** A double-click or Return on a file shows it in the card. As in
   the Finder, a click on a folder's name only selects it, and a click on its

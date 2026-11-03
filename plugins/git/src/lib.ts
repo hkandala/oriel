@@ -23,9 +23,10 @@ export const home = (root: string) => (root.endsWith("/") ? root : `${root}/`)
 export type How = "card" | "tab" | "side"
 export const how = (event: MouseEvent | KeyboardEvent): How => (event.metaKey ? "tab" : event.altKey ? "side" : "card")
 
-/** A place of this card (a diff), or with no plugin a file in its default plugin. */
+/** A place of this card (a diff), or with no plugin a file in its default plugin; a new tab or a pane to the side opens
+ *  behind, the keyboard kept here. A file's open in the card is a new tab in front. */
 export const open = (arg: string, options: { how: How; at?: string; plugin?: string }) =>
-  void oriel.open(arg, options).catch((error) => console.error(error))
+  void oriel.open(arg, { ...options, background: options.how !== "card" }).catch((error) => console.error(error))
 
 /** A row's menu at the pointer: Open, Open in New Tab, Open to the Side. */
 export async function menu(event: MouseEvent, arg: string, at?: string) {

@@ -5,8 +5,9 @@ import XCTest
 extension OrielUITests {
     /// The tree lists the root and a folder as it opens (a click on its name only selects it; → opens it); a new file
     /// shows by itself; the filter finds a file in a folder never opened; a double-click shows it in the card, whose
-    /// label follows; Back comes back to the tree as it was (build still open) with the file revealed, Forward to the
-    /// file; Show in File Explorer reveals it; Open as Root and the root's menu move the root.
+    /// label follows; Back comes back to the kept tree as it was (the filter's text and matches, build still open
+    /// under them), Forward to the file; Show in File Explorer reveals it; Open as Root and the root's menu move the
+    /// root.
     func testFileExplorerBrowsesOpensAndGoesBack() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (_, shell) = try await newTab("files")
@@ -20,6 +21,10 @@ extension OrielUITests {
         XCTAssertTrue(row("a.txt", in: tree).exists(within: 10))
         XCTAssertTrue(row("build", in: tree).exists)
         XCTAssertFalse(row("main.swift", in: tree).exists)
+        // The first ↓ goes to the first row: `..`, not the one after the row that has the keyboard unseen.
+        XCTAssertTrue(hasKeyboard(row("build", in: tree)))
+        app.typeKey(.downArrow, modifierFlags: [])
+        XCTAssertTrue(hasKeyboard(row("Parent Folder", in: tree)))
         openAndCollapse(card, tree)
         try await send("touch new.md\r", to: shell)
         XCTAssertTrue(row("new.md", in: tree).exists(within: 5))
@@ -43,12 +48,10 @@ extension OrielUITests {
         XCTAssertEqual(after, tabs)
         keepScreenshot("file explorer file")
 
-        // Back (⌘[ over the card): the tree, the file revealed in its open folders; Forward (⌘]): the file.
+        // Back (⌘[ over the card), then Forward (⌘]): the file.
         file.textViews.firstMatch.click()
         app.typeKey("[", modifierFlags: .command)
-        XCTAssertTrue(row("main.swift", in: tree).exists(within: 10))
-        XCTAssertTrue(row("out.o", in: tree).exists)
-        try await labelEnds(card, " \(root)/")
+        try await backToTheKeptTree(card, tree, root)
         app.typeKey("]", modifierFlags: .command)
         XCTAssertTrue(file.textViews.firstMatch.exists(within: 10))
         element("pane.\(card).reveal").click()
@@ -61,6 +64,19 @@ extension OrielUITests {
 
         try await moveRoot(card, tree, root)
         try await send("rm -rf \(repo)\r", to: shell)
+    }
+
+    /// Back shows the tree as it was left, its filter's text and matches; with the filter cleared, build is still open.
+    private func backToTheKeptTree(_ card: String, _ tree: XCUIElement, _ root: String) async throws {
+        XCTAssertTrue(row("main.swift", in: tree).exists(within: 10))
+        try await labelEnds(card, " \(root)/")
+        let filter = element("pane.\(card).filter")
+        XCTAssertTrue(filter.has(\.stringValue, "main", within: 3))
+        XCTAssertFalse(row("a.txt", in: tree).exists)
+        filter.click()
+        app.typeKey("a", modifierFlags: .command)
+        app.typeKey(.delete, modifierFlags: [])
+        XCTAssertTrue(row("out.o", in: tree).exists(within: 5))
     }
 
     /// A click on src's name selects it and → opens it; Collapse All closes it; build stays open.
@@ -130,8 +146,14 @@ extension OrielUITests {
         XCTAssertTrue(row("a.txt", in: tree).exists(within: 10))
         XCTAssertFalse(row(".gitignore", in: tree).exists)
 
-        // build, src, a.txt: the first row has the keyboard, a turn after the page's focus.
+        // build, src, a.txt: the first row has the keyboard, a turn after the page's focus. The first ↑ goes to the
+        // last
+        // row; ↑ from the first goes to `..`.
         XCTAssertTrue(hasKeyboard(row("build", in: tree)))
+        app.typeKey(.upArrow, modifierFlags: [])
+        XCTAssertTrue(hasKeyboard(row("a.txt", in: tree)))
+        app.typeKey(.upArrow, modifierFlags: [])
+        app.typeKey(.upArrow, modifierFlags: [])
         app.typeKey(.upArrow, modifierFlags: [])
         XCTAssertTrue(hasKeyboard(row("Parent Folder", in: tree)))
         app.typeKey(.downArrow, modifierFlags: [])
@@ -190,8 +212,8 @@ extension OrielUITests {
         try await send("rm -rf \(repo)\r", to: shell)
     }
 
-    /// ⌘-click opens a file in a new tab at the end, ⌥-click in a pane to the card's side. After each
-    /// open the selected tab and the shown card agree.
+    /// ⌘-click opens a file in a new tab at the end, ⌥-click in a pane to the card's side, both behind: the card's
+    /// tab stays selected and the tree keeps the keyboard.
     func testFileExplorerOpensInNewTabsAndToTheSide() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (_, shell) = try await newTab("files-open")
@@ -214,22 +236,23 @@ extension OrielUITests {
         }
         try await labelEnds(side, " \(root)/one.txt")
         XCTAssertTrue(element("file.\(side).page").exists(within: 10))
+        XCTAssertTrue(hasKeyboard(row("one.txt", in: tree)))
 
-        // Each ⌘-click from the tree: the new tab, at the end (from the second on, the card's tab is not last), is
-        // selected and shows its own card.
+        // Each ⌘-click from the tree: a new tab at the end (from the second on, the card's tab is not last), behind
+        // it.
         for name in ["two.txt", "three.txt", "four.txt"] {
-            try await show(tab)
             let before = try await tabIDs()
             XCUIElement.perform(withKeyModifiers: .command) { row(name, in: tree).click() }
             let opened = try await newTabID(after: before)
             closeAfter("tab", opened)
             let pane = try await pane(of: opened)
             try await labelEnds(pane, " \(root)/\(name)")
-            XCTAssertTrue(element("tab.\(opened)").has(\.isSelected, true, within: 5), name)
             let last = try await isLast(opened)
             XCTAssertTrue(last, "\(name)'s tab is not last")
-            XCTAssertTrue(element("file.\(pane).page").has(\.isHittable, true, within: 5), name)
-            XCTAssertFalse(tree.isHittable)
+            // Once the bar shows the new tab: a selection that follows it would have come with it.
+            XCTAssertTrue(element("tab.\(opened)").exists(within: 5), name)
+            XCTAssertTrue(element("tab.\(tab)").isSelected, name)
+            XCTAssertTrue(hasKeyboard(row(name, in: tree)), name)
         }
         try await send("rm -rf \(repo)\r", to: shell)
     }

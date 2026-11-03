@@ -2,7 +2,7 @@
 // page at document start, before the plugin's code runs. Its messages are the app's own (Oriel/Plugins/Bridge.swift):
 // `{ call, args }` to the app, answered with JSON or rejected with "<code>: <text>"; `oriel_receive(name, data)` from
 // it.
-import type { Card, Controls, MenuItem, Oriel, OrielError, RunResult, Theme } from "./oriel"
+import type { Card, Controls, MenuItem, Off, Oriel, OrielError, Page, RunResult, Theme } from "./oriel"
 
 type Context = {
   api: number
@@ -62,10 +62,14 @@ window.oriel_receive = (name, data: any) => {
       toasts.get(data.id)?.(data.button ?? undefined)
       return void toasts.delete(data.id)
     case "control":
-      if ("value" in data) context.controls[data.id] = data.value
+      if ("value" in data) {
+        context.controls[data.id] = data.value
+        current?.controls.set(data.id, { ...current.controls.get(data.id), value: data.value })
+      }
       break
     case "place":
       context.arg = data.arg
+      if (draw) moved(data.arg, data.at)
       break
     case "visible":
     case "keyboard":
@@ -96,7 +100,10 @@ const card: Card = {
   },
   go: (arg, options) => tell("card.go", { arg, at: options?.at }),
   ready: () => tell("card.ready"),
-  setDirty: (dirty) => tell("card.setDirty", { dirty }),
+  setDirty(yes) {
+    dirty = yes
+    tell("card.setDirty", { dirty: yes })
+  },
 }
 
 const controls: Controls = {
@@ -179,6 +186,148 @@ const oriel: Oriel = {
     handlers.set(event, set.add(fn))
     return () => void set.delete(fn)
   },
+  pages: {
+    async route(fn) {
+      draw = fn
+      await fill(context.arg, context.at)
+    },
+  },
+}
+
+// The card's pages (`oriel.pages`): a router over the card's places that keeps the pages it showed. A hidden page is
+// `inert` (card.css hides it and keeps its layout and scroll); its handlers, watches and header controls wait.
+type Kept = {
+  arg: string
+  page: Page
+  offs: Off[]
+  /** The header controls as the page left them: its own changes, the user's values, and the rest as at its first show. */
+  controls: Map<string, Record<string, unknown>>
+  /** Watches that fired while hidden: they run when it shows. */
+  due: Set<() => void>
+  /** Its `place` handlers: the card moved to it again. */
+  places: Set<Handler>
+  title?: string
+  shownOnce: boolean
+  drawn: boolean
+  dropped: boolean
+}
+/** The events a hidden page hears too. */
+const always = new Set(["theme", "visible"])
+/** The pages drawn and being drawn, the last shown last. */
+let pages: Kept[] = []
+let current: Kept | undefined
+let draw: ((page: Page) => Promise<void>) | undefined
+let dirty = false
+
+function make(arg: string, at?: string): Kept {
+  const element = Object.assign(document.createElement("div"), { className: "oriel-page", inert: true })
+  document.body.append(element)
+  const kept: Kept = {
+    arg, offs: [], controls: new Map(), due: new Set(), places: new Set(), shownOnce: false, drawn: false, dropped: false,
+    page: undefined as unknown as Page,
+  }
+  const own = (off: Off) => {
+    kept.offs.push(off)
+    return off
+  }
+  const scoped: Oriel = Object.create(oriel, {
+    on: {
+      value: (event: string, fn: Handler) => {
+        if (event !== "place") return own(oriel.on(event as "control", (data) => (always.has(event) || current === kept) && fn(data)))
+        kept.places.add(fn)
+        return () => void kept.places.delete(fn)
+      },
+    },
+    controls: {
+      value: {
+        get: (id) => (kept.controls.get(id)?.value ?? context.controls[id]) as ReturnType<Controls["get"]>,
+        set(id, change) {
+          // A focus or a shake is for now only.
+          const { focus, refused, ...rest } = change
+          const was = kept.controls.get(id) ?? {}, next = { ...was, ...rest }
+          kept.controls.set(id, next)
+          if (current === kept && (focus || refused || JSON.stringify(next) !== JSON.stringify(was))) controls.set(id, change)
+        },
+      } satisfies Controls,
+    },
+    files: {
+      value: Object.create(oriel.files, {
+        watch: { value: (path: string, fn: () => void) => own(oriel.files.watch(path, () => (current === kept ? fn() : kept.due.add(fn)))) },
+      }),
+    },
+  })
+  kept.page = {
+    arg, at, element, oriel: scoped,
+    get shown() {
+      return current === kept
+    },
+    get dropped() {
+      return kept.dropped
+    },
+    keep: (off) => void kept.offs.push(off),
+    redraw: () => (current === kept ? void fill(arg) : drop(kept)),
+  }
+  pages.push(kept)
+  return kept
+}
+
+/** A new page for the place, shown once drawn (also when its draw failed) if the card is still there. */
+async function fill(arg: string, at?: string) {
+  const kept = make(arg, at)
+  try {
+    await draw?.(kept.page)
+  } catch (error) {
+    console.error(error)
+  }
+  if (kept.dropped) return
+  kept.drawn = true
+  if (context.arg !== arg) return
+  present(kept)
+  // A page drawn again takes the old one's place.
+  for (const other of pages) if (other !== kept && other.arg === arg) drop(other)
+}
+
+function moved(arg: string, at?: string) {
+  // As the page leaves it: a page being drawn may set the title before it shows.
+  if (current) current.title = document.title
+  if (current?.arg === arg) return current.places.forEach((fn) => fn({ arg, at }))
+  const kept = pages.find((page) => page.arg === arg)
+  if (!kept) void fill(arg, at)
+  else if (kept.drawn) present(kept, { arg, at })
+}
+
+function present(kept: Kept, again?: { arg: string; at?: string }) {
+  const old = current
+  if (old) {
+    old.page.element.inert = true
+    // Left with unsaved edits, which the user chose to discard.
+    if (dirty) drop(old)
+  }
+  current = kept
+  kept.page.element.inert = false
+  pages = [...pages.filter((page) => page !== kept), kept]
+  if (kept.title !== undefined) document.title = kept.title
+  if (!kept.shownOnce) {
+    kept.shownOnce = true
+    for (const [id, value] of Object.entries(context.controls)) kept.controls.set(id, { value, ...kept.controls.get(id) })
+  }
+  for (const [id, change] of kept.controls) controls.set(id, change)
+  for (const fn of kept.due) fn()
+  kept.due.clear()
+  if (again) kept.places.forEach((fn) => fn(again))
+  const drawn = pages.filter((page) => page.drawn)
+  for (const page of drawn.slice(0, Math.max(0, drawn.length - 5))) drop(page)
+  // A page takes the keyboard on its window's focus, which it had.
+  if (document.hasFocus()) dispatchEvent(new Event("focus"))
+}
+
+function drop(kept: Kept) {
+  if (kept.dropped) return
+  kept.dropped = true
+  kept.offs.splice(0).forEach((off) => off())
+  kept.page.element.remove()
+  pages = pages.filter((page) => page !== kept)
+  if (current === kept) current = undefined
 }
 
 // Console lines and uncaught errors go to the plugin's log too (~/Library/Logs/Oriel/plugins/<id>.log), where its

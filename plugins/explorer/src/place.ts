@@ -3,19 +3,22 @@ import type { Off, Oriel } from "@oriel/plugin-api"
 import places from "../places.json"
 
 export type Place = {
+  /** The page's own: its handlers, watches and header controls wait while it is hidden (`oriel.pages`). */
   oriel: Oriel
   /** The place's argument: a folder's path with its `/`, or a file's path. */
   arg: string
   /** A linked open's landing: a line, or the path to reveal in the tree. */
   at?: string
-  /** The place draws in here; `main.ts` shows it once `show` returned. */
+  /** The page: the place draws in here; it shows once `show` returned. */
   root: HTMLElement
   /** Ends with the place: a handler's or a watch's `Off`, a view's teardown. */
   keep(off: Off): void
   /** Shows the place anew, as it first showed: its file became read only or too large. */
   again(): void
-  /** The card still shows the place: work that ends after it left does nothing. */
+  /** The card keeps the page: work that ends after it dropped does nothing. */
   live(): boolean
+  /** The page shows: a hidden one leaves the keyboard and the clipboard alone. */
+  shown(): boolean
   /** File's and Markdown's file, read already. */
   read?: ReturnType<Oriel["files"]["read"]>
 }
@@ -40,17 +43,17 @@ export function kind(arg: string): "files" | "file" | "preview" | "markdown" {
   return drawn(arg) || places.binary.includes(ext) ? "preview" : "file"
 }
 
-/** A place's own handling of the same place with another landing. */
+/** A place's own handling of a landing when the card comes back to it. */
 export type Reveal = ((at: string) => void) | undefined
 
 /** Where an open goes, by the modifier keys: ⌘ a new tab, ⌥ a pane to the side, else the card itself. */
 export type How = "card" | "tab" | "side"
 export const how = (event: MouseEvent | KeyboardEvent): How => (event.metaKey ? "tab" : event.altKey ? "side" : "card")
 
-/** A file, or a folder (its path ends in `/`), in the card (its next place), a new tab or a pane to the side: a
- *  folder in a File Explorer, a file in its default plugin. */
+/** A file, or a folder (its path ends in `/`), in the card (its next place), or behind it in a new tab or a pane to
+ *  the side, the keyboard kept here: a folder in a File Explorer, a file in its default plugin. */
 export const open = (oriel: Oriel, arg: string, how: How) =>
-  void oriel.open(arg, { how }).catch((error) => console.error(error))
+  void oriel.open(arg, { how, background: how !== "card" }).catch((error) => console.error(error))
 
 /** A row's menu at the pointer: Open (Open as Root for a folder), Open in New Tab, Open to the Side. */
 export async function menu(oriel: Oriel, event: MouseEvent, arg: string) {
