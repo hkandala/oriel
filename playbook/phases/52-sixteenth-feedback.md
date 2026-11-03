@@ -1,0 +1,131 @@
+# Phase 52: Sixteenth feedback: clean back and forth, Markdown done right, the sidebar's final design
+
+Goal: the fixes from the user's sixteenth round. Going back in File Explorer and Git restores the page at once,
+with no flicker and no scroll jump. Markdown renders every construct correctly. The chat scrolls without jumps.
+The sidebar gets the design the user picks from the mockups. New tabs open at the end. The tab pill animations go.
+
+Design: [Sidebar](../../docs/content/docs/ui/sidebar.mdx), [Chat view](../../docs/content/docs/ui/chat-view.mdx),
+[Plugins](../../docs/content/docs/plugins/index.mdx), [Browser](../../docs/content/docs/ui/browser.mdx). The user's
+words are quoted; the decisions under them are the orchestrator's.
+
+Screenshots in `.build/fb52/` (not committed): `1.08.48.png` (chat tool rows), `1.26.38.png` (Git toast),
+`1.31.25.png` (Working Tree header), `1.34.54.png` (Markdown task boxes), `1.41.11.png` (Markdown table),
+`1.44.12.png` (Markdown lists). Mockups: `~/Downloads/oriel-research/sidebar-mockups.html`.
+
+**Do not start until the user picks a sidebar design.** Tracks push straight to main after review and green checks.
+
+## Track A: the chat (items 1–2)
+
+1. **Tool rows as wide as messages.** "tool calls width should be as much as assistant messages and should not take
+   up full width". The folded run and its open rows take the agent bubble's maximum width and left edge.
+2. **No jump at the end.** "so there is this weird behavior with scroll when we are at the end of the chat, if i
+   scroll slowly at the end up or down, chat kinda jumps a bit moving further than i scrolled, is this probably
+   because i asked to make sure the scroll till bottom reaches bottom? coz i think i am seeing this only after that,
+   let's remove any stupid workarounds added to handle scroll to bottom, and figure out a clean way to scroll to
+   bottom with no jumps". Remove every scroll-to-bottom workaround (the position set at the bottom, the kept-row
+   pinning, the anchor juggling of phases 46–51) and rebuild the bottom on one mechanism (for example
+   `defaultScrollAnchor(.bottom)` plus one `scrollTo` for the button). Record real trackpad scrolls (phases, not
+   XCUITest wheels) at 60 fps near the end, before and after: no frame may move further than the fingers.
+
+## Track B: back and forth in plugin pages (items 3–6, 9) — File Explorer and Git
+
+The user: "when i scroll a bit and open some commit, and come back, i see briefly unscrolled version and then it
+scroll to previous position, can we not show that switch, and show by default in that position itself? i think both
+file explorer and git both has this state problem where when we open something and come back we have bunch of weird
+bugs, see if we can make it like a proper page cached or something like some router and coming back should just
+restore that dom, instead of doing weird flickers etc, it can also be an overlay on top of the tree and going back i
+just removing the overlay, idk, figure out a better option so going back and forth shouldn't feel like we have lot
+of flickers and stuff and its clean". And: "there is a good delay before i see the file tree, like i press back
+button, it takes noticeable time before i see file tree? why this is so complex? why can't we quickly go back like
+we were in one page and go back to previous page? is there a way to cache it or something?"
+
+3. **A page cache in the plugin runtime.** Each place a card visits keeps its DOM (detached, or hidden in place) for
+   the last few history entries; Back and Forward show the kept DOM at once with its scroll, and refresh its data
+   behind it only if it changed. One mechanism in `web/oriel` for every plugin, not per plugin. Remove the
+   restore code it replaces (kept open folders, scroll restore, landing scroll, Parent's read-first path where the
+   cache covers it). Measure Back (click to drawn frame) before and after: target under 50 ms.
+4. **The first arrow selects the first row.** "when i press down or up arrow, first selection should be on first
+   folder, it selects second folder?" The first ↓ selects the first row (`..` when shown, else the first item);
+   the first ↑ selects the last.
+5. **Empty folder.** "in file explorer if i double click an empty folder, can we show placeholder like its empty
+   folder with some icon and text?" A centered folder icon and "This folder is empty".
+6. **⌘-click and ⌥-click open in the background.** "cmd + click in file explorer should open tab in background
+   without highlighting same with option+tab no highlighting please, like basically i can continuously click
+   cmd+click on multiple files and they all open without highlight". The new tab or split opens but the selection
+   and the keyboard stay where they are.
+9. **Parent without a flicker** is covered by item 3.
+
+## Track C: Git (items 7–8, 10–13)
+
+7. **No Live marker.** "let's remove that live icon please, by default its live that's it".
+8. **Toast buttons.** "these buttons in this view has no enough right padding, let's fix that, let's find all such
+   similar toasts or confirmations and fix them". Fix the toast's padding at its source so every toast and
+   confirmation (Git's reverts, File Explorer's, the app's) gets it.
+10. **Gap under Working Tree's header.** "bit more padding between header and file header, it looks fine in regular
+    commits, where commit info is there, but in working tree its weird".
+11. **Sticky file headers.** "when i scroll quick for diff view, the sticky file header flickers specifically for
+    long diffs, can we use proper css or something to handle the sticky file header better and avoid flickers
+    please". Use `position: sticky` on the header inside its file's box (no JS repositioning), and find what makes it
+    repaint late (virtualized rows replacing the header, a transform, a backdrop filter).
+12. **New tabs at the end.** "in diff view when i press open file it opens in a tab beside the current tab, i think
+    that sometimes shows a flicker where the tab opens briefly at the end of existing tabs and then it moves to the
+    tab beside the git view tab, let's drop that, open file should just open new tab at the end of the tab list and
+    show it, let's not complicate it, let's make sure this same logic works anywhere new tab is opened, its just
+    opened at the end of the list to keep it simple and avoid flickers". Every new tab (⌘T, Open File, ⌘-click,
+    `oriel open --tab`, the chooser, drags to the bar's end) goes at the end; remove the move-after-current code.
+    Owner: this track, also in the app.
+13. **Not here:** item 9 is Track B's.
+
+## Track D: Markdown done right (items 14–18)
+
+14. **Task boxes.** "the checklist items are not aligned with text vertically, i mean text and checkbox should be at
+    same baseline, let's improve the checkbox as well a bit". Box centered on the first line's x-height, a cleaner
+    box (thin border, rounded, filled accent with a white check when ticked).
+15. **Tables.** "table alignments are bit messed up in markdown view". Screenshot `1.41.11.png`: the first column
+    collapses to one letter per line and code cells use a serif monospace. Columns size to content with wrapping only
+    when the table is wider than the card; inline code uses the app's monospace.
+16. **Lists.** "why lists are a mess in markdown, why are the list items are not aligned well?". Screenshot
+    `1.44.12.png`: a list item's continuation lines (soft-wrapped in the source) start at the left edge instead of
+    under the item's text.
+17. **The whole syntax.** "can you review full markdown syntax and verify and fix all these weird shit". Build one
+    fixture covering CommonMark and GFM (headings both styles, emphasis, links of every kind, images, code spans and
+    fences, block quotes with nested lists, ordered and unordered lists with continuation lines and nesting, task
+    lists, tables with alignment, HTML blocks and inline HTML, footnotes, horizontal rules, hard breaks, entities).
+    Read must render each correctly; Edit must look the same except the caret's line. If the CodeMirror live preview
+    cannot draw a construct correctly, Read renders that construct (or the whole document) with markdown-it and Edit
+    shows it rendered unless the caret is in it. Before/after pictures of the fixture in both modes, light and dark.
+18. **No empty outline.** "in markdown if there is no outline to show, don't show the sidebar, right now it opens up
+    to an empty sidebar". No headings: the outline toggle is disabled and the sidebar stays closed.
+
+## Track E: the app (items 19–21)
+
+19. **Palette hover.** "in cmd+k when my mouse is in one position hovering on top of cmd+k menu and i scroll using
+    mouse, i see that highlighted blue section keeps moving and that's distracting, highlighted blue thing should move
+    only when mouse is moved and hovering on certain item, when scrolling it shouldn't follow mouse". Hover selects
+    only on a real mouse move, not when rows move under a still pointer.
+20. **Address bar searches.** "in browser view if something is typed and that doesn't look like url, it should be
+    opened in google search, so address bar acts like regular google search bar as well, so change placeholder to
+    similar to chrome: 'Ask Google or type a URL'". Text with a space, or no dot and no scheme and not `localhost`,
+    goes to `https://www.google.com/search?q=…`.
+21. **No tab pill animations.** "recently we added tab pill animations right showing the tab pill movements on cmd+t
+    and cmd+w, can we drop those animations and go back as before, i am not liking them much". Remove the tab motion
+    (the transaction, the born views kept for it, the test step) and go back to the instant bar.
+
+## Track F: the sidebar (items 22–24) — waits for the user's pick
+
+22. **The picked design.** "essentially we should have regular workspace view and agents view, in workspace view, we
+    don't need to show any timer or status full text, just an icon should be good to indicate things, and any
+    working icon etc let's not have animations please, same with tab pill as well, right now in tab pill we show a
+    working dot animation, instead one standard static icon for working no animated ones, so that's workspace view and
+    in agents view, we group by workspace or their status showing status icon and or status text and the time". The
+    spinner and the working dots go; one static Working icon everywhere (sidebar, tab pill, card header).
+23. **Done stays put.** "when the agent is done and the agents view is grouped by status, and its in done status, and
+    then i select that agent then the sidebar quickly jumps to idle status as it moves to immediately as we opened it,
+    let's not do that jump, when in done and that agent is opened unless that agent is no longer active, don't jump
+    and move it to idle, we can remove the done icon on it, but in the groups let's not jump it". A seen Done row
+    stays in the Done group (it may lose its icon) until the agent works again or leaves.
+24. **One edge.** "session header never changes its position whether its workspace view or agent view, and that
+    session header text starting should be aligned for other elements below it". A UI test measures the header's
+    text x in both views and the left x of every row's first element and every group label.
+
+## Findings
