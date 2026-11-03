@@ -37,7 +37,7 @@ struct ChatRowView: View, Equatable {
                 .accessibilityIdentifier("chat.\(paneID).worked")
         case let .reply(_, text):
             Markdown(text: text).accessibilityIdentifier("chat.\(paneID).reply")
-                .bubble(look.receivedBubble).padding(.leading, -Composer.inset).padding(.trailing, 48)
+                .bubble(look.receivedBubble).replyPlace()
                 .frame(maxWidth: .infinity, alignment: .leading)
         case let .todos(_, todos): Plan(todos: todos)
         case let .note(_, text, failed):
@@ -83,7 +83,7 @@ struct UserBubble: View {
             .tint(Look.onAccent)
             .bubble(look.sentBubble)
             .padding(.trailing, -Composer.inset)
-            .padding(.leading, 48)
+            .padding(.leading, ChatView.gutter)
             .frame(maxWidth: .infinity, alignment: .trailing)
             .accessibilityValue(text)
             .accessibilityIdentifier("chat.\(paneID).\(sending ? "sending" : "user")")
@@ -96,6 +96,11 @@ extension View {
     /// text keeps the messages' edge.
     func bubble(_ color: Color) -> some View {
         padding(.horizontal, Composer.inset).padding(.vertical, 8).background(color, in: .rect(cornerRadius: 18))
+    }
+
+    /// A reply bubble's place and widest width, for a reply and a run of tool calls.
+    func replyPlace() -> some View {
+        padding(.leading, -Composer.inset).padding(.trailing, ChatView.gutter)
     }
 }
 

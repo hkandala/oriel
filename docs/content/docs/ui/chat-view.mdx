@@ -347,8 +347,8 @@ setting.
 A run is one quiet line with no card: its summary and a chevron.
 - The line and its open rows take a reply bubble's place and widest width:
   they start 18 pt left of the messages' edge, as a bubble does, and stop
-  48 pt short of the messages' right edge. Their text stays on the
-  messages' edge. The fill under the pointer covers that width.
+  48 pt short of the messages' right edge. The line's text stays on the
+  messages' edge, and its open rows sit 12 pt in. The fill under the pointer covers that width.
 - The summary uses pi-content-layout's words
   ([`tools.ts`](https://github.com/hkandala/pi-hkandala/blob/master/extensions/pi-content-layout/tools.ts)):
   a verb and a noun per tool for every agent's tool names, calls counted
@@ -401,7 +401,7 @@ A run is one quiet line with no card: its summary and a chevron.
   at the bottom, and fade in under the header. In a floating window they
   start 28 pt under the title row, not 16 pt, because the card has no header
   there.
-- **Scrolling.** The messages are a plain stack of the newest 34 rows, not
+- **Scrolling.** The messages are a plain stack that starts with the newest 34 rows, not
   a lazy one: every row is built, so every height is
   real, and an open, a split and Scroll to Bottom land exactly. (A lazy
   stack guessed the heights of rows it had not built, and after a split

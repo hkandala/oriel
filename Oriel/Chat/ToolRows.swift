@@ -44,7 +44,7 @@ struct ToolStack: View {
         }
         .font(.system(size: 12))
         // On a reply bubble's place and width: its text on the replies' edge, its hover fill as far out as a bubble.
-        .padding(.leading, -Composer.inset).padding(.trailing, 48)
+        .replyPlace()
     }
 }
 
@@ -90,6 +90,7 @@ private struct ToolRow: View {
                         ToolDetail(title: "Output", text: tool.output, id: "chat.\(paneID).tool.output")
                     }
                 }
+                // Under the tool's name: past its 14 pt icon and the row's 6 pt spacing.
                 .padding(.leading, Composer.inset + 20).padding(.bottom, 4)
             }
         }

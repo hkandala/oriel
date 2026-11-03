@@ -99,10 +99,13 @@ struct ChatMessages: View, Equatable {
         // A kept row that is gone (a new session behind an outgoing message, a re-read with new ids) is pinned again.
         let kept = first.flatMap { id in rows.firstIndex { $0.id == id } }
         let start = kept ?? Self.start(rows[...])
+        // ponytail: pinned from the first rows shown, a chat open for hours lays out every row since; cut it again at
+        // the exact bottom if a split's layout gets slow.
+        let pin = kept == nil && rows.indices.contains(start)
         // The view's state and environment the reader's content draws with, read here: a change of either read inside
         // it does not build it again, only a change of what its closure holds (the Scroll to Bottom button never
         // showed). The chat's observed values are tracked inside.
-        let (scrolledUp, loading, laidOut, error) = (!atBottom, earlier, width, look.error)
+        let (scrolledUp, loading, laidOut, error, place) = (!atBottom, earlier, width, look.error, position)
         return ScrollViewReader { proxy in
             ScrollView {
                 // Not lazy: a lazy stack guessed the height of the rows it had not built, by up to four times, and
@@ -132,15 +135,15 @@ struct ChatMessages: View, Equatable {
                 .frame(maxWidth: ChatView.column)
                 .frame(maxWidth: .infinity)
             }
-            .scrollPosition(Binding(get: { position }, set: { _ in }))
+            .scrollPosition(.constant(place))
             // The row at the top (any part of it in view) as the rows in view change. Kept here, not in an onChange, so
             // the body is not built again per row scrolled past.
             .onScrollTargetVisibilityChange(idType: String.self, threshold: 0.01) { visible in
                 top = visible.first
             }
             // From the first rows shown: a new row that took one off the top would move what is in view.
-            .task(id: kept == nil && rows.indices.contains(start)) {
-                if kept == nil, rows.indices.contains(start) {
+            .task(id: pin) {
+                if pin {
                     first = rows[start].id
                 }
             }

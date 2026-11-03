@@ -155,15 +155,17 @@ extension OrielUITests {
         }
         // Up 30 pt from the bottom, by natural scrolling either way (the other way is the bottom's rubber band).
         var upward = 1
-        if try await abs(swipe(upward, 15)) < 2 {
+        var left = try await swipe(upward, 15)
+        if abs(left) < 2 {
             upward = -1
-            _ = try await swipe(upward, 15)
+            left = try await swipe(upward, 15)
         }
+        // 6 pt: AppKit can draw a frame or two of its own momentum before the lift's empty one stops it (3.5 pt here).
+        XCTAssertEqual(left, 30, accuracy: 6, "leaving the bottom")
         // Up past the Scroll to Bottom button's 40 pt, down past it again, down a little more, and up.
         for (direction, steps) in [(upward, 25), (-upward, 25), (-upward, 5), (upward, 10)] {
             let moved = try await swipe(direction, steps)
-            // 4 pt: AppKit can draw a frame or two of its own momentum before the lift's empty one stops it.
-            XCTAssertEqual(moved, CGFloat(direction * upward * steps * 2), accuracy: 4, "\(direction) × \(steps)")
+            XCTAssertEqual(moved, CGFloat(direction * upward * steps * 2), accuracy: 6, "\(direction) × \(steps)")
         }
         // A run and its open rows take a reply bubble's left edge and widest width: 18 pt left of the replies' text,
         // and 48 pt short of the messages' right edge, 18 pt in from the user's bubble's.

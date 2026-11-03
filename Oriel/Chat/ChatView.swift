@@ -8,6 +8,8 @@ struct ChatView: View {
     let terminal: PaneTerminal?
     /// The conversation's reading column, as in Messages: a wide card centers it.
     static let column: CGFloat = 760
+    /// How far a message bubble stays from the column's other side.
+    static let gutter: CGFloat = 48
     @State private var height: CGFloat = 0
     @FocusState private var composing: Bool
 
