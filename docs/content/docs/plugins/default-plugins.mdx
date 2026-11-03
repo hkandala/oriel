@@ -100,7 +100,7 @@ apply:
 - **A new tab** opens at the end of the card's workspace, on the same
   machine, also from a floating window. Unless it opens in the background,
   the app selects the new tab and gives its card the keyboard. The call is
-  `layout.apply` for a new tab with the labeled pane; herdr adds the tab last
+  `layout.apply` for a new tab with the labeled pane. herdr adds the tab last
   ([Writes are herdr calls](/docs/talking-to-herdr#writes-are-herdr-calls)).
 - **To the side** makes the pane in a new tab, then moves it beside the
   card (`pane.move`), as Replace Pane does, because herdr's split runs no
@@ -302,9 +302,10 @@ selection in the accent at 24 %. A 6 pt gap sits under the header.
   their folders open, at most 5,000. The first letter loads every path under
   the root: in a repository the files git does not ignore (`git ls-files`),
   else every file, up to 8 MB of names. When none match, the middle of the
-  card shows a magnifying glass and "No matching files". A tree that draws anew starts with no filter; a kept one
-  keeps its filter. ⌘F over the tree
-  gives the filter the keyboard.
+  card shows a magnifying glass and "No matching files". A tree that draws
+  anew starts with no filter. A kept one keeps its filter, and when it shows
+  again the field does not take the keyboard. ⌘F over the tree gives the
+  filter the keyboard.
 - **Opening.** A double-click or Return on a file shows it in the card. As in
   the Finder, a click on a folder's name only selects it, and a click on its
   chevron opens or closes it. So a double-click on a folder makes it the root,
@@ -386,7 +387,7 @@ An editable text view (CodeMirror 6).
     wrapped lines and its later paragraphs start at one x.
   - **Task boxes** take the bullet's place: a top-level box starts at the
     text's left edge. A box is drawn by the page: a thin rounded border,
-    centered on the line's lowercase letters; ticked, it fills with the
+    centered on the line's lowercase letters. Ticked, it fills with the
     accent and shows a white check.
   - **Links.** Inline links, reference links (`[text][ref]`, `[ref][]`,
     `[ref]`), autolinks and bare addresses are links in the accent. A
@@ -404,10 +405,10 @@ An editable text view (CodeMirror 6).
     that opens in one HTML block and closes in a later one (a `<details>`
     with Markdown inside) is drawn as one. HTML comments draw nothing. Inline
     HTML elements of text (`<kbd>`, `<sub>`, `<sup>`, `<b>`, `<a href>` and
-    the like) and `<br>` draw as themselves; other inline tags show as
+    the like) and `<br>` draw as themselves. Other inline tags show as
     written. Entities (`&copy;`) show their character.
   - **Tables** size their columns to their content. Words wrap only when the
-    table is wider than the column; a word wider than the column scrolls the
+    table is wider than the column. A word wider than the column scrolls the
     table sideways. Code in a table uses the app's monospace. A table or an
     HTML block in a list item starts at the item's text.
   - **Front matter** shows as YAML in 12 pt monospace, secondary.
@@ -423,7 +424,7 @@ An editable text view (CodeMirror 6).
   caret's line is its own source line: the lines of its paragraph above and
   below it still flow. A table, an HTML block, a
   setext heading's underline and a hidden definition or comment show their
-  source while the caret is in them; a click on a table or an HTML block puts
+  source while the caret is in them. A click on a table or an HTML block puts
   the caret there. A click in Read and then ⌘E keeps the caret where
   the click was.
 - **⌘E** (View ▸ Edit Mode, checked while editing) switches between Read and
@@ -431,9 +432,9 @@ An editable text view (CodeMirror 6).
   Read closes the search panel.
 - **The outline** is a 190 pt column at the left with the document's
   headings, indented by level. A file with no heading has the toggle disabled
-  and the outline closed; the outline closes when the last heading goes. It slides in and out (0.25 s). A click
+  and the outline closed. The outline closes when the last heading goes. It slides in and out (0.25 s). A click
   scrolls to the heading and in Edit puts the caret on it. `#section` links
-  scroll to the heading with GitHub's id; a second heading of the same name is
+  scroll to the heading with GitHub's id. A second heading of the same name is
   `#section-1`.
 - Links open from Read only ([Opening](#opening)). A landing with a line
   opens Edit with the caret on that line. A page that loads again starts in
@@ -581,7 +582,7 @@ The changes of one source in one scroll (`@pierre/diffs`).
   sticky in CSS, so the system keeps it in place without script. It starts
   below a commit's facts. When the file's own header is drawn, it covers
   the copy, also while the next file's header pushes it up. The lines can
-  be blank for those frames; the header stays.
+  be blank for those frames, but the header stays.
 - **The file list** is a column at the left (28 % of the card, 160 to
   260 pt) in the home's row style: a title with the file count, then one row
   per file with its icon, its name, its folder in secondary, `+n −m` and its letter

@@ -161,9 +161,9 @@ and no backslash.
     lines at a time, with the parser's state handed over and back, so the
     window stays smooth while a 108 MB session loads (a few seconds on a busy
     Mac). Meanwhile
-    the empty chat shows a small spinner, the loader. It starts when the
+    the empty chat shows a small spinner. It starts when the
     file opens: Claude Code and pi write the file only with the first
-    message, so a new chat shows its glyph, not the loader.
+    message, so a new chat shows its glyph, not the spinner.
     OpenCode's first load and each event's rebuild run off the main thread
     too.
   - The chat keeps a mark (inode and offset) per file in memory, so a card
@@ -393,7 +393,7 @@ A run is one quiet line with no card: its summary and a chevron.
   it, so each turn reads as one block.
 - **An empty chat** shows the agent's program glyph (the one in the tab), 64
   pt and gray, in the middle of the messages, until the first message. While
-  a history loads, it shows the loader in its place. An empty chat has no
+  a history loads, it shows a small spinner in its place. An empty chat has no
   scroll view: the scroll view is made with the rows, at the bottom (one
   made empty kept a blank above a long history that came later).
 - The messages, the question card and the reply box sit in a 760 pt column,

@@ -30,6 +30,8 @@ description: "The words these docs use"
 | picture (card) | a card's last image at 1x, shown in place of a dropped web card until the card made again has loaded, and in its overview tile |
 | plugin API / `oriel` | the typed object a plugin's page calls: files, git, run, state, the header, opens, toasts; behind it, the bridge's messages to the app |
 | linked open | an open from a plugin card in a new herdr tab at the end of its card's workspace (⌘-click), or in a pane to its side (⌥-click) |
+| kept page | one of the last five places a plugin card showed, kept hidden in its page so Back and Forward show it at once, as the user left it (`oriel.pages`) |
+| in the background | an open in a new tab or a side pane that leaves the selected tab and the keyboard where they are (a ⌘- or ⌥-click in a plugin card) |
 | landing | the line, diff file or row an open scrolls to, once, on the page's first load |
 | Back and Forward (plugin) | a plugin card's own list of the places it showed, walked from row 2 or with ⌘[ ⌘] |
 | Edited dot | the dot after a plugin card's title while it has unsaved edits (`card.setDirty`) |
@@ -67,7 +69,7 @@ description: "The words these docs use"
 | state icon | a still round icon in the status color: a dashed circle (working), an alert circle (needs you), a check circle (finished); none for idle |
 | state label | an agent state as its icon and its word in the status color |
 | state box | an Agents row's state: its icon and time in a box tinted with the status color |
-| status word | working (blue), needs you (orange), finished (green), idle (gray); always next to an icon or a badge for VoiceOver |
+| status word | working (blue), needs you (orange), finished (emerald), idle (gray); VoiceOver reads it with every state icon |
 | seen | this device has shown the agent's last finish to the user: its tab was selected on the page in view of the key window |
 | git state | a workspace row's branch and its ahead and behind counts, from `git status` on the machine |
 | PTY | the pseudo-terminal a shell runs in; it has one size |
