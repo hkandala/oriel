@@ -42,9 +42,7 @@ struct TabBar: View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal) {
                 HStack(spacing: 0) {
-                    // By the stand-in's id for a tab made here: its view stays as herdr's tab takes its place.
-                    ForEach(viewIDs(tabs), id: \.id) { index, _ in
-                        let tab = tabs[index]
+                    ForEach(Array(tabs.enumerated()), id: \.element.id) { index, tab in
                         // One view per tab, so a scroll to its id shows the tab, not the divider before it.
                         HStack(spacing: 0) {
                             if index > 0 {
@@ -67,8 +65,6 @@ struct TabBar: View {
                                 .opacity(page.dragging == .tab(tab.id) ? 0.4 : 1)
                                 .offset(x: shift(index))
                         }
-                        // A new tab grows in, a closed one shrinks away (`Transaction.tabMotion`).
-                        .transition(.scale(scale: 0.6).combined(with: .opacity))
                     }
                 }
                 // A container of its own: without it, a row of one tab that grew to two kept the first capsule's
@@ -125,31 +121,19 @@ struct TabBar: View {
             // then moved the tab away from the pointer.
             .onChange(of: page.selectedTabIDs[workspace.id], initial: true) { _, new in
                 if let new, new != clicked {
-                    let id = new.born(page.store.ahead.born)
-                    withTransaction(\.animation, nil) { proxy.scrollTo(id) }
+                    withTransaction(\.animation, nil) { proxy.scrollTo(new) }
                     // A new tab's capsule lays out in this same update, and a scroll to it can miss: again
                     // once it has.
-                    Task { proxy.scrollTo(id) }
+                    Task { proxy.scrollTo(new) }
                 }
                 clicked = nil
             }
         }
         .frame(height: Self.height + 10)
-        // Only an open or a close here moves the bar; the page shows at once (phase 48).
-        .transaction {
-            if $0.tabMotion {
-                $0.animation = reduceMotion && !Animation.forceMotion ? nil : .smooth(duration: 0.2)
-            }
-        }
         .testValue("tabs.fades", "Tab Fades", [hidden.leading ? "leading" : nil, hidden.trailing ? "trailing" : nil]
             .compactMap(\.self).joined(separator: ", "))
         .keycapHints(.command, shown: $hints)
         .onDisappear { spring?.cancel() }
-    }
-
-    private func viewIDs(_ tabs: [HostStore.Tab]) -> [(index: Int, id: String)] {
-        let born = page.store.ahead.born
-        return tabs.indices.map { ($0, tabs[$0].id.born(born)) }
     }
 
     /// A tab dragged along the track: it and the tabs it passes trade places as it goes (the others slide apart).
@@ -178,27 +162,10 @@ struct TabBar: View {
         Pill(shape: RoundedRectangle(cornerRadius: Self.radius - Self.inset, style: .continuous))
             .frame(width: Self.width, height: Self.height - 2 * Self.inset)
             .offset(x: CGFloat(selected) * (Self.width + 1))
-            // It glides only for an open or a close here; else it jumps, also in another change's animation (a tab
-            // drag's slide).
-            .transaction {
-                if !$0.tabMotion {
-                    $0.animation = nil
-                }
-            }
+            // It jumps, also in another change's animation (a tab drag's slide).
+            .animation(nil, value: selected)
             .allowsHitTesting(false)
     }
-}
-
-private extension String {
-    /// A tab's view id in the tab bar (`Ahead.born`).
-    func born(_ born: [String: String]) -> String {
-        born[self] ?? self
-    }
-}
-
-extension Transaction {
-    /// A tab opened or closed in this window (⌘T, ⌘W): the tab bar alone animates it.
-    @Entry var tabMotion = false
 }
 
 extension Page {

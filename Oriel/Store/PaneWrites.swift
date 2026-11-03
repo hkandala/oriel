@@ -1,5 +1,5 @@
+import Foundation
 import HerdrKit
-import SwiftUI
 
 /// Layout writes: panes and splits, tab and workspace order; each is one `write`,
 /// then a snapshot read.
@@ -235,14 +235,7 @@ extension Page {
                 self.close(close, discarded: discarded.union([card.terminalID]))
             }
         }
-        // The tab bar moves only for a tab that goes, while the workspace keeps others.
-        let many = (selectedWorkspace?.tabs.count ?? 0) > 1
-        let motion = switch close {
-        case .workspace: false
-        case let .pane(id): many && alone(id)
-        case .tab, .otherTabs: many
-        }
-        guard let asked = withTransaction(\.tabMotion, motion, { store.ask(close) }) else { return }
+        guard let asked = store.ask(close) else { return }
         let hidden = (selectedWorkspaceID, selectedTabIDs)
         asking.insert(key)
         Task {

@@ -119,19 +119,8 @@ One capsule per herdr tab of the selected workspace (D42).
   fully round, 2 pt inside the track, as in Rex. Every switch (a click, +,
   ⌘T, ⌘1…⌘9, ⇧⌘[ and ⇧⌘], ⌃⇥, the palette, a close, an open from a card, the
   overview) shows the tab's page at once, and the marker jumps with it: no
-  slide, no fade. Two changes move the bar itself, over 0.2 s on a spring
-  with no bounce (none with Reduce Motion), while the page still shows at
-  once:
-  - A new tab made in the app (⌘T, +, the palette) in the shown workspace
-    grows into its slot at the end, and the marker glides there from the old
-    tab.
-  - A tab closed in the app (⌘W on its last pane, ⇧⌘W, Close Other Tabs,
-    Close Tabs to the Right) shrinks away, the tabs after it slide left, and
-    the marker glides to the tab selected next.
-
-  Every window that shows the workspace moves its bar. A tab made or closed
-  elsewhere (herdr's TUI, another device), a close that asks first, and a
-  close that takes the workspace's last tab change the bar at once. A sideways swipe never changes the tab
+  slide, no fade. A new tab or a closed tab changes the bar at once too: no
+  pill grows, shrinks or glides. A sideways swipe never changes the tab
   ([Swiping](/docs/ui/swiping)). Glass draws the marker as a Liquid Glass
   capsule, Classic as a plain raised pill.
 - **Close.** When the selected tab closes, the window selects the tab used

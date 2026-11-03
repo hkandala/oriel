@@ -20,9 +20,6 @@ struct Ahead {
     /// once (quick ⌘W after quick ⌘T). Not every starting pane: a program run in a pane split a second ago
     /// would hide, then come back with the question.
     var fresh: Set<String> = []
-    /// The stand-in each of herdr's tabs took the place of, by the tab's id: the tab bar keeps the stand-in's view, so
-    /// a new tab's pill goes on growing in.
-    var born: [String: String] = [:]
     /// herdr's tabs for stand-ins closed before they came: the store closes them.
     var toClose: [String] = []
     /// Replace Pane's old panes, by id. Every new pane of the old one's tab hides while the old one is there, so the
@@ -62,7 +59,6 @@ struct Ahead {
     mutating func made(_ standIn: String, _ id: String) {
         arrived[standIn] = id
         fresh.insert(id)
-        born[id] = standIn
         if tabs.first(where: { $0.id == standIn })?.closed == true {
             closing.insert(id)
             toClose.append(id)
@@ -85,7 +81,6 @@ struct Ahead {
         let ids = snapshot.workspaces.map(\.id) + snapshot.tabs.map(\.id) + snapshot.panes.map(\.id)
         closing.formIntersection(ids)
         fresh.formIntersection(ids)
-        born = born.filter { ids.contains($0.key) }
         arrived = [:]
         replaced = replacing.filter { !ids.contains($0.key) }
         keepCards(ids)
