@@ -203,13 +203,16 @@ then working and no status when all idle". Build exactly `resources/research/ui/
   the built page in a bare WKWebView with trackpad-phased scrolls (3000 px a frame, recorded with `screencapture -v`):
   4–6 frames with no header in 3 of 4 runs on main, `/tmp/oriel-shots/t52c/sticky-before-frames.png`.
 - **Fix (11).** A copy of the top file's header sits under the files' own, in the diff's scroll right after a commit's
-  facts, with `position: sticky; top: 0` and no room taken, so the compositor keeps it in place with no script. A
-  scroll (`subscribeToScroll`) only changes which file it names. The file's own header covers it whenever drawn, also
-  while the next file's header pushes it up, so the look and the push are unchanged; it is inert. After: 0 frames
-  with no header in 5 runs (`sticky-after-frames.png`: the lines blank for two frames, the header stays; on the page
-  factories, `sticky-after-sheet-{wt,commit}.png`). A file box
-  that spans the whole file would need pierre's other virtualizer and a rewrite of the diff page. The real app, a
-  fast swipe over 16 files: the header in all 293 frames (`sticky-real-boundary.png`). Git is 1.6.1.
+  facts, with `position: sticky; top: 0` and no room taken, so the compositor keeps it in place with no script. A scroll
+  (`subscribeToScroll`) only changes which file it names. The file's own header covers it whenever drawn, also while the
+  next file's header pushes it up, so the look and the push are unchanged; it is inert. After: 0 frames with no header
+  in 5 runs (`sticky-after-frames.png`: the lines blank for two frames, the header stays; on the page factories,
+  `sticky-after-sheet-{wt,commit}.png`). A file box that spans the whole file would need pierre's other virtualizer and
+  a rewrite of the diff page. The real app, a fast swipe over 16 files: the header in all 293 frames
+  (`sticky-real-boundary.png`). Git is 1.6.1.
+- **For the user.** Flick fast through a long Working Tree diff and back: the file header stays; the lines may be
+  blank for a frame or two. Open File and ⌘-click open tabs at the end. A toast (Revert) and a notice (Retry): round
+  buttons. A commit's diff: the 8 pt gap under row 2 stays when scrolled, and the file list's line starts below it.
 
 ### Track A
 
