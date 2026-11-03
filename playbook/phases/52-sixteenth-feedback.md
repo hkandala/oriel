@@ -258,3 +258,44 @@ then working and no status when all idle". Build exactly `resources/research/ui/
   `/tmp/oriel-shots/t52f/compare/` (workspaces, agents by priority and by workspace, tab pills, hover card).
 - **For the user.** Check the icons at 1x and in light mode (emerald `#10b981` on a light sidebar is faint), and open
   a Done agent from the Agents view by priority: its row stays under Done.
+
+### Track B
+
+- **Cause (3, 9).** File Explorer drew every place anew: Back made a new tree, listed the root, listed the open folders
+  again and set the scroll after two frames, so it took one listing per depth. Git's home hid with `display: none`,
+  which dropped the body's scroll, so Back showed the home at the top while git read, then jumped to the landing.
+- **Fix (3).** One router in the plugin runtime, `oriel.pages.route(draw)` (plugin API 2). Each place draws in a page
+  of its own. The card keeps the last five pages, hidden with `inert` (and `visibility: hidden`), so a page keeps its
+  layout, scroll, open folders and selection. A page's own `oriel` scopes everything to when it shows: its handlers
+  run only then (`theme` and `visible` always), its watches wait while it is hidden and call back once when it shows
+  again, and its header controls are recorded and come back with it (the user's changes too). The tab's title comes
+  back with the page, a hidden page's media pauses, a page left with unsaved edits is dropped, and all pages share one
+  watch of the machine per path (on a remote machine each watch polls). File Explorer and
+  Git both draw through it; Git's home and diff became factories per page. Removed: the tree's memory of open folders
+  and scroll, the frame waits, the move queue in `main.ts`, Git's hide and clear, the move checks and the control
+  dedupe (the runtime dedupes).
+- **Numbers.** The built pages in headless Chromium with a stand-in API that waits as the real calls do (a listing
+  120 ms, `git.log` 150 ms). File Explorer, Back from a file to a scrolled tree with an open folder, from the place
+  event to the first frame that shows the tree as it was left: 318–336 ms before, 10–22 ms after. Git, Back from a
+  commit to the scrolled home: 159–163 ms before, with 9–10 frames of the home at the top; 2–4 ms after, with none.
+- **Decisions.** A kept tree keeps its filter text and matches: the field shows the text but no longer takes the
+  keyboard (FilterField asks for focus only when edited or autofocused; else Back to a filtered tree, or an agent's
+  rename back to it, would take the keyboard from the pane in use). Back to a kept tree shows the row of the file it
+  came back from and scrolls only when that row is out of view. A kept diff keeps its own Side by Side, Word Wrap and
+  file list; a new diff starts with the card's. Back to a kept Git home does not jump to the commit it opened: it is
+  where it was left. A place that is not kept still draws while the old page stays (Parent's read-first path stays).
+- **Cause (4).** The tree's first row had the keyboard with no ring, so the first ↓ moved past it. **Fix:** with no
+  row selected and no ring yet, the first ↓ goes to the first row (`..` when shown) and the first ↑ to the last.
+- **Fix (5, 6).** An empty folder shows `folder` and "This folder is empty" in the middle of the card. ⌘-click,
+  ⌥-click and the row menu's Open in New Tab and Open to the Side open behind: a new `background` option of
+  `oriel.open` (API 2) skips the app's `follow`, so the selected tab and the keyboard stay. Git's Open File (a plain
+  click) still selects its new tab.
+- **Runs.** 41625748826 was red on the Back test: ⌘] with the filter field's keyboard went to Select Next Pane (the
+  test now clicks a row first, and a field shown only for its text no longer takes the keyboard). Green on the
+  reviewed code before the rebase: 41625753041, 41628369745, 41628374278.
+- **Pictures.** Empty folder: `/tmp/oriel-shots/t52b/empty-folder-before.png` → `empty-folder-after.png`. Git, no look
+  change (the same home and diff): `/tmp/oriel-shots/t52b/git-{before,after}-{home,diff}.png`.
+- **For the user.** In a File Explorer card, open folders, scroll, open a file, Back and Forward a few times: the tree
+  and the file come back at once, where they were. Filter, open a match, Back: the matches are still there and the
+  keyboard stays in the tree. In Git, scroll the history, open a commit, Back: no jump. ⌘-click three files: the tabs
+  open behind and the tree keeps the keyboard. Play a video in Preview and go Back: it stops.
