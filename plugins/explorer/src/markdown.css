@@ -62,7 +62,7 @@ nav button:hover {
   cursor: pointer;
 }
 .cm-md-code,
-.cm-md-block code {
+.cm-md-block :not(pre) > code {
   padding: 0.1em 0.3em;
   border-radius: 4px;
   background: color-mix(in srgb, var(--text) 8%, transparent);
@@ -98,10 +98,13 @@ nav button:hover {
 .cm-line.cm-md-hang {
   padding-left: calc(var(--quotes, 0) * 12px + var(--hang, 0em) + 6px);
 }
+/* Longhands: a code line in a quote keeps its fill under the bars. */
 .cm-line.cm-md-quote {
   color: var(--dim);
-  background: repeating-linear-gradient(to right, var(--divider) 0 3px, transparent 3px 12px) 3px 0 /
-    calc(var(--quotes) * 12px) 100% no-repeat;
+  background-image: repeating-linear-gradient(to right, var(--divider) 0 3px, transparent 3px 12px);
+  background-position: 3px 0;
+  background-size: calc(var(--quotes) * 12px) 100%;
+  background-repeat: no-repeat;
 }
 /* A list item's bullet, number or task box at the end of its indent (live.ts's INDENT and GAP). */
 .cm-md-bullet {
@@ -162,6 +165,12 @@ nav button:hover {
 }
 .cm-md-block code {
   font: 0.9em ui-monospace, monospace;
+}
+.cm-md-block pre {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  overflow-x: auto;
 }
 .cm-md-block th {
   font-weight: 600;

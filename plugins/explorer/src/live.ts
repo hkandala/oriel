@@ -146,10 +146,12 @@ function blocks(state: EditorState): DecorationSet {
           }
         }
         if (!touches(lines, from, to)) {
-          // In a list item: at its text, the source without the item's indent (four spaces would make it code).
-          const source = state.sliceDoc(from, to), indent = Math.min(
-            ...source.split("\n").filter((each) => each.trim()).map((each) => /^ */.exec(each)?.[0].length ?? 0))
-          const widget = new Block(source.replace(new RegExp(`^ {${indent}}`, "gm"), ""), depth(node.node) * INDENT)
+          // In a list item: at its text, the source without the indent its lines share (four spaces or a tab would
+          // make it code).
+          const source = state.sliceDoc(from, to)
+          const indent = source.split("\n").filter((each) => each.trim()).map((each) => /^[ \t]*/.exec(each)?.[0] ?? "")
+            .reduce((common, each) => (each.startsWith(common) ? common : common.startsWith(each) ? each : ""))
+          const widget = new Block(source.replaceAll(new RegExp(`^${indent}`, "gm"), ""), depth(node.node) * INDENT)
           ranges.push(Decoration.replace({ widget, block: true }).range(from, to))
         }
         return false
@@ -174,7 +176,10 @@ function blocks(state: EditorState): DecorationSet {
           if (touches(lines, line.from, next.to)) continue
           if (/(?: {2}|(?<!\\)(?:\\\\)*\\)$/.test(line.text) || footnote.test(next.text)) continue
           const start = next.from + (/^[ \t>]*/.exec(next.text)?.[0].length ?? 0)
-          ranges.push(space.range(line.from + line.text.trimEnd().length, start))
+          // A break in what the preview hides (a link's address, a tag, a comment) draws no space.
+          const hidden = ["URL", "LinkMark", "LinkTitle", "HTMLTag", "Comment"]
+            .includes(syntaxTree(state).resolveInner(line.to, -1).name)
+          ranges.push((hidden ? Decoration.replace({}) : space).range(line.from + line.text.trimEnd().length, start))
         }
         return false
       }
@@ -356,11 +361,16 @@ function preview(view: EditorView): DecorationSet {
           const first = doc.lineAt(node.from).number, last = doc.lineAt(node.to).number
           // The fences' lines: a block not closed yet has only its opening one.
           const fences = new Set(node.node.getChildren("CodeMark").map((mark) => doc.lineAt(mark.from).number))
+          let quoted = false
+          for (let at = parent; at; at = at.parent) quoted ||= at.name === "Blockquote"
           for (const each of shown(node)) {
             const n = each.number, fence = fences.has(n) && !raw(each.from)
             const edge = `${n === first ? " cm-md-pre-first" : ""}${n === last ? " cm-md-pre-last" : ""}`
             ranges.push(line(`cm-md-pre${edge}${fence ? " cm-md-fence" : ""}`).range(each.from))
             if (fence && each.to > each.from) ranges.push(hide.range(each.from, each.to))
+            // In a quote, the quote's marks.
+            const marks = quoted && !fence && !raw(each.from) ? /^(?:[ \t]*>[ \t]?)+/.exec(each.text)?.[0].length : undefined
+            if (marks) ranges.push(hide.range(each.from, each.from + marks))
             // An indented block's indent is its mark.
             const indent = name === "CodeBlock" && parent?.name === "Document" && !raw(each.from)
               ? /^(?: {1,4}|\t)/.exec(each.text)?.[0].length : undefined
@@ -377,9 +387,9 @@ function preview(view: EditorView): DecorationSet {
             const widget = new Html(md.utils.escapeHtml(md.utils.unescapeAll(slice(node))))
             ranges.push(Decoration.replace({ widget }).range(node.from, node.to))
           }
-          if (name === "Comment") conceal(node.from, node.to)
           if (name === "HorizontalRule") ranges.push(rule.range(node.from, node.to))
         }
+        if (name === "Comment" && !touches(lines, node.from, node.to)) conceal(node.from, node.to)
         if (name === "HTMLTag") {
           // An inline element drawn as itself: its tags hidden off the caret's lines, its text in it.
           const tag = slice(node), open = /^<([a-z][\w-]*)([^>]*?)\s*>$/i.exec(tag)
@@ -403,23 +413,29 @@ function preview(view: EditorView): DecorationSet {
         }
         if (name === "ListItem") {
           // The item's lines after its first (a second paragraph, a code block, the caret's paragraph) hang at its
-          // text, their indent hidden; a nested list's lines are its own. A code line moves whole, with its fill.
+          // text, their indent hidden; a nested list's lines are its own. A quote's or a code block's line moves whole,
+          // with its bars or its fill (in a quote around the list, a code line's fill stays: the bars move not).
           const mark = node.node.getChild("ListMark")
           if (!mark) return
           const head = doc.lineAt(mark.from), width = depth(node.node) * INDENT
           const column = past(mark.to) - head.from
           const nested = [...node.node.getChildren("BulletList"), ...node.node.getChildren("OrderedList")]
           const code = [...node.node.getChildren("FencedCode"), ...node.node.getChildren("CodeBlock")]
+          const quotes = node.node.getChildren("Blockquote")
+          let quoted = false
+          for (let at = node.node.parent; at; at = at.parent) quoted ||= at.name === "Blockquote"
           for (const each of shown(node)) {
             if (each.number <= head.number || !/[^\s>]/.test(each.text)) continue
             if (nested.some((list) => within(list, each.from))) continue
             const own = raw(each.from), hang = `${own ? width - 1 : width}em`
-            ranges.push((code.some((block) => within(block, each.from))
+            const quote = quotes.some((block) => within(block, each.from))
+            ranges.push((quote || (!quoted && code.some((block) => within(block, each.from)))
               ? Decoration.line({ attributes: { style: `margin-left: ${hang}` } })
               : Decoration.line({ class: "cm-md-hang", attributes: { style: `--hang: ${hang}` } })).range(each.from))
-            // The spaces after any quote marks (hidden with their own space), up to the item's text.
-            const [, quoted = "", spaces = ""] = /^((?:[ \t]*>[ \t]?)*)([ \t]*)/.exec(each.text) ?? []
-            const indent = Math.min(column - quoted.length, spaces.length), at = each.from + quoted.length
+            // The spaces after any quote marks around the list (hidden with their own space), up to the item's text.
+            const lead = quote ? /^()([ \t]*)/ : /^((?:[ \t]*>[ \t]?)*)([ \t]*)/
+            const [, marks = "", spaces = ""] = lead.exec(each.text) ?? []
+            const indent = Math.min(column - marks.length, spaces.length), at = each.from + marks.length
             if (!own && indent > 0) ranges.push(hide.range(at, at + indent))
           }
         }

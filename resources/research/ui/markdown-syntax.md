@@ -82,6 +82,10 @@ A tilde fence with no language.
 > - A quoted item
 >
 >   with a second paragraph.
+>
+> ```sh
+> make lint
+> ```
 
 ## Lists
 
@@ -116,6 +120,9 @@ Parentheses (they render as dots):
 1) A list with parentheses
 2) Two
 
+- An item with a quote:
+  > quoted under the item's text,
+  > on two lines.
 - An item with code and a table:
 
   ```sh
@@ -143,6 +150,10 @@ Parentheses (they render as dots):
 <summary>An HTML block</summary>
 
 Inside the block.
+
+```sh
+make e2e
+```
 
 </details>
 

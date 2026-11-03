@@ -323,7 +323,9 @@ then working and no status when all idle". Build exactly `resources/research/ui/
 - **Review.** A blocker: hides from the view plugin that crossed a line break (a link's address on the next line, a
   tag or comment over two lines) threw in CodeMirror and blanked the card; every hide now stops at each line's end.
   Also fixed: a footnote whose text is an address, tables and HTML blocks in list items, quotes and lists composing
-  their indents (CSS variables), the block walk only when the caret's lines change.
+  their indents (CSS variables), the block walk only when the caret's lines change. Round 2: a quote in a list item
+  and code in a quote keep their bars and fill, a comment over two lines shows on the caret's line, code inside an HTML
+  block draws as one block. Left: a table in a quote draws markdown-it's own quote bar, a few px off the quote's.
 - **Pictures** (the built pages in headless Chrome with a stand-in API, before at cdf2568f on the left, after on the
   right, the fixture `resources/research/ui/markdown-syntax.md`): `/tmp/oriel-shots/52d/fixture-{dark,light,edit,
   edit-light}-{0..3}.png`, and phase 51's file (the user's list) `lists-phase51.png`.
