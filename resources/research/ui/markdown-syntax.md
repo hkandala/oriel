@@ -41,7 +41,8 @@ Some *italic* and _italic_, **bold** and __bold__, ***bold italic***, **bold wit
 - Reference, full: [the docs][docs]; collapsed: [docs][]; shortcut: [docs].
 - Autolinks: <https://example.com> and <mail@example.com>.
 - Bare (GFM): https://example.com/path and www.example.com.
-- Relative: [other file](other.md) and an anchor: [to Tables](#tables).
+- Relative: [other file](other.md), in angle brackets: [with a space](<other file.md>), and an anchor:
+  [to Tables](#tables).
 - An address on the next line: [split](
   https://example.com).
 
@@ -49,7 +50,8 @@ Some *italic* and _italic_, **bold** and __bold__, ***bold italic***, **bold wit
 
 ## Images
 
-![An image's alt text](image.png "Its title") and a reference image ![logo][logo].
+![An image's alt text](image.png "Its title"), one with no alt text ![](image.png) and a reference image
+![logo][logo].
 
 [logo]: logo.png
 
@@ -159,7 +161,7 @@ make e2e
 
 <!-- An HTML comment draws nothing. -->
 
-Inline HTML: <kbd>⌘</kbd><kbd>E</kbd>, H<sub>2</sub>O, x<sup>2</sup>, <b>bold</b> and a<br>break, a tag
+Inline HTML: <kbd>⌘</kbd><kbd>E</kbd>, <code>code</code>, H<sub>2</sub>O, x<sup>2</sup>, <b>bold</b> and a<br>break, a tag
 <a
 href="https://example.com">split over lines</a>, <b><b>nested</b> tags</b> and a comment <!-- over
 two lines --> that draws nothing.

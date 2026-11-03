@@ -56,7 +56,7 @@ function references(state: EditorState): References {
       const name = node.node.getChild("LinkLabel"), url = node.node.getChild("URL")
       const key = node.name === "LinkReference" && name ? label(state.sliceDoc(name.from, name.to)) : ""
       if (key && !key.startsWith("^") && url && !links.has(key)) {
-        links.set(key, state.sliceDoc(url.from, url.to).replace(/^<|>$/g, ""))
+        links.set(key, state.sliceDoc(url.from, url.to))
       }
       return false
     },
@@ -134,8 +134,7 @@ function blocks(state: EditorState): DecorationSet {
       const from = doc.lineAt(node.from).from
       let to = doc.lineAt(node.to).to
       if (name === "Table" || name === "HTMLBlock") {
-        const tag = name === "HTMLBlock" && node.node.parent?.name === "Document"
-          ? /^<([a-z][\w-]*)/i.exec(state.sliceDoc(node.from, node.to))?.[1] : undefined
+        const tag = name === "HTMLBlock" ? /^<([a-z][\w-]*)/i.exec(state.sliceDoc(node.from, node.to))?.[1] : undefined
         const close = tag && new RegExp(`</${tag}\\s*>`, "i")
         if (close && !close.test(state.sliceDoc(node.from, node.to))) {
           for (let next = node.node.nextSibling; next; next = next.nextSibling) {
@@ -249,9 +248,12 @@ const phrasing = new Set(["a", "abbr", "b", "cite", "code", "del", "em", "i", "i
 const INDENT = 1.5
 const GAP = 0.4
 
-/** A link's address as the page follows it: GFM's bare `www.` and e-mail addresses get their scheme. */
-const target = (url: string) =>
-  /^www\./i.test(url) ? `http://${url}` : /^[^\s/:@<>]+@[^\s/@<>]+\.[^\s/@<>]+$/.test(url) ? `mailto:${url}` : url
+/** A link's address as the page follows it: without the `<>` of `[a](<my file.md>)` (Lezer's URL holds them), and
+ *  GFM's bare `www.` and e-mail addresses with their scheme. */
+function target(raw: string) {
+  const url = raw.replace(/^<(.*)>$/s, "$1")
+  return /^www\./i.test(url) ? `http://${url}` : /^[^\s/:@<>]+@[^\s/@<>]+\.[^\s/@<>]+$/.test(url) ? `mailto:${url}` : url
+}
 /** A list item's depth: 1 at the top. */
 function depth(item: SyntaxNode) {
   let n = 0
@@ -322,6 +324,12 @@ function preview(view: EditorView): DecorationSet {
           const href = url ? slice(url) : links.get(label(ref && ref.to - ref.from > 2 ? slice(ref) : text))
           if (!href) return
           if (textTo > textFrom) ranges.push(link(href).range(textFrom, textTo))
+          else if (off) {
+            // An image with no alt text: its address is the link, as markdown-it's rule draws it.
+            const shown = md.utils.escapeHtml(target(href))
+            ranges.push(Decoration.replace({ widget: new Html(`<a href="${shown}">${shown}</a>`) }).range(node.from, node.to))
+            return
+          }
           if (off) conceal(node.from, textFrom), conceal(textTo, node.to)
           return
         }

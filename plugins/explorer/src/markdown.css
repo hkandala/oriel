@@ -163,7 +163,9 @@ nav button:hover {
   padding: 4px 10px;
   border: 1px solid var(--divider);
 }
-.cm-md-block code {
+/* Every code element, also inline HTML's `<code>` and `<samp>`: WebKit's own default is a serif Courier. */
+.cm-editor code,
+.cm-editor samp {
   font: 0.9em ui-monospace, monospace;
 }
 .cm-md-block pre {

@@ -4,7 +4,7 @@
 // outline (off with no headings), and the page sets them when it changes them itself.
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown"
 import { yamlFrontmatter } from "@codemirror/lang-yaml"
-import { ensureSyntaxTree, syntaxTree } from "@codemirror/language"
+import { ensureSyntaxTree, syntaxTree, syntaxTreeAvailable } from "@codemirror/language"
 import { closeSearchPanel } from "@codemirror/search"
 import { Compartment, EditorState, Prec } from "@codemirror/state"
 import { EditorView } from "@codemirror/view"
@@ -196,7 +196,9 @@ export async function show(place: Place): Promise<Reveal> {
       if (!edit && update.transactions.some((tr) => tr.annotation(ticked))) ticks = ticks.then(() => shown?.save())
       // Also as the background parse reaches more headings.
       if (update.docChanged || syntaxTree(update.startState) !== syntaxTree(update.state)) {
-        titles(update.view, headings(update.state))
+        const found = headings(update.state)
+        // No heading in a tree cut short says nothing: its headings can be below the parsed part.
+        if (found.length || syntaxTreeAvailable(update.state)) titles(update.view, found)
       }
     }),
   ], pane)
