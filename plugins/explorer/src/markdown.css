@@ -36,7 +36,7 @@ nav button:hover {
   background: color-mix(in srgb, var(--text) 8%, transparent);
 }
 
-/* The live preview (markdown.ts): CodeMirror's lines drawn as rendered Markdown, the same in Read and Edit. */
+/* The live preview (live.ts): CodeMirror's lines drawn as rendered Markdown, the same in Read and Edit. */
 .cm-md-h1,
 .cm-md-h2,
 .cm-md-h3 {
@@ -81,15 +81,29 @@ nav button:hover {
 .cm-md-pre-first.cm-md-pre-last {
   border-radius: 8px;
 }
+/* An indented block's padding, as a fenced block's fences give it. */
+.cm-md-pre-first:not(.cm-md-fence) {
+  padding-top: 5px;
+}
+.cm-md-pre-last:not(.cm-md-fence) {
+  padding-bottom: 5px;
+}
 /* A fence off the caret's line: no text, the code block's padding. */
 .cm-line.cm-md-fence {
   line-height: 10px;
 }
-/* A quote's padding and bars are its line's style (markdown.ts). */
+/* A line's indent: a 12 px step per quote around it (`--quotes`, each with a 3 px bar) plus its list item's hang
+   (`--hang`), both set by live.ts. */
+.cm-line.cm-md-quote,
+.cm-line.cm-md-hang {
+  padding-left: calc(var(--quotes, 0) * 12px + var(--hang, 0em) + 6px);
+}
 .cm-line.cm-md-quote {
   color: var(--dim);
+  background: repeating-linear-gradient(to right, var(--divider) 0 3px, transparent 3px 12px) 3px 0 /
+    calc(var(--quotes) * 12px) 100% no-repeat;
 }
-/* A list item's bullet, number or task box at the end of its indent (markdown.ts's INDENT and GAP). */
+/* A list item's bullet, number or task box at the end of its indent (live.ts's INDENT and GAP). */
 .cm-md-bullet {
   display: inline-block;
   margin-right: 0.4em;
@@ -168,6 +182,12 @@ nav button:hover {
 }
 .cm-md-fn {
   margin-right: 0.4em;
+}
+.cm-md-block blockquote {
+  margin: 0;
+  padding-left: 15px;
+  border-left: 3px solid var(--divider);
+  color: var(--dim);
 }
 .cm-md-block img {
   max-width: 100%;

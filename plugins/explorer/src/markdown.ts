@@ -44,6 +44,9 @@ function headings(state: EditorState, tree = syntaxTree(state)) {
   return found
 }
 
+/** Every heading of the document: the background parse stops past the viewport. */
+const all = (state: EditorState) => headings(state, ensureSyntaxTree(state, state.doc.length, 200) ?? undefined)
+
 /** Read's selection as source text: the page's selection mapped onto the document (an end outside the editor is the
  *  document's end), else the editor's own; undefined when the selection is not in the editor. */
 function copied(view: EditorView) {
@@ -85,8 +88,7 @@ export async function show(place: Place): Promise<Reveal> {
     outlined = nowOutlined && titled
     outline.hidden = false
     outline.toggleAttribute("data-closed", !outlined)
-    // The whole document's headings: the background parse stops past the viewport.
-    if (outlined) list(view, ensureSyntaxTree(view.state, view.state.doc.length, 200) ?? undefined)
+    if (outlined) list(view, all(view.state))
     focus(view)
     oriel.controls.set("mode", { value: edit ? "edit" : "read" })
     oriel.controls.set("outline", { value: outlined })
@@ -100,19 +102,19 @@ export async function show(place: Place): Promise<Reveal> {
   }
 
   /** The outline's toggle on while the file has headings; with none, the outline closes. */
-  function titles(view: EditorView, tree = syntaxTree(view.state)) {
-    const now = headings(view.state, tree).length > 0
+  function titles(view: EditorView, found: ReturnType<typeof headings>) {
+    const now = found.length > 0
     if (now !== titled) {
       titled = now
       oriel.controls.set("outline", { enabled: titled })
       if (!titled && outlined) present(view, edit, false)
     }
-    if (outlined) list(view, tree)
+    if (outlined) list(view, found)
   }
 
   /** The outline's rows; a click scrolls to its heading, and in Edit puts the caret there. */
-  function list(view: EditorView, tree = syntaxTree(view.state)) {
-    outline.replaceChildren(...headings(view.state, tree).map((heading) => {
+  function list(view: EditorView, found: ReturnType<typeof headings>) {
+    outline.replaceChildren(...found.map((heading) => {
       const row = document.createElement("button")
       row.textContent = heading.text
       row.style.paddingLeft = `${12 * heading.level}px`
@@ -144,12 +146,11 @@ export async function show(place: Place): Promise<Reveal> {
       // A footnote's number links to its definition; a heading's anchor is GitHub's, `-1` on for a second of a name.
       const note = anchor.startsWith("fn:") ? view.state.field(referenceField).notes.get(anchor.slice(3)) : undefined
       const seen = new Map<string, number>()
-      const heading = note ?? headings(view.state, ensureSyntaxTree(view.state, view.state.doc.length, 200) ?? undefined)
-        .find((each) => {
-          const base = slug(each.text), n = seen.get(base) ?? 0
-          seen.set(base, n + 1)
-          return (n ? `${base}-${n}` : base) === anchor.toLowerCase()
-        })
+      const heading = note ?? all(view.state).find((each) => {
+        const base = slug(each.text), n = seen.get(base) ?? 0
+        seen.set(base, n + 1)
+        return (n ? `${base}-${n}` : base) === anchor.toLowerCase()
+      })
       if (heading) view.dispatch({ effects: EditorView.scrollIntoView(heading.from, { y: "start" }) })
     } else if (/^https?:/i.test(target)) {
       open(oriel, target, event.altKey ? "side" : "tab")
@@ -194,7 +195,9 @@ export async function show(place: Place): Promise<Reveal> {
       // as any edit.
       if (!edit && update.transactions.some((tr) => tr.annotation(ticked))) ticks = ticks.then(() => shown?.save())
       // Also as the background parse reaches more headings.
-      if (update.docChanged || syntaxTree(update.startState) !== syntaxTree(update.state)) titles(update.view)
+      if (update.docChanged || syntaxTree(update.startState) !== syntaxTree(update.state)) {
+        titles(update.view, headings(update.state))
+      }
     }),
   ], pane)
 
@@ -219,7 +222,7 @@ export async function show(place: Place): Promise<Reveal> {
     else if (id === "outline") present(view, edit, value === true)
     else if (id === "edit-mode") present(view, !edit, outlined)
   }))
-  titles(view, ensureSyntaxTree(view.state, view.state.doc.length, 200) ?? undefined)
+  titles(view, all(view.state))
   // A linked open at a line (a diff's): Edit, with the caret there (`editor`). Back's landing is a path.
   present(view, Number(place.at) >= 1, false)
   // The app gives the card the keyboard: after the editor's own handler, Read's page takes it.

@@ -46,21 +46,19 @@ function references(state: EditorState): References {
   const links = new Map<string, string>(), notes = new Map<string, { n: number; from: number }>()
   syntaxTree(state).iterate({
     enter(node) {
-      if (node.name === "LinkReference") {
-        const name = node.node.getChild("LinkLabel"), url = node.node.getChild("URL")
-        const key = name && label(state.sliceDoc(name.from, name.to))
-        if (key && url && !links.has(key)) links.set(key, state.sliceDoc(url.from, url.to).replace(/^<|>$/g, ""))
-        return false
+      if (node.name !== "Paragraph" && node.name !== "LinkReference") return containers.includes(node.name)
+      // A footnote's definition is a paragraph's line, or a definition when its text is an address.
+      for (let at = state.doc.lineAt(node.from); ; at = state.doc.line(at.number + 1)) {
+        const key = footnote.exec(at.text)?.[1]
+        if (key && !notes.has(key)) notes.set(key, { n: notes.size + 1, from: at.from })
+        if (at.to >= node.to) break
       }
-      if (node.name === "Paragraph") {
-        for (let at = state.doc.lineAt(node.from); ; at = state.doc.line(at.number + 1)) {
-          const key = footnote.exec(at.text)?.[1]
-          if (key && !notes.has(key)) notes.set(key, { n: notes.size + 1, from: at.from })
-          if (at.to >= node.to) break
-        }
-        return false
+      const name = node.node.getChild("LinkLabel"), url = node.node.getChild("URL")
+      const key = node.name === "LinkReference" && name ? label(state.sliceDoc(name.from, name.to)) : ""
+      if (key && !key.startsWith("^") && url && !links.has(key)) {
+        links.set(key, state.sliceDoc(url.from, url.to).replace(/^<|>$/g, ""))
       }
-      return containers.includes(node.name)
+      return false
     },
   })
   return { links, notes }
@@ -72,14 +70,16 @@ export const referenceField = StateField.define<References>({
 
 /** A table or an HTML block as markdown-it draws it; a click puts the caret in its source (in Edit). */
 class Block extends WidgetType {
-  constructor(readonly source: string) {
+  /** `indent`: the list items' indent around it, in em. */
+  constructor(readonly source: string, readonly indent: number) {
     super()
   }
   eq(other: Block) {
-    return other.source === this.source
+    return other.source === this.source && other.indent === this.indent
   }
   toDOM(view: EditorView) {
     const block = Object.assign(document.createElement("div"), { className: "cm-md-block" })
+    block.style.marginLeft = `${this.indent}em`
     block.innerHTML = md.render(this.source)
     block.onmousedown = (event) => {
       if (!editing(view.state) || (event.target as Element).closest("a")) return
@@ -94,19 +94,23 @@ class Block extends WidgetType {
   }
 }
 
-/** Text in place of source: a soft break's space, an entity's character. */
-class Glyph extends WidgetType {
-  constructor(readonly text: string) {
+/** An element drawn in place of its source: a soft break's space, an entity's character, a thematic break's line, a
+ *  `<br>`, a footnote's number. */
+class Html extends WidgetType {
+  constructor(readonly html: string) {
     super()
   }
-  eq(other: Glyph) {
-    return other.text === this.text
+  eq(other: Html) {
+    return other.html === this.html
   }
   toDOM() {
-    return Object.assign(document.createElement("span"), { textContent: this.text })
+    return Object.assign(document.createElement("span"), { innerHTML: this.html })
+  }
+  ignoreEvent() {
+    return false
   }
 }
-const space = Decoration.replace({ widget: new Glyph(" ") })
+const space = Decoration.replace({ widget: new Html(" ") })
 
 /** The blocks drawn whole or hidden unless the caret is in them (tables, HTML blocks, comments, link definitions), and
  *  the line breaks that do not draw (a paragraph's soft breaks, a setext heading's underline): block widgets and
@@ -142,10 +146,15 @@ function blocks(state: EditorState): DecorationSet {
           }
         }
         if (!touches(lines, from, to)) {
-          ranges.push(Decoration.replace({ widget: new Block(state.sliceDoc(from, to)), block: true }).range(from, to))
+          // In a list item: at its text, the source without the item's indent (four spaces would make it code).
+          const source = state.sliceDoc(from, to), indent = Math.min(
+            ...source.split("\n").filter((each) => each.trim()).map((each) => /^ */.exec(each)?.[0].length ?? 0))
+          const widget = new Block(source.replace(new RegExp(`^ {${indent}}`, "gm"), ""), depth(node.node) * INDENT)
+          ranges.push(Decoration.replace({ widget, block: true }).range(from, to))
         }
         return false
       }
+      if (name === "LinkReference" && footnote.test(state.sliceDoc(from, to))) return false
       if (name === "CommentBlock" || name === "LinkReference") {
         to = blank(to)
         if (!touches(lines, from, to)) ranges.push(Decoration.replace({ block: true }).range(from, to))
@@ -157,12 +166,13 @@ function blocks(state: EditorState): DecorationSet {
         return false
       }
       if (name === "Paragraph") {
-        // Soft breaks are spaces, so the paragraph flows: not after a hard break, nor before a footnote's definition.
+        // Soft breaks are spaces, so the paragraph flows: not at the caret's lines, after a hard break (two spaces or
+        // an unescaped backslash), nor before a footnote's definition.
         const first = doc.lineAt(node.from).number, last = doc.lineAt(node.to).number
-        if (touches(lines, from, to)) return false
         for (let n = first; n < last; n++) {
           const line = doc.line(n), next = doc.line(n + 1)
-          if (/(?: {2}|\\)$/.test(line.text) || footnote.test(next.text)) continue
+          if (touches(lines, line.from, next.to)) continue
+          if (/(?: {2}|(?<!\\)(?:\\\\)*\\)$/.test(line.text) || footnote.test(next.text)) continue
           const start = next.from + (/^[ \t>]*/.exec(next.text)?.[0].length ?? 0)
           ranges.push(space.range(line.from + line.text.trimEnd().length, start))
         }
@@ -175,8 +185,10 @@ function blocks(state: EditorState): DecorationSet {
 }
 const blockField = StateField.define<DecorationSet>({
   create: blocks,
+  // A selection that keeps its lines (a drag in Read, a move in one line) changes nothing here.
   update: (set, tr) =>
-    tr.docChanged || tr.selection || switched(tr.startState, tr.state) || changed(tr.startState, tr.state)
+    tr.docChanged || switched(tr.startState, tr.state) || changed(tr.startState, tr.state)
+      || (tr.selection && JSON.stringify(active(tr.startState)) !== JSON.stringify(active(tr.state)))
       ? blocks(tr.state) : set,
   provide: (field) => EditorView.decorations.from(field),
 })
@@ -192,8 +204,8 @@ class Bullet extends WidgetType {
     super()
   }
   eq(other: Bullet) {
-    return other.text === this.text && other.width === this.width && other.task?.checked === this.task?.checked
-      && other.task?.marker === this.task?.marker && other.task?.label === this.task?.label
+    return other.text === this.text && other.width === this.width
+      && JSON.stringify(other.task) === JSON.stringify(this.task)
   }
   toDOM(view: EditorView) {
     const bullet = Object.assign(document.createElement("span"), { className: "cm-md-bullet", textContent: this.text })
@@ -215,23 +227,8 @@ class Bullet extends WidgetType {
   }
 }
 
-/** An element drawn in place of its source: a thematic break's line, a `<br>`, a footnote's number. */
-class Html extends WidgetType {
-  constructor(readonly html: string) {
-    super()
-  }
-  eq(other: Html) {
-    return other.html === this.html
-  }
-  toDOM() {
-    return Object.assign(document.createElement("span"), { innerHTML: this.html })
-  }
-  ignoreEvent() {
-    return false
-  }
-}
 const rule = Decoration.replace({ widget: new Html(`<span class="cm-md-hr"></span>`) })
-const lineBreak = Decoration.replace({ widget: new Html("<br>") })
+const lineBreak = Decoration.widget({ widget: new Html("<br>") })
 
 const hide = Decoration.replace({})
 const line = (className: string) => Decoration.line({ class: className })
@@ -250,12 +247,6 @@ const GAP = 0.4
 /** A link's address as the page follows it: GFM's bare `www.` and e-mail addresses get their scheme. */
 const target = (url: string) =>
   /^www\./i.test(url) ? `http://${url}` : /^[^\s/:@<>]+@[^\s/@<>]+\.[^\s/@<>]+$/.test(url) ? `mailto:${url}` : url
-/** An entity's character. */
-function character(entity: string) {
-  const text = document.createElement("textarea")
-  text.innerHTML = entity
-  return text.value
-}
 /** A list item's depth: 1 at the top. */
 function depth(item: SyntaxNode) {
   let n = 0
@@ -277,6 +268,13 @@ function preview(view: EditorView): DecorationSet {
   const past = (pos: number) => (state.sliceDoc(pos, pos + 1) === " " ? pos + 1 : pos)
   const slice = (node: { from: number; to: number }) => state.sliceDoc(node.from, node.to)
   const link = (href: string) => Decoration.mark({ tagName: "a", attributes: { href: target(href) } })
+  /** Hides from `a` to `b`, line by line: a plugin may not replace a line break (the state field joins lines). */
+  const conceal = (a: number, b: number) => {
+    for (let at = a; at < b; at = doc.lineAt(at).to + 1) {
+      const end = Math.min(b, doc.lineAt(at).to)
+      if (end > at) ranges.push(hide.range(at, end))
+    }
+  }
   /** The visible range walked now. */
   let from = 0, to = 0
   /** The line starts at or in `node`, from its first line on. */
@@ -308,20 +306,18 @@ function preview(view: EditorView): DecorationSet {
           const text = state.sliceDoc(textFrom, textTo), off = !touches(lines, node.from, node.to)
           const note = name === "Link" && !url && !ref && text.startsWith("^") ? notes.get(text.slice(1)) : undefined
           if (note) {
-            // A footnote: its definition's number at the line's start, its reference a superscript link to it.
-            const definition = footnote.test(doc.lineAt(node.from).text) && state.sliceDoc(node.to, node.to + 1) === ":"
-            if (definition) ranges.push(line("cm-md-footnote").range(doc.lineAt(node.from).from))
-            const html = definition ? `<span class="cm-md-fn">${note.n}.</span>`
-              : `<sup class="cm-md-fnref"><a href="#fn:${encodeURIComponent(text.slice(1))}">${note.n}</a></sup>`
-            const end = definition ? past(node.to + 1) : node.to
-            if (off) ranges.push(Decoration.replace({ widget: new Html(html) }).range(node.from, end))
+            // A footnote's reference: a raised number that links to its definition (drawn with its line).
+            const definition = state.sliceDoc(node.to, node.to + 1) === ":" && footnote.test(doc.lineAt(node.from).text)
+            const href = `#fn:${encodeURIComponent(text.slice(1))}`
+            const widget = new Html(`<sup class="cm-md-fnref"><a href="${href}">${note.n}</a></sup>`)
+            if (off && !definition) ranges.push(Decoration.replace({ widget }).range(node.from, node.to))
             return false
           }
           // A reference's address by its label, or by its text (`[text][]`, `[text]`); none is no link but text.
           const href = url ? slice(url) : links.get(label(ref && ref.to - ref.from > 2 ? slice(ref) : text))
           if (!href) return
           if (textTo > textFrom) ranges.push(link(href).range(textFrom, textTo))
-          if (off) ranges.push(hide.range(node.from, textFrom), hide.range(textTo, node.to))
+          if (off) conceal(node.from, textFrom), conceal(textTo, node.to)
           return
         }
         if (name === "Autolink") {
@@ -330,16 +326,27 @@ function preview(view: EditorView): DecorationSet {
           if (url && !raw(node.from)) ranges.push(hide.range(node.from, url.from), hide.range(url.to, node.to))
           return false
         }
-        // GFM's bare address.
-        if (name === "URL" && parent?.name !== "LinkReference") ranges.push(link(slice(node)).range(node.from, node.to))
+        // GFM's bare address, also a footnote's text.
+        if (name === "URL" && !["Link", "Image", "LinkReference"].includes(parent?.name ?? "")
+          || (name === "URL" && parent?.name === "LinkReference" && footnote.test(doc.lineAt(node.from).text))) {
+          ranges.push(link(slice(node)).range(node.from, node.to))
+        }
+        if (name === "Paragraph" || name === "LinkReference") {
+          // A footnote's definition: its number in place of its label, in smaller secondary text.
+          for (const each of shown(node)) {
+            const match = /^([ \t>]*)\[\^([^\]\s]+)\]:/.exec(each.text), note = match && notes.get(match[2])
+            if (!match || !note) continue
+            ranges.push(line("cm-md-footnote").range(each.from))
+            const at = each.from + match[1].length, widget = new Html(`<span class="cm-md-fn">${note.n}.</span>`)
+            if (!raw(at)) ranges.push(Decoration.replace({ widget }).range(at, past(each.from + match[0].length)))
+          }
+        }
         if (name === "Blockquote") {
-          // A bar for each quote around the line, the text after the last.
+          // A bar for each quote around the line (markdown.css), the text after the last.
           const nested = node.node.getChildren("Blockquote")
           let quotes = 0
           for (let at: SyntaxNode | null = node.node; at; at = at.parent) quotes += Number(at.name === "Blockquote")
-          const bars = Array.from({ length: quotes }, (_, i) =>
-            `linear-gradient(var(--divider), var(--divider)) ${3 + i * 18}px 0 / 3px 100% no-repeat`)
-          const style = `padding-left: ${quotes * 18}px; background: ${bars.join(", ")}`
+          const style = `--quotes: ${quotes}`
           for (const each of shown(node)) {
             if (nested.some((quote) => within(quote, each.from))) continue
             ranges.push(Decoration.line({ class: "cm-md-quote", attributes: { style } }).range(each.from))
@@ -366,51 +373,62 @@ function preview(view: EditorView): DecorationSet {
           if (name === "Escape" || (name === "HardBreak" && slice(node).startsWith("\\"))) {
             ranges.push(hide.range(node.from, node.from + 1))
           }
-          if (name === "Entity") ranges.push(Decoration.replace({ widget: new Glyph(character(slice(node))) }).range(node.from, node.to))
-          if (name === "Comment") ranges.push(hide.range(node.from, node.to))
+          if (name === "Entity") {
+            const widget = new Html(md.utils.escapeHtml(md.utils.unescapeAll(slice(node))))
+            ranges.push(Decoration.replace({ widget }).range(node.from, node.to))
+          }
+          if (name === "Comment") conceal(node.from, node.to)
           if (name === "HorizontalRule") ranges.push(rule.range(node.from, node.to))
         }
         if (name === "HTMLTag") {
           // An inline element drawn as itself: its tags hidden off the caret's lines, its text in it.
           const tag = slice(node), open = /^<([a-z][\w-]*)([^>]*?)\s*>$/i.exec(tag)
           const element = open?.[1].toLowerCase()
-          if (element === "br" && !raw(node.from)) ranges.push(lineBreak.range(node.from, node.to))
+          if (element === "br" && !raw(node.from)) conceal(node.from, node.to), ranges.push(lineBreak.range(node.to))
           if (!element || !phrasing.has(element) || open?.[2].endsWith("/")) return
+          // Its close: the first at its own depth among the tags of that name after it.
+          const opens = new RegExp(`^<${element}[\\s>]`, "i"), closes = new RegExp(`^</${element}\\s*>$`, "i")
           let close = node.node.nextSibling
-          while (close && !(close.name === "HTMLTag" && new RegExp(`^</${element}\\s*>$`, "i").test(slice(close)))) {
-            close = close.nextSibling
+          for (let level = 0; close; close = close.nextSibling) {
+            if (close.name !== "HTMLTag") continue
+            if (opens.test(slice(close))) level++
+            else if (closes.test(slice(close)) && level-- === 0) break
           }
           if (!close) return
           const href = element === "a" && open ? /\bhref\s*=\s*(?:"([^"]*)"|'([^']*)')/i.exec(open[2]) : undefined
           const attributes = href ? { href: target(href[1] ?? href[2]) } : undefined
-          if (close.from > node.to) ranges.push(Decoration.mark({ tagName: element, attributes }).range(node.to, close.from))
-          if (!touches(lines, node.from, close.to)) ranges.push(hide.range(node.from, node.to), hide.range(close.from, close.to))
+          const mark = Decoration.mark({ tagName: element, attributes })
+          if (close.from > node.to) ranges.push(mark.range(node.to, close.from))
+          if (!touches(lines, node.from, close.to)) conceal(node.from, node.to), conceal(close.from, close.to)
         }
         if (name === "ListItem") {
           // The item's lines after its first (a second paragraph, a code block, the caret's paragraph) hang at its
-          // text, their indent hidden; a nested list's lines are its own.
+          // text, their indent hidden; a nested list's lines are its own. A code line moves whole, with its fill.
           const mark = node.node.getChild("ListMark")
           if (!mark) return
           const head = doc.lineAt(mark.from), width = depth(node.node) * INDENT
           const column = past(mark.to) - head.from
           const nested = [...node.node.getChildren("BulletList"), ...node.node.getChildren("OrderedList")]
+          const code = [...node.node.getChildren("FencedCode"), ...node.node.getChildren("CodeBlock")]
           for (const each of shown(node)) {
             if (each.number <= head.number || !/[^\s>]/.test(each.text)) continue
             if (nested.some((list) => within(list, each.from))) continue
-            const own = raw(each.from)
-            ranges.push(Decoration.line({ attributes: { style: `margin-left: ${own ? width - 1 : width}em` } }).range(each.from))
-            const indent = Math.min(column, /^[ \t]*/.exec(each.text)?.[0].length ?? 0)
-            if (!own && indent) ranges.push(hide.range(each.from, each.from + indent))
+            const own = raw(each.from), hang = `${own ? width - 1 : width}em`
+            ranges.push((code.some((block) => within(block, each.from))
+              ? Decoration.line({ attributes: { style: `margin-left: ${hang}` } })
+              : Decoration.line({ class: "cm-md-hang", attributes: { style: `--hang: ${hang}` } })).range(each.from))
+            // The spaces after any quote marks (hidden with their own space), up to the item's text.
+            const [, quoted = "", spaces = ""] = /^((?:[ \t]*>[ \t]?)*)([ \t]*)/.exec(each.text) ?? []
+            const indent = Math.min(column - quoted.length, spaces.length), at = each.from + quoted.length
+            if (!own && indent > 0) ranges.push(hide.range(at, at + indent))
           }
         }
         if (name === "ListMark" && parent?.name === "ListItem") {
           const each = doc.lineAt(node.from)
           const width = depth(parent) * INDENT
           // On the caret's line the mark shows where the bullet was, its text a little to the right.
-          const style = raw(node.from)
-            ? `padding-left: calc(${width - 1}em + 6px)`
-            : `padding-left: calc(${width}em + 6px); text-indent: -${width}em`
-          ranges.push(Decoration.line({ class: "cm-md-li", attributes: { style } }).range(each.from))
+          const style = raw(node.from) ? `--hang: ${width - 1}em` : `--hang: ${width}em; text-indent: -${width}em`
+          ranges.push(Decoration.line({ class: "cm-md-hang", attributes: { style } }).range(each.from))
           if (!raw(node.from)) {
             // A task's box takes its bullet's place; a number counts from the list's first.
             const marker = parent.getChild("Task")?.getChild("TaskMarker") ?? undefined

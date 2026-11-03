@@ -42,6 +42,8 @@ Some *italic* and _italic_, **bold** and __bold__, ***bold italic***, **bold wit
 - Autolinks: <https://example.com> and <mail@example.com>.
 - Bare (GFM): https://example.com/path and www.example.com.
 - Relative: [other file](other.md) and an anchor: [to Tables](#tables).
+- An address on the next line: [split](
+  https://example.com).
 
 [docs]: https://oriel.dev/docs "Oriel docs"
 
@@ -76,6 +78,10 @@ A tilde fence with no language.
 > - Its second item
 >
 > > A nested quote.
+>
+> - A quoted item
+>
+>   with a second paragraph.
 
 ## Lists
 
@@ -110,6 +116,16 @@ Parentheses (they render as dots):
 1) A list with parentheses
 2) Two
 
+- An item with code and a table:
+
+  ```sh
+  make test
+  ```
+
+  | Key | Value |
+  |-----|-------|
+  | a   | 1     |
+
 - [ ] An open task
 - [x] A done task with a long label that wraps onto a second line in a narrow card like this one
   - [ ] A nested task
@@ -132,14 +148,19 @@ Inside the block.
 
 <!-- An HTML comment draws nothing. -->
 
-Inline HTML: <kbd>⌘</kbd><kbd>E</kbd>, H<sub>2</sub>O, x<sup>2</sup>, <b>bold</b> and a<br>break.
+Inline HTML: <kbd>⌘</kbd><kbd>E</kbd>, H<sub>2</sub>O, x<sup>2</sup>, <b>bold</b> and a<br>break, a tag
+<a
+href="https://example.com">split over lines</a>, <b><b>nested</b> tags</b> and a comment <!-- over
+two lines --> that draws nothing.
 
 ## Footnotes
 
-A sentence with a footnote.[^1] And a second one.[^note]
+A sentence with a footnote.[^1] And a second one.[^note] A third is a source.[^src]
 
 [^1]: The first footnote.
 [^note]: The second footnote, with a longer text.
+
+[^src]: https://example.com/source
 
 ## Rules
 
@@ -153,7 +174,9 @@ ___
 
 ## Entities and escapes
 
-&copy; &amp; &lt;tag&gt; &#169; &#xA9; &nbsp;and \*not italic\* and \# not a heading.
+&copy; &amp; &lt;tag&gt; &#169; &#xA9; &nbsp;and \*not italic\* and \# not a heading. A path that ends in a
+backslash, C:\\
+flows on.
 
 ## Tables (a second heading of the same name)
 

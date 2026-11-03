@@ -316,12 +316,14 @@ then working and no status when all idle". Build exactly `resources/research/ui/
 - **Decisions.** Footnotes stay where they are written (a live preview cannot move text): a raised number links to a
   definition shown in smaller secondary text after its number. Front matter still shows (dim YAML). `~sub~` and
   `^sup^` show as written, as on GitHub. Hidden lines (definitions, comments) open with the arrow keys at their edge, as
-  tables do. In Edit the caret's paragraph shows its source lines, so entering a wrapped paragraph changes its height.
+  tables do. In Edit only the caret's lines are source lines: the rest of their paragraph still flows above and below.
 - **Item 14.** The box is drawn by the page (`appearance: none`): 0.95 em, a 1 px border at 40 % text, 0.25 em corners,
   `vertical-align: middle` (the line's x-height center); ticked, the accent with a white check.
 - **Item 18.** The outline's toggle is enabled only while the file has a heading; the last heading gone closes it.
-- **Numbers.** The block walk for a caret move or a keystroke (Node, the field alone): 1.6 ms and 3.7 ms on 3783
-  lines, 9.2 ms and 17.7 ms on 15 842.
+- **Review.** A blocker: hides from the view plugin that crossed a line break (a link's address on the next line, a
+  tag or comment over two lines) threw in CodeMirror and blanked the card; every hide now stops at each line's end.
+  Also fixed: a footnote whose text is an address, tables and HTML blocks in list items, quotes and lists composing
+  their indents (CSS variables), the block walk only when the caret's lines change.
 - **Pictures** (the built pages in headless Chrome with a stand-in API, before at cdf2568f on the left, after on the
   right, the fixture `resources/research/ui/markdown-syntax.md`): `/tmp/oriel-shots/52d/fixture-{dark,light,edit,
   edit-light}-{0..3}.png`, and phase 51's file (the user's list) `lists-phase51.png`.

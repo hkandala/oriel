@@ -395,9 +395,10 @@ An editable text view (CodeMirror 6).
     alt text is a link to the image.
   - **Footnotes.** A reference (`[^note]`) is a small raised number, by the
     order of the definitions. A click scrolls to its definition. A
-    definition stays where it is written, in smaller secondary text, after its
-    number.
-  - **Quotes** have a bar at the left for each depth, and secondary text.
+    definition (`[^note]: text`, also when the text is only an address) stays
+    where it is written, in smaller secondary text, after its number.
+  - **Quotes** have a bar at the left for each depth, and secondary text. Each
+    depth indents 12 pt.
   - **Code** blocks have a rounded fill. A `---` rule is a line.
   - **HTML.** Tables and HTML blocks are drawn by markdown-it. An element
     that opens in one HTML block and closes in a later one (a `<details>`
@@ -406,8 +407,9 @@ An editable text view (CodeMirror 6).
     the like) and `<br>` draw as themselves; other inline tags show as
     written. Entities (`&copy;`) show their character.
   - **Tables** size their columns to their content. Words wrap only when the
-    table is wider than the column, and a word breaks only when it alone is
-    wider. Code in a table uses the app's monospace.
+    table is wider than the column; a word wider than the column scrolls the
+    table sideways. Code in a table uses the app's monospace. A table or an
+    HTML block in a list item starts at the item's text.
   - **Front matter** shows as YAML in 12 pt monospace, secondary.
   - Copy gives the Markdown source of the selection, and Select All the whole
     file. For VoiceOver, Read is an article with headings, not a text box.
@@ -418,7 +420,8 @@ An editable text view (CodeMirror 6).
   change.
 - **Edit** makes the view editable. The lines with the caret or the
   selection show their marks; every other line looks as in Read. The
-  paragraph with the caret shows its source lines. A table, an HTML block, a
+  caret's line is its own source line: the lines of its paragraph above and
+  below it still flow. A table, an HTML block, a
   setext heading's underline and a hidden definition or comment show their
   source while the caret is in them; a click on a table or an HTML block puts
   the caret there. A click in Read and then ⌘E keeps the caret where
