@@ -3,8 +3,10 @@ SHELL := /bin/bash -eo pipefail
 
 DERIVED_DATA ?= .build/DerivedData
 XCODEBUILD := xcodebuild -project Oriel.xcodeproj -scheme Oriel -derivedDataPath $(DERIVED_DATA)
-MAC := -destination 'platform=macOS'
+MAC := -destination 'platform=macOS,arch=$(shell uname -m)'
 comma := ,
+# Swift's warnings-as-errors leaves some concurrency warnings as warnings: any warning in our own sources fails.
+NOWARN := | awk '{ print } index($$0, "$(CURDIR)/") && / warning: / { w = 1 } END { exit w }'
 BEAUTIFY := $(if $(shell command -v xcbeautify),| xcbeautify $(if $(CI),--renderer github-actions))
 
 setup:
@@ -51,11 +53,11 @@ web/node_modules/.package-lock.json: web/package-lock.json
 	npm ci --prefix web --no-audit --no-fund
 
 build: web
-	$(XCODEBUILD) $(MAC) build $(BEAUTIFY)
+	$(XCODEBUILD) $(MAC) build $(NOWARN) $(BEAUTIFY)
 
 # The app and the UI tests, built but not run (CI's push checks).
 build-tests: web
-	$(XCODEBUILD) $(MAC) build-for-testing $(BEAUTIFY)
+	$(XCODEBUILD) $(MAC) build-for-testing $(NOWARN) $(BEAUTIFY)
 
 test:
 	swift test --package-path Packages/HerdrKit --scratch-path $(DERIVED_DATA)/HerdrKit
@@ -94,13 +96,13 @@ e2e: web
 		test $(BEAUTIFY)
 
 run: web
-	$(XCODEBUILD) $(MAC) build $(BEAUTIFY)
+	$(XCODEBUILD) $(MAC) build $(NOWARN) $(BEAUTIFY)
 	open $(DERIVED_DATA)/Build/Products/Debug/Oriel.app $(if $(SESSION),--args -session $(SESSION))
 
 # A Release Oriel.app to copy into ~/Applications, and a disk image of it. Ad-hoc signed: fine on this Mac;
 # another Mac needs right-click > Open once, and notifications need a real signing identity.
 app: web
-	$(XCODEBUILD) $(MAC) -configuration Release build $(BEAUTIFY)
+	$(XCODEBUILD) $(MAC) -configuration Release build $(NOWARN) $(BEAUTIFY)
 	@echo "$(DERIVED_DATA)/Build/Products/Release/Oriel.app"
 
 install: app

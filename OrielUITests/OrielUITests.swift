@@ -41,11 +41,18 @@ final class OrielUITests: XCTestCase {
     /// The main window: the first match can be a floating window that a teardown block's close is closing, with no
     /// frame (an INFINITY point, on CI). A warp, not XCUITest's hover: that first looks for a window over the
     /// point, and a floating window gone meanwhile failed the test (on CI).
+    /// XCTest runs a sync tearDown on the main thread; a fresh XCUIApplication is the same app, so self stays out.
     override func tearDown() {
-        let main = app.windows.matching(NSPredicate(format: "identifier BEGINSWITH 'main-'")).firstMatch
-        if main.exists {
-            let frame = main.frame
-            CGWarpMouseCursorPosition(CGPoint(x: frame.minX + frame.width * 0.6, y: frame.minY + frame.height * 0.9))
+        MainActor.assumeIsolated {
+            let main = XCUIApplication().windows.matching(NSPredicate(format: "identifier BEGINSWITH 'main-'"))
+                .firstMatch
+            if main.exists {
+                let frame = main.frame
+                CGWarpMouseCursorPosition(CGPoint(
+                    x: frame.minX + frame.width * 0.6,
+                    y: frame.minY + frame.height * 0.9,
+                ))
+            }
         }
     }
 

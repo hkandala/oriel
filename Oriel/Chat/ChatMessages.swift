@@ -28,7 +28,7 @@ struct ChatMessages: View, Equatable {
     @State private var position = ScrollPosition(idType: String.self)
     @Environment(\.look) private var look
     private static let end = "end"
-    fileprivate static let space = "chat.messages"
+    fileprivate nonisolated static let space = "chat.messages"
     /// The rows a long chat shows at a time, and Show Earlier adds. A split lays them out once, at its end: 40 rows of
     /// long replies took one frame of 40–50 ms, 100 rows one of 110–160 ms. With every reply shown, 34 rows lay out in
     /// the time 40 rows of last replies did (the open's worst frame on a 117 MB session: 120 ms; 40 rows: 141 ms).
