@@ -26,8 +26,8 @@ export interface Oriel {
   /** Runs argv on the card's machine, in the pane's folder unless `cwd` says otherwise: no shell, 30 s unless
    *  `timeout` (ms) says otherwise, 4 MiB of stdout, two at a time per card. Needs `run`. */
   run(argv: string[], options?: { cwd?: string; stdin?: string; timeout?: number }): Promise<RunResult>
-  /** An open of a file, a folder (ends in `/`), a URL or a plugin's argument: in this card, in a new tab right after
-   *  this card's tab (the default) or in a pane to its side. No `plugin`: the file's default plugin, the browser for
+  /** An open of a file, a folder (ends in `/`), a URL or a plugin's argument: in this card, in a new tab at the end of
+   *  this card's workspace (the default) or in a pane to its side. No `plugin`: the file's default plugin, the browser for
    *  a web address. `at`: the new card's landing (`card.at`). */
   open(arg: string, options?: { plugin?: string; how?: "card" | "tab" | "side"; at?: string }): Promise<void>
   /** One line on glass at the top of the card, with `buttons` (the second the default) or OK. Resolves with the title

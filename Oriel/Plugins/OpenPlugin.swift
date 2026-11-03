@@ -2,7 +2,7 @@ import HerdrKit
 import SwiftUI
 
 /// Where a plugin card opens a file or a diff (plugins/default-plugins): in the card (a click or a double-click), in a
-/// new tab beside the card's tab (⌘), or in a pane to the card's side (⌥).
+/// new tab at the end of the card's workspace (⌘), or in a pane to the card's side (⌥).
 enum Opening: String {
     case here, tab, side
 }
@@ -45,9 +45,9 @@ extension Page {
     }
 
     /// An open from the card of terminal `source`: in the card itself when it is of that kind (`Plugin.go`); else a
-    /// linked open, a new herdr tab right after the card's tab, in its workspace and folder (also from a floating
-    /// window), or a pane to the card's side, which the snapshot after it selects with the keyboard; after the
-    /// selected tab once the card is gone. Its card lands at a line of a file or a diff's file, once (not in the
+    /// linked open, a new herdr tab at the end of the card's workspace, in its folder (also from a floating window),
+    /// or a pane to the card's side, which the snapshot after it selects with the keyboard; in the selected tab's
+    /// workspace once the card is gone. Its card lands at a line of a file or a diff's file, once (not in the
     /// label).
     func open(_ plugin: PluginManifest, arg: String, at place: String? = nil, from source: String,
               how: Opening) async
@@ -56,8 +56,7 @@ extension Page {
             return shown.go(arg, at: place)
         }
         let card = store.panes.first { $0.terminalID == source }
-        guard let tabID = card?.tabID ?? selectedTab?.id, let workspace = store.workspace(of: tabID),
-              let index = workspace.tabs.firstIndex(where: { $0.id == tabID }) else { return }
+        guard let tabID = card?.tabID ?? selectedTab?.id, let workspace = store.workspace(of: tabID) else { return }
         let label = store.newLabel(plugin, arg: arg), cwd = card?.cwd ?? keyboardPane?.cwd ?? "~"
         // A path with a control character or over 1024 characters makes no plugin label.
         guard PaneLabel(label.text) != nil else { return }
@@ -65,7 +64,7 @@ extension Page {
             let spot = if how == .side, let card {
                 PanePlace.split(tab: card.tabID, pane: card.id, .right)
             } else {
-                PanePlace.tab(after: index)
+                PanePlace.tab
             }
             let pane = try await store.newPane(client, in: workspace.id, cwd: cwd, label: label, spot)
             // ponytail: a card made from a snapshot before this line misses its landing; hand it over in the label
@@ -78,15 +77,16 @@ extension Page {
     }
 }
 
-/// Where a new pane goes: a new tab right after the workspace's tab at `after`, or a split of a pane.
+/// Where a new pane goes: a new tab at the workspace's end, where herdr adds it, or a split of a pane.
 enum PanePlace {
-    case tab(after: Int)
+    case tab
     case split(tab: String, pane: String, SplitNode.Direction)
 }
 
 extension HostStore {
     /// A new pane in the workspace, with herdr's focus left alone: a browser or plugin card with its label and
-    /// placeholder in one call (plugins/labels#create), else a shell, made in a new tab and then moved into place.
+    /// placeholder in one call (plugins/labels#create), else a shell, made in a new tab and, for a split, moved into
+    /// place.
     func newPane(_ client: any Multiplexer, in workspaceID: String, cwd: String, label: PaneLabel?,
                  _ place: PanePlace) async throws -> HerdrKit.Pane
     {
@@ -101,11 +101,7 @@ extension HostStore {
             pane = try await client.newTab(workspace: workspaceID, cwd: cwd)
         }
         guard var pane else { throw HerdrError.failed("herdr named no pane") }
-        switch place {
-        case let .tab(index):
-            // herdr adds it last.
-            try await client.move(tab: pane.tabID, to: index + 1)
-        case let .split(tabID, target, direction):
+        if case let .split(tabID, target, direction) = place {
             // ponytail: herdr makes no split with a command, so the new tab shows for a snapshot before its pane
             // moves beside the card; hide it as Replace Pane does if that flash shows.
             do {

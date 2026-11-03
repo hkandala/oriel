@@ -86,16 +86,16 @@ apply:
 | Gesture | Where it opens |
 |---|---|
 | a click, or a double-click in the tree, or Return | in the card itself, as its next place ([Back and Forward](#back-and-forward)) |
-| ⌘-click | in a new herdr tab right after the card's tab |
+| ⌘-click | in a new herdr tab at the end of the card's workspace |
 | ⌥-click | in a pane to the side of the card |
 
 - A right click on a row of the tree or of the Git home shows the app's own
   menu: **Open** (**Open as Root** on a folder), **Open in New Tab** and
   **Open to the Side**.
-- **A new tab** opens in the card's workspace, on the same machine, also from
-  a floating window. The app selects the new tab and gives its card the
-  keyboard. The calls are `layout.apply` for a new tab with the labeled
-  pane, then `tab.move`, because herdr adds the tab last
+- **A new tab** opens at the end of the card's workspace, on the same
+  machine, also from a floating window. The app selects the new tab and
+  gives its card the keyboard. The call is `layout.apply` for a new tab with
+  the labeled pane; herdr adds the tab last
   ([Writes are herdr calls](/docs/talking-to-herdr#writes-are-herdr-calls)).
 - **To the side** makes the pane in a new tab, then moves it beside the
   card (`pane.move`), as Replace Pane does, because herdr's split runs no

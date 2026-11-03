@@ -44,8 +44,8 @@ extension OrielUITests {
         let tabbed = try await answered(first)
         let opened: String = try await field(pane(tabbed)["tab_id"], "the Git card's tab")
         XCTAssertTrue(element("tab.\(opened)").has(\.isSelected, true, within: 3))
-        let index = try await order(of: opened), asking = try await order(of: tab)
-        XCTAssertEqual(index, asking.map { $0 + 1 })
+        let last = try await isLast(opened)
+        XCTAssertTrue(last, "\(opened) is not last")
 
         let floated = try await open("explorer notes.md --float --new", from: first, "float", ["reused: false"])
         XCTAssertTrue(app.windows.containing(.any, identifier: "float.\(floated)").firstMatch.exists(within: 5))

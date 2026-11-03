@@ -11,8 +11,9 @@ extension AgentCommand {
         A kind is an id from `oriel plugins`; write a path of the same name as ./name. A path or URL alone opens with \
         its default plugin. Relative paths are from the working folder; `browser ./report.html` opens a file on This \
         Mac.
-        <place>: --beside <pane> [--down] (a split, right or below; this pane by default), --tab (after this pane's \
-        tab, not selected), --float (as --tab, then floats it), --replace <pane> (that browser or plugin card shows it).
+        <place>: --beside <pane> [--down] (a split, right or below; this pane by default), --tab (a new tab at the \
+        end of this pane's workspace, not selected), --float (as --tab, then floats it), --replace <pane> (that \
+        browser or plugin card shows it).
         A card of the same kind and argument in the session is the answer ("reused": true) unless --new, which \
         --replace does not take.
         """,

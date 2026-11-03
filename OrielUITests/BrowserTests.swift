@@ -348,7 +348,7 @@ extension OrielUITests {
 }
 
 extension OrielUITests {
-    /// Files ⌘-clicked in a File Explorer card open tabs right after the card's tab, one after the other: each new
+    /// Files ⌘-clicked in a File Explorer card open tabs at the end, one after the other: each new
     /// tab is selected and its page shows (item 28: the selected tab showed another tab's page).
     func testEachOpenInANewTabShowsItsOwnPage() async throws {
         let (_, shell) = try await newTab("opens")

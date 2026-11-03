@@ -190,7 +190,7 @@ extension OrielUITests {
         try await send("rm -rf \(repo)\r", to: shell)
     }
 
-    /// ⌘-click opens a file in a new tab right after the card's, ⌥-click in a pane to the card's side. After each
+    /// ⌘-click opens a file in a new tab at the end, ⌥-click in a pane to the card's side. After each
     /// open the selected tab and the shown card agree.
     func testFileExplorerOpensInNewTabsAndToTheSide() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
@@ -215,7 +215,8 @@ extension OrielUITests {
         try await labelEnds(side, " \(root)/one.txt")
         XCTAssertTrue(element("file.\(side).page").exists(within: 10))
 
-        // Each ⌘-click from the tree: the new tab right after the card's is selected and shows its own card.
+        // Each ⌘-click from the tree: the new tab, at the end (from the second on, the card's tab is not last), is
+        // selected and shows its own card.
         for name in ["two.txt", "three.txt", "four.txt"] {
             try await show(tab)
             let before = try await tabIDs()
@@ -224,12 +225,9 @@ extension OrielUITests {
             closeAfter("tab", opened)
             let pane = try await pane(of: opened)
             try await labelEnds(pane, " \(root)/\(name)")
-            // herdr adds the tab last, then the app moves it: the move may come after the tab shows.
-            let cardOrder = try await order(of: tab)
-            _ = try await poll("\(name)'s tab right after the card's") { () async throws -> Bool? in
-                try await self.order(of: opened) == cardOrder.map { $0 + 1 } ? true : nil
-            }
             XCTAssertTrue(element("tab.\(opened)").has(\.isSelected, true, within: 5), name)
+            let last = try await isLast(opened)
+            XCTAssertTrue(last, "\(name)'s tab is not last")
             XCTAssertTrue(element("file.\(pane).page").has(\.isHittable, true, within: 5), name)
             XCTAssertFalse(tree.isHittable)
         }

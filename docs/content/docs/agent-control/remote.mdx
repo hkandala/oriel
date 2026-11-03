@@ -23,7 +23,7 @@ agent in pane w1:p2
 herdr server ── pane.updated (tokens) ── events stream ── relay ──► Oriel (HostStore of devbox/default)
                                                                      │ 4. run: mv <id>.req <id>.run; base64
 ~/.cache/oriel/rpc/<id>.run  ◄──────────────────────────── relay ────┘
-                                                                     │ 5. herdr calls (layout.apply, tab.move…)
+                                                                     │ 5. herdr calls (layout.apply, pane.move…)
 herdr server  ◄──────────────────────── remote-api-bridge ── relay ──┤    the card shows in the window
                                                                      │ 6. run: write <id>.out, <id>.exit
 ~/.cache/oriel/rpc/<id>.exit ◄──────────────────────────── relay ────┘

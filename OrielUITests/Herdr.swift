@@ -168,6 +168,12 @@ extension OrielUITests {
             .compactMap { $0["tab_id"] as? String }.firstIndex(of: tab)
     }
 
+    /// The tab is w2's last: every new tab goes at the end.
+    func isLast(_ tab: String) async throws -> Bool {
+        try await (Self.call(one, "tab.list", ["workspace_id": "w2"])["tabs"] as? [[String: Any]])?.last?["tab_id"]
+            as? String == tab
+    }
+
     /// Shows w2's tab by its key (⌘1–9): a click misses one past the tab bar's end on CI's screen.
     func show(_ tab: String) async throws {
         let found = try await order(of: tab)
