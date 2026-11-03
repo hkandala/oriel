@@ -127,7 +127,8 @@ export async function show(place: Place): Promise<Reveal> {
     // Before a key moved it, the row with the keyboard shows nothing: the first ↓ goes to the first row (`..` when
     // shown), the first ↑ to the last, rather than one past the row nobody sees.
     const shown = filter ? results : tree, vertical = event.key === "ArrowDown" || event.key === "ArrowUp"
-    if (vertical && !event.shiftKey && !root.hasAttribute("data-keys") && document.activeElement !== up
+    const plain = !event.shiftKey && !event.metaKey && !event.altKey && !event.ctrlKey
+    if (vertical && plain && !root.hasAttribute("data-keys") && document.activeElement !== up
       && !shown.getSelectedPaths().length) {
       event.preventDefault()
       event.stopPropagation()
@@ -292,7 +293,7 @@ export async function show(place: Place): Promise<Reveal> {
     }
     const item = tree.getItem(relative) ?? tree.getItem(`${relative}/`)
     if (!item) return
-    item.select()
+    only(tree, item.getPath())
     tree.focusPath(item.getPath())
     tree.scrollToPath(item.getPath(), offset && { offset })
   }
@@ -382,9 +383,7 @@ export async function show(place: Place): Promise<Reveal> {
           open(oriel, at.folder ? `${at.path}/` : at.path, how(event))
         } else if (at.folder && !toggle && event.detail === 1 && !event.shiftKey && !event.ctrlKey) {
           event.stopPropagation()
-          const shown = filter ? results : tree
-          for (const path of shown.getSelectedPaths()) shown.getItem(path)?.deselect()
-          shown.getItem(at.id)?.select()
+          only(filter ? results : tree, at.id)
           take(at.id)
         }
       },
@@ -409,6 +408,12 @@ export async function show(place: Place): Promise<Reveal> {
     event.stopPropagation()
     up.focus()
   }, true)
+
+  /** The row alone selected: a kept tree still has the row it opened before. */
+  function only(shown: FileTree, path: string) {
+    for (const at of shown.getSelectedPaths()) shown.getItem(at)?.deselect()
+    shown.getItem(path)?.select()
+  }
 
   /** The shown tree takes the keyboard, on `path`, else its focused row, else its first: ↑↓ move, → opens, ← closes or
    *  goes to the parent. A row with the keyboard shows its ring once a key moved it. */

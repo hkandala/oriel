@@ -371,6 +371,8 @@ extension OrielUITests {
             XCUIElement.perform(withKeyModifiers: .command) { row.click() }
             let opened = try await newTabID(after: before)
             closeAfter("tab", opened)
+            // Once the bar shows the new tab: a selection that follows it would have come with it.
+            XCTAssertTrue(element("tab.\(opened)").exists(within: 5), name)
             XCTAssertTrue(element("tab.\(tab)").isSelected, name)
             try await show(opened)
             XCTAssertTrue(element("page.\(opened)").has(\.isHittable, true, within: 5), name)

@@ -252,7 +252,8 @@ struct FilterField: View {
             if editing || autofocus || !text.isEmpty {
                 TextField(prompt, text: $text)
                     .focused($focused)
-                    .focusSoon($focused)
+                    // A field shown only for its text (a kept page's filter coming back) leaves the keyboard alone.
+                    .focusSoon($focused, editing || autofocus)
                     .onChange(of: focused) { editing = focused }
                     .accessibilityIdentifier(identifier)
             } else {
@@ -311,8 +312,9 @@ extension View {
     }
 
     /// Focuses the field as it appears.
-    func focusSoon(_ focused: FocusState<Bool>.Binding) -> some View {
+    func focusSoon(_ focused: FocusState<Bool>.Binding, _ asks: Bool = true) -> some View {
         task {
+            guard asks else { return }
             // ponytail: focus asked for as the field appears is dropped (AppKit has not made it a key view yet), and
             // a single later ask was sometimes dropped too (⌘K, then typing went nowhere); ask every 50 ms until it
             // holds, for up to 1 s. Upgrade: an AppKit field that takes first responder in viewDidMoveToWindow.

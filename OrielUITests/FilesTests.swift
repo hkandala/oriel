@@ -48,10 +48,11 @@ extension OrielUITests {
         XCTAssertEqual(after, tabs)
         keepScreenshot("file explorer file")
 
-        // Back (⌘[ over the card), then Forward (⌘]): the file.
+        // Back (⌘[ over the card), then Forward (⌘] over the tree): the file.
         file.textViews.firstMatch.click()
         app.typeKey("[", modifierFlags: .command)
         try await backToTheKeptTree(card, tree, root)
+        row("out.o", in: tree).click()
         app.typeKey("]", modifierFlags: .command)
         XCTAssertTrue(file.textViews.firstMatch.exists(within: 10))
         element("pane.\(card).reveal").click()
@@ -131,9 +132,9 @@ extension OrielUITests {
         try await labelEnds(card, " \(root)/src/")
     }
 
-    /// The tree has the keyboard as its card shows: ↑ from the first row goes to `..` and ↓ back, ↓ moves, → opens a
-    /// folder, ← closes it, Return opens a file. Hidden files show only with row 2's eye. ⌘F gives the filter the
-    /// keyboard, and `..` hides while it has text.
+    /// The tree has the keyboard as its card shows: the first ↑ goes to the last row, ↑ from the first row to `..` and
+    /// ↓ back, ↓ moves, → opens a folder, ← closes it, Return opens a file. Hidden files show only with row 2's eye. An
+    /// empty folder shows its placeholder. ⌘F gives the filter the keyboard, and `..` hides while it has text.
     func testFileExplorerKeysHiddenFilesAndFind() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (_, shell) = try await newTab("files-keys")
@@ -147,8 +148,7 @@ extension OrielUITests {
         XCTAssertFalse(row(".gitignore", in: tree).exists)
 
         // build, src, a.txt: the first row has the keyboard, a turn after the page's focus. The first ↑ goes to the
-        // last
-        // row; ↑ from the first goes to `..`.
+        // last row; ↑ from the first goes to `..`.
         XCTAssertTrue(hasKeyboard(row("build", in: tree)))
         app.typeKey(.upArrow, modifierFlags: [])
         XCTAssertTrue(hasKeyboard(row("a.txt", in: tree)))
@@ -174,6 +174,16 @@ extension OrielUITests {
         XCTAssertTrue(row(".gitignore", in: tree).exists(within: 5))
         eye.click()
         XCTAssertTrue(row(".gitignore", in: tree).vanishes(within: 5))
+
+        // An empty folder shows its placeholder.
+        try await send("mkdir \(repo)/empty\r", to: shell)
+        XCTAssertTrue(row("empty", in: tree).exists(within: 5))
+        row("empty", in: tree).doubleClick()
+        try await labelEnds(card, " \(root)/empty/")
+        let empty = tree.staticTexts.matching(NSPredicate(format: "value == 'This folder is empty'")).firstMatch
+        XCTAssertTrue(empty.exists(within: 10))
+        element("pane.\(card).go-back").click()
+        XCTAssertTrue(row("a.txt", in: tree).exists(within: 10))
 
         app.typeKey("f", modifierFlags: .command)
         app.typeText("main")

@@ -43,7 +43,7 @@ export default async function main(oriel: Oriel) {
     const { arg, element: root } = page, place = kind(arg), scoped = page.oriel
     // Once each, last last.
     if (place === "files") trees.splice(0, trees.length, ...trees.filter((tree) => tree !== arg), arg)
-    // The filter starts empty: a field shown with text takes the keyboard (FilterField), and the tree starts with none.
+    // A new tree starts with no filter; a kept one keeps its own.
     for (const id of ALL) {
       const hidden = !CONTROLS[place].includes(id)
       scoped.controls.set(id, id === "filter" ? { hidden, value: "" } : { hidden })

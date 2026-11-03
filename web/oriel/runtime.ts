@@ -197,7 +197,6 @@ const oriel: Oriel = {
 // The card's pages (`oriel.pages`): a router over the card's places that keeps the pages it showed. A hidden page is
 // `inert` (card.css hides it and keeps its layout and scroll); its handlers, watches and header controls wait.
 type Kept = {
-  arg: string
   page: Page
   offs: Off[]
   /** The header controls as the page left them: its own changes, the user's values, and the rest as at its first show. */
@@ -222,10 +221,6 @@ let dirty = false
 function make(arg: string, at?: string): Kept {
   const element = Object.assign(document.createElement("div"), { className: "oriel-page", inert: true })
   document.body.append(element)
-  const kept: Kept = {
-    arg, offs: [], controls: new Map(), due: new Set(), places: new Set(), shownOnce: false, drawn: false, dropped: false,
-    page: undefined as unknown as Page,
-  }
   const own = (off: Off) => {
     kept.offs.push(off)
     return off
@@ -256,16 +251,19 @@ function make(arg: string, at?: string): Kept {
       }),
     },
   })
-  kept.page = {
-    arg, at, element, oriel: scoped,
-    get shown() {
-      return current === kept
+  const kept: Kept = {
+    offs: [], controls: new Map(), due: new Set(), places: new Set(), shownOnce: false, drawn: false, dropped: false,
+    page: {
+      arg, at, element, oriel: scoped,
+      get shown() {
+        return current === kept
+      },
+      get dropped() {
+        return kept.dropped
+      },
+      keep: (off) => void kept.offs.push(off),
+      redraw: () => (current === kept ? void fill(arg) : drop(kept)),
     },
-    get dropped() {
-      return kept.dropped
-    },
-    keep: (off) => void kept.offs.push(off),
-    redraw: () => (current === kept ? void fill(arg) : drop(kept)),
   }
   pages.push(kept)
   return kept
@@ -281,17 +279,19 @@ async function fill(arg: string, at?: string) {
   }
   if (kept.dropped) return
   kept.drawn = true
-  if (context.arg !== arg) return
-  present(kept)
-  // A page drawn again takes the old one's place.
-  for (const other of pages) if (other !== kept && other.arg === arg) drop(other)
+  if (context.arg === arg) present(kept)
+  // A page drawn again takes the old one's place, unless the old one shows: the card came back to it meanwhile.
+  for (const other of pages) if (other !== kept && other !== current && other.page.arg === arg) drop(other)
 }
 
 function moved(arg: string, at?: string) {
-  // As the page leaves it: a page being drawn may set the title before it shows.
-  if (current) current.title = document.title
-  if (current?.arg === arg) return current.places.forEach((fn) => fn({ arg, at }))
-  const kept = pages.find((page) => page.arg === arg)
+  // As the page leaves it, unless a page being drawn may have set it already.
+  if (current && pages.every((page) => page.drawn)) current.title = document.title
+  if (current?.page.arg === arg) {
+    if (current.title !== undefined) document.title = current.title
+    return current.places.forEach((fn) => fn({ arg, at }))
+  }
+  const kept = pages.find((page) => page.page.arg === arg)
   if (!kept) void fill(arg, at)
   else if (kept.drawn) present(kept, { arg, at })
 }
@@ -300,6 +300,8 @@ function present(kept: Kept, again?: { arg: string; at?: string }) {
   const old = current
   if (old) {
     old.page.element.inert = true
+    // Its sound stops with it.
+    old.page.element.querySelectorAll<HTMLMediaElement>("audio, video").forEach((media) => media.pause())
     // Left with unsaved edits, which the user chose to discard.
     if (dirty) drop(old)
   }
@@ -311,7 +313,10 @@ function present(kept: Kept, again?: { arg: string; at?: string }) {
     kept.shownOnce = true
     for (const [id, value] of Object.entries(context.controls)) kept.controls.set(id, { value, ...kept.controls.get(id) })
   }
-  for (const [id, change] of kept.controls) controls.set(id, change)
+  // Only what differs from the page before.
+  for (const [id, change] of kept.controls) {
+    if (JSON.stringify(change) !== JSON.stringify(old?.controls.get(id))) controls.set(id, change)
+  }
   for (const fn of kept.due) fn()
   kept.due.clear()
   if (again) kept.places.forEach((fn) => fn(again))
@@ -324,7 +329,13 @@ function present(kept: Kept, again?: { arg: string; at?: string }) {
 function drop(kept: Kept) {
   if (kept.dropped) return
   kept.dropped = true
-  kept.offs.splice(0).forEach((off) => off())
+  for (const off of kept.offs.splice(0)) {
+    try {
+      off()
+    } catch (error) {
+      console.error(error)
+    }
+  }
   kept.page.element.remove()
   pages = pages.filter((page) => page !== kept)
   if (current === kept) current = undefined
