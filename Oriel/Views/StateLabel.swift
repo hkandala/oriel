@@ -6,16 +6,15 @@ import SwiftUI
 struct StateIcon: View {
     let state: AgentState
     var color: Color?
-    var size: CGFloat = 12
     @Environment(\.look) private var look
 
     var body: some View {
         Lucide(state: state)
             .stroke(
                 color ?? state.color(look),
-                style: StrokeStyle(lineWidth: size / 12, lineCap: .round, lineJoin: .round),
+                style: StrokeStyle(lineWidth: 1, lineCap: .round, lineJoin: .round),
             )
-            .frame(width: size, height: size)
+            .frame(width: 12, height: 12)
     }
 
     /// The shapes on lucide's 24-unit grid: a circle of radius 10 round (12, 12).
@@ -45,6 +44,14 @@ struct StateIcon: View {
             }
             return path.applying(CGAffineTransform(scaleX: rect.width / 24, y: rect.height / 24))
         }
+    }
+}
+
+extension View {
+    /// A state icon as one element a test reads: its word as the value.
+    func stateElement(_ state: AgentState, _ id: String) -> some View {
+        accessibilityElement().accessibilityAddTraits(.isStaticText).accessibilityValue(state.title)
+            .accessibilityIdentifier(id)
     }
 }
 

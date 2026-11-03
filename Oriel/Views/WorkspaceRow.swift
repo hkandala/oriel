@@ -112,9 +112,7 @@ struct WorkspaceRow: View {
     @ViewBuilder
     private func stateIcon(_ state: AgentState?) -> some View {
         if let state {
-            StateIcon(state: state)
-                .accessibilityElement().accessibilityAddTraits(.isStaticText).accessibilityValue(state.title)
-                .accessibilityIdentifier("workspace.\(workspace.id).state")
+            StateIcon(state: state).stateElement(state, "workspace.\(workspace.id).state")
                 .frame(height: 30).padding(.trailing, 8).allowsHitTesting(false)
         }
     }

@@ -309,9 +309,7 @@ struct HoverCard: View {
         // On the first line's end. Over the button, so a test sees it.
         .overlay(alignment: .topTrailing) {
             if let state {
-                StateIcon(state: state)
-                    .accessibilityElement().accessibilityAddTraits(.isStaticText).accessibilityValue(state.title)
-                    .accessibilityIdentifier("hovercard.\(pane.id).state")
+                StateIcon(state: state).stateElement(state, "hovercard.\(pane.id).state")
                     .frame(height: 26).padding(.trailing, 6).allowsHitTesting(false)
             }
         }

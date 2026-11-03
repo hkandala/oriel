@@ -85,9 +85,7 @@ struct TabButton: View {
         // a keycap is in it; centered where the × is.
         .overlay(alignment: .trailing) {
             if let state, keycap == nil, !hovering, !renaming {
-                StateIcon(state: state).padding(.trailing, 11)
-                    .accessibilityElement().accessibilityAddTraits(.isStaticText).accessibilityValue(state.title)
-                    .accessibilityIdentifier("tab.\(tab.id).state")
+                StateIcon(state: state).padding(.trailing, 11).stateElement(state, "tab.\(tab.id).state")
             }
         }
         // At the end, beside the ×: never over the icon or the title. Over the button, so a test
