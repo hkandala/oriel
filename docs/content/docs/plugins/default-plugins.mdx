@@ -575,6 +575,13 @@ The changes of one source in one scroll (`@pierre/diffs`).
   card with over 2,000 changed lines starts folded. Changes inside a line
   are marked by word. Added lines use the finished color at 10 %, removed
   lines the error color, and word marks 28 %.
+- **A fast scroll** never loses the header at the top. CodeView draws only
+  the lines near the view, and a fast scroll can run past them for a few
+  frames. A copy of the top file's header sits under the file's own header,
+  sticky in CSS, so the system keeps it in place without script. It starts
+  below a commit's facts. When the file's own header is drawn, it covers
+  the copy, also while the next file's header pushes it up. The lines can
+  be blank for those frames; the header stays.
 - **The file list** is a column at the left (28 % of the card, 160 to
   260 pt) in the home's row style: a title with the file count, then one row
   per file with its icon, its name, its folder in secondary, `+n −m` and its letter

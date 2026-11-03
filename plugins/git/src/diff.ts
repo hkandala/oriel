@@ -13,14 +13,15 @@ import { element, failed as toast, fileIcon, home, type How, how, keep, nameAndF
 
 const letters = { change: "M", "rename-pure": "R", "rename-changed": "R", new: "A", deleted: "D" }
 /**
- * A file's header controls, made once per file diff (`draw` keeps an unchanged file's): pierre asks for them at every
- * render of the file (a scroll, the highlighter's answer), and a click whose press and release land on two different
- * nodes does nothing.
+ * A file's header controls, made once per file diff (`draw` keeps an unchanged file's) for CodeView and once for the copy
+ * on top (`stuck`): pierre asks for them at every render of the file (a scroll, the highlighter's answer), and a click
+ * whose press and release land on two different nodes does nothing.
  */
 const headers = new WeakMap<FileDiffMetadata, HTMLElement>()
-function header(diff: FileDiffMetadata, make: (diff: FileDiffMetadata) => HTMLElement) {
-  const node = headers.get(diff) ?? make(diff)
-  headers.set(diff, node)
+const tops = new WeakMap<FileDiffMetadata, HTMLElement>()
+function header(diff: FileDiffMetadata, make: (diff: FileDiffMetadata) => HTMLElement, cache = headers) {
+  const node = cache.get(diff) ?? make(diff)
+  cache.set(diff, node)
   return node
 }
 
@@ -173,23 +174,7 @@ export async function make(place: Page, root: string, source: string) {
     renderCodeViewHeader: () => about,
     // The file's own row, as the card's rows: the disclosure, its icon, name and folder, its counts and letter, then
     // Viewed and Open File. A diff item's file is its diff.
-    renderCustomHeader: (file) => {
-      const diff = file as FileDiffMetadata
-      const node = header(diff, (diff) => {
-        const row = element("div", "file"), disclosure = element("button", "disclosure", "›")
-        disclosure.ariaLabel = "Show or hide the file"
-        disclosure.onclick = () => collapse(diff.name, !item(diff.name).collapsed)
-        const [base, dir] = nameAndFolder(diff.name)
-        const name = element("span", "name", base)
-        // A rename names its old path in the folder's place.
-        const folder = element("span", "folder", diff.prevName && diff.prevName !== diff.name ? `from ${diff.prevName}` : dir)
-        row.title = diff.name
-        row.append(disclosure, fileIcon(diff.name), name, folder, ...counts(diff), letter(diff), actions(diff))
-        return row
-      })
-      node.querySelector(".disclosure")!.classList.toggle("shut", Boolean(item(diff.name)?.collapsed))
-      return node
-    },
+    renderCustomHeader: (file) => fresh(header(file as FileDiffMetadata, fileRow), file as FileDiffMetadata),
     // ⌘-click: the file at the line in a new tab (⌥-click: to the side), or for a removed line at the one after it.
     onLineClick: (line, context) => {
       const { event, lineNumber } = line, file = files.find((file) => file.name === context.item.id)
@@ -199,6 +184,26 @@ export async function make(place: Page, root: string, source: string) {
       }
     },
   }
+  function fileRow(diff: FileDiffMetadata) {
+    const row = element("div", "file"), disclosure = element("button", "disclosure", "›")
+    disclosure.ariaLabel = "Show or hide the file"
+    disclosure.onclick = () => collapse(diff.name, !item(diff.name).collapsed)
+    const [base, dir] = nameAndFolder(diff.name)
+    const name = element("span", "name", base)
+    // A rename names its old path in the folder's place.
+    const folder = element("span", "folder", diff.prevName && diff.prevName !== diff.name ? `from ${diff.prevName}` : dir)
+    row.title = diff.name
+    row.append(disclosure, fileIcon(diff.name), name, folder, ...counts(diff), letter(diff), actions(diff))
+    return row
+  }
+
+  /** A file's header row with its fold and Viewed as they are now. */
+  function fresh(node: HTMLElement, diff: FileDiffMetadata) {
+    node.querySelector(".disclosure")!.classList.toggle("shut", Boolean(item(diff.name)?.collapsed))
+    node.querySelector("input")!.checked = viewed.has(diff.name)
+    return node
+  }
+
   /** Viewed, and Open File but on a deleted file. */
   function actions(diff: FileDiffMetadata) {
     const box = element("span", "actions"), label = element("label", "mark")
@@ -228,6 +233,42 @@ export async function make(place: Page, root: string, source: string) {
   const viewer = new CodeView({ ...options })
   viewer.setup(main)
   place.keep(() => viewer.cleanUp())
+
+  /**
+   * A copy of the header of the file at the top, sticky in the diff's scroll after a commit's facts, so the compositor
+   * keeps it in place: CodeView draws only the lines near the view, in a box it moves from script, and a fast scroll
+   * outran it, so the file's own header went blank with the lines. The file's own header covers this one whenever it
+   * is drawn (also while the next file's pushes it up); a scroll only changes which file this one names. Inert: the
+   * file's own header has the controls.
+   */
+  const stuck = element("div", "stuck")
+  stuck.inert = true
+  stuck.hidden = true
+  place.keep(viewer.subscribeToScroll(stick))
+  // CodeView puts the facts' box in once its highlighter is ready, which can come after the files.
+  const resized = new ResizeObserver(() => stick())
+  resized.observe(about)
+  place.keep(() => resized.disconnect())
+
+  /** Names the last file whose top is at or above the view's; the first when the view is above them all. After new
+   *  files, on the next frame: CodeView lays them out on it, asked first. */
+  function stick() {
+    // After the facts' box, which CodeView makes on its first render.
+    const host = viewer.getHeaderElement()
+    if (host && stuck.previousElementSibling !== host) host.after(stuck)
+    const top = viewer.getScrollTop()
+    let low = 0, high = files.length - 1
+    while (low < high) {
+      const middle = (low + high + 1) >> 1
+      if ((viewer.getTopForItem(files[middle].name) ?? 0) <= top) low = middle
+      else high = middle - 1
+    }
+    const file = files[low]
+    stuck.hidden = !file
+    if (!file) return
+    const node = fresh(header(file, fileRow, tops), file)
+    if (stuck.firstChild !== node) stuck.replaceChildren(node)
+  }
 
   /** A commit's subject (also the card's title), its body, and its author, date, hash and parents; none for the working
    *  tree. */
@@ -319,6 +360,7 @@ export async function make(place: Page, root: string, source: string) {
     nav.hidden = !files.length
     clean.hidden = Boolean(files.length) || patch === undefined
     api.controls.set("diff.file-list", { enabled: files.length > 0 })
+    requestAnimationFrame(stick)
   }
 
   function openFile(name: string, line: number | undefined, how: How) {

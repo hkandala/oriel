@@ -25,6 +25,9 @@
   .file { box-sizing: border-box; display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 8px 0 6px;
     white-space: nowrap; font: 13px system-ui; color: var(--text);
     background: color-mix(in srgb, var(--text) 4%, transparent); border-bottom: 0.5px solid var(--divider) }
+  /* The copy of the top file's header (`stuck` in diff.ts): sticky under the files' own (before them, no z-index), after
+     a commit's facts, taking no room. */
+  .stuck { position: sticky; top: 0; height: 32px; margin-bottom: -32px; background: var(--card) }
   .file > .name { font-weight: 600 }
   .file > .actions { margin-left: auto }
   .disclosure, .open, .hash { all: unset; color: var(--dim); border-radius: 5px; padding: 1px 6px }

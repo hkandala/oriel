@@ -196,6 +196,20 @@ then working and no status when all idle". Build exactly `resources/research/ui/
   file list's line starts below it; the list's top padding is 3 px, so its title's middle meets the file header's.
   Pictures (the built page in a bare WKWebView with a stand-in bridge, dark): `/tmp/oriel-shots/t52c/wt-before-scroll0.png`
   → `wt-after-scroll0.png`, `wt-{before,after}-scroll700.png`, `commit-{before,after}-scroll{0,700}.png`.
+- **Cause, sticky headers (11).** `@pierre/diffs`' CodeView draws only the lines near the view: each file's box holds
+  just those lines, inside one container that script moves with `position: sticky` and a top and bottom set at each
+  render. A file header is CSS-sticky only inside that box. When a scroll runs past the drawn lines before script
+  draws again, the box leaves the view and the header goes with it: whole frames with no header and no lines. Shown in
+  the built page in a bare WKWebView with trackpad-phased scrolls (3000 px a frame, recorded with `screencapture -v`):
+  4–6 frames with no header in 3 of 4 runs on main, `/tmp/oriel-shots/t52c/sticky-before-frames.png`.
+- **Fix (11).** A copy of the top file's header sits under the files' own, in the diff's scroll right after a commit's
+  facts, with `position: sticky; top: 0` and no room taken, so the compositor keeps it in place with no script. A
+  scroll (`subscribeToScroll`) only changes which file it names. The file's own header covers it whenever drawn, also
+  while the next file's header pushes it up, so the look and the push are unchanged; it is inert. After: 0 frames
+  with no header in 5 runs (`sticky-after-frames.png`: the lines blank for two frames, the header stays; on the page
+  factories, `sticky-after-sheet-{wt,commit}.png`). A file box
+  that spans the whole file would need pierre's other virtualizer and a rewrite of the diff page. The real app, a
+  fast swipe over 16 files: the header in all 293 frames (`sticky-real-boundary.png`). Git is 1.6.1.
 
 ### Track A
 
