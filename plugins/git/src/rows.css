@@ -1,6 +1,6 @@
-/* The page: the home scrolls in the body; a place's page hides with `hidden`. */
+/* Each place is a page of its own (`oriel.pages`): the home scrolls in its page, the diff fills its page. */
 [hidden] { display: none !important; }
-body { overflow-y: auto; user-select: none; -webkit-user-select: none; }
+body { user-select: none; -webkit-user-select: none; }
 /* A list's title and rows, as the sidebar's: the Git home's lists and the diff's file list (home.css, diff.css). */
 .title { display: flex; align-items: center; gap: 6px; height: 26px; padding: 0 4px 0 10px; }
 .title h2 { margin: 0; font-size: 11px; font-weight: 600; color: var(--dim); }

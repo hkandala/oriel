@@ -1,7 +1,6 @@
 /* The diff (diff.ts). */
-/* Fixed over the page: a new diff draws unseen over the home, which shows until it drew. An 8 pt gap under row 2: the
-   file list's line starts below it, and a file header sticks below it. */
-#diff { position: fixed; inset: 0; box-sizing: border-box; padding-top: 8px; display: flex; overflow: hidden; --diffs-font-family: ui-monospace, monospace; --diffs-font-size: var(--font-size);
+/* An 8 pt gap under row 2: the file list's line starts below it, and a file header sticks below it. */
+#diff { position: absolute; inset: 0; box-sizing: border-box; padding-top: 8px; display: flex; overflow: hidden; --diffs-font-family: ui-monospace, monospace; --diffs-font-size: var(--font-size);
   --diffs-header-font-family: system-ui;
   .list { --sidebar-width: clamp(160px, 28%, 260px); overflow-y: auto; padding: 3px 6px 12px 0;
     border-right: 0.5px solid var(--divider); box-sizing: border-box }

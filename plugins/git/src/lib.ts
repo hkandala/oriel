@@ -83,12 +83,3 @@ export async function failed(error: Error) {
   const text = error.message.split("\n").map((line) => line.trim()).join(" ")
   if ((await oriel.toast(text, ["Copy", "OK"])) === "Copy") oriel.clipboard.write(error.message).catch(console.error)
 }
-
-/** A header control's change, sent only when it changes something. */
-const sent = new Map<string, string>()
-export function control(id: string, change: Parameters<Oriel["controls"]["set"]>[1]) {
-  const json = JSON.stringify({ ...JSON.parse(sent.get(id) ?? "{}"), ...change })
-  if (sent.get(id) === json) return
-  sent.set(id, json)
-  oriel.controls.set(id, change)
-}

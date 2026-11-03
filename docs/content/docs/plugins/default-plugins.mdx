@@ -147,16 +147,17 @@ apply:
   ([One plugin, many places](/docs/plugins/api#one-plugin-many-places)).
   They walk the card's own list of places, as a browser's history does. A
   new place clears the places after the current one.
-- **Kept pages.** File Explorer keeps the last five places it showed as pages
+- **Kept pages.** Each card keeps the last five places it showed as pages
   ([One plugin, many places](/docs/plugins/api#one-plugin-many-places)). So
   Back and Forward show a place at once, as the user left it: its scroll, its
-  open folders, its selection, its filter and its row 2. A kept page reads
+  open folders, its selection, its filter, its file list and its row 2. A kept page reads
   again only what changed on the machine while it was hidden, after it
   shows. A place not kept draws in a new page while the old one stays on
   screen.
 - Back to the tree shows the row of the file it opened, and scrolls only when
   that row is out of view.
-- Back to the Git home lands at the change or the commit it opened.
+- A Git home drawn anew (not kept) lands at the change or the commit that
+  the card came back from.
 - ⌘[ and ⌘] move the card only while it has a place that way. Otherwise
   they select the pane to the left or right, as elsewhere. A card made from
   its label (after a relaunch, or a dropped card shown again) has no list
@@ -552,13 +553,15 @@ The changes of one source in one scroll (`@pierre/diffs`).
 - "No changes" shows when the patch is empty. A failed first read (not a
   repository yet, a machine away) shows git's error and asks again at the
   next change in the work tree.
-- **A move between places** (a commit from the home, Parent, Back) reads the
+- **A move to a place not kept** (a commit from the home, Parent) reads the
   new patch and the commit's facts first and then draws them in one step: the
-  place before stays until then, with no blank page between.
-- Side by Side and Word Wrap (the header's values) and the file list (the
-  card's state) are kept per card, also across a new source, and saved in the state file, so
-  they survive a drop, a reload and a relaunch. Viewed marks last while the
-  page runs.
+  place before stays until then, with no blank page between. A kept diff
+  shows at once and reads its patch again only if the work tree changed
+  while it was hidden.
+- A new diff starts with the card's Side by Side and Word Wrap (the header's
+  values) and its file list (the card's state), saved in the state file, so
+  they survive a drop, a reload and a relaunch. A kept diff keeps its own.
+  Viewed marks last while the page is kept.
 - A file with no hunks (binary, a mode change, a pure rename) shows its
   header alone. `N unmodified lines` rows do not expand.
 - `Look.cardSolid` is exact in Classic. In Glass it is measured on a card

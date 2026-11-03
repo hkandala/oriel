@@ -1,6 +1,6 @@
 {
   "name": "@oriel/git",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "private": true,
   "description": "Changes and history",
   "keywords": ["diff", "changes", "commit", "uncommitted", "history"],
@@ -26,7 +26,7 @@
   "oriel": {
     "id": "git",
     "name": "Git",
-    "api": 1,
+    "api": 2,
     "entry": "dist/main.js",
     "icon": "source.branch",
     "opens": { "git": true },

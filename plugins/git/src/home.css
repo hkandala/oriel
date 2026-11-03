@@ -1,5 +1,7 @@
 /* The Git home (home.ts): rows as the sidebar's, the app's fonts and colors. */
 #home {
+  height: 100%;
+  overflow-y: auto;
   cursor: default;
   #failure { position: fixed; inset: 0; margin: auto; height: fit-content; padding: 0 24px; text-align: center;
     color: var(--dim); }

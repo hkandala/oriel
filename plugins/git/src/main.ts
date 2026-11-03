@@ -1,12 +1,13 @@
-// Git: a repository's home and its diffs, places of one card (plugins/default-plugins#git). The home is `<root>/`, a diff
-// `<root>/ <source>`; the card moves between them with `card.go` and the app's Back and Forward. The home is in the
-// entry, so it opens at once; the diff, with @pierre/diffs, loads on its first use.
+// Git: a repository's home and its diffs, places of one card (plugins/default-plugins#git), each in a page the card
+// keeps (`oriel.pages`). The home is `<root>/`, a diff `<root>/ <source>`; the card moves between them with `card.go` and
+// the app's Back and Forward. The home is in the entry, so it opens at once; the diff, with @pierre/diffs, loads on its
+// first use.
 import type { Oriel } from "@oriel/plugin-api"
 import "./rows.css"
 import "./home.css"
 import "./diff.css"
 import * as Home from "./home"
-import { bind, control, home, parse } from "./lib"
+import { bind, parse } from "./lib"
 
 /** Each place's own header controls; the spacer is both's. */
 const HOME = ["git.branch", "git.working", "git.fetch", "git.pull", "git.push"]
@@ -25,55 +26,13 @@ export default async function main(oriel: Oriel) {
     sheet.textContent = `:root { ${names.map((name, index) => `--sf-${name.replaceAll(".", "-")}: url(${urls[index]});`).join(" ")} }`
     document.head.append(sheet)
   })
-  let Diff: typeof import("./diff") | undefined
-  let place = parse(oriel.card.arg)
-  let watched = ""
-  let off: (() => void) | undefined
-
-  /** Shows a place's page and its header controls. A diff draws first, then takes the home's place. */
-  async function show(arg: string, at?: string) {
-    const shown = (place = parse(arg))
-    const controls = (diff: boolean) => {
-      for (const id of HOME) control(id, { hidden: diff })
-      for (const id of DIFF) control(id, { hidden: !diff })
-    }
-    watch(shown.root)
-    if (shown.source === undefined) {
-      controls(false)
-      Diff?.hide()
-      return Home.show(shown.root, at)
-    }
-    Diff ??= await import("./diff")
-    // Not after another move meanwhile.
-    if (place !== shown || !(await Diff.show(shown.root, shown.source, at)) || place !== shown) return
-    controls(true)
-    Home.hide()
-  }
-
-  /** While the card shows: the home reads again after each change under the root, the working tree asks for its
-   *  patch again (and draws only the files that changed), and a diff whose first read failed tries again. */
-  function watch(root: string) {
-    if (root === watched) return
-    off?.()
-    watched = root
-    off = oriel.files.watch(root, () => {
-      if (place.source === undefined) void Home.load()
-      else if (place.source === "uncommitted" || Diff?.failed()) void Diff?.refresh()
-    })
-  }
-
-  oriel.on("place", ({ arg, at }) => void show(arg, at).catch(console.error))
-  oriel.on("control", ({ id, value }) => {
-    switch (id) {
-      case "diff.home": return oriel.card.go(home(place.root))
-      case "git.working": return oriel.card.go(`${home(place.root)} uncommitted`)
-      case "diff.layout": return Diff?.layout({ split: value === "split" })
-      case "diff.wrap": return Diff?.layout({ wrap: value === true })
-      case "diff.file-list": return Diff?.toggleList()
-      case "diff.previous": return Diff?.step(-1)
-      case "diff.next": return Diff?.step(1)
-      default: Home.pick(id, value as string | undefined)
-    }
+  // Each place in a page of its own, which the card keeps: Back and Forward show it as it was.
+  const pages = oriel.pages.route(async (page) => {
+    const { root, source } = parse(page.arg)
+    for (const id of HOME) page.oriel.controls.set(id, { hidden: source !== undefined })
+    for (const id of DIFF) page.oriel.controls.set(id, { hidden: source === undefined })
+    if (source === undefined) await Home.make(page, root)
+    else await (await import("./diff")).make(page, root, source)
   })
-  await Promise.all([show(oriel.card.arg, oriel.card.at), symbols])
+  await Promise.all([pages, symbols])
 }
