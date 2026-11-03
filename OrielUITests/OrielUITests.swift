@@ -256,10 +256,11 @@ extension OrielUITests {
         if !row.isSelected {
             row.click()
         }
-        // Hittable and at rest, not only there: the capsule slides in, and the bar lays out again after a workspace
-        // change; a click on an earlier frame went beside it (on CI).
+        // Hittable and at rest, not only there: the bar lays out again after a workspace change; a click on an earlier
+        // frame went beside it (on CI). Up to 10 s, herdr's own bound: right after a launch CI's herdr took 3 s to
+        // answer a snapshot read or a `tab.create`, and sent `tab.created` 1.3 s after its reply.
         let capsule = element("tab.\(tab)")
-        XCTAssertTrue(capsule.has(\.isHittable, true, within: 2))
+        XCTAssertTrue(capsule.has(\.isHittable, true, within: 10))
         // One query a look: a slow one (over 1 s on a busy CI Mac) made the two of each look outlast the wait.
         var frame = CGRect.null
         XCTAssertTrue(until(5) {
