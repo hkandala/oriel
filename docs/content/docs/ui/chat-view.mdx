@@ -345,6 +345,10 @@ setting.
 ## Tool calls
 
 A run is one quiet line with no card: its summary and a chevron.
+- The line and its open rows take a reply bubble's place and widest width:
+  they start 18 pt left of the messages' edge, as a bubble does, and stop
+  48 pt short of the messages' right edge. Their text stays on the
+  messages' edge. The fill under the pointer covers that width.
 - The summary uses pi-content-layout's words
   ([`tools.ts`](https://github.com/hkandala/pi-hkandala/blob/master/extensions/pi-content-layout/tools.ts)):
   a verb and a noun per tool for every agent's tool names, calls counted

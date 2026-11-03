@@ -21,7 +21,7 @@ struct ToolStack: View {
                     Chevron(open: steps != nil)
                     Spacer(minLength: 4)
                 }
-                .padding(.horizontal, 6).frame(height: 24)
+                .padding(.horizontal, Composer.inset).frame(height: 24)
             }
             .buttonStyle(ChromeStyle(radius: 6))
             .accessibilityValue(steps != nil ? "open" : "closed")
@@ -36,15 +36,15 @@ struct ToolStack: View {
                             Icon(symbol: "text.bubble")
                             Text("Thought").italic().foregroundStyle(.tertiary)
                         }
-                        .padding(.horizontal, 6).frame(height: 22)
+                        .padding(.horizontal, Composer.inset).frame(height: 22)
                     }
                 }
                 .padding(.leading, 12)
             }
         }
         .font(.system(size: 12))
-        // The line's text lines up with the replies; the hover fill reaches past it.
-        .padding(.horizontal, -6)
+        // On a reply bubble's place and width: its text on the replies' edge, its hover fill as far out as a bubble.
+        .padding(.leading, -Composer.inset).padding(.trailing, 48)
     }
 }
 
@@ -74,7 +74,7 @@ private struct ToolRow: View {
                     Time(start: tool.started, end: tool.ended)
                     Chevron(open: open)
                 }
-                .padding(.horizontal, 6).frame(height: 22)
+                .padding(.horizontal, Composer.inset).frame(height: 22)
             }
             .buttonStyle(ChromeStyle(radius: 6))
             .accessibilityValue(open ? "open" : "closed")
@@ -90,7 +90,7 @@ private struct ToolRow: View {
                         ToolDetail(title: "Output", text: tool.output, id: "chat.\(paneID).tool.output")
                     }
                 }
-                .padding(.leading, 26).padding(.bottom, 4)
+                .padding(.leading, Composer.inset + 20).padding(.bottom, 4)
             }
         }
     }
