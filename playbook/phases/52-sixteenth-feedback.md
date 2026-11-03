@@ -178,3 +178,21 @@ then working and no status when all idle". Build exactly `resources/research/ui/
   `#` opens only as a `file://` URL with them encoded.
 - **For the user.** In ⌘K, rest the pointer on a row and scroll with the wheel and the trackpad: the light stays. Type
   `swift actors` and `localhost:3000` in a browser card's address field. Press ⌘T and ⌘W: the bar changes at once.
+
+### Track C
+
+- **Cause, new tabs (12).** A linked open (Git's Open File, ⌘-click in a plugin card) and `oriel open --tab` made the
+  tab with `layout.apply`, which herdr adds last, then `tab.move`d it after the card's tab: the snapshot between the
+  two showed it at the end. **Fix:** no move; `PanePlace.tab` has no index. ⌘T, links opened in a new tab and drops on
+  `+` already went last. The UI tests check the new tab is last once it is selected, with a tab after the card's.
+- **Fix, toast (8).** One source for every toast and confirmation: `ToastView`. Its buttons were rounded rectangles
+  6 pt from the capsule's right end, so a corner ran into the curve. They are capsules (`buttonBorderShape`) 7 pt from
+  the top, bottom and right edge, concentric with the toast. The notice capsule (`NoticeCapsule`, Open Session's and
+  the Plugins panel's) draws round buttons too. Pictures: `/tmp/oriel-shots/t52c/toast-before.png` →
+  `toast-after.png` (a probe window: inactive, so no accent).
+- **Fix, Live (7).** The marker, its manifest control and its line in `main.ts` are gone. Git is 1.5.0.
+- **Decisions, gap (10).** The user then asked for the gap in every diff and to keep it while scrolling, with no
+  divider in it: the whole diff page (`#diff`) starts 8 pt under row 2, so a file header sticks below the gap and the
+  file list's line starts below it; the list's top padding is 3 px, so its title's middle meets the file header's.
+  Pictures (the built page in a bare WKWebView with a stand-in bridge, dark): `/tmp/oriel-shots/t52c/wt-before-scroll0.png`
+  → `wt-after-scroll0.png`, `wt-{before,after}-scroll700.png`, `commit-{before,after}-scroll{0,700}.png`.
