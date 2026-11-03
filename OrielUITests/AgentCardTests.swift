@@ -70,8 +70,11 @@ extension OrielUITests {
         XCTAssertTrue(web.hasSuffix(" file://\(folder)/one.html"), web)
         // Another page in the same card, after the first loaded: Back returns.
         XCTAssertTrue(pageText("oriel-cards-one").exists(within: 10))
-        _ = try await open("browser ./two.html --replace \(browser)", from: first, "page", ["kind: browser"])
+        // A path's query and fragment stay the URL's.
+        _ = try await open("browser './two.html?v=2#x' --replace \(browser)", from: first, "page", ["kind: browser"])
         XCTAssertTrue(pageText("oriel-cards-two").exists(within: 10))
+        let query = try await paneLabel(browser)
+        XCTAssertTrue(query.hasSuffix(" file://\(folder)/two.html?v=2#x"), query)
         XCTAssertTrue(element("browser.\(browser).back").has(\.isEnabled, true, within: 5))
         try await run("\(oriel) open git . --replace \(first)", in: first, "terminal", 1,
                       "oriel: pane \(first) is no")

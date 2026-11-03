@@ -202,7 +202,7 @@ extension AgentCall {
             let path = !first.contains("://") && ["/", "."].contains(first.prefix(1))
             let mac = store.machine.isRemote && (path || first.lowercased().hasPrefix("file:"))
             let url = mac ? nil : plugin.id == Registry.browser.id
-                ? Browser.url(path ? URL(filePath: absolute(first)).absoluteString : first, local: true)?.absoluteString
+                ? Browser.url(path ? fileURL(first) : first, local: true)?.absoluteString
                 : plugin.opens(url: first) ? first : nil
             guard let url else {
                 throw AgentError(code: "bad_argument", message: mac ? "\(plugin.id) opens a file on This Mac only"
@@ -247,6 +247,12 @@ extension AgentCall {
 
     private func web(_ text: String) -> Bool {
         ["http", "https"].contains(URL(string: text)?.scheme?.lowercased() ?? "")
+    }
+
+    /// A path's file URL; its `?query` and `#fragment` stay the URL's (`./page.html?v=3`).
+    private func fileURL(_ path: String) -> String {
+        let end = path.firstIndex { "?#".contains($0) } ?? path.endIndex
+        return URL(filePath: absolute(String(path[..<end]))).absoluteString + path[end...]
     }
 
     /// A path from the request's working folder, without `.` and `..`.

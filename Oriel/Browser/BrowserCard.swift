@@ -213,7 +213,7 @@ struct BrowserToolbar: View {
     /// The host in full and the rest at half while not editing; a click or ⌘L selects it all. Return and Esc give the
     /// keyboard to the page.
     private func address(_ id: String) -> some View {
-        TextField("Enter a URL", text: $text)
+        TextField("Ask Google or type a URL", text: $text)
             .textFieldStyle(.plain)
             .font(.system(size: 12.5))
             .focused($editing)
@@ -293,7 +293,7 @@ struct BrowserToolbar: View {
     private var shown: some View {
         Group {
             if browser.address.isEmpty {
-                Text("Enter a URL").foregroundStyle(.tertiary)
+                Text("Ask Google or type a URL").foregroundStyle(.tertiary)
             } else {
                 addressText(browser.address)
             }

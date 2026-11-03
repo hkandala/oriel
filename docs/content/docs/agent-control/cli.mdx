@@ -287,7 +287,8 @@ oriel open explorer . --float                     # a file tree in a floating wi
   folder. Git takes a folder of a repository (the card gets its root) and
   then `uncommitted` or a commit hash (4 to 40 hex digits). File Explorer
   takes a folder as Open File Explorer Here does: the git root when there is
-  one. `browser ./page.html` is a `file://` URL. A `file://` URL, for the
+  one. `browser ./page.html` is a `file://` URL, and a path's `?query` and
+  `#fragment` stay the URL's (`browser "./page.html?v=3"`). A `file://` URL, for the
   browser or any plugin, opens only for a pane on This Mac. A missing or wrong argument, or one that makes no label (a
   control character, over 1024 characters), is `bad_argument`.
 - **Reuse.** Without `--new`, a card of the same kind and argument already in

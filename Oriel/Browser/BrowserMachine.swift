@@ -24,6 +24,17 @@ extension Browser {
         return ["http", "https"].contains(scheme) && url.host != nil || scheme == "file" && local ? url : nil
     }
 
+    /// The address field's text, or a Google search for text that is no address: one with a space, or with no scheme,
+    /// no dot in its host and no loopback host (`localhost:3000` loads, `swift actors` searches).
+    static func typed(_ text: String) -> String {
+        let text = text.trimmingCharacters(in: .whitespaces)
+        let host = URL(string: "http://\(text)")?.host ?? ""
+        let address = !text.contains(" ") && (text.contains("://") || host.contains(".") || loopback.contains(host))
+        guard !address, !text.isEmpty else { return text }
+        let query = text.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? ""
+        return "https://www.google.com/search?q=\(query)"
+    }
+
     /// One store per machine (ui/browser#profiles): cookies, storage and the cache stay apart.
     private static var stores: [String: WKWebsiteDataStore] = [:]
 

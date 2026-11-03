@@ -62,7 +62,7 @@ extension OrielUITests {
     /// The chooser's Browser makes a labeled browser pane in the pane's place, its empty address with the keyboard; a
     /// typed address loads and goes into the label; the placeholder shows in herdr. A link's page comes back after a
     /// relaunch with its history (the state file), and a click selects the address. Web Inspector docks under the page.
-    /// Open Browser Here from the palette.
+    /// Words that are no address search Google. Open Browser Here from the palette.
     func testBrowserFromTheChooserLoadsATypedAddressAndKeepsItsPage() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, left) = try await newTab("browser")
@@ -116,6 +116,12 @@ extension OrielUITests {
         XCTAssertTrue(element("browser.\(browser).back").has(\.isEnabled, true, within: 3))
         element("browser.\(browser).back").click()
         XCTAssertTrue(pageText("oriel-page-one").exists(within: 5))
+        // Words that are no address search Google.
+        address.click()
+        app.typeText("oriel words")
+        app.typeKey(.return, modifierFlags: [])
+        let search = "\(made) https://www.google.com/search?q=oriel%20words"
+        try await expect("a Google search in the label") { try await paneLabel(browser) == search }
 
         try await openBrowserHere(on: left, in: tab, besides: browser)
     }

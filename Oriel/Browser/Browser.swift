@@ -146,7 +146,7 @@ final class Browser: NSObject {
 
     /// The address field's Return; the label gets the typed address.
     func go(_ text: String) {
-        guard let store, let url = Self.url(text, local: !store.machine.isRemote) else { return }
+        guard let store, let url = Self.url(Self.typed(text), local: !store.machine.isRemote) else { return }
         asking = nil
         approve(url)
         load(url)

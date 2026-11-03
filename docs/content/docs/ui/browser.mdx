@@ -97,13 +97,18 @@ server's terminal.
   load.
 - **Address field.** A capsule 26 pt tall, at least 120 pt wide, filled with
   the primary color at 0.06 under a 0.5 pt edge at 0.08, text 12.5 pt: the
-  host and port in full, the rest in secondary. Empty, it says "Enter a URL".
+  host and port in full, the rest in secondary. Empty, it says "Ask Google or
+  type a URL".
   On a remote machine the machine's name sits in a chip at its end (11 pt, in
   the needs-you color on a 0.18 fill of it). Under the pointer it shows the
   text cursor and its fill goes to 0.1. A click or ⌘L selects the whole
   address under a 1.5 pt accent edge. Return loads it and gives the keyboard
-  to the page. Esc puts back the current address and gives the keyboard to
-  the page.
+  to the page. Text that is no address goes to a Google search
+  (`https://www.google.com/search?q=…`): text with a space, or text with no
+  scheme (`https://`), no dot and no loopback host (`localhost`, `::1`). So
+  `localhost:3000` and `example.com` load, and `swift actors` and `oriel`
+  search. Esc puts back the current address and gives the keyboard to the
+  page.
 - **Empty card.** Until its first page, the card shows a 44 pt `globe` in
   tertiary. A click on it gives the address field the keyboard. The web view
   stays hidden until a page commits, because an empty web view draws white.
