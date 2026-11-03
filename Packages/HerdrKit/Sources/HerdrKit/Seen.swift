@@ -18,6 +18,9 @@ public struct Seen: Sendable {
     public private(set) var states: [String: AgentState] = [:]
     /// When each agent's state last changed, for the ages.
     public private(set) var since: [String: Date] = [:]
+    /// The agents that went idle from an unseen finish (the user saw it, or herdr cleared it): they stay in the Agents
+    /// view's Done group until they work again or go away.
+    public private(set) var seenFinishes: Set<String> = []
     private var agents: [Agent] = []
     /// Each agent's `completion_seq` recorded as seen; an agent in here was sighted (its value may be nil).
     private var seen: [String: Int?] = [:]
@@ -41,6 +44,7 @@ public struct Seen: Sendable {
     @discardableResult
     public mutating func look(_ looking: Set<String>, now: Date = .now) -> [Change] {
         var states: [String: AgentState] = [:]
+        var finishes: Set<String> = []
         var changes: [Change] = []
         for agent in agents {
             let id = Self.key(terminalID: agent.terminalID, paneID: agent.paneID)
@@ -56,6 +60,9 @@ public struct Seen: Sendable {
             default: finished ? .finishedUnseen : .idle
             }
             states[id] = state
+            if state == .idle, self.states[id] == .finishedUnseen || seenFinishes.contains(id) {
+                finishes.insert(id)
+            }
             if self.states[id] != state {
                 since[id] = now
                 if started {
@@ -67,6 +74,7 @@ public struct Seen: Sendable {
         seen = seen.filter { states[$0.key] != nil }
         since = since.filter { states[$0.key] != nil }
         self.states = states
+        seenFinishes = finishes
         return changes
     }
 }

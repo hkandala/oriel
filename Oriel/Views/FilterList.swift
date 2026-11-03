@@ -10,8 +10,8 @@ struct FilterList: View {
         /// A pane's program tile instead of the symbol, or a program's.
         var pane: HostStore.Pane?
         var program: String?
-        /// A workspace's state icon instead of the symbol; `.some(nil)` for a workspace with no agent.
-        var state: AgentState??
+        /// A workspace's state icon instead of the symbol (none while idle).
+        var state: AgentState?
         let title: String
         var detail = ""
         /// A shortcut, one keycap per key (⌘, ⇧, T), after the detail.
@@ -185,7 +185,7 @@ struct FilterList: View {
         }
         .buttonStyle(ChromeStyle(selected: offset == index, tint: .accentColor))
         .accessibilityIdentifier("\(name).\(item.id)")
-        .accessibilityValue(item.state??.word ?? item.note ?? "")
+        .accessibilityValue(item.state?.word ?? item.note ?? "")
         .accessibilityAddTraits(offset == index ? .isSelected : [])
         // After the row's accessibility, which would name this button too.
         .overlay(alignment: .trailing) {

@@ -51,13 +51,13 @@ struct ChatRowView: View, Equatable {
     }
 }
 
-/// The chat's loader, under the running turn: "••• Working 29s".
+/// The chat's loader, under the running turn: Working's icon and "Working 29s".
 struct WorkingRow: View {
     let since: Date?
 
     var body: some View {
         HStack(spacing: 6) {
-            WorkingDots()
+            StateIcon(state: .working)
             TimelineView(.periodic(from: .now, by: 1)) { context in
                 Text(since.map { "Working " + ChatHistory.duration(context.date.timeIntervalSince($0)) } ?? "Working")
                     .foregroundStyle(.secondary)

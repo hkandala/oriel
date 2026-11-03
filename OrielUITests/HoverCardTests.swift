@@ -17,6 +17,10 @@ extension OrielUITests {
         XCTAssertEqual(rows(of: card).count, 3)
         try await waitForValue("hovercard.\(pane)", containing: "hover-42")
         XCTAssertTrue((element("hovercard.\(pane)").value as? String)?.hasPrefix("Needs you") == true)
+        // The agent's row ends with its state's icon; the shells' rows show none.
+        XCTAssertEqual(element("hovercard.\(pane).state").stringValue, "Needs you")
+        let states = card.descendants(matching: .any).matching(NSPredicate(format: "identifier ENDSWITH '.state'"))
+        XCTAssertEqual(states.count, 1)
         // Under its capsule, 6 pt below the 46 pt title row (12 pt below the 34 pt capsule).
         XCTAssertEqual(card.frame.midX, element("tab.\(tab)").frame.midX, accuracy: 2)
         XCTAssertEqual(card.frame.minY - element("tab.\(tab)").frame.maxY, 12, accuracy: 1.5)

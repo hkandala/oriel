@@ -116,8 +116,8 @@ extension OrielUITests {
         let place = header.frame.origin
         app.typeKey(".", modifierFlags: .command)
         XCTAssertTrue(element("agents.sort").exists(within: 2))
-        // The name stays on its line and moves from the rows' names (after their 20 pt state slot) to the tiles' edge.
-        XCTAssertEqual(header.frame.origin, CGPoint(x: place.x - 20, y: place.y))
+        // The name stays where it is: the rows' names and the tiles share its edge.
+        XCTAssertEqual(header.frame.origin, place)
         try await swipe(sidebar, until: header, \.stringValue, two)
     }
 

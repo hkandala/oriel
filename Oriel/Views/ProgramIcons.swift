@@ -79,8 +79,6 @@ private struct ProgramMark: View {
 /// around each tile in front keeps the layers apart on any background.
 struct IconStack: View {
     let panes: [HostStore.Pane]
-    /// The front tile's badge: the tab's state.
-    var badge: AgentState?
 
     var body: some View {
         ZStack(alignment: .leading) {
@@ -93,7 +91,6 @@ struct IconStack: View {
                     RoundedRectangle(cornerRadius: 6, style: .continuous).frame(width: 24, height: 20)
                         .blendMode(.destinationOut)
                     ProgramTile(icon: pane.iconID, letter: pane.letter)
-                        .overlay(alignment: .topTrailing) { StatusBadge(state: index == 0 ? badge : nil) }
                 }
                 .frame(width: 22, height: 18)
                 .offset(x: CGFloat(index) * 4)

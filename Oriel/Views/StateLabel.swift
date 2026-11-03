@@ -1,59 +1,101 @@
 import HerdrKit
 import SwiftUI
 
-/// A workspace's state in a menu row: its `StateLabel` icon, or a gray ring for an idle agent; a faint dot without
-/// an agent.
+/// t3code's state icons, still and round: lucide's `circle-dashed` (Working), `circle-alert` (Needs you, and a chat's
+/// Error) and `circle-check` (Done), stroked as lucide draws them (2 of 24 units, round ends). Idle draws nothing.
 struct StateIcon: View {
-    let state: AgentState?
+    let state: AgentState
+    var color: Color?
+    var size: CGFloat = 12
     @Environment(\.look) private var look
 
     var body: some View {
-        Group {
+        Lucide(state: state)
+            .stroke(
+                color ?? state.color(look),
+                style: StrokeStyle(lineWidth: size / 12, lineCap: .round, lineJoin: .round),
+            )
+            .frame(width: size, height: size)
+    }
+
+    /// The shapes on lucide's 24-unit grid: a circle of radius 10 round (12, 12).
+    private nonisolated struct Lucide: Shape {
+        let state: AgentState
+
+        func path(in rect: CGRect) -> Path {
+            var path = Path()
+            let center = CGPoint(x: 12, y: 12)
             switch state {
-            case .idle: Circle().strokeBorder(.secondary, lineWidth: 1.5).frame(width: 7, height: 7)
-            case let .some(state):
-                StateSymbol(name: state.symbol, color: state.color(look)).font(.system(size: 11, weight: .medium))
-            // A workspace with no agent: a quiet dot, so the slot does not look missing.
-            case nil: Circle().fill(.tertiary).frame(width: 4, height: 4)
+            case .idle: return path
+            case .working:
+                // Eight arcs, each 21.9° (a 3.8-unit chord), centered on every 45°.
+                let half = Angle.radians(asin(0.19))
+                for step in 0 ..< 8 {
+                    let start = Angle.degrees(Double(step) * 45) - half
+                    path.move(to: CGPoint(x: 12 + 10 * cos(start.radians), y: 12 + 10 * sin(start.radians)))
+                    path.addRelativeArc(center: center, radius: 10, startAngle: start, delta: half * 2)
+                }
+            case .needsYou:
+                path.addEllipse(in: CGRect(x: 2, y: 2, width: 20, height: 20))
+                path.addLines([CGPoint(x: 12, y: 8), CGPoint(x: 12, y: 12)])
+                path.addLines([CGPoint(x: 12, y: 16), CGPoint(x: 12.01, y: 16)])
+            case .finishedUnseen:
+                path.addEllipse(in: CGRect(x: 2, y: 2, width: 20, height: 20))
+                path.addLines([CGPoint(x: 9, y: 12), CGPoint(x: 11, y: 14), CGPoint(x: 15, y: 10)])
             }
-        }
-        .frame(width: 14, height: 14)
-    }
-}
-
-/// A state's symbol in `color`; Working's is a `Spinner`.
-struct StateSymbol: View {
-    let name: String, color: Color
-
-    var body: some View {
-        if name == AgentState.working.symbol {
-            Spinner(color: color)
-        } else {
-            Image(systemName: name).foregroundStyle(color)
+            return path.applying(CGAffineTransform(scaleX: rect.width / 24, y: rect.height / 24))
         }
     }
 }
 
-/// A state: its icon and word in the state's color, 11 pt medium. Working adds
-/// its time ("Working 42s", "3m", "1h 5m").
+/// A state: its icon and word in the state's color, 11 pt medium (a card's header, an overview tile).
 struct StateLabel: View {
-    let text: String, symbol: String, color: Color
-    var since: Date?
+    let text: String
+    /// Whose icon: a chat's Error takes Needs you's.
+    let icon: AgentState
+    let color: Color
 
     var body: some View {
-        if let since {
-            let start = Date(timeIntervalSinceReferenceDate: since.timeIntervalSinceReferenceDate.rounded(.down))
-            TimelineView(Ticks(start: start)) { context in
-                row("\(text) \(Self.elapsed(context.date.timeIntervalSince(start)))")
-            }
-        } else {
-            row(text)
+        HStack(spacing: 4) {
+            StateIcon(state: icon, color: color)
+            Text(text)
         }
+        .font(.system(size: 11, weight: .medium)).foregroundStyle(color)
+        .fixedSize()
+        .accessibilityElement(children: .ignore)
+        .accessibilityAddTraits(.isStaticText)
+        .accessibilityValue(text)
+    }
+}
+
+/// An Agents view row's state: its icon and how long it has been in it ("42s", "3m", "1h 5m") in the state's color,
+/// on a 14 % tint with a 1 pt border at 45 % and 6 pt corners.
+struct StateBox: View {
+    let state: AgentState
+    let since: Date?
+    @Environment(\.look) private var look
+
+    var body: some View {
+        let color = state.color(look)
+        HStack(spacing: 4) {
+            StateIcon(state: state)
+            if let since {
+                let start = Date(timeIntervalSinceReferenceDate: since.timeIntervalSinceReferenceDate.rounded(.down))
+                TimelineView(Ticks(start: start)) { context in
+                    Text(Self.elapsed(context.date.timeIntervalSince(start))).monospacedDigit()
+                }
+            }
+        }
+        .font(.system(size: 11, weight: .semibold)).foregroundStyle(color)
+        // The CSS box's padding inside its 1 pt border.
+        .padding(.horizontal, 7).padding(.vertical, 2)
+        .background(color.opacity(0.14), in: .rect(cornerRadius: 6))
+        .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(color.opacity(0.45)))
+        .fixedSize()
     }
 
-    /// Each second for the first minute, then each minute, when the text changes: from a whole second, so every label
-    /// ticks in the same update (a hundred labels on their own phases laid out a hundred
-    /// times a second).
+    /// Each second for the first minute, then each minute, when the text changes: from a whole second, so every box
+    /// ticks in the same update (a hundred boxes on their own phases laid out a hundred times a second).
     private struct Ticks: TimelineSchedule {
         let start: Date
 
@@ -69,39 +111,10 @@ struct StateLabel: View {
         }
     }
 
-    private func row(_ words: String) -> some View {
-        HStack(spacing: 4) {
-            StateSymbol(name: symbol, color: color)
-            Text(words).monospacedDigit()
-        }
-        .font(.system(size: 11, weight: .medium)).foregroundStyle(color)
-        .fixedSize()
-        .accessibilityElement(children: .ignore)
-        .accessibilityAddTraits(.isStaticText)
-        .accessibilityValue(words)
-    }
-
-    /// The working time: seconds, then minutes, then hours and minutes (shorter than a chat turn's "1m 48s",
-    /// `ChatHistory.duration`, to fit a sidebar row).
+    /// Seconds, then minutes, then hours and minutes (shorter than a chat turn's "1m 48s", `ChatHistory.duration`,
+    /// to fit a sidebar row).
     static func elapsed(_ interval: TimeInterval) -> String {
         let seconds = max(0, Int(interval)), minutes = seconds / 60
         return seconds < 60 ? "\(seconds)s" : minutes < 60 ? "\(minutes)m" : "\(minutes / 60)h \(minutes % 60)m"
-    }
-}
-
-/// The 7 pt dot on a tab's program tile's top-right for needs you and finished, cutting a 1.5 pt ring out of the
-/// tile (Glass has no solid background color). In the tile's compositing group.
-struct StatusBadge: View {
-    let state: AgentState?
-    @Environment(\.look) private var look
-
-    var body: some View {
-        if let state, state >= .finishedUnseen {
-            ZStack {
-                Circle().frame(width: 10, height: 10).blendMode(.destinationOut)
-                Circle().fill(state.color(look)).frame(width: 7, height: 7)
-            }
-            .offset(x: 4, y: -4)
-        }
     }
 }

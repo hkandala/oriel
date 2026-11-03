@@ -56,10 +56,8 @@ extension HostStore {
         let id: String
         var label = ""
         var tree: SplitNode?
-        /// Its agent pane with the strongest state (needs you > finished > working > idle), and whether an agent of it
-        /// works (`HostStore.showStrongest`).
+        /// Its agent pane with the strongest state (needs you > finished > working > idle) (`HostStore.showStrongest`).
         var agent: Pane?
-        var working = false
 
         init(id: String) {
             self.id = id
@@ -83,6 +81,8 @@ extension HostStore {
         var state: AgentState?
         /// When the app saw the state change, for the ages.
         var since: Date?
+        /// Idle after a finish the user saw (`Seen.seenFinishes`): still in the Agents view's Done group.
+        var finishSeen = false
         /// The agent's name: herdr's `display_agent`, else its kind.
         var agentName: String?
         /// Its agent's session (herdr's `agent_session` value, of this agent), and that session's title (`watchTitle`).

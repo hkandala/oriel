@@ -1,11 +1,11 @@
 import HerdrKit
 import SwiftUI
 
-/// A workspace: its state's symbol in a leading slot and its name, and its branch with ahead and behind on a second
-/// line in a repository. A linked worktree sits indented under its repository's row, on a guide line.
+/// A workspace: its name, and its branch with ahead and behind on a second line in a repository; its state's icon at
+/// the end. A linked worktree sits indented under its repository's row, on a guide line.
 struct WorkspaceRow: View {
-    /// The text's inset in a row, after the state slot (14 pt and a 6 pt gap); the page header's text lines up.
-    static let textInset: CGFloat = 8 + 14 + 6
+    /// The text's inset in a row; the page header's text lines up.
+    static let textInset: CGFloat = 8
 
     let workspace: HostStore.Workspace
     let parent: HostStore.Workspace?
@@ -23,6 +23,8 @@ struct WorkspaceRow: View {
         let selected = workspace.id == page.selectedWorkspaceID
         let git = workspace.git
         let state = workspace.state
+        // The icon: not while idle, nor under the keycap or the rename field.
+        let shown = state == .idle || keycap != nil || renaming ? nil : state
         let height: CGFloat = git == nil ? 30 : 44
         Button {
             page.select(workspace)
@@ -58,8 +60,8 @@ struct WorkspaceRow: View {
                     .foregroundStyle(.secondary)
                 }
             }
-            // After the state's slot (`stateSlot`), the same on every row.
-            .padding(.leading, Self.textInset).padding(.trailing, 8)
+            // The state icon's room (`stateIcon`).
+            .padding(.leading, Self.textInset).padding(.trailing, shown == nil ? 8 : 8 + 12 + 8)
             .frame(maxWidth: .infinity, minHeight: height, maxHeight: height, alignment: .leading)
         }
         .buttonStyle(ChromeStyle(selected: selected, radius: 10))
@@ -68,7 +70,7 @@ struct WorkspaceRow: View {
         .accessibilityAddTraits(selected ? .isSelected : [])
         .accessibilityValue([state?.word, git.map { "\($0.branch) ahead \($0.ahead) behind \($0.behind)" },
                              parent.map { "worktree of \($0.label)" }].compactMap(\.self).joined(separator: ", "))
-        .overlay(alignment: .topLeading) { stateSlot(state) }
+        .overlay(alignment: .topTrailing) { stateIcon(shown) }
         // At the end of the name's line, never over the name. Over the button, so a test sees it.
         .overlay(alignment: .topTrailing) {
             if let keycap, !renaming {
@@ -105,15 +107,15 @@ struct WorkspaceRow: View {
         }
     }
 
-    /// The state's symbol on the name's line, before it; nothing while idle or with no agent. Over the button, so a
-    /// test sees it; the row's value has the state word for VoiceOver.
+    /// The state's icon (12 pt, as a tab's) at the end of the name's line, as the keycap; nothing with no agent. Over
+    /// the button, so a test sees it; the row's value has the state word for VoiceOver.
     @ViewBuilder
-    private func stateSlot(_ state: AgentState?) -> some View {
-        if let state, state != .idle {
+    private func stateIcon(_ state: AgentState?) -> some View {
+        if let state {
             StateIcon(state: state)
                 .accessibilityElement().accessibilityAddTraits(.isStaticText).accessibilityValue(state.title)
                 .accessibilityIdentifier("workspace.\(workspace.id).state")
-                .frame(height: 30).padding(.leading, 8).allowsHitTesting(false)
+                .frame(height: 30).padding(.trailing, 8).allowsHitTesting(false)
         }
     }
 

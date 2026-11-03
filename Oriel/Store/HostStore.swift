@@ -236,6 +236,7 @@ final class HostStore {
             let key = Seen.key(terminalID: pane.terminalID, paneID: pane.id)
             pane.state = seen.states[key]
             pane.since = seen.since[key]
+            pane.finishSeen = seen.seenFinishes.contains(key)
         }
         showStrongest()
     }
@@ -251,7 +252,6 @@ final class HostStore {
                 if tab.agent !== strongest {
                     tab.agent = strongest
                 }
-                tab.working = tabAgents.contains { $0.state == .working }
             }
             workspace.state = workspace.tabs.compactMap { $0.agent?.state }.max()
         }

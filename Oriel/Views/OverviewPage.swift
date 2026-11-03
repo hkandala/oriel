@@ -110,7 +110,7 @@ private struct Tile: View, Equatable {
         let loading = !pages.pictured(page, pages.tileCards(page, tab.id))
         VStack(spacing: 0) {
             HStack(spacing: 8) {
-                IconStack(panes: page.stack(tab), badge: state)
+                IconStack(panes: page.stack(tab))
                 FadeText(text: page.titleLabel(tab)).fontWeight(.medium)
                 Spacer(minLength: 0)
                 if hovering {

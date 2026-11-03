@@ -62,12 +62,12 @@ description: "The words these docs use"
 | Agents view | the sidebar page's list of every agent pane of its session, turned on with the Agents button, ⌘. or View ▸ Show Agents |
 | Take Back | the button that moves control of a session to this window, or of a pane to this device |
 | OSC 7501 | the Program Status Protocol: an escape sequence a program writes to its terminal to report idle, working, blocked, done or error. herdr does not read it yet; the app reads status only from herdr |
-| working dots | three dots that pulse in step on every tab while an agent works (blue) |
 | plain-text title | a tab's or pane's title where it cannot dim its second part (⌘K, menus, window titles): the two parts joined by ` \| ` |
-| badge | a 7 pt dot on a tab's program icon or the Agents button: amber when an agent needs you, green when a finish is not seen |
-| state label | an agent state as a symbol and its word in the status color, with Working's time ("Working 42s") |
-| state icon | a workspace row's or workspace menu row's sign of its strongest agent state: the state label's symbol alone (in a menu row, a gray ring for an idle agent) |
-| status word | working (blue), needs you (amber), finished (green), idle (gray); always next to a symbol, dot or badge for VoiceOver |
+| badge | the 7 pt orange dot on the Agents button when an agent needs you |
+| state icon | a still round icon in the status color: a dashed circle (working), an alert circle (needs you), a check circle (finished); none for idle |
+| state label | an agent state as its icon and its word in the status color |
+| state box | an Agents row's state: its icon and time in a box tinted with the status color |
+| status word | working (blue), needs you (orange), finished (green), idle (gray); always next to an icon or a badge for VoiceOver |
 | seen | this device has shown the agent's last finish to the user: its tab was selected on the page in view of the key window |
 | git state | a workspace row's branch and its ahead and behind counts, from `git status` on the machine |
 | PTY | the pseudo-terminal a shell runs in; it has one size |

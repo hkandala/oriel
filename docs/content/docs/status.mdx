@@ -15,8 +15,8 @@ description: "The Agents button and view, notifications and the Dock"
   works: [Selection and "seen" are the app's own](/docs/layout#selection-and-seen-are-the-apps-own).
 - Each agent pane is needs you (herdr's `blocked`), working, finished (not
   seen) or idle. herdr's `done` is not used. A tab and a workspace show the
-  strongest state of their panes: needs you, then finished, then working,
-  then idle.
+  strongest state of their panes, as one icon: needs you, then finished, then
+  working; nothing when all are idle.
 - Looking at a pane means its tab is selected on the page in view and the
   window is key. Looking records its finish as seen.
 - Each change carries the time the app saw it. The Agents view shows its age
@@ -25,7 +25,7 @@ description: "The Agents button and view, notifications and the Dock"
 ### Agents
 
 The Agents button (D61) covers the session of the page in view.
-- **The dot.** The button shows an amber dot while an agent of that session
+- **The dot.** The button shows an orange dot while an agent of that session
   needs you.
 - **Hover.** Resting the pointer on the button for 0.25 s lists the agents of
   that session that need you. A click on one selects its workspace, tab and
@@ -34,7 +34,8 @@ The Agents button (D61) covers the session of the page in view.
   agent pane of that session, idle ones too, sorted by priority (needs you,
   working, done, idle) or by workspace, in groups that fold. A click on a row selects that
   workspace, tab and pane and gives the pane the keyboard, so its finish is
-  seen.
+  seen. A seen finish stays in the Done group (with no box) until the agent
+  works again or goes away (`Seen.seenFinishes`).
 
 The look is in [Main window: Agents button](/docs/ui/window#agents-button)
 and [Agents view](/docs/ui/window#agents-view).

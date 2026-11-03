@@ -72,7 +72,7 @@ struct CardState: View {
         guard let chat else { return state?.label(look) }
         // Only while the chat shows: nothing follows the agent behind its terminal, so nothing would clear it.
         if chat.problem != nil, chat.showsChat {
-            return StateLabel(text: "Error", symbol: "exclamationmark.circle", color: look.error)
+            return StateLabel(text: "Error", icon: .needsYou, color: look.error)
         }
         switch chat.phase {
         case .working: return AgentState.working.label(look)

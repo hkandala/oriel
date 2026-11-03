@@ -23,7 +23,7 @@ struct TabButton: View {
     var body: some View {
         let selected = workspace.id == page.selectedWorkspaceID && tab.id == page.selectedTabIDs[workspace.id]
         let stack = page.stack(tab)
-        let agent = tab.agent, working = tab.working
+        let agent = tab.agent, state = agent?.state == .idle ? nil : agent?.state
         Button {
             clicked()
             page.select(workspace, tab: tab.id)
@@ -34,7 +34,7 @@ struct TabButton: View {
             }
         } label: {
             HStack(spacing: 10) {
-                IconStack(panes: stack, badge: agent?.state)
+                IconStack(panes: stack)
                     .keyframeAnimator(initialValue: 1.0, trigger: bounces) { content, scale in
                         content.scaleEffect(scale)
                     } keyframes: { _ in
@@ -51,9 +51,9 @@ struct TabButton: View {
                 }
             }
             .padding(.leading, 11)
-            // The title fades out before the × (its 22 pt circle ends 28 pt from the end) or the working dots (24 pt),
-            // else at 12 pt.
-            .padding(.trailing, keycap != nil ? keycapInset : hovering && !renaming || working ? 28 : 12)
+            // The title fades out before the × (its 22 pt circle ends 28 pt from the end) or the state icon, else at
+            // 12 pt.
+            .padding(.trailing, keycap != nil ? keycapInset : hovering && !renaming || state != nil ? 28 : 12)
             .frame(width: TabBar.width, height: TabBar.height, alignment: .leading)
         }
         // The selection is the tab bar's marker.
@@ -81,13 +81,13 @@ struct TabButton: View {
                     .accessibilityIdentifier("tab.\(tab.id).rename")
             }
         }
-        // The status slot: × while hovered, else the working dots (the selected tab too) unless a
-        // keycap is in it.
+        // The status slot: × while hovered, else the state icon of its strongest agent (the selected tab too) unless
+        // a keycap is in it; centered where the × is.
         .overlay(alignment: .trailing) {
-            if working, keycap == nil, !hovering || renaming {
-                WorkingDots().padding(.trailing, 10)
-                    .accessibilityElement().accessibilityLabel("working")
-                    .accessibilityIdentifier("tab.\(tab.id).working")
+            if let state, keycap == nil, !hovering, !renaming {
+                StateIcon(state: state).padding(.trailing, 11)
+                    .accessibilityElement().accessibilityAddTraits(.isStaticText).accessibilityValue(state.title)
+                    .accessibilityIdentifier("tab.\(tab.id).state")
             }
         }
         // At the end, beside the ×: never over the icon or the title. Over the button, so a test

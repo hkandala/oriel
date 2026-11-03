@@ -22,25 +22,9 @@ extension AgentState {
         }
     }
 
-    /// Oriel's own: a raised hand, macOS's spinner (drawn by `Spinner`) and a check.
-    var symbol: String {
-        switch self {
-        case .needsYou: "hand.raised.fill"
-        case .working: "progress.indicator"
-        case .finishedUnseen: "checkmark.circle"
-        case .idle: "circle"
-        }
-    }
-
-    /// Its `StateLabel`, none while idle; Working counts its time from
-    /// `since`.
-    func label(_ look: Look, since: Date? = nil) -> StateLabel? {
-        self == .idle ? nil : StateLabel(
-            text: title,
-            symbol: symbol,
-            color: color(look),
-            since: self == .working ? since : nil,
-        )
+    /// Its `StateLabel`, none while idle.
+    func label(_ look: Look) -> StateLabel? {
+        self == .idle ? nil : StateLabel(text: title, icon: self, color: color(look))
     }
 
     /// Needs you or done and not seen: its row's name is medium; the others recede.
@@ -99,18 +83,16 @@ struct AgentButton: View {
     }
 
     private func label(_ state: AgentState) -> some View {
-        HStack(spacing: 8) {
-            // No badge: the state label says it.
+        // The tile on line 1: the name, then the state's box or (idle) the age; line 2 the place, full width.
+        HStack(alignment: .top, spacing: 8) {
             ProgramTile(icon: pane.iconID, letter: pane.letter)
-            // Line 1 the name and the state or (idle) the age on one centered line; line 2
-            // the place.
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
                     Text(title).font(.system(size: 13, weight: state.calls ? .medium : .regular)).lineLimit(1)
                         .foregroundStyle(lit ? look.selected : look.chrome)
                     Spacer(minLength: 0)
-                    if let label = state.label(look, since: pane.since) {
-                        label
+                    if state != .idle {
+                        StateBox(state: state, since: pane.since)
                     } else if let since = pane.since {
                         TimelineView(.everyMinute) { context in Text(age(since, context.date)) }
                             .font(.system(size: 11)).foregroundStyle(.secondary)
@@ -199,8 +181,9 @@ struct AgentsList: View {
         let groups = switch sort {
         case .priority:
             [AgentState.needsYou, .working, .finishedUnseen, .idle].map { state in
+                // A seen finish stays under Done (with no box) until the agent works again: no jump as it is opened.
                 Group(label: state.title, key: key("\(state)"), id: "agents.group.\(state.title)",
-                      rows: rows.filter { $0.state == state })
+                      rows: rows.filter { ($0.finishSeen ? .finishedUnseen : $0.state) == state })
             }
         case .workspace:
             page.store.workspaces.map { workspace in
@@ -240,7 +223,7 @@ struct AgentsList: View {
                 folded = keys.joined(separator: "\n")
             }
         } label: {
-            GroupLabel(text: "\(text) \(count)", open: open)
+            GroupLabel(text: "\(text) · \(count)", open: open)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(text) \(count)")
@@ -272,7 +255,7 @@ private struct GroupLabel: View {
             Image(systemName: "chevron.right").rotationEffect(.degrees(open ? 90 : 0))
                 .opacity(open && !hovering ? 0 : 1)
         }
-        .font(.system(size: 10, weight: .semibold)).foregroundStyle(.secondary)
+        .font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary)
         .contentShape(.rect)
         .onHover { hovering = $0 }
     }

@@ -32,6 +32,12 @@ private func agent(_ status: AgentStatus, _ completion: Int? = nil, pane: String
     #expect(seen.update([agent(.idle, 5)], looking: ["w1:p2"]).isEmpty)
     #expect(seen.look(["w1:p1"]).map(\.state) == [.idle])
     #expect(seen.states["w1:p1"] == .idle)
+    // A seen finish stays one until the agent works again.
+    #expect(seen.seenFinishes == ["w1:p1"])
+    _ = seen.update([agent(.idle, 5)], looking: [])
+    #expect(seen.seenFinishes == ["w1:p1"])
+    _ = seen.update([agent(.working)], looking: [])
+    #expect(seen.seenFinishes.isEmpty)
 }
 
 @Test func `a finish while the user looks is seen at once`() {
@@ -39,6 +45,7 @@ private func agent(_ status: AgentStatus, _ completion: Int? = nil, pane: String
     _ = seen.update([agent(.working)], looking: ["w1:p1"])
     #expect(seen.update([agent(.idle, 3)], looking: ["w1:p1"]).map(\.state) == [.idle])
     #expect(seen.update([agent(.idle, 3)], looking: []).isEmpty)
+    #expect(seen.seenFinishes.isEmpty)
 }
 
 @Test func `blocked needs you and its end is a finish`() {

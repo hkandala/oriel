@@ -57,46 +57,32 @@ the Agents view and popover, the hover card, notifications):
 
 | Shown as | Word | Dark | Light | herdr status |
 |---|---|---|---|---|
-| three working dots on a tab; a turning spinner and "Working" with its time | working | `#58a6ff` | `#0667d8` | `working` |
-| an amber badge on a tab's program icon; a raised hand and "Needs you" | needs you | `#d29922` | `#9d5c00` | `blocked` |
-| a green badge on a tab's program icon; a check circle and "Done" | finished | `#3fb950` | `#116329` | finished and not yet seen by this device |
+| a dashed circle (lucide's `circle-dashed`) and "Working" | working | `#60a5fa` | `#3b82f6` | `working` |
+| a circle with an exclamation mark (`circle-alert`) and "Needs you" | needs you | `#fb923c` | `#ea580c` | `blocked` |
+| a circle with a check (`circle-check`) and "Done" | finished | `#34d399` | `#10b981` | finished and not yet seen by this device |
 | ↓behind on a workspace row, the error tone of a notice; an alert circle and "Error" on a chat card | error | `#f85149` | `#cf222e` | — |
 
-- **Working dots.** Three dots, 3.5 pt, 5.5 pt apart, in a 14 pt box. Each
-  dot's opacity goes 0.3 → 0.85 → 0.3 over 1.2 s, each dot 0.2 s after the
-  one before. The wall clock drives them, so every tab is in step. Core
-  Animation runs them at 15 frames a second or less, so the app does no work
-  per frame (a SwiftUI timeline per dots laid the window out at every tick).
-- **Badges.** A 7 pt dot on the top right of a tab's front program icon, cut
-  out of the icon by a 1.5 pt ring. Agents rows have no badge: their state
-  label shows the state.
-- **State label.** The Agents view and popover, the hover card, the overview
-  and the agent card's header show a state as a symbol and the word, both
-  11 pt medium in the status color, with no fill. The symbols are Oriel's
-  own. Working is a 12 pt spinner, as macOS draws one: eight ticks, the front
-  one brightest, that step one tick clockwise every 0.1 s. Every spinner is
-  in step with the wall clock. Core Animation runs it at 10 to 20 frames a
-  second, so the app does no work per frame. Needs you is `hand.raised.fill`,
-  Done is `checkmark.circle` and Error is `exclamationmark.circle`. The
-  spinner stands still under Reduce Motion and on a
-  sidebar page that is off to the side. In the Agents view and popover and
-  the hover card's pane rows, Working adds the time since this app saw the
-  agent start (after a launch, since the launch: herdr gives no start time):
-  "Working 42s", "Working 3m", "Working 1h 5m". It counts each second for the
-  first minute, then each minute, every label on the same second.
-- **State icon.** A workspace row shows only the symbol, 11 pt medium in the
-  status color, in a 14 pt slot before the name. It shows no word and no
-  time.
-- An idle agent shows no state label and no state icon. In the Agents view its row shows the
-  age instead ("5m"). Tabs show
-  nothing for idle agents. A workspace menu row shows an idle agent as a 7 pt
-  gray ring.
+- **Icons.** The icons and colors are t3code's: lucide's round shapes, drawn
+  by the app with strokes of 2 units in 24 and round ends, in the status
+  color. No state icon moves: no spinner and no dots for a state. They are 12 pt
+  everywhere: a workspace row, a tab, an Agents row's box, the hover card, a
+  state label, a menu row and the chat's loader.
+- **Priority.** A tab or a workspace with several agents shows one icon, its
+  strongest: Needs you, then Done (not seen), then Working. It shows nothing
+  when all are idle.
+- **State label.** The agent card's header and the overview's tiles show a
+  state as its icon and word, 11 pt medium in the status color, with no fill.
+  A chat's Error is the alert circle in the error color.
+- **State box.** An Agents row ([Agents view](/docs/ui/window#agents-view))
+  shows its icon and its time in a box in the status color.
+- An idle agent shows no icon, no label and no box. In the Agents view its
+  row shows its age instead ("5m").
 - A row that calls for the user (needs you, or done and not seen) has its
   name in medium weight; other rows are regular.
 
 ## Accessibility
 
-- Status is never color alone. Every dot and badge carries its word, and
+- Status is never color alone. Every icon carries its word, and
   VoiceOver reads, for example, "codex, needs you" on a tab. A workspace
   row adds the word to its value.
 - A terminal card gives VoiceOver only its grid size, not its text.
@@ -117,10 +103,8 @@ the Agents view and popover, the hover card, notifications):
   with View ▸ Increase Font Size (⌘+ or ⌘=), Decrease Font Size (⌘-) and Reset
   Font Size (⌘0)
   ([Settings](/docs/ui/settings)).
-- Reduce Motion stops the working dots (three still dots at 0.6) and the
-  Working spinner, makes the
-  sidebar's session pages jump, and turns off the icon bounce, the layout
-  motion, the reorder slides, the
+- Reduce Motion makes the sidebar's session pages jump, and turns off the icon
+  bounce, the layout motion, the reorder slides, the
   spring-load pulse, the sidebar's slide, the plugins' sidebar slide and the
   panels' scale-in.
 - Reduce Transparency is handled by the system glass. Classic is an opaque

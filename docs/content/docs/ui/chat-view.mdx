@@ -181,8 +181,8 @@ and no backslash.
   header's state is herdr's. A dropped stream is followed again after 2 s,
   from the marks.
 - A message shows when it is on disk, 0.1–2 s after the TUI draws it. There
-  is no text word by word. While the agent works, the last row is the
-  working dots and "Working" with the turn's time ("Working 29s"), the
+  is no text word by word. While the agent works, the last row is Working's
+  icon, still, and "Working" with the turn's time ("Working 29s"), the
   chat's one loader.
 - **Parsers.** One small, lenient parser per agent, in HerdrKit
   (`ClaudeTranscript`, `CodexRollout`, `PiTranscript`, `OpenCodeSession`),
@@ -334,7 +334,7 @@ setting.
 - Once a turn with tool calls ends, "Worked 1m 48s" sits under its last row,
   in 12 pt secondary text. While the turn runs, the loader under it says
   "Working" and the time.
-- No line has working dots: the loader is the chat's last row. While a turn
+- No line has a Working icon: the loader is the chat's last row. While a turn
   streams, a closed line changes only its counts.
 - **Made only when open.** A line holds only where its steps are in the
   history. Its counts are worked out for the rows shown only. Its rows are
@@ -484,7 +484,7 @@ A run is one quiet line with no card: its summary and a chevron.
   and the card buttons. Row 2: the program glyph, the agent's name and the
   folder, then the state, then Chat | TUI in the app's
   own pill segments ([Pane card](/docs/ui/window#pane-card)). The state is
-  a state label: its symbol and word in
+  a state label: its icon and word in
   11 pt, both in the status color: Working, Needs you, Done or Error, and
   none while idle ([Status](/docs/ui/theme-and-accessibility#status)).
   An agent card with no chat shows herdr's state there the same way.

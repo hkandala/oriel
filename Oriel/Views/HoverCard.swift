@@ -226,16 +226,15 @@ private struct HoverPanel<Panel: View>: ViewModifier {
     }
 }
 
-/// Rex's "peek": a tab's title and rolled-up status and a row for each of its first six panes. A click on a row
-/// goes to that pane; on the title, to the tab. A blocked agent's row shows its last screen lines (herdr 0.9.5
-/// sends no blocked message), read once when the card opens.
+/// Rex's "peek": a tab's title and a row for each of its first six panes, an agent's with its state's icon. A click
+/// on a row goes to that pane; on the title, to the tab. A blocked agent's row shows its last screen lines (herdr
+/// 0.9.5 sends no blocked message), read once when the card opens.
 struct HoverCard: View {
     let tabID: String
     let page: Page
     let close: () -> Void
     /// Each blocked pane's last 3 non-empty screen lines.
     @State private var lines: [String: [String]] = [:]
-    @Environment(\.look) private var look
 
     var body: some View {
         let store = page.store
@@ -246,13 +245,10 @@ struct HoverCard: View {
                     page.select(workspace, tab: tabID)
                     close()
                 } label: {
-                    HStack(spacing: 8) {
-                        FadeText(text: page.titleLabel(tab)).fontWeight(.medium)
-                        Spacer(minLength: 0)
-                        tab.agent?.state?.label(look)
-                    }
-                    .padding(.horizontal, 6)
-                    .frame(height: 26)
+                    FadeText(text: page.titleLabel(tab)).fontWeight(.medium)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 6)
+                        .frame(height: 26)
                 }
                 .buttonStyle(ChromeStyle(radius: 6))
                 .accessibilityIdentifier("hovercard.title")
@@ -283,6 +279,7 @@ struct HoverCard: View {
 
     private func row(_ pane: HostStore.Pane) -> some View {
         let shown = lines[pane.id] ?? [], name = pane.agentName ?? pane.programName ?? "terminal"
+        let state = pane.state == .idle ? nil : pane.state
         return Button {
             page.go(to: pane)
             close()
@@ -293,8 +290,9 @@ struct HoverCard: View {
                     Text(name).lineLimit(1).layoutPriority(1)
                     Text(pane.folder ?? "").foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                     Spacer(minLength: 0)
-                    pane.state?.label(look, since: pane.since)
                 }
+                // The state icon's room.
+                .padding(.trailing, state == nil ? 0 : 18)
                 ForEach(shown.indices, id: \.self) { index in
                     Text(shown[index]).font(.system(size: 10, design: .monospaced)).foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -308,5 +306,14 @@ struct HoverCard: View {
         .accessibilityIdentifier("hovercard.\(pane.id)")
         .accessibilityLabel([name, pane.folder].compactMap(\.self).joined(separator: ", "))
         .accessibilityValue(([pane.state?.title].compactMap(\.self) + shown).joined(separator: "\n"))
+        // On the first line's end. Over the button, so a test sees it.
+        .overlay(alignment: .topTrailing) {
+            if let state {
+                StateIcon(state: state)
+                    .accessibilityElement().accessibilityAddTraits(.isStaticText).accessibilityValue(state.title)
+                    .accessibilityIdentifier("hovercard.\(pane.id).state")
+                    .frame(height: 26).padding(.trailing, 6).allowsHitTesting(false)
+            }
+        }
     }
 }

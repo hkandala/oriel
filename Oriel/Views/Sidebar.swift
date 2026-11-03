@@ -47,7 +47,6 @@ struct Sidebar: View {
                             .frame(width: width - gap)
                             .accessibilityHidden(page !== pages.current)
                             .allowsHitTesting(page === pages.current)
-                            .environment(\.offscreen, page !== pages.current)
                             .transition(.identity)
                     }
                 }
@@ -138,8 +137,8 @@ private struct SidebarPage: View {
                         .clearsDrop(page) { plus = false }
                 }
             }
-            // On the text's edge: the workspace rows' names, or the Agents view's group labels and tiles.
-            .padding(.leading, Sidebar.rowInsets.leading + (agents == nil ? WorkspaceRow.textInset : 8))
+            // On one edge in both views: the workspace rows' names, the Agents view's group labels and tiles.
+            .padding(.leading, Sidebar.rowInsets.leading + WorkspaceRow.textInset)
             // The `+` and the sort capsule end where the rows do: the sort label's text where the times end.
             .padding(.trailing, Sidebar.rowInsets.trailing)
             // Rex's first row sits 31.5 pt below the header's baseline.

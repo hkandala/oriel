@@ -153,10 +153,10 @@ One capsule per herdr tab of the selected workspace (D42).
   the overview keep the dimmed part.
 - **Status slot.** × only on the hovered tab (a 22 pt hit area over the
   capsule's end, so the tab's width never changes); the title then fades out
-  before it, never under it. Otherwise three working dots, on every tab with a
-  working agent, the selected one too; the title fades out before them too.
-  Needs you
-  and finished are badges on the front icon
+  before it, never under it. Otherwise the state icon (12 pt) of the tab's
+  strongest agent, centered where the × shows, on every tab with an agent that
+  is not idle, the selected one too; the title fades out before it too. The
+  icon never moves. An idle agent shows nothing
   ([Theme and accessibility](/docs/ui/theme-and-accessibility#status)).
   VoiceOver reads the state in the tab's value: "codex, needs you".
 - **Announcement.** When a tab that is not selected turns to needs you or
@@ -171,7 +171,7 @@ One capsule per herdr tab of the selected workspace (D42).
   text field in place of the title: Enter saves, Esc cancels.
 - **Keycap hints.** If the user holds ⌘ for 0.7 s while the window is key,
   each of the first nine capsules shows a keycap "⌘1"… at its end, where the
-  working dots sit, or left of the × while hovered; the title fades out before
+  state icon sits, or left of the × while hovered; the title fades out before
   it, and never runs under it. The workspace rows show theirs at the same
   time. The keycaps fade in over 0.13 s and out over 0.1 s when ⌘ is released.
 - Drag a capsule to reorder the tabs ([Drag and drop](/docs/ui/drag-and-drop)).
@@ -182,7 +182,7 @@ One capsule per herdr tab of the selected workspace (D42).
 - A list of statuses (`list.bullet.rectangle`), after the tab bar. While the
   [Agents view](#agents-view) is on, it is filled
   (`list.bullet.rectangle.fill`); the button has no highlight and no tooltip.
-- A 7 pt amber dot shows when an agent of the page in view needs you.
+- A 7 pt orange dot shows when an agent of the page in view needs you.
 - A click, ⌘. or View ▸ Show Agents (checked while on) turns the Agents view
   on and off (D61). Turning it on with the sidebar collapsed opens the
   sidebar in the Agents view. Turning it off shows the workspaces; the
@@ -193,10 +193,10 @@ One capsule per herdr tab of the selected workspace (D42).
   [page header](#sidebar)) it lists the agents of the page in view in two
   groups: those that need you, then those that finished since you last
   looked (Done), each under the Agents view's group label with its count
-  ("Needs you 1", "Done 2"; the panel's groups do not fold). The rows are the
+  ("Needs you · 1", "Done · 2"; the panel's groups do not fold). The rows are the
   same as in the Agents view. A click on a row selects that workspace and tab
   and gives the pane the keyboard, which also clears a Done; the sidebar does
-  not change. With both groups empty it does not show at all. The amber dot
+  not change. With both groups empty it does not show at all. The orange dot
   and the Dock badge count only agents that need you. There is no footer. A
   click on the button is not a rest: the panel opens only after the pointer
   leaves the button and comes back.
@@ -245,9 +245,10 @@ session open in this window (D43).
   session, the machine's name instead: This Mac's own name (System Settings,
   "Hari's MacBook Pro") or the remote machine's name from the list. The Open
   Session panel and the palette keep the real names. Its text starts where
-  the text of the rows under it starts: 38 pt in from the window's edge over
-  the workspace rows (after their state slot), 18 pt in over the Agents view
-  (with its group labels and program tiles). It sits 3 pt above the first
+  everything under it starts: 18 pt in from the window's edge, on the
+  workspace rows' names and branch lines, and on the Agents view's group
+  labels and program tiles. It stays in the same place in both views. It
+  sits 3 pt above the first
   row, and, at the trailing
   end, a `+` that makes a new workspace in that session, in `$HOME`. The
   snapshot after it selects the new workspace.
@@ -276,15 +277,16 @@ The sidebar never shows tabs, and its bottom never shows agent activity.
 
 One row per herdr workspace of the session, in herdr's order, like herdr's
 Spaces panel.
-- **Line 1.** A 14 pt state slot, a 6 pt gap, then the name (13 pt). The slot
-  shows the state icon of the strongest state of the workspace's panes:
-  Working's spinner, Needs you's raised hand or Done's check, with no word and
+- **Line 1.** The name (13 pt), 8 pt into the row, so the names, the branch
+  lines and the page header's text start on one edge. So do the drag ghost
+  "New Workspace" and "No matching workspaces". Nothing comes before the
+  name. The name is medium weight while the row calls for the user (needs you
+  or done).
+- **State icon.** At the end of the name's line, 8 pt in and centered on
+  that line: the state icon (12 pt, as a tab's) of the workspace's strongest agent, with no word and
   no time ([Status](/docs/ui/theme-and-accessibility#status)). An idle agent,
-  or no agent, leaves the slot empty. Every row keeps the slot, so all the
-  names and the page header's text start at the same place. So do the drag
-  ghost "New Workspace" and "No matching workspaces". The name is medium
-  weight while the row calls for the user (needs you or done). VoiceOver adds
-  the state word to the row's value.
+  or no agent, shows nothing. The keycap hint and the rename field take its
+  place while they show. VoiceOver adds the state word to the row's value.
 - **Line 2**, only for a git repository, under the name and starting where it starts: a branch glyph, the branch, then
   ↑ahead in the finished color and ↓behind in the error color when they are
   not zero. All 11 pt, secondary. There is no changed-file count. A workspace
@@ -334,29 +336,38 @@ or below ([Swiping](/docs/ui/swiping)). The page dots and the footer stay.
   each with a count, herdr's order inside a group) or **Workspace**
   (the groups are the workspaces, under each name with a count, in herdr's order of
   workspaces, tabs and panes). Priority is the default.
-  Each window keeps its choice. The name sits on the `+`'s 28 pt row, as in
-  the workspaces view, and 18 pt in, on the edge of the group labels and the
-  program tiles; the sort label's text ends where the times end.
+  Each window keeps its choice. The name sits where it sits in the
+  workspaces view: on the `+`'s 28 pt row, 18 pt in, on the edge of the group
+  labels and the program tiles. The sort label's text ends where the state
+  boxes end.
   The name is the title (13 pt bold, primary, as in the workspaces view); the sort menu is a
   small quiet button (11 pt, secondary, a capsule filled on hover, its edge on the rows' edge); a long
   name shortens before it does.
-  The group labels ("Working 1", "alpha 2") are
-  section labels, as in a macOS sidebar: 10 pt semibold, secondary, with
-  12 pt of room above each group. No line under the header.
+  The group labels ("Working · 1", "alpha · 2") are
+  section labels, as in a macOS sidebar: 11 pt semibold, secondary (the
+  count too), with 12 pt of room above each group. No line under the
+  header.
+- **Done stays put.** In Priority order, an agent whose finish the user has
+  seen stays in the Done group, with no box, until it works again or goes
+  away. So a click on a done agent does not move its row to Idle.
 - **Folding.** A click on a group label folds its rows or shows them again; a
   chevron at the label's end points right while folded; while open it shows,
   pointing down, only under the pointer, as in a macOS sidebar. A
   folded group keeps its label and count. The folds are kept per session and
   per order, across relaunches.
 - **Rows.** One row per agent pane, even when several share a tab. 48 pt, two
-  lines, 4 pt apart; the program tile, with no badge, centers on both. Line 1,
-  on one centered line: the pane's name (its label, else its session's title,
-  else "Untitled": [Session titles](/docs/ui/chat-view#session-titles)),
-  then on the right the state label: "Needs you"
-  (amber), "Working 42s" (blue) or "Done" (green). An idle agent shows its
-  age instead ("now", "3m", "2h", "4d"), counted from the time the app saw
-  the change, in secondary text. The name is medium weight for needs you and
-  done. Line 2: "‹workspace› · ‹tab title›" in
+  lines, 3 pt apart. Line 1: the program tile (with no badge), then the
+  pane's name (its label, else its session's title, else "Untitled":
+  [Session titles](/docs/ui/chat-view#session-titles)), then at the line's
+  end the state box: the state icon (12 pt) and the time since the app saw
+  the state start ("42s", "3m", "1h 5m"), 11 pt semibold with tabular digits,
+  all in the state's color, on a 14 % tint of it with a 1 pt border at 45 %
+  and 6 pt corners. The time counts each second for the first minute, then
+  each minute, every box on the same second. After a launch it counts from
+  the launch: herdr gives no start time. An idle agent shows no box, only its
+  age ("now", "3m", "2h", "4d") in secondary text. The name is medium weight
+  for needs you and done. Line 2, under the name and the box, full width:
+  "‹workspace› · ‹tab title›" in
   secondary text (the tab bar's title, D65); only the tab title in Workspace
   order, where the group names the workspace.
 - The row of the shown tab's keyboard card is lit like the selected
@@ -437,10 +448,11 @@ tab at once.
   [Theme](/docs/ui/theme-and-accessibility)), radius 12, 280 pt wide. It fades and grows
   in from 0.97 over 0.13 s.
 - **Content**, top to bottom:
-  - The tab title (folder part dimmed) and the tab's state label, if any.
+  - The tab title (folder part dimmed), with no state.
   - One row per pane, at most 6 and then "+N more": the program glyph, the
-    program or agent name, the folder in secondary text, and the state label
-    on the right (none for an idle agent).
+    program or agent name, the folder in secondary text, and, for an agent
+    that is not idle, its state icon (12 pt) on the right, with no word.
+    Other panes show nothing there.
   - For a pane that needs you: the last 3 non-empty lines of its screen, in
     secondary monospaced text. The app reads them with `pane.read` when the
     card opens, one call per such pane, and shows nothing if the read fails.
@@ -781,7 +793,7 @@ clients see it there.
 A short message after a failed action or a refused move, or from an agent.
 - A capsule at the bottom center of the tab's page, 30 pt above its bottom, 36 pt
   tall: glass, a leading symbol in a tone color (red `xmark.octagon.fill` for
-  an error, amber `exclamationmark.triangle.fill` for a warning, blue for
+  an error, orange `exclamationmark.triangle.fill` for a warning, blue for
   information), the text (two lines at most), an optional action button and ×.
 - A failed write's notice has no action: after a timeout the write may have
   happened, so a retry is not safe. The Open Session panel's "Could not

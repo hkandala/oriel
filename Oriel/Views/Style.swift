@@ -114,17 +114,18 @@ struct Look {
         (dark ? Color.white : .black).opacity(dark ? (contrast ? 0.6 : 0.42) : (contrast ? 0.65 : 0.45))
     }
 
+    /// The states' colors are t3code's (Tailwind's blue, orange and emerald).
     var working: Color {
-        dark ? Color(hex: 0x58A6FF) : Color(hex: 0x0667D8)
+        dark ? Color(hex: 0x60A5FA) : Color(hex: 0x3B82F6)
     }
 
     var needsYou: Color {
-        dark ? Color(hex: 0xD29922) : Color(hex: 0x9D5C00)
+        dark ? Color(hex: 0xFB923C) : Color(hex: 0xEA580C)
     }
 
     /// Also a workspace row's ↑ahead.
     var finished: Color {
-        dark ? Color(hex: 0x3FB950) : Color(hex: 0x116329)
+        dark ? Color(hex: 0x34D399) : Color(hex: 0x10B981)
     }
 
     /// Also a workspace row's ↓behind.
@@ -280,7 +281,7 @@ struct MenuRow: View {
             if let icon = item.pane?.iconID ?? item.program {
                 ProgramTile(icon: icon, letter: item.pane?.letter)
             } else if let state = item.state {
-                StateIcon(state: state).frame(width: 22)
+                StateIcon(state: state, color: selected ? .white : nil).frame(width: 22)
             } else {
                 // As wide as a program tile, so the titles line up.
                 Image(symbol: item.symbol ?? "circle").opacity(item.symbol == nil ? 0 : 1).frame(width: 22)

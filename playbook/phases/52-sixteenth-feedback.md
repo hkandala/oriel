@@ -234,3 +234,27 @@ then working and no status when all idle". Build exactly `resources/research/ui/
   messages move only as far as the fingers, with no snap as the Scroll to Bottom button shows or hides. Let an agent
   work while scrolled up a few points: what is in view stays put. Open a run of tool calls: its rows end where a long
   reply's bubble ends.
+
+### Track F
+
+- **Fix (22, 25).** One `StateIcon`: lucide's `circle-dashed`, `circle-alert` and `circle-check` drawn as a SwiftUI
+  `Shape` with lucide's own geometry (strokes of 2 in 24, round ends), 12 pt everywhere, in t3code's colors (the
+  `Look` tokens). `WorkingDots`, `Spinner`, the tile badges (`StatusBadge`), the `offscreen` environment and
+  `Tab.working` are gone. A tab shows one icon by priority at its end, where the × shows on hover; the hover card's
+  title shows no state and its agent rows end with the icon alone.
+- **Fix (24).** Everything starts 18 pt in, as in the mockup's guide line: the header in both views (it moved 20 pt
+  between the views before), the names, the branch lines, the group labels and the tiles. The workspace icon sits
+  at the end of the name's line, 8 pt in; the Agents box ends on the same x.
+- **Fix (23).** `Seen.seenFinishes`: an idle agent whose finish was seen keeps its place in the Done group (no box,
+  its gray age) until it works again or leaves. The Agents popover still lists only unseen finishes.
+- **Decisions.** The tab pill keeps its program tile and puts the icon at the trailing end (the phase file, not the
+  mockup's leading icon). A shape, not a `.symbolset`: exact sizes and no stroke-to-outline step, and nothing outside
+  SwiftUI draws a state. The colors change in `Look`, so the Agents button's dot, warnings, ahead counts and the
+  chat's question card follow. The chat's loader takes the still Working icon. A chat's Error is the alert circle in
+  red (t3code's Failed). The workspace menu drops its idle ring and no-agent dot. Group labels are 11 pt, the count after
+  a dot in the same secondary color ("Working · 2"). The user then asked for smaller workspace icons: 12 pt, not
+  the mockup's 16.
+- **Pictures.** Before `/tmp/oriel-shots/t52f/before/`, after `/tmp/oriel-shots/t52f/after2/`, side by side in
+  `/tmp/oriel-shots/t52f/compare/` (workspaces, agents by priority and by workspace, tab pills, hover card).
+- **For the user.** Check the icons at 1x and in light mode (emerald `#10b981` on a light sidebar is faint), and open
+  a Done agent from the Agents view by priority: its row stays under Done.

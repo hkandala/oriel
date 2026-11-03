@@ -7,31 +7,43 @@ extension OrielUITests {
         XCTAssertTrue(element("tab.w1:t2").exists(within: connect))
         let (tab, pane) = try await newTab("build", in: "w1")
         try await report(pane, "working")
-        let dots = element("tab.\(tab).working")
-        XCTAssertTrue(dots.exists(within: 3))
+        let icon = element("tab.\(tab).state")
+        XCTAssertTrue(icon.exists(within: 3))
+        XCTAssertEqual(icon.stringValue, "Working")
         try await waitForValue("tab.\(tab)", containing: "codex, working")
         try await waitForValue("workspace.w1", containing: "working")
-        keepScreenshot("working dots")
-        // The state's symbol in the row's leading slot (14 pt, 8 pt in), no time; the page header's text where the
-        // name starts, after the slot and a 6 pt gap.
+        keepScreenshot("working icon")
+        // The state's icon (12 pt; its frame is the drawn circle's, 11 pt) at the end of the name's line, 8 pt in; no
+        // word, no time. The page header's text on the names' edge, 8 pt into the row.
         let state = element("workspace.w1.state")
         XCTAssertTrue(state.exists(within: 2))
         XCTAssertEqual(state.stringValue, "Working")
-        let row = element("workspace.w1").frame, header = element("sidebar.header").frame
-        XCTAssertEqual(state.frame.midX, row.minX + 8 + 7, accuracy: 0.5, "\(state.frame) \(row)")
-        XCTAssertEqual(header.minX, row.minX + 8 + 14 + 6, accuracy: 0.5, "\(header) \(row)")
+        let row = element("workspace.w1").frame
+        XCTAssertEqual(state.frame.width, 11, accuracy: 0.5, "\(state.frame)")
+        XCTAssertEqual(state.frame.midX, row.maxX - 8 - 6, accuracy: 0.5, "\(state.frame) \(row)")
+        XCTAssertEqual(state.frame.midY, row.minY + 15, accuracy: 0.5, "\(state.frame) \(row)")
+        XCTAssertEqual(element("sidebar.header").frame.minX, row.minX + 8, accuracy: 0.5)
 
-        // The selected tab shows them too; the × takes their place while hovered.
+        // The selected tab shows it too; the × takes its place, centered on it, while hovered.
+        let slot = icon.frame
         element("tab.\(tab)").click()
         XCTAssertTrue(element("tab.\(tab)").has(\.isSelected, true, within: 2))
-        XCTAssertTrue(dots.vanishes(within: 2))
+        XCTAssertTrue(icon.vanishes(within: 2))
+        XCTAssertEqual(element("tab.\(tab).close").frame.midX, slot.midX, accuracy: 0.5)
         element("workspace.w1").hover()
-        XCTAssertTrue(dots.exists(within: 2))
-        keepScreenshot("working dots, selected tab")
+        XCTAssertTrue(icon.exists(within: 2))
+        keepScreenshot("working icon, selected tab")
+        // Another agent of the tab needs you: one icon, by priority.
+        let other = try await split(pane)
+        try await report(other, "blocked", agent: "claude")
+        XCTAssertTrue(icon.has(\.stringValue, "Needs you", within: 3))
+        try await report(other, "idle", agent: "claude")
+        XCTAssertTrue(icon.has(\.stringValue, "Working", within: 3))
         // Idle and seen: no state.
         try await report(pane, "idle")
         try await waitForValue("workspace.w1", containing: "idle")
         XCTAssertTrue(state.vanishes(within: 2))
+        XCTAssertTrue(icon.vanishes(within: 2))
     }
 
     func testBlockedAgentNeedsYouAndThePopoverGoesToIt() async throws {
@@ -83,7 +95,7 @@ extension OrielUITests {
         let row = { (pane: String) in panel.descendants(matching: .any)["agent.\(pane)"] }
         let group = { (name: String) in panel.descendants(matching: .any)["agents.popover.group.\(name)"] }
         XCTAssertTrue(row(done).exists(within: 2))
-        XCTAssertEqual(group("Done").stringValue, "Done 1")
+        XCTAssertEqual(group("Done").stringValue, "Done · 1")
         XCTAssertFalse(group("Needs you").exists)
         element("workspace.w1").hover()
         XCTAssertTrue(panel.vanishes(within: 2))
@@ -93,7 +105,7 @@ extension OrielUITests {
         try await waitForValue("titlebar.agents", containing: "1 need you")
         button.hover()
         XCTAssertTrue(row(blocked).exists(within: 2))
-        XCTAssertEqual(group("Needs you").stringValue, "Needs you 1")
+        XCTAssertEqual(group("Needs you").stringValue, "Needs you · 1")
         let tops = [group("Needs you"), row(blocked), group("Done"), row(done)].map(\.frame.minY)
         XCTAssertEqual(tops, tops.sorted())
         XCTAssertEqual(element("agents.popover.header").stringValue, "Agents · \(one)")
@@ -162,11 +174,11 @@ extension OrielUITests {
         let tops = zip(groups, rows).flatMap { [$0.frame.minY, $1.frame.minY] }
         XCTAssertEqual(tops, tops.sorted())
         // One leading edge: the page header, the group labels and the row icons (8 pt into each row); the sort
-        // label's text (8 pt into its capsule) ends where the rows' times do (8 pt before each row's end).
+        // label's text (8 pt into its capsule) ends where the rows' boxes do (8 pt before each row's end).
         let header = element("sidebar.header").frame, sort = element("agents.sort").frame
         let frames = "header \(header), sort \(sort), group \(groups[0].frame), row \(rows[0].frame)"
-        XCTAssertEqual(groups[0].frame.minX, rows[0].frame.minX + 8, accuracy: 0.5, frames)
-        XCTAssertEqual(header.minX, groups[0].frame.minX, accuracy: 0.5, frames)
+        let edges = zip(groups, rows).flatMap { [$0.frame.minX, $1.frame.minX + 8] }
+        XCTAssertEqual(edges, Array(repeating: header.minX, count: 8), frames)
         XCTAssertEqual(sort.maxX, rows[0].frame.maxX, accuracy: 0.5, frames)
         // The name is the title, the rows' size, larger than the section labels; each group has room above it.
         XCTAssertGreaterThan(header.height, groups[0].frame.height, frames)
@@ -325,6 +337,14 @@ extension OrielUITests {
         row.click()
         try await waitForValue("agent.\(pane)", containing: "Idle")
         XCTAssertTrue(element("tab.\(created.tab)").isSelected)
+        // Seen, it stays under Done (no jump to Idle) until it works again.
+        let done = element("agents.group.Done")
+        XCTAssertTrue(done.exists)
+        XCTAssertFalse(element("agents.group.Idle").exists)
+        XCTAssertGreaterThan(row.frame.minY, done.frame.minY)
+        try await report(pane, "working")
+        XCTAssertTrue(done.vanishes(within: 3))
+        XCTAssertTrue(element("agents.group.Working").exists)
         // View ▸ Show Agents turns it off; the sidebar stays.
         app.menuBars.menuBarItems["View"].click()
         app.menuItems["Show Agents"].click()

@@ -222,7 +222,7 @@ herdr's focus methods (D13):
     `completion_seq` is the number of that change. At the agent's next status
     change, for example when it starts working again, herdr sets it back to
     null. So an unseen finish clears when the agent starts working again,
-    and the agent then shows the working dots.
+    and the agent then shows Working's icon.
   - "Finished, not seen" is "not null and different from the seen value",
     not "greater than": the counter restarts at 0 when herdr restarts.
   - herdr's own `done` status is not used, because herdr goes straight to
