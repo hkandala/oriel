@@ -40,6 +40,8 @@ struct NoticeCapsule<Action: View>: View {
             Text(text).lineLimit(2)
             action
         }
+        // As the plugin card's toast: round buttons in the round notice.
+        .buttonBorderShape(.capsule)
         .padding(.horizontal, 14)
         .frame(minHeight: 36)
         .floatingGlass(in: .capsule)

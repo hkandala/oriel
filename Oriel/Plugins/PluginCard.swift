@@ -84,7 +84,9 @@ private struct ToastView: View {
             .accessibilityIdentifier("\(id).main")
         }
         .controlSize(.small)
-        .padding(.leading, 14).padding(.trailing, 6).padding(.vertical, 6)
+        // Capsules the same 7 pt inside the toast's capsule all round: a rounded rectangle's corner ran into its curve.
+        .buttonBorderShape(.capsule)
+        .padding(.leading, 14).padding([.trailing, .vertical], 7)
         .glassEffect(.regular, in: .capsule)
     }
 }
