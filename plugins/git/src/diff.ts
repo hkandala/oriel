@@ -253,7 +253,8 @@ export async function make(place: Page, root: string, source: string) {
   /** Names the last file whose top is at or above the view's; the first when the view is above them all. After new
    *  files, on the next frame: CodeView lays them out on it, asked first. */
   function stick() {
-    // After the facts' box, which CodeView makes on its first render.
+    // After the facts' box, which CodeView makes on its first render. This rests on pierre 1.6's order in its
+    // container (the header host, then its sticky offset and box): a bump of @pierre/diffs checks it again.
     const host = viewer.getHeaderElement()
     if (host && stuck.previousElementSibling !== host) host.after(stuck)
     const top = viewer.getScrollTop()
