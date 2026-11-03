@@ -206,10 +206,15 @@ type Kept = {
   /** Its `place` handlers: the card moved to it again. */
   places: Set<Handler>
   title?: string
+  /** The landing of a move to it while it was still being drawn. */
+  landing?: string
   shownOnce: boolean
   drawn: boolean
   dropped: boolean
 }
+/** Two records of a control, whose keys can come in different orders. */
+const same = (a?: Record<string, unknown>, b?: Record<string, unknown>) =>
+  JSON.stringify(a && Object.entries(a).sort()) === JSON.stringify(b && Object.entries(b).sort())
 /** The events a hidden page hears too. */
 const always = new Set(["theme", "visible"])
 /** The pages drawn and being drawn, the last shown last. */
@@ -241,7 +246,7 @@ function make(arg: string, at?: string): Kept {
           const { focus, refused, ...rest } = change
           const was = kept.controls.get(id) ?? {}, next = { ...was, ...rest }
           kept.controls.set(id, next)
-          if (current === kept && (focus || refused || JSON.stringify(next) !== JSON.stringify(was))) controls.set(id, change)
+          if (current === kept && (focus || refused || !same(next, was))) controls.set(id, change)
         },
       } satisfies Controls,
     },
@@ -281,7 +286,7 @@ async function fill(arg: string, at?: string) {
   kept.drawn = true
   // Its draw set the card's title: the page's own, and the shown page's again while that one stays.
   kept.title = document.title
-  if (context.arg === arg) present(kept)
+  if (context.arg === arg) present(kept, kept.landing === undefined ? undefined : { arg, at: kept.landing })
   else if (current?.title !== undefined) document.title = current.title
   // A page drawn again takes the old one's place, unless the old one shows: the card came back to it meanwhile.
   for (const other of pages) if (other !== kept && other !== current && other.page.arg === arg) drop(other)
@@ -297,6 +302,7 @@ function moved(arg: string, at?: string) {
   const kept = pages.find((page) => page.page.arg === arg)
   if (!kept) void fill(arg, at)
   else if (kept.drawn) present(kept, { arg, at })
+  else kept.landing = at
 }
 
 function present(kept: Kept, again?: { arg: string; at?: string }) {
@@ -318,7 +324,7 @@ function present(kept: Kept, again?: { arg: string; at?: string }) {
   }
   // Only what differs from the page before.
   for (const [id, change] of kept.controls) {
-    if (JSON.stringify(change) !== JSON.stringify(old?.controls.get(id))) controls.set(id, change)
+    if (!same(change, old?.controls.get(id))) controls.set(id, change)
   }
   for (const fn of kept.due) fn()
   kept.due.clear()

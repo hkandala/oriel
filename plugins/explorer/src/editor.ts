@@ -195,15 +195,15 @@ export async function editor(place: Place, extensions: Extension[], parent: HTML
   }
   land(place.at)
 
-  keep(oriel.on("save", () => void save()))
-  keep(oriel.on("find", () => openSearchPanel(view)))
-  keep(oriel.on("findNext", () => findNext(view)))
-  keep(oriel.on("findPrevious", () => findPrevious(view)))
-  keep(oriel.files.watch(path, () => void check()))
+  oriel.on("save", () => void save())
+  oriel.on("find", () => openSearchPanel(view))
+  oriel.on("findNext", () => findNext(view))
+  oriel.on("findPrevious", () => findPrevious(view))
+  oriel.files.watch(path, () => void check())
   // A change between the read and the watch's start.
   void check()
   // The app gives the card's web view the keyboard: the editor takes it.
-  const focus = () => view.focus()
+  const focus = () => place.shown() && view.focus()
   addEventListener("focus", focus)
   keep(() => removeEventListener("focus", focus))
   if (document.hasFocus()) view.focus()

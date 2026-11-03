@@ -18,10 +18,10 @@ export async function show(place: Place): Promise<Reveal> {
   keep(() => release())
   oriel.controls.set("path", { value: path })
   for (const step of ZOOM) oriel.controls.set(`zoom.${step}`, { hidden: group !== "image" && group !== "pdf" })
-  keep(oriel.on("control", ({ id }) => {
+  oriel.on("control", ({ id }) => {
     const step = ZOOM.find((step) => id === `zoom.${step}`)
     if (step) zoom(step)
-  }))
+  })
   const page = (text: string) => oriel.controls.set("page", { value: text, hidden: !text })
 
   const image = (url: string, fallback: () => void) => {
@@ -132,9 +132,9 @@ export async function show(place: Place): Promise<Reveal> {
 
   /** One draw at a time, in order: a PDF loads over several turns. */
   let shown = draw()
-  keep(oriel.files.watch(path, () => {
+  oriel.files.watch(path, () => {
     shown = shown.then(draw, draw)
-  }))
+  })
   await shown
   return undefined
 }

@@ -170,7 +170,7 @@ export async function show(place: Place): Promise<Reveal> {
   let ticks = Promise.resolve()
   // Before the editor's own: ⌘F, ⌘G and ⇧⌘G in Read show Edit, where the search panel is.
   for (const name of ["find", "findNext", "findPrevious"] as const) {
-    keep(oriel.on(name, () => shown && !edit && present(shown.view, true, outlined)))
+    oriel.on(name, () => shown && !edit && present(shown.view, true, outlined))
   }
   shown = await editor(place, [
     // Front matter as YAML, not as a rule and a heading.
@@ -219,16 +219,16 @@ export async function show(place: Place): Promise<Reveal> {
   }
   document.addEventListener("copy", copy)
   keep(() => document.removeEventListener("copy", copy))
-  keep(oriel.on("control", ({ id, value }) => {
+  oriel.on("control", ({ id, value }) => {
     if (id === "mode") present(view, value === "edit", outlined)
     else if (id === "outline") present(view, edit, value === true)
     else if (id === "edit-mode") present(view, !edit, outlined)
-  }))
+  })
   titles(view, all(view.state))
   // A linked open at a line (a diff's): Edit, with the caret there (`editor`). Back's landing is a path.
   present(view, Number(place.at) >= 1, false)
   // The app gives the card the keyboard: after the editor's own handler, Read's page takes it.
-  const take = () => focus(view)
+  const take = () => place.shown() && focus(view)
   addEventListener("focus", take)
   keep(() => removeEventListener("focus", take))
   return (at) => {

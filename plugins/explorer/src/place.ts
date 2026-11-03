@@ -11,7 +11,7 @@ export type Place = {
   at?: string
   /** The page: the place draws in here; it shows once `show` returned. */
   root: HTMLElement
-  /** Ends with the place: a handler's or a watch's `Off`, a view's teardown. */
+  /** Ends with the place: a view's teardown. `oriel`'s handlers and watches end with it on their own. */
   keep(off: Off): void
   /** Shows the place anew, as it first showed: its file became read only or too large. */
   again(): void

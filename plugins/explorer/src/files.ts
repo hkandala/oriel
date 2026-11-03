@@ -309,7 +309,7 @@ export async function show(place: Place): Promise<Reveal> {
     }
   }))
 
-  keep(oriel.on("control", ({ id, value }) => {
+  oriel.on("control", ({ id, value }) => {
     if (id === "filter") {
       filter = String(value ?? "")
       paths ??= filter ? run(loadPaths).catch(() => {}) : undefined
@@ -325,12 +325,12 @@ export async function show(place: Place): Promise<Reveal> {
       paths = filter ? run(loadPaths).catch(() => {}) : undefined
       void (paths ?? queue).then(match).catch(console.error)
     }
-  }))
+  })
   // ⌘F: the filter takes the keyboard.
-  keep(oriel.on("find", () => oriel.controls.set("filter", { focus: true })))
+  oriel.on("find", () => oriel.controls.set("filter", { focus: true }))
 
   // After each change under the root, and once when the card shows again.
-  keep(oriel.files.watch(top, () => {
+  oriel.files.watch(top, () => {
     if (due) return
     due = true
     // The next filter reads the paths again, for the files made since.
@@ -340,7 +340,7 @@ export async function show(place: Place): Promise<Reveal> {
       await refresh()
       if (filter) match()
     }).catch(console.error)
-  }))
+  })
 
   /** Every file of the root, for the filter: added under the folders no listing filled yet. */
   async function loadPaths() {
