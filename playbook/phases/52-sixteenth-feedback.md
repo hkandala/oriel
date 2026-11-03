@@ -12,7 +12,7 @@ Screenshots in `.build/fb52/` (not committed): `1.08.48.png` (chat tool rows), `
 `1.31.25.png` (Working Tree header), `1.34.54.png` (Markdown task boxes), `1.41.11.png` (Markdown table),
 `1.44.12.png` (Markdown lists), `2.29.45.png` (the tab hover card). Mockups: `~/Downloads/oriel-research/sidebar-mockups.html`.
 
-**Do not start until the user confirms.** The sidebar design is picked: B as in `~/Downloads/oriel-research/sidebar-mockup-B.html` (Track F). Tracks push straight to main after review and green checks.
+**Do not start until the user confirms.** The sidebar design is picked: B as in `resources/research/ui/sidebar-mockup-B.html` (Track F). Tracks push straight to main after review and green checks.
 
 ## Track A: the chat (items 1–2)
 
@@ -114,7 +114,7 @@ we were in one page and go back to previous page? is there a way to cache it or 
     encodes the `?` into the file name (`x.html%3Fv=3`), so the page does not load. A local path keeps its `?query`
     and `#fragment` as the URL's.
 
-## Track F: the sidebar, tab pills and hover card (items 22–26) — design B
+## Track F: the sidebar, tab pills and hover card (items 22–25) — design B
 
 The user picked design B and refined it: "okay i like B, but let's improve it a bit more, let's use all t3code icons
 for each status, just the icons and color scheme, workspace view is good, in agents view, instead of showing icon
@@ -123,7 +123,7 @@ space time, let's wrap them in a box of color same as status color, with icon an
 circular, and in agent view that status thing should take only first line, right now i see it takes up both lines
 and then in middle, that's weird as hell, and also in workspace view, tell me the order of status priority, coz
 within workspace there can be many agents in different status, we should show needs you first, followed by done and
-then working and no status when all idle". Build exactly `sidebar-mockup-B.html`:
+then working and no status when all idle". Build exactly `resources/research/ui/sidebar-mockup-B.html`:
 
 - **Icons, static, all circular** (lucide shapes drawn as the app's own symbols, like `source.branch`): Working
   `circle-dashed` in blue, Needs you `circle-alert` in orange, Done `circle-check` in emerald. Dark: blue #60a5fa,
@@ -149,12 +149,6 @@ then working and no status when all idle". Build exactly `sidebar-mockup-B.html`
     we show done, let's not show that, only show status beside the pane info". Screenshot `2.29.45.png`. The card's
     title row shows no state; each agent pane's row ends with its state icon only (no word); other panes show none.
 
-22. **The picked design.** "essentially we should have regular workspace view and agents view, in workspace view, we
-    don't need to show any timer or status full text, just an icon should be good to indicate things, and any
-    working icon etc let's not have animations please, same with tab pill as well, right now in tab pill we show a
-    working dot animation, instead one standard static icon for working no animated ones, so that's workspace view and
-    in agents view, we group by workspace or their status showing status icon and or status text and the time". The
-    spinner and the working dots go; one static Working icon everywhere (sidebar, tab pill, card header).
 23. **Done stays put.** "when the agent is done and the agents view is grouped by status, and its in done status, and
     then i select that agent then the sidebar quickly jumps to idle status as it moves to immediately as we opened it,
     let's not do that jump, when in done and that agent is opened unless that agent is no longer active, don't jump
