@@ -414,27 +414,32 @@ A run is one quiet line with no card: its summary and a chevron.
   messages come below without moving what is in view. Nothing else moves
   the scroll as it nears or leaves the bottom, so a slow trackpad scroll
   moves the messages exactly as far as the fingers.
-- **Rows stay.** The oldest row shown is fixed when the rows first show:
-  new rows never take rows off the top. The rows stay shown until the card
-  closes or shows its TUI, or a new chat starts.
-- The app sets the scroll's place only for Show Earlier, a new width and Scroll to
-  Bottom. It never gives the scroll view back a place the scroll view
-  reported.
+- **Rows stay.** At the bottom the stack shows the newest 34 rows. Once the
+  chat leaves the exact bottom, the oldest row shown is fixed: new rows no
+  longer take rows off the top. The rows stay shown until the card closes
+  or shows its TUI, or a new chat starts.
+- **The place on the top row.** Scrolled up, the app knows the row at the
+  top of the view and how far the view's top is into it. When the rows
+  above that row change height (a new width) or come (Show Earlier), the
+  view goes back to the same place on that row, to the point, also when a
+  wider card's shorter content moved the scroll to the end. The row is
+  the last one whose top is above the view's top, else the first row.
+- The app sets the scroll's place only for that and for Scroll to Bottom.
+  It never gives the scroll view back a place the scroll view reported.
 - **Show Earlier.** When a chat has older rows, a glass pill "Show Earlier"
   (12 pt, 28 pt tall) is the stack's first row, centered, with the
   messages' top padding above it and the rows' 10 pt gap under it. A click
   shows a small spinner in place of its words, and the next block of 34
   comes above on the next run loop turn, so the spinner draws before the
-  rows lay out. The scroll is held by its offset, which then grows by the
-  new rows' height, so the rows in view stay where they are. The rows it
+  rows lay out. The rows in view stay where they are (the place on the top
+  row). The rows it
   adds stay when the chat scrolls back to the bottom.
 - **Resizing.** A narrow card (under 824 pt, where the column narrows too)
   lays its messages out at its new width once the width stops changing for
   150 ms, as a terminal does: a split's motion or a drag wraps the text once,
   not at every frame. Meanwhile the card clips the messages, or its fill
   shows beside them. The reply box and the Scroll to Bottom button follow the
-  card at once. Scrolled up, the row that was at the top is scrolled back to
-  the top after the new width.
+  card at once. Scrolled up, the view keeps its place on the top row.
 - **The end.** 32 pt stay free between the last row and the reply box (an
   empty last row, 22 pt, plus the rows' spacing).
 - **Scroll to Bottom.** While the bottom of the messages is more than 40 pt

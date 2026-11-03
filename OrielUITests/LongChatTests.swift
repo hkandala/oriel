@@ -1,8 +1,8 @@
 import XCTest
 
 /// A long chat (ui/chat-view#what-it-looks-like) with Claude Code's stand-in: it shows its newest message, keeps the
-/// messages at its top when a split narrows its card, its button scrolls back to the bottom, which stays there when the
-/// card widens, and the session opened again shows at once.
+/// messages at its top when a split narrows its card and when it widens again, its button scrolls back to the bottom,
+/// which stays there as the card narrows and widens, and the session opened again shows at once.
 extension OrielUITests {
     func testALongChatKeepsItsPlaceAndScrollsToTheBottom() async throws {
         let (tab, pane) = try await startChat()
@@ -41,19 +41,20 @@ extension OrielUITests {
         })
 
         // A split beside it narrows the card: its text wraps again, and the same messages stay at the top.
-        hoverHeader(pane)
-        element("pane.\(pane).split-right").click()
-        let other = try await poll("a pane beside the chat") { try await order(tab).first { $0 != pane } }
-        XCTAssertTrue(until(3) { chat.frame.width < 600 && !atTop(of: chat, pane).isDisjoint(with: top) },
-                      "\(top) \(atTop(of: chat, pane))")
-        XCTAssertFalse(last.exists && last.isHittable)
+        let other = try await split(pane, in: tab)
+        keepsTop(top, of: chat, pane, narrow: true)
+        // Wider again, with shorter content: the same messages stay at the top.
+        _ = try await Self.call(one, "pane.close", ["pane_id": other])
+        keepsTop(top, of: chat, pane, narrow: false)
 
         bottom.click()
         XCTAssertTrue(until(3) { abs(composer.frame.minY - last.frame.maxY - gap) < 2 },
                       "\(gap) \(composer.frame.minY - last.frame.maxY)")
         XCTAssertTrue(bottom.vanishes(within: 2))
-        // At the bottom, it stays there as the card widens again.
-        _ = try await Self.call(one, "pane.close", ["pane_id": other])
+        // At the bottom, it stays there as the card narrows and widens.
+        let beside = try await split(pane, in: tab)
+        XCTAssertTrue(until(3) { chat.frame.width < 600 && last.exists && last.isHittable }, "\(chat.frame)")
+        _ = try await Self.call(one, "pane.close", ["pane_id": beside])
         XCTAssertTrue(until(3) { chat.frame.width > 600 && last.exists && last.isHittable }, "\(chat.frame)")
         XCTAssertFalse(bottom.exists)
 
@@ -185,6 +186,21 @@ extension OrielUITests {
             .matching(NSPredicate(format: "identifier == %@ AND value == %@", "chat.\(pane).reply", "Last."))
         XCTAssertTrue(until(10) { lasts.count == 2 })
         XCTAssertEqual(user.frame.minY, place, accuracy: 1)
+    }
+
+    /// Once the card is narrow (or wide), the messages along its top share one with `top`; the newest is out of view.
+    private func keepsTop(_ top: Set<String>, of chat: XCUIElement, _ pane: String, narrow: Bool) {
+        XCTAssertTrue(until(3) { (chat.frame.width < 600) == narrow && !atTop(of: chat, pane).isDisjoint(with: top) },
+                      "\(top) \(atTop(of: chat, pane))")
+        let last = row(pane, "reply", "Last.")
+        XCTAssertFalse(last.exists && last.isHittable)
+    }
+
+    /// A split to the right of the chat's pane, from its header: the new pane.
+    private func split(_ pane: String, in tab: String) async throws -> String {
+        hoverHeader(pane)
+        element("pane.\(pane).split-right").click()
+        return try await poll("a pane beside the chat") { try await order(tab).first { $0 != pane } }
     }
 
     /// After `scroll` the chat is at the bottom and stays there, with the first message still in the stack. The button

@@ -9,23 +9,26 @@ struct ChatMessages: View, Equatable {
     /// In a floating window: the card starts right under its title row, with no header of its own above.
     let floats: Bool
     var composing: FocusState<Bool>.Binding
-    /// The row at the top, which stays there when the card resizes while scrolled up.
-    @State private var top: String?
+    /// Where the rows are, and the one at the top of the view.
+    @State private var tops = Tops()
     /// The newest message is in view.
     @State private var atBottom = true
+    /// Scrolled up from the exact bottom, where the anchor no longer holds the chat.
+    @State private var away = false
     /// The card's width the messages lay out at, and the wait for its next one.
     @State private var width: CGFloat?
     @State private var settling: Task<Void, Never>?
-    /// The oldest row shown, kept from the first rows shown until the card shows its TUI or a new chat starts, so new
-    /// rows never take rows off the top; Show Earlier moves it up.
+    /// The oldest row shown, kept once the chat left the bottom or Show Earlier moved it up, until the card shows its
+    /// TUI or a new chat starts; nil: the newest `block` rows.
     @State private var first: String?
     /// Show Earlier's rows are on their way: its spinner shows.
     @State private var earlier = false
-    /// The offset Show Earlier asks for. Only asked, never told: a place the scroll view names as a scroll begins or
-    /// ends, given back to it, snaps that row to the top, a jump past the fingers.
+    /// The offset the row at the top asks for. Only asked, never told: a place the scroll view names as a scroll
+    /// begins or ends, given back to it, snaps that row to the top, a jump past the fingers.
     @State private var position = ScrollPosition(idType: String.self)
     @Environment(\.look) private var look
     private static let end = "end"
+    fileprivate static let space = "chat.messages"
     /// The rows a long chat shows at a time, and Show Earlier adds. A split lays them out once, at its end: 40 rows of
     /// long replies took one frame of 40–50 ms, 100 rows one of 110–160 ms. With every reply shown, 34 rows lay out in
     /// the time 40 rows of last replies did (the open's worst frame on a 117 MB session: 120 ms; 40 rows: 141 ms).
@@ -90,7 +93,8 @@ struct ChatMessages: View, Equatable {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         // The next scroll view starts at the bottom, with the newest rows (a new session too).
         .onAppear {
-            (top, atBottom, first, earlier, position) = (nil, true, nil, false, ScrollPosition(idType: String.self))
+            (tops, atBottom, away, first, earlier) = (Tops(), true, false, nil, false)
+            position = ScrollPosition(idType: String.self)
         }
     }
 
@@ -99,9 +103,9 @@ struct ChatMessages: View, Equatable {
         // A kept row that is gone (a new session behind an outgoing message, a re-read with new ids) is pinned again.
         let kept = first.flatMap { id in rows.firstIndex { $0.id == id } }
         let start = kept ?? Self.start(rows[...])
-        // ponytail: pinned from the first rows shown, a chat open for hours lays out every row since; cut it again at
-        // the exact bottom if a split's layout gets slow.
-        let pin = kept == nil && rows.indices.contains(start)
+        // ponytail: once pinned, a chat open for hours lays out every row since; cut it again at the exact bottom if a
+        // split's layout gets slow.
+        let pin = kept == nil && rows.indices.contains(start) && away
         // The view's state and environment the reader's content draws with, read here: a change of either read inside
         // it does not build it again, only a change of what its closure holds (the Scroll to Bottom button never
         // showed). The chat's observed values are tracked inside.
@@ -114,7 +118,7 @@ struct ChatMessages: View, Equatable {
                     if start > 0 {
                         earlierButton(loading: loading) { showEarlier(rows, before: start) }
                     }
-                    Rows(chat: chat, rows: rows[start...])
+                    Rows(chat: chat, rows: rows[start...], tops: tops) { position.scrollTo(y: $0) }
                     ForEach(chat.outgoing) { message in
                         outgoing(message, error: error)
                     }
@@ -129,19 +133,14 @@ struct ChatMessages: View, Equatable {
                     // where a chat opens.
                     Color.clear.frame(height: 22).id(Self.end)
                 }
-                .scrollTargetLayout()
                 // While earlier rows exist, Show Earlier's row holds the top padding.
                 .padding(.horizontal, 32).padding(.top, start > 0 ? 0 : floats ? 28 : 16)
                 .frame(maxWidth: ChatView.column)
                 .frame(maxWidth: .infinity)
+                .coordinateSpace(.named(Self.space))
             }
             .scrollPosition(.constant(place))
-            // The row at the top (any part of it in view) as the rows in view change. Kept here, not in an onChange, so
-            // the body is not built again per row scrolled past.
-            .onScrollTargetVisibilityChange(idType: String.self, threshold: 0.01) { visible in
-                top = visible.first
-            }
-            // From the first rows shown: a new row that took one off the top would move what is in view.
+            // Once the chat leaves the bottom: what it shows stays, so no new row takes the held row off the top.
             .task(id: pin) {
                 if pin {
                     first = rows[start].id
@@ -150,20 +149,21 @@ struct ChatMessages: View, Equatable {
             // The one rule for the bottom: the chat opens there, and right at the bottom it stays there as rows come
             // and the card resizes. Scrolled up, even by a point, it keeps its offset.
             .defaultScrollAnchor(.bottom)
-            // Scrolled up, rows that change height above (a new width) or come (Show Earlier) would move what is in
-            // view: the row that was at the top goes back there; the offset grows by the earlier rows' height.
-            // x: how far the bottom is out of view; at 0 the anchor holds the bottom instead.
+            // The row at the top as the view moves: at a new width or Show Earlier this runs before the rows report
+            // their new places. x: how far the bottom is out of view; at 0 the anchor holds the bottom instead.
             .onScrollGeometryChange(for: CGRect.self) { geometry in
                 CGRect(x: geometry.contentSize.height + geometry.contentInsets.bottom - geometry.visibleRect.maxY,
-                       y: geometry.contentOffset.y, width: geometry.contentSize.width,
-                       height: geometry.contentSize.height)
+                       y: geometry.contentOffset.y, width: 0, height: geometry.contentSize.height)
             } action: { old, new in
-                if let top, old.width != new.width, old.minX > 0.5 {
-                    proxy.scrollTo(top, anchor: .top)
-                } else if earlier, old.height != new.height {
-                    position.scrollTo(y: new.minY + new.height - old.height)
+                // The rows' new height can move the offset in the same update (a wider card's shorter content, clamped
+                // at the end): the place is the one before.
+                let place = old.height == new.height ? new : old
+                tops.hold(at: place.minY, bottom: place.minX <= 0.5)
+                // Only a scroll moves it: during a load an update can report the grown rows before the anchor follows.
+                if old.height == new.height, away != (new.minX > 0.5) {
+                    away = new.minX > 0.5
                 }
-                if old.size != new.size {
+                if old.height != new.height {
                     earlier = false
                 }
             }
@@ -297,10 +297,29 @@ struct ChatMessages: View, Equatable {
     }
 }
 
+/// Each row's top in the messages as last laid out, and the row at the top of the view with how far the view's top is
+/// below the row's top. When rows above it change height (a new width) or come (Show Earlier), that row reports its new
+/// top and the view goes back to the same place on it. Not observed: it changes at every scroll frame.
+@MainActor
+private final class Tops {
+    var places: [String: CGFloat] = [:]
+    var held: (id: String, by: CGFloat)?
+
+    /// The last row whose top is above `offset`, else the first row; none at the exact bottom, which the anchor holds.
+    func hold(at offset: CGFloat, bottom: Bool) {
+        let above = places.lazy.filter { $0.value <= offset }
+        let row = bottom ? nil : above.max { $0.value < $1.value } ?? places.min { $0.value < $1.value }
+        held = row.map { ($0.key, offset - $0.value) }
+    }
+}
+
 /// The history's rows, with the runs and tool calls clicked open.
 private struct Rows: View {
     let chat: Chat
     let rows: ArraySlice<ChatRow>
+    let tops: Tops
+    /// Scrolls to an offset.
+    let restore: (CGFloat) -> Void
     /// Runs clicked open.
     @State private var opened: Set<String> = []
     /// Tool calls opened to their input and output.
@@ -311,6 +330,13 @@ private struct Rows: View {
             ChatRowView(row: row, paneID: chat.paneID, counts: counts(row), steps: steps(row),
                         toggle: { opened.formSymmetricDifference([row.id]) }, opened: openTools,
                         toggleTool: { openTools.formSymmetricDifference([$0]) })
+                .onGeometryChange(for: CGFloat.self) { $0.frame(in: .named(ChatMessages.space)).minY } action: { top in
+                    tops.places[row.id] = top
+                    if let held = tops.held, held.id == row.id {
+                        restore(top + held.by)
+                    }
+                }
+                .onDisappear { tops.places[row.id] = nil }
         }
     }
 

@@ -251,6 +251,17 @@ then working and no status when all idle". Build exactly `resources/research/ui/
   messages move only as far as the fingers, with no snap as the Scroll to Bottom button shows or hides. Let an agent
   work while scrolled up a few points: what is in view stays put. Open a run of tool calls: its rows end where a long
   reply's bubble ends.
+- **Cause, found on CI (full run 41643504903): the split lost its place.** After a new width, the row at the top was
+  the first with any part in view, scrolled to the very top. When only its bottom padding showed, that moved the view
+  down by most of the row's height (Question 148 came back above Reply 148). **Fix:** the rows report their tops in the
+  messages when they lay out; the scroll action keeps the row at the view's top and how far into it the view starts;
+  when that row reports a new top (a new width, rows that come above with Show Earlier, a row taken off the top), the
+  view goes back to the same point on it. This replaces the visibility list, the scroll targets and Show Earlier's
+  height arithmetic. A new content height reads the place from before it, since a wider card's shorter content moves
+  the offset to the end in the same update (the reviewer's catch; the test now also widens while scrolled up). The
+  block is fixed once the chat leaves the exact bottom, not from the first rows shown: then a slow load pinned the
+  block at the first message and laid out all 600 rows (a local run). Only a scroll sets it: an update during a load
+  can report the grown rows before the anchor follows.
 
 ### Track F
 
