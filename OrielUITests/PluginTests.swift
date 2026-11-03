@@ -10,9 +10,6 @@ extension OrielUITests {
     func testPluginPanesOpenFromTheChooserThePaletteAndLinks() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, left) = try await newTab("plugins")
-        // A tab after it, so a tab opened right after the current one is not simply the last.
-        let (after, _) = try await createTab(in: "w2")
-        closeAfter("tab", after)
         try await waitForPrompt(left)
         let repo = "/tmp/oriel-e2e-plugins", root = "/private/tmp/oriel-e2e-plugins"
         try await send("rm -rf \(repo) && mkdir \(repo) && cd \(repo) && git init -q && clear && echo ready-$((6*7))\r",

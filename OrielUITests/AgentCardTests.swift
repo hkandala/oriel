@@ -30,7 +30,10 @@ extension OrielUITests {
         XCTAssertTrue(element("pane.\(below)").exists(within: 3))
         XCTAssertLessThan(element("pane.\(file)").frame.maxY, element("pane.\(below)").frame.minY)
 
-        // Not selected: the notice's Show selects it.
+        // Not selected: the notice's Show selects it. A tab after the asking one, so the new tab at the end is not the
+        // place right after it.
+        let (spare, _) = try await createTab(in: "w2")
+        closeAfter("tab", spare)
         try await send("clear; \(Self.orielCommand) open git . --tab; echo tab-$((6*7))-$?\r", to: first)
         let notice = element("detail.notice")
         XCTAssertTrue(notice.staticTexts.matching(NSPredicate(format: "value CONTAINS 'opened Git oriel-e2e-cards'"))

@@ -42,7 +42,7 @@ extension OrielUITests {
         XCTAssertTrue(element("overview").vanishes(within: 2))
 
         // Back in Read through ⌘K, which finds Edit Mode by its manifest keywords; clean: a change on disk shows; a
-        // relative link shows its file in the card, ⌘-click in a new tab after this one.
+        // relative link shows its file in the card, ⌘-click in a new tab at the end.
         openPalette()
         app.typeText("markdown read")
         XCTAssertTrue(element("palette.command.Edit Mode").has(\.isSelected, true, within: 2))
