@@ -22,7 +22,7 @@ let front = windows.first { window in
 
 guard front?[kCGWindowOwnerName as String] as? String == "Oriel" else { fatalError("no Oriel window at \(point)") }
 
-func post(_ delta: Double, _ field: CGEventField, _ phase: Int64) {
+func post(_ delta: Double, _ field: CGEventField, _ phase: Int64, wait: Bool = true) {
     guard let event = CGEvent(scrollWheelEvent2Source: nil, units: .pixel, wheelCount: 2,
                               wheel1: vertical ? Int32(delta.rounded()) : 0,
                               wheel2: vertical ? 0 : Int32(delta.rounded()), wheel3: 0) else { return }
@@ -31,7 +31,9 @@ func post(_ delta: Double, _ field: CGEventField, _ phase: Int64) {
     event.flags = option ? .maskAlternate : []
     event.location = point
     event.post(tap: .cghidEventTap)
-    Thread.sleep(forTimeInterval: 0.016)
+    if wait {
+        Thread.sleep(forTimeInterval: 0.016)
+    }
 }
 
 CGWarpMouseCursorPosition(point)
@@ -43,7 +45,14 @@ for _ in 0 ..< steps {
 }
 
 Thread.sleep(forTimeInterval: pause)
-post(0, .scrollWheelEventScrollPhase, 4)
+// Fingers that rested lift with an empty momentum right after, as a trackpad's: with none, AppKit goes on at the last
+// moves' speed for about 9 pt.
+post(0, .scrollWheelEventScrollPhase, 4, wait: pause == 0)
+if pause > 0 {
+    post(0, .scrollWheelEventMomentumPhase, 1)
+    post(0, .scrollWheelEventMomentumPhase, 3)
+}
+
 for index in 0 ..< (pause > 0 ? 0 : 41) {
     post(args[2] * pow(0.9, Double(index)), .scrollWheelEventMomentumPhase, index == 0 ? 1 : index == 40 ? 3 : 2)
 }

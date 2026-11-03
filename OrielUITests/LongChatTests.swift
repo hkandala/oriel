@@ -128,6 +128,54 @@ extension OrielUITests {
         }
     }
 
+    /// Slow trackpad scrolls at the end of a chat move it exactly as far as the fingers: no snap to the bottom as it
+    /// comes near, no jump as it leaves. A run of tool calls is as wide as a reply's bubble.
+    func testTheChatsEndMovesWithTheFingers() async throws {
+        let pane = try await startChat().pane
+        app.typeText("many 25\r")
+        let last = row(pane, "reply", "Last.")
+        XCTAssertTrue(until(10) { last.exists && last.isHittable })
+        XCTAssertTrue(element("chat.\(pane).send").exists(within: 5))
+        let chat = element("chat.\(pane)")
+        let point = "\(chat.frame.midX) \(chat.frame.midY)"
+        // The fingers move `steps` × 2 pt, 16 ms apart, and rest before they lift: no momentum. How far the newest
+        // reply moved, down positive.
+        func swipe(_ step: Int, _ steps: Int) async throws -> CGFloat {
+            let before = last.frame.minY
+            _ = try await Self.post("\(one)/swipe", Data("\(point) \(step * 2) \(steps) 150 1".utf8))
+            // Once it rests: the bottom's rubber band springs back.
+            var now = last.frame.minY
+            _ = until(2) {
+                let place = last.frame.minY
+                defer { now = place }
+                return place == now
+            }
+            return now - before
+        }
+        // Up 30 pt from the bottom, by natural scrolling either way (the other way is the bottom's rubber band).
+        var upward = 1
+        if try await abs(swipe(upward, 15)) < 2 {
+            upward = -1
+            _ = try await swipe(upward, 15)
+        }
+        // Up past the Scroll to Bottom button's 40 pt, down past it again, down a little more, and up.
+        for (direction, steps) in [(upward, 25), (-upward, 25), (-upward, 5), (upward, 10)] {
+            let moved = try await swipe(direction, steps)
+            // 4 pt: AppKit can draw a frame or two of its own momentum before the lift's empty one stops it.
+            XCTAssertEqual(moved, CGFloat(direction * upward * steps * 2), accuracy: 4, "\(direction) × \(steps)")
+        }
+        // A run and its open rows take a reply bubble's left edge and widest width: 18 pt left of the replies' text,
+        // and 48 pt short of the messages' right edge, 18 pt in from the user's bubble's.
+        let stacks = app.descendants(matching: .any).matching(identifier: "chat.\(pane).stack")
+        let stack = stacks.element(boundBy: stacks.count - 1), user = row(pane, "user", "Question 25")
+        stack.click()
+        let tool = app.descendants(matching: .any).matching(identifier: "chat.\(pane).tool").firstMatch
+        XCTAssertTrue(tool.exists(within: 3))
+        XCTAssertEqual(stack.frame.minX, last.frame.minX - 18, accuracy: 1, "\(stack.frame) \(last.frame)")
+        XCTAssertEqual(stack.frame.maxX, user.frame.maxX - 18 - 48, accuracy: 1, "\(stack.frame) \(user.frame)")
+        XCTAssertEqual(tool.frame.maxX, stack.frame.maxX, accuracy: 1, "\(tool.frame) \(stack.frame)")
+    }
+
     /// After `scroll` the chat is at the bottom and stays there, with the first message still in the stack. The button
     /// goes in the same update that dropped the earlier rows, or put back the row a scroll began at (a jump back up).
     private func staysAtTheBottom(_ pane: String, _ first: XCUIElement, _ scroll: () -> Void) {

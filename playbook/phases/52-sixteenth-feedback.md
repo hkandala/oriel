@@ -196,3 +196,38 @@ then working and no status when all idle". Build exactly `resources/research/ui/
   file list's line starts below it; the list's top padding is 3 px, so its title's middle meets the file header's.
   Pictures (the built page in a bare WKWebView with a stand-in bridge, dark): `/tmp/oriel-shots/t52c/wt-before-scroll0.png`
   → `wt-after-scroll0.png`, `wt-{before,after}-scroll700.png`, `commit-{before,after}-scroll{0,700}.png`.
+
+### Track A
+
+- **Fix, item 1.** A run's line and its open rows now take a reply bubble's place: they start 18 pt left of the replies'
+  text and stop 48 pt short of the messages' right edge. Their text stays on the replies' edge, and an open call's
+  input and output boxes end where the bubbles' widest width ends. Before: the user's `.build/fb52/1.08.48.png`
+  (`/tmp/oriel-shots/t52a/tools-before.png`); after: `/tmp/oriel-shots/t52a/tools-after.png` and
+  `tools-after-crop.png`.
+- **Cause, item 2.** The chat gave the scroll view back the place the scroll view itself reported. With
+  `.scrollTargetLayout()`, the scroll view names the row at the top as a scroll begins or ends; that name went into
+  the `ScrollPosition` state, and the next body (the Scroll to Bottom button showing, a pin, a hold) handed it back,
+  so the scroll view snapped that row to the top: 9–11 pt past the fingers. Phase 51's `scrollTo(id: end)` at the
+  bottom added a snap of up to 40 pt as the chat came within the button's 40 pt.
+- **Fix, item 2.** The bottom is one modifier, `defaultScrollAnchor(.bottom)`. A spike showed that it already does
+  all of it: the chat opens at the bottom; exactly at the bottom it follows new rows and resizes; scrolled up by any
+  amount it keeps its offset. Gone: the `held` state and `hold`, the anchor switch for size changes, the scroll to
+  the end at the bottom, the Show Earlier offset kept per frame and its pre-pin. The `ScrollPosition` binding now
+  drops what the scroll view writes, and the app writes it only for Show Earlier's offset. The oldest row shown is
+  pinned from the first rows shown, not when the chat leaves the bottom, so a new row never takes a row off the top
+  while the chat is between 1 and 40 pt above the end. Kept: the top row put back after a new width while scrolled
+  up, which is not about the bottom.
+- **Measured** (real trackpad scrolls posted to the HID system, `scripts/swipe.swift`, 2 pt every 16 ms, the
+  offset logged at every frame by a temporary probe): before, 50 pt of fingers moved the chat 61.5 pt (a 9 pt step
+  in one frame as the scroll began); after, each scroll near the end moved the fingers' distance plus 1–3.5 pt, all
+  of it after the lift (below).
+- **Cause, the 1–3.5 pt and the test's helper.** After a lift with no momentum events, AppKit runs its own momentum
+  at the last moves' speed, about 9 pt, in every scroll view (a bare SwiftUI probe window did it too). A trackpad
+  sends an empty momentum right after a rested lift; `swipe.swift` with a pause now does too, which cuts it to a
+  frame or two before that event lands. The new test allows 4 pt for it.
+- **Runs.** The new test (slow scrolls up past the button's 40 pt, down past it, and around; then the run's edges)
+  was red on the old code (61.5 against 50) and is green.
+- **For the user.** In a long chat at the bottom, scroll up and down slowly by a few lines with the trackpad: the
+  messages move only as far as the fingers, with no snap as the Scroll to Bottom button shows or hides. Let an agent
+  work while scrolled up a few points: what is in view stays put. Open a run of tool calls: its rows end where a long
+  reply's bubble ends.
