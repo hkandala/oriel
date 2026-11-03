@@ -8,10 +8,9 @@ extension OrielUITests {
     /// with the typed message, Push sends it to the remote; a commit opens its diff in the card, and Back and Forward
     /// walk between the home and the diff; Revert and Revert All put the changes back; the branch menu switches the
     /// branch. The diff: a commit's subject is its title, and its Parent opens in the card; the working tree from a
-    /// change follows the work tree, also in a file it shows, and is marked Live; Open File opens the file in a new
-    /// tab right after this one; Viewed folds the file; Next Change scrolls to a change the page has not drawn;
-    /// ⌘-click on a line opens the file at the line, in Unified and in Side by Side; Word Wrap toggles in Unified
-    /// only; the file list hides.
+    /// change follows the work tree, also in a file it shows; Open File opens the file in a new tab at the end;
+    /// Viewed folds the file; Next Change scrolls to a change the page has not drawn; ⌘-click on a line opens the file
+    /// at the line, in Unified and in Side by Side; Word Wrap toggles in Unified only; the file list hides.
     func testGitCardCommitsPushesAndOpensDiffs() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, left) = try await newTab("git")
@@ -117,8 +116,7 @@ extension OrielUITests {
         try await expect("the label is Working Tree's") { try await paneLabel(card).hasSuffix(" \(root)/ uncommitted") }
         XCTAssertTrue(page.buttons["a.txt"].exists(within: 10))
         XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, "Working Tree", within: 3))
-        // It follows the work tree, and says so.
-        XCTAssertTrue(element("pane.\(card).diff.live").exists(within: 3))
+        // It follows the work tree.
         try await send("echo new >c.txt\r", to: left)
         XCTAssertTrue(page.buttons["c.txt"].exists(within: 10))
         // A file already shown draws its new text.
@@ -194,7 +192,7 @@ extension OrielUITests {
     /// The diff's own controls, on the diff of the commit that changes lines 1-150 and 290.
     private func diff(_ page: XCUIElement, card: String, tab: String, root: String) async throws {
         // VoiceOver reads the subject too, once Forward's place drew; the page names the parent, which opens in the
-        // card, and Back comes back. A commit is not live.
+        // card, and Back comes back.
         let surface = element("pane.\(card)"), title = element("pane.\(card).title")
         XCTAssertTrue(surface.has(\.label, "second", within: 10), surface.label)
         // XCUITest sees no blank frame: Parent's draw in one step is shown in the Findings, not here.
@@ -202,11 +200,10 @@ extension OrielUITests {
         XCTAssertTrue(title.has(\.stringValue, "first", within: 10), title.stringValue)
         element("pane.\(card).go-back").click()
         XCTAssertTrue(title.has(\.stringValue, "second", within: 10), title.stringValue)
-        XCTAssertFalse(element("pane.\(card).diff.live").exists)
         // Clicks in the page wait for what it draws: its layout comes back late after the card was hidden.
         let open = page.buttons["Open a.txt"]
         XCTAssertTrue(open.has(\.isHittable, true, within: 3))
-        _ = try await opens("\(root)/a.txt", after: tab) { open.click() }
+        _ = try await opens("\(root)/a.txt") { open.click() }
         try await show(tab)
         let viewed = page.checkBoxes["Viewed a.txt"], line = page.staticTexts.matching(
             NSPredicate(format: "value BEGINSWITH 'line'"),
@@ -222,11 +219,11 @@ extension OrielUITests {
         element("pane.\(card).diff.next").click()
         element("pane.\(card).diff.next").click()
         XCTAssertTrue(far.has(\.isHittable, true, within: 3))
-        try await commandClick(far, after: tab, root: root)
+        try await commandClick(far, root: root)
         try await show(tab)
         try await sideBySide(card, page, far)
         XCTAssertTrue(far.has(\.isHittable, true, within: 3), "far \(far.frame), page \(page.frame)")
-        try await commandClick(far, after: tab, root: root)
+        try await commandClick(far, root: root)
         try await show(tab)
     }
 
@@ -246,10 +243,10 @@ extension OrielUITests {
         }
     }
 
-    /// ⌘-click on the line opens the file at the line in a new tab after `tab`; the editor draws only the lines in
+    /// ⌘-click on the line opens the file at the line in a new tab at the end; the editor draws only the lines in
     /// view.
-    private func commandClick(_ line: XCUIElement, after tab: String, root: String) async throws {
-        let file = try await opens("\(root)/a.txt", after: tab) {
+    private func commandClick(_ line: XCUIElement, root: String) async throws {
+        let file = try await opens("\(root)/a.txt") {
             XCUIElement.perform(withKeyModifiers: .command) { line.click() }
         }
         let editor = element("file.\(file).page").textViews.firstMatch
@@ -305,17 +302,16 @@ extension OrielUITests {
         }
     }
 
-    /// The action opens a file card for the path in a new tab right after `tab`, selected; its pane.
-    private func opens(_ path: String, after tab: String, _ action: () -> Void) async throws -> String {
+    /// The action opens a file card for the path in a new tab at the end, selected; its pane.
+    private func opens(_ path: String, _ action: () -> Void) async throws -> String {
         let before = try await tabIDs()
         action()
         let opened = try await newTabID(after: before)
         closeAfter("tab", opened)
-        try await expect("\(opened) right after \(tab)") {
-            let index = try await order(of: opened), before = try await order(of: tab)
-            return index != nil && index == before.map { $0 + 1 }
-        }
         XCTAssertTrue(element("tab.\(opened)").has(\.isSelected, true, within: 5))
+        // Once selected: the app selects a new tab after its last write.
+        let last = try await isLast(opened)
+        XCTAssertTrue(last, "\(opened) is not last")
         let pane = try await pane(of: opened), label = try await paneLabel(pane)
         XCTAssertTrue(label.hasPrefix("oriel:explorer#") && label.hasSuffix(" \(path)"), label)
         return pane

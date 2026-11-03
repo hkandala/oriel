@@ -486,14 +486,15 @@ app's fonts and `Look` colors. From the top:
 ### Diff
 
 The changes of one source in one scroll (`@pierre/diffs`).
-- **Row 2:** Back and Forward, **Git Home** (`house`), on Working Tree
-  **Live** (`dot.radiowaves.left.and.right` and the word, dim), then
+- **Row 2:** Back and Forward, **Git Home** (`house`), then
   `Unified | Side by Side`, **Word Wrap** (`text.wrap`, the app's symbol
   from Material Design Icons' `wrap`, a toggle in the accent while on; Side
   by Side always wraps, so it is disabled there), the file list button (`sidebar.left`, its title
   Hide File List or Show File List), Previous Change (`chevron.up`) and Next
   Change (`chevron.down`). There is no source
   pop-up: another source opens from the home.
+- **An 8 pt gap** sits between row 2 and the page, also while it scrolls: a
+  file header sticks below it, and the file list's line starts below it.
 - **Working Tree** (`uncommitted` in the label) is the staged, unstaged and
   untracked changes against `HEAD` (against the empty tree before the first
   commit), up to 16 MB of patch. It is a live view: while the card shows,

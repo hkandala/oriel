@@ -8,7 +8,7 @@ import "./diff.css"
 import * as Home from "./home"
 import { bind, control, home, parse } from "./lib"
 
-/** Each place's own header controls; the spacer is both's, and Live only Working Tree's. */
+/** Each place's own header controls; the spacer is both's. */
 const HOME = ["git.branch", "git.working", "git.fetch", "git.pull", "git.push"]
 const DIFF = ["diff.home", "diff.layout", "diff.wrap", "diff.file-list", "diff.previous", "diff.next"]
 
@@ -36,8 +36,6 @@ export default async function main(oriel: Oriel) {
     const controls = (diff: boolean) => {
       for (const id of HOME) control(id, { hidden: diff })
       for (const id of DIFF) control(id, { hidden: !diff })
-      // Live: Working Tree follows the work tree (`watch`).
-      control("diff.live", { hidden: !diff || shown.source !== "uncommitted" })
     }
     watch(shown.root)
     if (shown.source === undefined) {

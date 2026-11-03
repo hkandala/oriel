@@ -1,6 +1,6 @@
 {
   "name": "@oriel/git",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "description": "Changes and history",
   "keywords": ["diff", "changes", "commit", "uncommitted", "history"],
@@ -37,8 +37,6 @@
       { "type": "menu", "id": "git.branch", "symbol": "source.branch", "title": "—", "label": "Branch",
         "enabled": false, "hidden": true },
       { "type": "button", "id": "diff.home", "symbol": "house", "title": "Git Home", "hidden": true },
-      { "type": "text", "id": "diff.live", "value": "Live", "style": "dim", "symbol": "dot.radiowaves.left.and.right",
-        "hidden": true },
       { "type": "button", "id": "git.working", "symbol": "plus.forwardslash.minus", "title": "Working Tree",
         "style": "bordered", "hidden": true },
       { "type": "spacer" },
