@@ -15,7 +15,8 @@ extension OrielUITests {
         }
         try await send("mkdir -p \(folder) && cd \(folder) && printf '%s\\n' '---' 'title: Hidden' '---' '# Notes' "
             + "'Some *words*.' '## Second' '- [ ] Ship it' '' '[Other](other.md)' '' '| A | B |' '| - | - |' "
-            + "'| 1 | 2 |' >notes.md && printf '# Other\\n' >other.md && clear "
+            + "'| 1 | 2 |' '' '1. Alpha' '1. Beta' '' '   More of beta.' '' 'See [Docs][d] &copy;' '' "
+            + "'[d]: https://example.com' >notes.md && printf 'Other\\n' >other.md && clear "
             + "&& echo ready-$((6*7))\r", to: shell)
         try await waitFor(shell) { $0.contains("ready-42") }
         let (tab, card) = try await markdownCard("\(folder)/notes.md")
@@ -31,6 +32,7 @@ extension OrielUITests {
         XCTAssertTrue(page.buttons["Second"].exists(within: 3))
         XCTAssertFalse(page.buttons["title: Hidden"].exists)
         keepScreenshot("markdown card, read, outline")
+        constructs(page)
         try await tick(card, page: page, shell: shell)
 
         try await editAndSave(card, page: page, shell: shell)
@@ -59,10 +61,36 @@ extension OrielUITests {
         let label = try await paneLabel(pane(of: opened))
         XCTAssertTrue(label.hasPrefix("oriel:explorer#") && label.hasSuffix(" \(folder)/other.md"), label)
         try await show(tab)
+        follow(card, page: page)
+    }
+
+    /// A relative link shows its file in the card: with no heading, the outline's toggle is off; Back turns it on.
+    private func follow(_ card: String, page: XCUIElement) {
         page.links["Other"].click()
         XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, "other.md", within: 5))
+        XCTAssertTrue(element("pane.\(card).outline").has(\.isEnabled, false, within: 3))
         element("pane.\(card).go-back").click()
         XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, "notes.md", within: 5))
+        XCTAssertTrue(element("pane.\(card).outline").has(\.isEnabled, true, within: 3))
+    }
+
+    /// Read renders what Markdown means, not what it says: `1. 1.` counts up, an item's second paragraph hangs at its
+    /// text, a reference link is a link (its definition hidden), an entity is its character.
+    private func constructs(_ page: XCUIElement) {
+        let text = { (value: String) in
+            page.staticTexts.matching(NSPredicate(format: "value == %@", value)).firstMatch
+        }
+        XCTAssertTrue(text("2.").exists(within: 3))
+        let beta = text("Beta"), more = text("More of beta.")
+        XCTAssertTrue(more.exists)
+        XCTAssertLessThan(
+            abs(more.frame.minX - beta.frame.minX),
+            3,
+            "Beta at \(beta.frame), its paragraph at \(more.frame)",
+        )
+        XCTAssertTrue(page.links["Docs"].exists)
+        XCTAssertFalse(page.staticTexts.matching(NSPredicate(format: "value CONTAINS 'example.com'")).firstMatch.exists)
+        XCTAssertTrue(page.staticTexts.matching(NSPredicate(format: "value CONTAINS '©'")).firstMatch.exists)
     }
 
     /// ⌘E: nothing moves but the clicked line, whose marks show; the others stay hidden; a click on the table shows

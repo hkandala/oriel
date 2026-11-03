@@ -299,3 +299,31 @@ then working and no status when all idle". Build exactly `resources/research/ui/
   and the file come back at once, where they were. Filter, open a match, Back: the matches are still there and the
   keyboard stays in the tree. In Git, scroll the history, open a commit, Back: no jump. ⌘-click three files: the tabs
   open behind and the tree keeps the keyboard. Play a video in Preview and go Back: it stops.
+
+### Track D
+
+- **Cause, items 15–17.** The live preview drew each source line as its own screen line and styled only some nodes.
+  So a soft-wrapped paragraph kept its source breaks (the ragged lists of `1.44.12.png`), a list item's later lines
+  started at the left edge, and reference links, footnotes, entities, inline HTML, setext underlines and `1. 1.` showed
+  as written. Tables broke their words anywhere: CodeMirror's `overflow-wrap: anywhere` gives every cell a one-letter
+  minimum width, and `<code>` fell back to the serif monospace.
+- **Fix.** The live preview moves to `live.ts` and stays one CodeMirror view. A paragraph's soft breaks are replaced
+  by spaces off the caret's paragraph (a state field, as they cross lines), so text flows; an item's later lines hang
+  at its text; numbers count from the list's first; definitions and footnotes come from one field per document change.
+  Inline HTML of text elements, `<br>` and entities draw in place; other inline tags show as written. An element opened
+  in one HTML block and closed in a later one (`<details>` with Markdown inside) draws as one markdown-it block. Tables
+  break a word only when it alone is too wide.
+- **Decisions.** Footnotes stay where they are written (a live preview cannot move text): a raised number links to a
+  definition shown in smaller secondary text after its number. Front matter still shows (dim YAML). `~sub~` and
+  `^sup^` show as written, as on GitHub. Hidden lines (definitions, comments) open with the arrow keys at their edge, as
+  tables do. In Edit the caret's paragraph shows its source lines, so entering a wrapped paragraph changes its height.
+- **Item 14.** The box is drawn by the page (`appearance: none`): 0.95 em, a 1 px border at 40 % text, 0.25 em corners,
+  `vertical-align: middle` (the line's x-height center); ticked, the accent with a white check.
+- **Item 18.** The outline's toggle is enabled only while the file has a heading; the last heading gone closes it.
+- **Numbers.** The block walk for a caret move or a keystroke (Node, the field alone): 1.6 ms and 3.7 ms on 3783
+  lines, 9.2 ms and 17.7 ms on 15 842.
+- **Pictures** (the built pages in headless Chrome with a stand-in API, before at cdf2568f on the left, after on the
+  right, the fixture `resources/research/ui/markdown-syntax.md`): `/tmp/oriel-shots/52d/fixture-{dark,light,edit,
+  edit-light}-{0..3}.png`, and phase 51's file (the user's list) `lists-phase51.png`.
+- **For the user.** Open a doc with wrapped paragraphs and lists (a phase file), and the fixture; ⌘E into a wrapped
+  paragraph and type; tick a box in Read; open a file with no heading and see the outline toggle off.

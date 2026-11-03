@@ -368,37 +368,70 @@ An editable text view (CodeMirror 6).
   preview. It is a 640 pt column, 28 pt under row 2, in the system font 1 pt
   larger than the text size. So a switch moves nothing on screen but the
   caret's line.
-- **Read** is the view with every line drawn and no caret. Marks are hidden:
-  a heading's `#`, emphasis, a link's brackets and address, code ticks,
-  quote marks and code fences. Headings have their size and no line under
-  them: only a `---` rule draws a line. Bullets are `•` and numbers stay. Each
-  list depth indents 1.5 em, and the bullet sits at the end of its indent, so
-  the text and its wrapped lines start at one x. A task's box takes the
-  bullet's place: a top-level box starts at the text's left edge. Quotes have a bar at the left
-  and secondary text. Code blocks have a rounded fill. A `---` rule is a
-  line. Tables and HTML blocks are drawn by markdown-it; HTML comments draw
-  nothing; an escape's backslash hides. Bare addresses are links, except inside a link. Images are
-  not loaded: their alt text is a link to the image. Front matter shows as
-  YAML in 12 pt monospace, secondary. Copy gives the Markdown source of the
-  selection, and Select All the whole file. For VoiceOver, Read is an article
-  with headings, not a text box.
+- **Read** is the view with every line drawn and no caret. It draws
+  CommonMark and GitHub's flavor (GFM). The fixture
+  `resources/research/ui/markdown-syntax.md` holds every construct.
+  - **Marks** are hidden: a heading's `#`, a setext heading's underline,
+    emphasis, a link's brackets and address, code ticks, quote marks, code
+    fences, an indented code block's indent, and the backslash of an escape
+    or a hard break.
+  - **Paragraphs flow.** A line break in the source is a space, so the text
+    wraps at the column's width. A hard break (two spaces or a backslash at
+    the line's end) starts a new line.
+  - **Headings** have their size and no line under them: only a `---` rule
+    draws a line.
+  - **Lists.** Bullets are `•`. Numbers count up from the list's first one, so
+    `1. 1. 1.` shows 1, 2, 3, and `1)` shows `1.`. Each list depth indents
+    1.5 em, and the bullet sits at the end of its indent. So the text, its
+    wrapped lines and its later paragraphs start at one x.
+  - **Task boxes** take the bullet's place: a top-level box starts at the
+    text's left edge. A box is drawn by the page: a thin rounded border,
+    centered on the line's lowercase letters; ticked, it fills with the
+    accent and shows a white check.
+  - **Links.** Inline links, reference links (`[text][ref]`, `[ref][]`,
+    `[ref]`), autolinks and bare addresses are links in the accent. A
+    reference's definition line is hidden. `www.` addresses open with
+    `http://`, e-mail addresses with `mailto:`. Images are not loaded: their
+    alt text is a link to the image.
+  - **Footnotes.** A reference (`[^note]`) is a small raised number, by the
+    order of the definitions. A click scrolls to its definition. A
+    definition stays where it is written, in smaller secondary text, after its
+    number.
+  - **Quotes** have a bar at the left for each depth, and secondary text.
+  - **Code** blocks have a rounded fill. A `---` rule is a line.
+  - **HTML.** Tables and HTML blocks are drawn by markdown-it. An element
+    that opens in one HTML block and closes in a later one (a `<details>`
+    with Markdown inside) is drawn as one. HTML comments draw nothing. Inline
+    HTML elements of text (`<kbd>`, `<sub>`, `<sup>`, `<b>`, `<a href>` and
+    the like) and `<br>` draw as themselves; other inline tags show as
+    written. Entities (`&copy;`) show their character.
+  - **Tables** size their columns to their content. Words wrap only when the
+    table is wider than the column, and a word breaks only when it alone is
+    wider. Code in a table uses the app's monospace.
+  - **Front matter** shows as YAML in 12 pt monospace, secondary.
+  - Copy gives the Markdown source of the selection, and Select All the whole
+    file. For VoiceOver, Read is an article with headings, not a text box.
 - **Task boxes.** A click on a box ticks it or clears it: one character, `x`
   or a space, changes in the file. In Read the card saves it at once, as ⌘S
   does, with any edits not saved yet. In Edit it is an edit like a typed one, saved with ⌘S. Undo takes it
   back in Edit. The boxes of a file that is read only are dimmed and do not
   change.
 - **Edit** makes the view editable. The lines with the caret or the
-  selection show their marks; every other line looks as in Read. A table or
-  an HTML block shows its source while the caret is in it; a click on one
-  puts the caret there. A click in Read and then ⌘E keeps the caret where
+  selection show their marks; every other line looks as in Read. The
+  paragraph with the caret shows its source lines. A table, an HTML block, a
+  setext heading's underline and a hidden definition or comment show their
+  source while the caret is in them; a click on a table or an HTML block puts
+  the caret there. A click in Read and then ⌘E keeps the caret where
   the click was.
 - **⌘E** (View ▸ Edit Mode, checked while editing) switches between Read and
   Edit. ⌘F, ⌘G and ⇧⌘G in Read switch to Edit, where the search panel is.
   Read closes the search panel.
 - **The outline** is a 190 pt column at the left with the document's
-  headings, indented by level. It slides in and out (0.25 s). A click
+  headings, indented by level. A file with no heading has the toggle disabled
+  and the outline closed; the outline closes when the last heading goes. It slides in and out (0.25 s). A click
   scrolls to the heading and in Edit puts the caret on it. `#section` links
-  scroll to the heading with GitHub's id.
+  scroll to the heading with GitHub's id; a second heading of the same name is
+  `#section-1`.
 - Links open from Read only ([Opening](#opening)). A landing with a line
   opens Edit with the caret on that line. A page that loads again starts in
   Read with the outline closed.
@@ -668,10 +701,8 @@ the machine. The limits:
 - A landing and Back and Forward kept over a relaunch, and Viewed marks
   saved.
 - Images in Markdown's Read, and a table view in Edit.
-- In Markdown's live preview: reference links (`[text][ref]`) as links (their
-  definitions stay shown), inline HTML and entities drawn, a setext
-  heading without its underline, hanging continuation lines in a list item,
-  and `-1` anchors for a second heading of the same name.
+- Markdown's footnotes gathered at the end of the page, as on GitHub, and
+  `~sub~` and `^sup^`, which GitHub does not draw either.
 
 ## Choices
 
