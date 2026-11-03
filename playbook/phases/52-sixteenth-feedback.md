@@ -170,7 +170,7 @@ then working and no status when all idle". Build exactly `resources/research/ui/
   or with no scheme, no dot and a host that is neither `localhost` nor IPv6. So `localhost:3000`, `example.com` and
   `foo/bar.html` load; `swift actors`, `oriel` and `devbox:3000` search. A typed path (`/tmp/x.html`) does nothing, as
   before. Only the address field searches: labels, links and `oriel open` never do. Placeholder "Ask Google or type a
-  URL". Pictures: `/tmp/oriel-shots/t52e/address-before.png` → `address-after.png`.
+  URL". Pictures: `/tmp/oriel-shots/t52e/address-before-crop.png` → `address-after-crop.png`.
 - **Fix, tab pills (21).** The phase 49 motion is gone in full (`Transaction.tabMotion`, the scale transition,
   `Ahead.born`, FlickerTests' ⇧⌘W step): `git diff c034b5c3^` is empty for the files it touched, except later work.
 - **Cause, `oriel open` query (26).** `URL(filePath:)` encodes `?` and `#` into the file name (`x.html%3Fv=3`).
