@@ -67,10 +67,13 @@ struct FilterList: View {
     @State private var litID: String?
     /// The rows' own height: the list is as tall as its rows, up to `maxHeight`, then scrolls.
     @State private var rowsHeight: CGFloat = 0
-    /// Where the pointer was when the panel opened, or keys or the filter last moved the light: only a pointer
-    /// moved since lights a row, not a row that scrolls under a pointer at rest. Not the last hover's place: a
-    /// busy app runs a row's hover late, with the pointer already on the next row, which then saw no move.
+    /// Where the pointer was when the panel opened, keys or the filter last moved the light, or the list last
+    /// scrolled: only a pointer moved since lights a row, not a row that scrolls under a pointer at rest. Not the last
+    /// hover's place: a busy app runs a row's hover late, with the pointer already on the next row, which then saw no
+    /// move.
     @State private var pointer = NSEvent.mouseLocation
+    /// Takes each scroll's pointer before the rows move under it.
+    @State private var scrolls: Any?
     /// The pointer lit the row: no scroll to it, as in a menu.
     @State private var pointed = false
 
@@ -137,7 +140,17 @@ struct FilterList: View {
                 }
             }
         }
-        .onAppear { filter = text }
+        .onAppear {
+            filter = text
+            scrolls = NSEvent.addLocalMonitorForEvents(matching: .scrollWheel) { event in
+                MainActor.assumeIsolated { pointer = NSEvent.mouseLocation }
+                return event
+            }
+        }
+        .onDisappear {
+            scrolls.map(NSEvent.removeMonitor)
+            scrolls = nil
+        }
         // A cleared filter lights the start row again.
         .onChange(of: filter) {
             pointed = false

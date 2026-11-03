@@ -37,6 +37,24 @@ extension OrielUITests {
         XCTAssertLessThan(element("pane.\(pane)").frame.maxX, element("pane.\(other)").frame.minX)
     }
 
+    /// The pointer lights a row; the list scrolled under the still pointer keeps the light where it was (user, phase
+    /// 52); a move lights the row under it again.
+    func testPaletteLightStaysWhileTheListScrolls() {
+        XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
+        openPalette()
+        let lit = element("palette.command.New Tab"), other = element("palette.command.Close Other Tabs")
+        XCTAssertTrue(lit.exists(within: 2))
+        lit.hover()
+        XCTAssertTrue(lit.has(\.isSelected, true, within: 2))
+        let top = lit.frame.minY
+        lit.scroll(byDeltaX: 0, deltaY: -40)
+        XCTAssertTrue(until(2) { lit.frame.minY < top - 10 }, "not scrolled: \(top) → \(lit.frame.minY)")
+        XCTAssertFalse(until(1) { !lit.isSelected }, "the light followed the scroll")
+        other.hover()
+        XCTAssertTrue(other.has(\.isSelected, true, within: 2))
+        app.typeKey(.escape, modifierFlags: [])
+    }
+
     /// Rename Tab › holds the current name; Enter saves it to herdr. ⌫ on an empty field goes back to the root.
     func testPaletteRenamesTheTab() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
