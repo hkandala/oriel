@@ -348,3 +348,37 @@ then working and no status when all idle". Build exactly `resources/research/ui/
   edit-light}-{0..3}.png`, and phase 51's file (the user's list) `lists-phase51.png`.
 - **For the user.** Open a doc with wrapped paragraphs and lists (a phase file), and the fixture; ⌘E into a wrapped
   paragraph and type; tick a box in Read; open a file with no heading and see the outline toggle off.
+
+### Final review fixes
+
+- **Docs pass.** The track pages matched the code. Fixed: the chat's history spinner was also called "the loader",
+  the name of the Working row. The talking-to-herdr row said a ⌘-click selects its tab. The glossary had badges and
+  no kept page or background open. Features had no background opens and no kept places.
+- **Cause, angle-bracket links (Track D).** Lezer's `URL` node holds the `<>` of `[a](<my file.md>)`, and the live
+  preview's link took it whole (the old `href()` stripped it), so the link opened `<my file.md>`. **Fix:** `target()`
+  strips it for every link. Inline HTML `<code>` and `<samp>` fell back to WebKit's serif Courier: one rule gives every
+  code element the app's monospace. Also an image with no alt text links its address, a `<details>` over HTML blocks
+  merges inside a list item too, and a cut-off syntax tree no longer closes the outline. The fixture has each.
+- **Cause, Show Earlier (Track A).** The scroll position was bound through a closure the body never read, so Show
+  Earlier's offset reached the scroll view only because `earlier` changed in the same action. **Fix:** it is read
+  into the body as a `.constant` binding, which still drops the scroll view's writes. The bubble's place is one
+  modifier (`replyPlace`, `ChatView.gutter`). The end-of-chat test checks the swipe that leaves the bottom too and
+  allows 6 pt (3.5 measured).
+- **Decisions, the sticky header copy (Track C).** It stays. CodeView turns pierre's virtualization buffers off, so a
+  file's box spans only the drawn lines and no option keeps its header in CSS alone. `overscrollSize` only shortens
+  the blank frames; pierre's simple `Virtualizer` keeps the buffers but is a rewrite of the diff page. The comment
+  names pierre 1.6's container order, which a bump of `@pierre/diffs` must check.
+- **Fix, kept pages (Track B).** A move to a page still being drawn kept no landing: the page's place handlers get it
+  when it shows. Control records compare by sorted keys, so an equal control is not sent again on each switch. File
+  Explorer drops its `keep()` around the scoped handlers and watches, and its editor and Markdown take the keyboard
+  only while their page shows.
+- **Tests.** The background-open checks read the card's tab once, as the bar showed the new tab, but the app follows
+  a moment later: they now wait 0.5 s for a change that must not come. `StateIcon` lost its unused size, and its
+  three accessibility copies are one modifier.
+- **Runs.** 41636711212, the 16 UI tests of the touched code (the chat's end and Show Earlier, tool rows, the
+  palette, state icons, the hover card, Markdown, File Explorer, Git, the browser's new tabs) at 81814ea7: green.
+- **Left as nits.** Two chat scroll-geometry observers not merged; Markdown's per-keystroke walks (under their
+  `ponytail:` note), a two-line setext heading not joined, `<style>` and `<img>` in HTML blocks (the CSP covers
+  scripts); the width asserts stay in the end-of-chat test.
+- **For the user.** In File Explorer, open a Markdown file with `[a](<other file.md>)` and inline `<code>`: the link
+  opens the file, the code is in the app's monospace.
