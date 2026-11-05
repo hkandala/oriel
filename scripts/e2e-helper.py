@@ -17,7 +17,7 @@ POST /<session>/open-url with the built app's path, a newline and an ovvi:// URL
 a launch gets the tests' config folder).
 POST /<session>/file-drag with "x y tx ty" (screen points) as the body makes a file whose name needs shell escaping in
 a new folder in /tmp (its one line: ovvi-e2e-dropped), shows its icon at x y in a window of scripts/file-drag.swift
-and drags it to tx ty (scripts/drag.swift: both points in an Ovvi window). The file's path comes back once a drop took it.
+and drags it to tx ty (both points in an Ovvi window). The file's path comes back once a drop took it.
 POST /<session>/usage with a number of seconds as the body measures the app (the one process named Ovvi, on CI) over
 that time: its footprint (`footprint`'s summary), its CPU and the session's `terminal session` runs, count and memory;
 and the app's, WebKit's and all its processes' count, footprint, CPU, threads and interrupt wake-ups (scripts/usage.swift).
@@ -185,13 +185,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
             with open(path, "w") as file:
                 file.write("ovvi-e2e-dropped\n")
             x, y, tx, ty = body.decode().split()
-            source = subprocess.Popen([f"{tools}/file-drag", path, x, y], stdout=subprocess.PIPE,
-                                      stderr=subprocess.PIPE)
-            source.stdout.readline()  # "up": its window is up
-            drag = subprocess.run([f"{tools}/drag", x, y, tx, ty, "0.5"], capture_output=True, timeout=30)
-            _, error = source.communicate(timeout=30)
+            source = subprocess.run([f"{tools}/file-drag", path, x, y, tx, ty], capture_output=True, timeout=30)
             status, reply = (200, path.encode()) if source.returncode == 0 else (
-                500, drag.stderr + error or b"the drop was refused")
+                500, source.stderr or b"the drop was refused")
         elif action == "usage":
             status, reply = 200, usage(session, float(body or b"10"))
         elif action == "start":
