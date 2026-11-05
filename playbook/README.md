@@ -69,3 +69,4 @@ run and test it is in the root `README.md`.
 | 51 | Fifteenth feedback: our own states, File Explorer and Git polish, palette keycaps, CLI additions | [51-fifteenth-feedback.md](phases/51-fifteenth-feedback.md) |
 | 52 | Sixteenth feedback: clean back and forth, Markdown done right, the sidebar's final design | [52-sixteenth-feedback.md](phases/52-sixteenth-feedback.md) |
 | 53 | Seventeenth feedback: a Finder-like File Explorer, one file-card header, clean Git diffs, the active pane | [53-seventeenth-feedback.md](phases/53-seventeenth-feedback.md) |
+| 54 | Rename the app to Ovvi, its website ovvi.dev | [54-rename.md](phases/54-rename.md) |
