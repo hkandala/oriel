@@ -37,36 +37,30 @@ extension CommandList {
 /// The card's page (ui/browser#the-card).
 struct BrowserCard: View {
     let browser: Browser
+    let page: Page
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        WebHost(view: browser.view)
+        let shows = browser.ready && browser.failure == nil && browser.asking == nil && browser.loaded
+        // A network switch makes a new web view.
+        WebHost(view: browser.view).id(ObjectIdentifier(browser.view))
             .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
             .padding([.horizontal, .bottom], 6)
-            .opacity(browser.ready && browser.failure == nil && browser.asking == nil && browser.loaded ? 1 : 0)
+            .opacity(shows ? 1 : 0)
             .overlay(alignment: .top) {
                 if browser.loading {
                     ProgressView(value: browser.progress).progressViewStyle(.linear).tint(.accentColor)
                         .frame(height: 2).scaleEffect(y: 0.5)
                 }
             }
+            // A click anywhere on the empty, error or loading card makes it the keyboard card, as one on a page
+            // does: the hidden web view takes no click.
             .overlay {
-                if let failure = browser.failure {
-                    failed(failure.text, hint: failure.hint)
-                } else if let url = browser.asking {
-                    Asking(browser: browser, url: url)
-                } else if !browser.ready {
-                    // A card made again (its old one dropped, ui/browser): its last picture until its page drew.
-                    if let picture = browser.view.shot.image, let pane = browser.store?.pane(browser.paneID) {
-                        CardPicture(picture: picture, pane: pane)
-                    } else {
-                        PluginLoader(plugin: Registry.browser)
+                if !shows {
+                    cover.frame(maxWidth: .infinity, maxHeight: .infinity).contentShape(.rect).onTapGesture {
+                        page.tookKeyboard(browser.terminalID)
+                        browser.takeKeyboard()
                     }
-                } else if !browser.loaded {
-                    Image(systemName: "globe").font(.system(size: 44, weight: .light)).foregroundStyle(.tertiary)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity).contentShape(.rect)
-                        .onTapGesture { browser.wantsAddress = true }
-                        .accessibilityIdentifier("browser.\(browser.paneID).empty")
                 }
             }
             .overlay {
@@ -79,6 +73,24 @@ struct BrowserCard: View {
                 : .easeOut(duration: 0.15), value: browser.ready)
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("browser.\(browser.paneID).card")
+    }
+
+    @ViewBuilder private var cover: some View {
+        if let failure = browser.failure {
+            failed(failure.text, hint: failure.hint)
+        } else if let url = browser.asking {
+            Asking(browser: browser, url: url)
+        } else if !browser.ready {
+            // A card made again (its old one dropped, ui/browser): its last picture until its page drew.
+            if let picture = browser.view.shot.image, let pane = browser.store?.pane(browser.paneID) {
+                CardPicture(picture: picture, pane: pane)
+            } else {
+                PluginLoader(plugin: Registry.browser)
+            }
+        } else {
+            Image(systemName: "globe").font(.system(size: 44, weight: .light)).foregroundStyle(.tertiary)
+                .accessibilityIdentifier("browser.\(browser.paneID).empty")
+        }
     }
 
     private func failed(_ text: String, hint: String?) -> some View {
@@ -228,14 +240,14 @@ struct BrowserToolbar: View {
                         .onTapGesture { editing = true }
                 }
             }
-            // A remote machine's name: its `localhost` is that machine's.
+            // A remote machine's name: its `localhost` is that machine's. A click loads through This Mac's network.
             .safeAreaInset(edge: .trailing, spacing: 4) {
-                if browser.alias != nil {
+                if remote {
                     machine.accessibilityIdentifier("\(id).machine")
                 }
             }
             .padding(.leading, 10)
-            .padding(.trailing, browser.alias == nil ? 10 : 4)
+            .padding(.trailing, remote ? 4 : 10)
             .frame(minWidth: 120, maxWidth: .infinity, minHeight: 26, maxHeight: 26)
             .background(Capsule().fill(.primary.opacity(hovering && !editing ? 0.1 : 0.06)))
             .pointerStyle(.horizontalText).onHover { hovering = $0 }
@@ -271,11 +283,24 @@ struct BrowserToolbar: View {
             }
     }
 
+    private var remote: Bool {
+        page.store.machine.isRemote
+    }
+
+    /// The machine's name in its color, or a plain "This Mac" while the card loads through This Mac's network.
     private var machine: some View {
-        Text(page.store.machine.name).font(.system(size: 11)).foregroundStyle(look.needsYou).lineLimit(1)
-            .padding(.horizontal, 6).padding(.vertical, 2)
-            .background(Capsule().fill(look.needsYou.opacity(0.18)))
-            .fixedSize()
+        let name = page.store.machine.name, mac = browser.viaMac
+        return Button(action: browser.toggleNetwork) {
+            Text(mac ? Machine.thisMac.name : name).font(.system(size: 11)).lineLimit(1)
+                .foregroundStyle(mac ? AnyShapeStyle(.secondary) : AnyShapeStyle(look.needsYou))
+                .padding(.horizontal, 6).padding(.vertical, 2)
+                .background(Capsule().fill(mac ? Color.primary.opacity(0.08) : look.needsYou.opacity(0.18)))
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .pointerStyle(.default)
+        .fixedSize()
+        .help(mac ? "Load through \(name)" : "Load through This Mac's network")
     }
 
     /// From the next turn (a first responder set during an update is undone), again every 50 ms while a card just
@@ -338,7 +363,7 @@ struct FloatingBrowser: View {
     var body: some View {
         VStack(spacing: 0) {
             BrowserToolbar(browser: browser, page: page).padding(.horizontal, 11).frame(height: PaneCard.header)
-            BrowserCard(browser: browser)
+            BrowserCard(browser: browser, page: page)
         }
         .onAppear { browser.takeKeyboard() }
     }

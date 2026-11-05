@@ -57,7 +57,7 @@ struct PaneCard: View {
                 if let pane, floated {
                     FloatedPlaceholder(page: page, pane: pane)
                 } else if let browser {
-                    BrowserCard(browser: browser)
+                    BrowserCard(browser: browser, page: page)
                 } else if let plugin {
                     PluginCard(plugin: plugin, page: page)
                 } else if let pane, let label = pane.plugin, terminal == nil {

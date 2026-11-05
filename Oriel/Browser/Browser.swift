@@ -11,9 +11,10 @@ final class Browser: NSObject {
     var paneID: String
     let label: PaneLabel
     @ObservationIgnored weak var store: HostStore?
-    @ObservationIgnored let view: BrowserView
+    /// Made again when the card changes its network (`toggleNetwork`).
+    private(set) var view: BrowserView
     /// As the address field shows it when not editing; empty before the first load.
-    private(set) var address = ""
+    var address = ""
     private(set) var title = ""
     /// The page's icon and where it came from; nil: the globe.
     var icon: (href: String, image: NSImage?)?
@@ -22,13 +23,13 @@ final class Browser: NSObject {
     private(set) var canGoBack = false
     private(set) var canGoForward = false
     /// A failed load, in the app's words, and the line under it.
-    private(set) var failure: (text: String, hint: String?)?
+    var failure: (text: String, hint: String?)?
     /// A page from an origin not approved, which the machine put in the label or the state file: "Open ‹url›?".
     private(set) var asking: URL?
     /// The web view has shown a page; until then it stays hidden (an empty one draws white).
-    private(set) var loaded = false
+    var loaded = false
     /// The loader shows until the first page drew, or at once with nothing to load.
-    private(set) var ready = false
+    var ready = false
     /// A `window.open` page (OAuth needs its opener) over the card, and its host.
     var popup: (view: WKWebView, host: String)?
     /// The address field takes the keyboard when it shows, or now (⌘L, a new empty card).
@@ -43,12 +44,18 @@ final class Browser: NSObject {
     /// The saved back and forward list (WebKit's `interactionState`), restored with the saved page.
     @ObservationIgnored private var history: Data?
     /// The page's process ended since the last load finished: it loads again once.
-    @ObservationIgnored private var reloaded = false
+    @ObservationIgnored var reloaded = false
     @ObservationIgnored private var watches: [NSKeyValueObservation] = []
     @ObservationIgnored private var saving: Task<Void, Never>?
-    /// A remote machine's `<machine>` in `<machine>.localhost`, and its proxy, which every load waits for.
-    @ObservationIgnored let alias: String?
+    /// A remote machine's `<machine>` in `<machine>.localhost`; its proxy, which every load waits for.
+    @ObservationIgnored private let remoteAlias: String?
     @ObservationIgnored private var proxy: Task<SSHExec?, Never>?
+    /// A remote machine's card that loads through This Mac's network (ui/browser#this-macs-network).
+    private(set) var viaMac: Bool
+    /// The alias its loads use: none on This Mac's network.
+    var alias: String? {
+        viaMac ? nil : remoteAlias
+    }
 
     init(terminalID: String, paneID: String, label: PaneLabel, store: HostStore) {
         self.terminalID = terminalID
@@ -60,28 +67,12 @@ final class Browser: NSObject {
         reading = !label.arg.isEmpty
         self.store = store
         let machine = store.machine
-        alias = machine.isRemote ? Self.alias(machine.name) : nil
-        let configuration = WKWebViewConfiguration()
-        let data = Self.dataStore(machine)
-        configuration.websiteDataStore = data
-        // Sites that sniff for Safari work.
-        configuration.applicationNameForUserAgent = "Version/18.0 Safari/605.1.15"
-        // `_inspector show` opens nothing without it.
-        configuration.preferences.setValue(true, forKey: "developerExtrasEnabled")
-        view = BrowserView(frame: .zero, configuration: configuration)
+        remoteAlias = machine.isRemote ? Self.alias(machine.name) : nil
+        let viaMac = machine.isRemote && Self.viaMacCards(machine).contains("\(store.session)/\(label.iid)")
+        self.viaMac = viaMac
+        view = BrowserView(store: Self.dataStore(viaMac ? .thisMac : machine))
         super.init()
-        if machine.isRemote {
-            let content = view.configuration.userContentController
-            proxy = Task { await Self.proxy(machine, data, content) }
-        }
-        // Safari's Develop menu reaches every card.
-        view.isInspectable = true
-        view.allowsBackForwardNavigationGestures = true
-        view.navigationDelegate = self
-        view.uiDelegate = self
-        view.onKey = { [weak self] in self?.key($0) ?? false }
-        view.setAccessibilityIdentifier("browser.\(paneID)")
-        watches = watch()
+        wire()
         Task { await start() }
     }
 
@@ -104,15 +95,18 @@ final class Browser: NSObject {
             mirror(\.canGoBack) { $0.canGoBack = $0.view.canGoBack },
             mirror(\.canGoForward) { $0.canGoForward = $0.view.canGoForward },
             mirror(\.title) { $0.title = $0.view.title ?? "" },
-            mirror(\.url) { browser in
-                guard let url = browser.view.url, url.absoluteString != "about:blank" else { return }
-                browser.address = Self.shown(url, browser.alias).absoluteString
-                // A single-page app's route (`pushState`) finishes no navigation.
-                if browser.loaded {
-                    browser.save()
-                }
-            },
+            mirror(\.url) { $0.showAddress() },
         ]
+    }
+
+    /// The page's address in the field. A failed load keeps its own: WebKit goes back to the last page's.
+    func showAddress() {
+        guard failure == nil, let url = view.url, url.absoluteString != "about:blank" else { return }
+        address = Self.shown(url, alias).absoluteString
+        // A single-page app's route (`pushState`) finishes no navigation.
+        if loaded {
+            save()
+        }
     }
 
     /// The load rule: the saved address (the state file on the pane's machine), else the label's; a machine's own
@@ -243,7 +237,7 @@ final class Browser: NSObject {
 
     /// At once on This Mac; on a remote machine once its proxy is in the store, never without it:
     /// `<machine>.localhost` would reach This Mac.
-    private func proxied(_ load: @escaping () -> Void) {
+    func proxied(_ load: @escaping () -> Void) {
         guard let proxy else { return load() }
         Task {
             guard await proxy.value != nil else {
@@ -286,7 +280,7 @@ final class Browser: NSObject {
 
     /// The address after a navigation, on the pane's machine, 500 ms after the last one; last writer wins.
     /// The back and forward list too, while it is under 128 KiB (the state file holds at most 256 KiB).
-    private func save() {
+    func save() {
         guard let store, let url = view.url.map({ Self.shown($0, alias).absoluteString }), url != "about:blank"
         else { return }
         var state = ["url": url]
@@ -304,72 +298,50 @@ final class Browser: NSObject {
     }
 }
 
-extension Browser: WKNavigationDelegate {
-    func webView(_: WKWebView, didCommit _: WKNavigation!) {
-        failure = nil
-        loaded = true
-    }
-
-    func webView(_: WKWebView, didFinish _: WKNavigation!) {
-        ready = true
-        reloaded = false
-        save()
-        loadIcon()
-    }
-
-    func webView(_: WKWebView, didFail _: WKNavigation!, withError error: any Error) {
-        failed(error)
-    }
-
-    func webView(_: WKWebView, didFailProvisionalNavigation _: WKNavigation!, withError error: any Error) {
-        failed(error)
-    }
-
-    private func failed(_ error: any Error) {
-        ready = true
-        let error = error as NSError
-        // A load replaced by another, or a download.
-        guard error.code != NSURLErrorCancelled,
-              error.domain != "WebKitErrorDomain" || error.code != 102 else { return }
-        let url = (error.userInfo[NSURLErrorFailingURLErrorKey] as? URL).map { Self.shown($0, alias) }
-            ?? URL(string: address)
-        failure = failureText(error, url)
-    }
-
-    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
-        guard !reloaded else { return }
-        reloaded = true
-        webView.reload()
-    }
-
-    /// A `mailto:` or an app's link clicked in the page goes to its app; the page stays. Never from script or a frame.
-    /// A ⌘-clicked page opens in a new tab.
-    func webView(_: WKWebView, decidePolicyFor action: WKNavigationAction) async -> WKNavigationActionPolicy {
-        if action.navigationType == .linkActivated, action.modifierFlags.contains(.command),
-           let url = action.request.url, openTab(url)
-        {
-            return .cancel
+/// Its web view, which a network switch makes again.
+extension Browser {
+    /// The web view's delegates and watches, and its machine's proxy when it loads through the machine.
+    private func wire() {
+        view.navigationDelegate = self
+        view.uiDelegate = self
+        view.onKey = { [weak self] in self?.key($0) ?? false }
+        view.setAccessibilityIdentifier("browser.\(paneID)")
+        watches = watch()
+        if alias != nil, let machine = store?.machine {
+            let data = view.configuration.websiteDataStore, content = view.configuration.userContentController
+            proxy = Task { await Self.proxy(machine, data, content) }
         }
-        // A remote page's link or redirect to `localhost` means its machine's, sent as it is (an OAuth `form_post`
-        // keeps its body). The content rule blocks the rest (`proxy`).
-        if alias != nil, action.targetFrame?.isMainFrame == true, let url = action.request.url,
-           Self.loopback.contains(url.host?.lowercased() ?? "")
-        {
-            var request = action.request
-            request.url = Self.web(url, alias)
-            proxied { self.view.load(request) }
-            return .cancel
+    }
+
+    /// The machine chip: the field's address again on This Mac's network, or back through the machine, in a new web
+    /// view (a store's network is fixed), with its back and forward list unless that load had failed.
+    func toggleNetwork() {
+        guard let store, store.machine.isRemote else { return }
+        viaMac.toggle()
+        Self.keep(viaMac, "\(store.session)/\(label.iid)", store.machine)
+        let old = view
+        old.navigationDelegate = nil
+        old.stopLoading()
+        closePopup()
+        if let proxy {
+            Task { await proxy.value?.closeProxy() }
         }
-        // A remote card never shows This Mac's files (a history entry or a script may ask for one).
-        if alias != nil, action.request.url?.isFileURL == true {
-            return .cancel
+        proxy = nil
+        view = BrowserView(store: Self.dataStore(viaMac ? .thisMac : store.machine))
+        (view.onKeyboard, view.pictured) = (old.onKeyboard, old.pictured)
+        wire()
+        if old.window?.firstResponder === old {
+            view.takeKeyboard()
         }
-        guard let url = action.request.url,
-              !["http", "https", "file", "about", "blob", "data"].contains(url.scheme?.lowercased() ?? "")
-        else { return .allow }
-        if action.navigationType == .linkActivated, action.targetFrame?.isMainFrame != false {
-            NSWorkspace.shared.open(url)
+        (loaded, ready, failure) = (false, false, nil)
+        // "Open this page?" still asks.
+        guard asking == nil, let url = URL(string: address) else {
+            ready = true
+            return
         }
-        return .cancel
+        approve(url)
+        let current = old.url.map { Self.shown($0, remoteAlias).absoluteString }
+        history = current == address ? old.interactionState as? Data : nil
+        restore(url)
     }
 }

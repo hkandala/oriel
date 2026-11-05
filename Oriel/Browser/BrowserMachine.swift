@@ -54,16 +54,28 @@ extension Browser {
     static func forget(_ machine: Machine) {
         stores[machine.id] = nil
         UserDefaults.standard.removeObject(forKey: "browserApprovals.\(machine.id)")
+        UserDefaults.standard.removeObject(forKey: "browserViaMac.\(machine.id)")
         if let id = UUID(uuidString: machine.id) {
             Task { try? await WKWebsiteDataStore.remove(forIdentifier: id) }
         }
     }
 
+    /// The machine's cards on This Mac's network (`<session>/<iid>`), the newest 200, in the app's defaults.
+    static func viaMacCards(_ machine: Machine) -> [String] {
+        UserDefaults.standard.stringArray(forKey: "browserViaMac.\(machine.id)") ?? []
+    }
+
+    static func keep(_ viaMac: Bool, _ card: String, _ machine: Machine) {
+        let cards = viaMacCards(machine).filter { $0 != card } + (viaMac ? [card] : [])
+        UserDefaults.standard.set(Array(cards.suffix(200)), forKey: "browserViaMac.\(machine.id)")
+    }
+
     // MARK: Origins
 
+    /// The loopback is safe only as the machine's own: through This Mac's network it is This Mac's.
     func approved(_ url: URL) -> Bool {
         guard let host = url.host?.lowercased() else { return url.isFileURL && store?.machine.isRemote == false }
-        return Self.loopback.contains(host) || host.hasSuffix(".localhost") || Self.safe.contains(host)
+        return !viaMac && (Self.loopback.contains(host) || host.hasSuffix(".localhost")) || Self.safe.contains(host)
             || host.hasSuffix(".vercel.app") || host.hasSuffix(".netlify.app") || approvals.contains(Self.origin(url))
     }
 

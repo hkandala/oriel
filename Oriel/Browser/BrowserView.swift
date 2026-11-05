@@ -19,6 +19,20 @@ class BrowserView: WKWebView {
         var image: CGImage?
     }
 
+    /// A browser card's, on its machine's store (or This Mac's).
+    convenience init(store: WKWebsiteDataStore) {
+        let configuration = WKWebViewConfiguration()
+        configuration.websiteDataStore = store
+        // Sites that sniff for Safari work.
+        configuration.applicationNameForUserAgent = "Version/18.0 Safari/605.1.15"
+        // `_inspector show` opens nothing without it.
+        configuration.preferences.setValue(true, forKey: "developerExtrasEnabled")
+        self.init(frame: .zero, configuration: configuration)
+        // Safari's Develop menu reaches every card.
+        isInspectable = true
+        allowsBackForwardNavigationGestures = true
+    }
+
     /// The key window's browser that has the keyboard: ⌘+ ⌘− ⌘0 zoom its page.
     static var focused: BrowserView? {
         // Not a web card's: it keeps its text size, and the keys size the terminals' text.

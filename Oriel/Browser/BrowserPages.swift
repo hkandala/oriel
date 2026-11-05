@@ -2,6 +2,81 @@ import AppKit
 import HerdrKit
 import WebKit
 
+/// How a card's pages load, fail and follow links.
+extension Browser: WKNavigationDelegate {
+    func webView(_: WKWebView, didCommit _: WKNavigation!) {
+        failure = nil
+        loaded = true
+        showAddress()
+    }
+
+    func webView(_: WKWebView, didFinish _: WKNavigation!) {
+        ready = true
+        reloaded = false
+        save()
+        loadIcon()
+    }
+
+    func webView(_: WKWebView, didFail _: WKNavigation!, withError error: any Error) {
+        failed(error)
+    }
+
+    func webView(_: WKWebView, didFailProvisionalNavigation _: WKNavigation!, withError error: any Error) {
+        failed(error)
+    }
+
+    private func failed(_ error: any Error) {
+        ready = true
+        let error = error as NSError
+        // A load replaced by another, or a download.
+        guard error.code != NSURLErrorCancelled,
+              error.domain != "WebKitErrorDomain" || error.code != 102 else { return }
+        let url = (error.userInfo[NSURLErrorFailingURLErrorKey] as? URL).map { Self.shown($0, alias) }
+            ?? URL(string: address)
+        failure = failureText(error, url)
+        if let url {
+            address = url.absoluteString
+        }
+    }
+
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        guard !reloaded else { return }
+        reloaded = true
+        webView.reload()
+    }
+
+    /// A `mailto:` or an app's link clicked in the page goes to its app; the page stays. Never from script or a frame.
+    /// A ⌘-clicked page opens in a new tab.
+    func webView(_: WKWebView, decidePolicyFor action: WKNavigationAction) async -> WKNavigationActionPolicy {
+        if action.navigationType == .linkActivated, action.modifierFlags.contains(.command),
+           let url = action.request.url, openTab(url)
+        {
+            return .cancel
+        }
+        // A remote page's link or redirect to `localhost` means its machine's, sent as it is (an OAuth `form_post`
+        // keeps its body). The content rule blocks the rest (`proxy`).
+        if alias != nil, action.targetFrame?.isMainFrame == true, let url = action.request.url,
+           Self.loopback.contains(url.host?.lowercased() ?? "")
+        {
+            var request = action.request
+            request.url = Self.web(url, alias)
+            proxied { self.view.load(request) }
+            return .cancel
+        }
+        // A remote card never shows This Mac's files (a history entry or a script may ask for one).
+        if store?.machine.isRemote == true, action.request.url?.isFileURL == true {
+            return .cancel
+        }
+        guard let url = action.request.url,
+              !["http", "https", "file", "about", "blob", "data"].contains(url.scheme?.lowercased() ?? "")
+        else { return .allow }
+        if action.navigationType == .linkActivated, action.targetFrame?.isMainFrame != false {
+            NSWorkspace.shared.open(url)
+        }
+        return .cancel
+    }
+}
+
 /// What a page asks of its card: new windows, dialogs and file panels.
 extension Browser: WKUIDelegate {
     /// `window.open` (an OAuth popup keeps its opener) in a sheet over the card. A link that asks for a new window
@@ -94,6 +169,10 @@ extension Browser {
         else { return false }
         approve(url)
         let label = store.newLabel(Registry.browser, arg: url.absoluteString)
+        // On the network of the card it came from.
+        if viaMac {
+            Self.keep(true, "\(store.session)/\(label.iid)", store.machine)
+        }
         Task {
             await store.write {
                 _ = try await $0.newTab(workspace: workspace.id, cwd: pane.cwd ?? "~", label: label.text,

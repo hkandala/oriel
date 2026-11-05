@@ -43,7 +43,7 @@ extension OrielUITests {
 
     /// One browser pane on two machines at once: This Mac's window loads This Mac's `localhost:<port>` directly, Key
     /// Host's loads Key Host's through its proxy (sshd connects) as `key-host.localhost`, and shows `localhost` with
-    /// the machine's name.
+    /// the machine's name. The name's chip loads the page on This Mac's network, and back.
     func testARemoteBrowserCardLoadsItsMachinesLocalhost() async throws {
         try await skipWithoutSSH()
         relaunch(one, ["-machines", Self.keyHost])
@@ -74,8 +74,20 @@ extension OrielUITests {
         XCTAssertTrue(page.exists(within: connect))
         XCTAssertTrue((page.value as? String ?? "").hasSuffix("host=key-host.localhost:\(port)"), "\(page.value ?? "")")
         XCTAssertEqual(element("browser.\(browser).address", in: remote).value as? String, "http://localhost:\(port)/")
-        XCTAssertTrue(element("browser.\(browser).machine", in: remote).exists)
+        let chip = element("browser.\(browser).machine", in: remote)
+        XCTAssertEqual(chip.label, "Key Host")
         keepScreenshot("remote browser card", of: remote)
+
+        // The chip loads the page again on This Mac's network, and back through Key Host.
+        chip.click()
+        let mac = whoText("via=com.apple.WebKit", in: remote)
+        XCTAssertTrue(mac.exists(within: 10))
+        XCTAssertTrue((mac.value as? String ?? "").hasSuffix("host=localhost:\(port)"), "\(mac.value ?? "")")
+        XCTAssertEqual(chip.label, "This Mac")
+        keepScreenshot("remote browser card on This Mac's network", of: remote)
+        chip.click()
+        XCTAssertTrue(whoText("via=sshd", in: remote).exists(within: connect))
+        XCTAssertEqual(chip.label, "Key Host")
 
         // A port nothing listens on: the proxy's refusal at once (ssh's own close made WebKit wait 60 s).
         element("browser.\(browser).address", in: remote).click()
@@ -83,5 +95,8 @@ extension OrielUITests {
         let message = element("browser.\(browser).message", in: remote)
         XCTAssertTrue(until(5) { message.value as? String == "Nothing answers on localhost:\(port + 1) on Key Host" },
                       "\(message.value ?? "")")
+        // The field keeps the address that failed.
+        let address = element("browser.\(browser).address", in: remote).value as? String ?? ""
+        XCTAssertTrue(address.hasPrefix("http://localhost:\(port + 1)"), address)
     }
 }
