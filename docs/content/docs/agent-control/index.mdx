@@ -40,7 +40,8 @@ The `oriel` skill, in `skills/oriel/` of the Oriel repo, teaches an agent the
   `~/.agents/skills/oriel` (pi and Codex) and `~/.claude/skills/oriel`
   (Claude Code). It leaves an `oriel` skill that is already there alone.
 - **On a remote machine,** copy the folder to the same places, for example
-  `scp -r skills/oriel <machine>:.agents/skills/`. Oriel does not install
+  `ssh <machine> mkdir -p .agents/skills && scp -r skills/oriel
+  <machine>:.agents/skills/`. Oriel does not install
   it there.
 
 ## What Oriel does, and what stays herdr

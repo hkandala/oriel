@@ -135,7 +135,8 @@ struct FilterList: View {
                     // (Font Size).
                     .onChange(of: rowsHeight > 0 ? index : nil) {
                         if !pointed, items.indices.contains(index) {
-                            proxy.scrollTo(items[index].id)
+                            // The last row to the end, with the gap after it.
+                            proxy.scrollTo(items[index].id, anchor: index == items.count - 1 ? .top : nil)
                         }
                     }
                 }

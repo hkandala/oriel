@@ -26,7 +26,7 @@ struct OpenSession: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             FilterList(prompt: "Name a new session, or find one", name: "open-session", items: items,
-                       maxHeight: 320, inset: 8) {}
+                       maxHeight: 320, inset: failure == nil ? 8 : 0) {}
             if let failure {
                 NoticeCapsule(tone: .error, text: failure.text) {
                     Button("Retry", action: failure.retry).accessibilityIdentifier("notice.retry")

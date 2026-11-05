@@ -38,14 +38,13 @@ extension OrielUITests {
     }
 
     /// The pointer lights a row; the list scrolled under the still pointer keeps the light where it was; a move
-    /// lights the row under it again. The list runs to the panel's bottom edge, so a cut row is cut there.
+    /// lights the row under it again. The list's bottom padding sits after its last row, inside the scroll: a row is
+    /// cut at the panel's edge, and the gap shows only at the end.
     func testPaletteLightStaysWhileTheListScrolls() {
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         openPalette()
         let lit = element("palette.command.New Tab"), other = element("palette.command.Close Other Tabs")
         XCTAssertTrue(lit.exists(within: 2))
-        let panel = element("palette").frame, list = element("palette").scrollViews.firstMatch.frame
-        XCTAssertEqual(list.maxY, panel.maxY, accuracy: 1, "list \(list), panel \(panel)")
         lit.hover()
         XCTAssertTrue(lit.has(\.isSelected, true, within: 2))
         // The pointer rests on the row's middle: the scroll takes the row off it.
@@ -55,6 +54,11 @@ extension OrielUITests {
         XCTAssertFalse(until(0.5) { !lit.isSelected }, "the light followed the scroll")
         other.hover()
         XCTAssertTrue(other.has(\.isSelected, true, within: 2))
+
+        let list = app.scrollViews.containing(.button, identifier: "palette.command.New Tab").firstMatch
+        list.scroll(byDeltaX: 0, deltaY: -10000)
+        let gap = { list.frame.maxY - (list.buttons.allElementsBoundByIndex.last?.frame.maxY ?? 0) }
+        XCTAssertTrue(until(2) { abs(gap() - 10) < 1.5 }, "the end's gap: \(gap())")
         app.typeKey(.escape, modifierFlags: [])
     }
 

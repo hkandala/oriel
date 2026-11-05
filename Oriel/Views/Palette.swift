@@ -32,8 +32,6 @@ struct Palette: View {
         .padding([.horizontal, .top], 10)
         .frame(width: 480)
         .floatingGlass(in: .rect(cornerRadius: 14))
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("palette")
         // Rex's preview delay.
         .task(id: lit) {
             guard command?.previews == true, let lit,
