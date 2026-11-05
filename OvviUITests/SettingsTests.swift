@@ -185,9 +185,8 @@ extension OvviUITests {
         XCTAssertTrue(lines.contains { $0.contains("--model e2e-opus --session-id") }, "\(lines)")
     }
 
-    /// Machines: a machine's page saves a new name on Return, which its row shows; Add Machine says what is wrong with
-    /// a
-    /// target, and Esc leaves it.
+    /// Machines: a machine's page saves a new name on Return, which its row shows; Add Machine says what is wrong
+    /// with a target, and Esc leaves it.
     func testSettingsMachinePageSavesAnEdit() {
         let machines = #"[{"id":"e2e-m1","name":"devbox","target":"ovvi-e2e@localhost","icon":"server.rack"},"#
             + #"{"id":"e2e-m2","name":"gpubox","target":"ovvi-e2e@127.0.0.1","icon":"cpu"}]"#

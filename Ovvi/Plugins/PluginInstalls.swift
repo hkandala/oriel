@@ -77,8 +77,6 @@ final class PluginInstalls {
         }
     }
 
-    /// Remove: off the list, its trust forgotten, and an installed or hand-made folder to the Trash. A local path's
-    /// folder stays where it is.
     /// What Remove does to its folder, for the question and the plugin's page.
     static func removal(_ row: InstalledPlugin) -> String {
         if case .local = row.kind {
@@ -87,6 +85,8 @@ final class PluginInstalls {
         return "Its folder in the plugins folder goes to the Trash."
     }
 
+    /// Remove: off the list, its trust forgotten, and an installed or hand-made folder to the Trash. A local path's
+    /// folder stays where it is.
     func remove(_ row: InstalledPlugin) async {
         guard row.kind != .bundled, await ask(
             "Remove “\((row.manifest?.name ?? row.id).shown)”?",
