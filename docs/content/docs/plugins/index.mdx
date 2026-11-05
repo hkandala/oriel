@@ -19,7 +19,7 @@ Every plugin is made the same way, as a pi package is:
   ([Build a plugin](/docs/plugins/building)).
 - Ovvi installs packages from npm, from git or from a local path. Settings
   ▸ Plugins lists them, and each plugin has its own page there: its settings,
-  what it can do, and **Allow** or **Forget Trust**
+  **Show Log**, **Reload** and **Remove**
   ([Packages and installs](/docs/plugins/packages#the-plugins-page)).
 - A plugin can declare settings in its manifest. The app draws them on the
   plugin's page and gives their values to its cards
@@ -52,7 +52,7 @@ Every plugin is made the same way, as a pi package is:
 WKWebView, one per card ── the app's runtime makes `ovvi` and imports dist/main.js
         │  ovvi.files.read(path) as a bridge message
         ▼
-the bridge (Swift) ── checks the manifest's permissions
+the bridge (Swift) ── bound to its card's machine and session
         │  Exec of the card's machine
         ▼
 This Mac, or a remote machine over the relay
@@ -75,8 +75,8 @@ This Mac, or a remote machine over the relay
 4. The runtime reads the card's context, which the app puts in the page
    before any script runs. It makes the `ovvi` object, imports the entry
    and calls its default export with the object.
-5. Each call of the page is a bridge message. Swift checks it against the
-   manifest's permissions and runs it with the `Exec` of the card's machine.
+5. Each call of the page is a bridge message. Swift runs it with the `Exec`
+   of the card's machine.
 
 ## Where things live
 
@@ -87,7 +87,7 @@ This Mac, or a remote machine over the relay
 | The list of packages | `~/.config/ovvi/settings.json`, `packages` |
 | A plugin's build | its own folder, for example `dist/` |
 | The API's types | `~/.config/ovvi/plugins/node_modules/@ovvi/plugin-api/`, written at launch when the app's copy differs |
-| Trust answers | `~/.config/ovvi/trust.json` |
+| The confirmed plugins' ids | `~/.config/ovvi/trust.json` |
 | The defaults' install records | `~/.config/ovvi/plugins/.defaults.json` |
 | Build output, console lines, errors | `~/Library/Logs/Ovvi/plugins/<id>.log` ([Errors and logs](/docs/plugins/errors)) |
 | A card's state | in the app while it runs, and in the instance state file on the card's machine ([State](/docs/plugins/api#state)) |

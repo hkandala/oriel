@@ -144,7 +144,7 @@ Ovvi answers the rest.
 | `self` | 1 | `chat` on the asking pane |
 | `rate_limited` | 1 | a second `notify` from the asking pane within 10 s |
 | `dirty` | 1 | `open --replace` of a card with unsaved edits; `plugins reload` while a card of the plugin has them (the message names the pane) |
-| `declined` | 1 | the user pressed Cancel in the trust prompt of `plugins install` |
+| `declined` | 1 | the user pressed Cancel in the confirmation of `plugins install` |
 | `build_failed` | 1 | `plugins reload`: the build failed; the message ends with the build's last 20 lines |
 | `failed` | 1 | anything else: a herdr call or a run failed, no window shows the session, the Plugins page's own refusal; the message is herdr's, the shell's or the page's |
 | `no_ovvi` | 3 | no Ovvi took the request within 3 s |
@@ -212,7 +212,7 @@ The rules guard the Mac and the user's attention:
    `browser ./file.html` opens a file only for a pane on This Mac.
 3. **Plugins change only from This Mac.** `plugins new`, `reload` and
    `install` from a remote pane are `other_machine`. An install shows the
-   trust prompt, and Return does not press Install.
+   confirmation, and Return does not press Install.
 4. **Pages load by the browser's rule.** `ovvi open browser
    https://example.com` makes the card. A site that is not local and not
    approved shows **Open this page?** until the user clicks

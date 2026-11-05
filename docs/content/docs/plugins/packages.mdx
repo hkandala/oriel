@@ -37,17 +37,17 @@ entry is a source string, or an object with a `source` (pi's form):
   hand also loads. It is not in `settings.json`.
 - `hideInNewPane` lists the ids of the plugins that the
   [New pane](/docs/ui/new-pane) chooser leaves out, for example
-  `"hideInNewPane": ["git"]`. A plugin's page in Settings and the trust
-  prompt write it.
+  `"hideInNewPane": ["git"]`. A plugin's page in Settings and the
+  confirmation write it.
 
 ## Install
 
 1. The app fetches the source into a staging folder in the plugins folder.
    No script of the package runs.
-2. It reads the manifest and shows the trust prompt: the id, the version, the
-   source, the description and what the plugin can do
-   ([Security and trust](/docs/plugins/security#the-trust-prompt)). **Cancel**
-   removes the staging folder.
+2. It reads the manifest and shows the confirmation: the id, the version, the
+   source and folder, the description, and that plugins run code as you
+   ([Security and trust](/docs/plugins/security#the-confirmation)).
+   **Cancel** removes the staging folder.
 3. It installs the package's `dependencies` and `devDependencies` into the
    package's own `node_modules`, from its lockfile when it has one, with that
    lockfile's manager. Without a lockfile it uses the first of npm, pnpm and
@@ -56,7 +56,8 @@ entry is a source string, or an object with a `source` (pi's form):
    app runs `run build`. A published package that ships its `dist/` needs no
    build.
 5. It moves the package into place, over an older install, adds the source
-   to `settings.json`, trusts it, and loads its open cards again.
+   to `settings.json`, keeps its id in `trust.json`, and loads its open cards
+   again.
 
 The install commands:
 
@@ -67,7 +68,7 @@ The install commands:
 | bun | `bun install --ignore-scripts --omit=peer`, with `--frozen-lockfile` when the lockfile is bun's |
 
 - No install script of a dependency runs (`--ignore-scripts`). Only the
-  package's own `build` script runs, and only after the user trusts it.
+  package's own `build` script runs, and only after the user confirms it.
 - No peer dependency installs. `@ovvi/plugin-api` is the app's, and it is
   not on the npm registry ([Types](/docs/plugins/api#types)).
 - A command that runs over 10 minutes stops. A failure shows its last 20
@@ -91,9 +92,7 @@ The install commands:
 - **A row per plugin**, the browser first: its icon, its name and version,
   and its source under it: "Comes with Ovvi", the `npm:` or `git:` source,
   the local path, or the folder. A source in `settings.json` whose folder is
-  missing shows "Not installed". "Needs review" shows while a card of the
-  plugin waits for the trust prompt's answer, and the sidebar's Plugins row
-  shows the number of such plugins. A row opens the plugin's page.
+  missing shows "Not installed". A row opens the plugin's page.
 - **An agent's work** shows on the page too: an agent on This Mac makes,
   reloads and installs plugins with the `ovvi` command
   ([CLI](/docs/agent-control/cli#plugins)), and the page shows Creating…,
@@ -106,11 +105,11 @@ The install commands:
 
   | Button | On | Does |
   |---|---|---|
-  | Update | npm and git installs ("Install" while its folder is missing) | fetches the source again. It asks only when the permissions grew |
+  | Update | npm and git installs ("Install" while its folder is missing) | fetches the source again. It does not ask again, unless the new version has another id |
   | Update to Version ‹x.y.z›, Reset to Default | the defaults, when the app offers it | [The default plugins](#the-default-plugins) |
   | Show Log | every plugin but the browser | opens `<id>.log` in the app for `.log` files (Console) |
   | Reload | every plugin but the browser | runs its build script and loads its cards again ([Reload](/docs/plugins/building#reload)) |
-  | Remove… | every plugin but the defaults | asks, then takes it off the list, forgets its trust and its settings, and moves its folder to the Trash. A local path's folder stays where it is |
+  | Remove… | every plugin but the defaults | asks, then takes it off the list, takes its id out of `trust.json`, forgets its settings, and moves its folder to the Trash. A local path's folder stays where it is |
 
 - **Its settings**, drawn from the manifest's `settings`
   ([Settings](/docs/plugins/manifest#settings)). A change is saved at once
@@ -119,12 +118,6 @@ The install commands:
   `chooser` row. It is on until the user turns it off. Off, the New pane
   chooser leaves the plugin out, and `settings.json` keeps its id in
   `hideInNewPane`. ⌘K's Open ‹chooser› Here stays.
-- **Permissions:** a row for each sentence of the trust prompt, then the
-  answer ([Security and trust](/docs/plugins/security#the-trust-prompt)). A
-  default plugin says "Comes with Ovvi, so it never asks." A trusted plugin
-  says "Allowed" and has **Forget Trust**. A plugin that is not trusted says
-  "Not allowed yet" and has **Allow**, and **Don't Allow** while a card of
-  it waits.
 - The browser's page has its setting and Show in New Pane, and
   **Show in Privacy** for its approved websites
   ([The browser](/docs/ui/browser#this-macs-network)).
@@ -182,7 +175,7 @@ app's own build.
   ‹name›…" meanwhile. With no package manager, or offline, the card says what
   failed, with **Try Again** ([Errors and logs](/docs/plugins/errors)).
 - **They are the user's.** The user or an agent can edit them, then press
-  Reload Plugin. They need no trust prompt.
+  Reload Plugin. They never ask for a confirmation.
 - **An app with a newer version** (the package's `version`) replaces an
   unedited copy at launch. An older app never replaces a copy, so a Debug and
   a Release build can share the folder.

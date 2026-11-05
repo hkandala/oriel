@@ -66,8 +66,8 @@ Each part of the window has its own page under UI design.
   and press Reload Plugin (⌥⌘R) to build it with its own script and reload
   its cards with their state. A plugin's card says in plain words why it
   does not load (no Node.js, a failed build, not built), with the fix as a
-  button and its log one click away. A plugin asks for trust once, showing
-  what it can do. A plugin can declare settings, which its page in Settings
+  button and its log one click away. A plugin asks once before its code first
+  runs, and says plainly that plugins run code as you. A plugin can declare settings, which its page in Settings
   draws. File Explorer and Git are plugins the user can edit too.
 - Layout changes animate.
 - Zoom a pane to fill the window, then return.

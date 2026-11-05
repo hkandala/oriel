@@ -26,8 +26,7 @@ Settings that are not on this page do not exist.
   Privacy, each with its symbol in white on the same grey rounded tile
   (22 pt, as System Settings' tiles but one grey), so the symbols' different
   shapes read as one set. Privacy shows only when it has
-  something in it. Plugins shows the number of plugins whose cards wait for
-  your answer ([The trust prompt](/docs/plugins/security#the-trust-prompt)).
+  something in it.
 - **Controls.** Each row has its title on the left and its control on the
   right. A row's value field is the form's own: no border, its text on the
   right, 220 pt wide, with a word in it while it is empty (Required,
@@ -162,8 +161,7 @@ A machine's page:
 
 The install field with Install, New Plugin… and Reload All, then every plugin:
 the browser first, then the plugins that come with Ovvi, then yours. Each row
-shows the plugin's icon, name, version and source, and Needs review while its
-cards wait for your answer. A row opens the plugin's page:
+shows the plugin's icon, name, version and source. A row opens the plugin's page:
 
 - **The header**: the icon, name, version, description and source, and on
   its right Update, Update to Version ‹x› or Reset to Default when offered,
@@ -174,10 +172,6 @@ cards wait for your answer. A row opens the plugin's page:
   ([The plugin API](/docs/plugins/api)). New cards start with them; a card
   keeps its own choice once you change it in its header. They are in
   `settings.json` under `plugins`, one value for every machine.
-- **Permissions**, in the trust prompt's words, and the answer: Allowed with
-  Forget Trust, or Not allowed yet with Allow, and Don't Allow while its
-  cards wait. A plugin that comes with Ovvi says under the list: "Comes with
-  Ovvi, so it never asks."
 - **Remove ‹plugin›: Remove…**, last, for a plugin that is not Ovvi's own.
 
 The browser's page has its network choice for new cards on a remote machine,

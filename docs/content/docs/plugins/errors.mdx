@@ -25,8 +25,9 @@ The card shows the plugin's icon, a title, the details in 12 pt monospace
 
 - **A default plugin installing** on first launch shows "Installing
   ‹name›…" with a spinner, not an error.
-- **Trust** is not an error: an untrusted plugin's card shows the trust
-  prompt ([Security and trust](/docs/plugins/security#the-trust-prompt)).
+- **The confirmation** is not an error: the card of a plugin that you did
+  not confirm yet asks first
+  ([Security and trust](/docs/plugins/security#the-confirmation)).
 - **A failed Reload Plugin** keeps the running page. Its toast says the
   title and the first line, with **Try Again**
   ([Reload](/docs/plugins/building#reload)).
@@ -50,7 +51,6 @@ What goes in:
   output, or what failed.
 - Each `console` line of the page, with its level (`log`, `info`, `warn`,
   `error`, `debug`), and every uncaught error and rejected promise.
-- Denied calls: "denied: files.write needs the permission files:write".
 - A command whose key the app already uses: "the key cmd+t of the command
   ‹id› is the app's: it is left off".
 - A page that stopped, and an API too new.

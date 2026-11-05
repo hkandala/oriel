@@ -22,8 +22,9 @@ export default async function main(ovvi: Ovvi) {
 - An error thrown from `main` stops the card: "‹name› stopped", the message
   and its first stack line, with **Reload**
   ([Errors and logs](/docs/plugins/errors)).
-- Every call works only on the card's own machine, and only within the
-  manifest's permissions ([Permissions](/docs/plugins/manifest#permissions)).
+- Every call works only on the card's own machine. On that machine a page
+  can use the whole API
+  ([What a plugin can do](/docs/plugins/security#what-a-plugin-can-do)).
 
 ## Types
 
@@ -316,7 +317,7 @@ export interface Theme {
 
 /** What every failed call rejects with. */
 export interface OvviError extends Error {
-  code: "denied" | "notFound" | "notText" | "tooLarge" | "changed" | "timeout" | "closed" | "failed"
+  code: "notFound" | "notText" | "tooLarge" | "changed" | "timeout" | "closed" | "failed"
 }
 ```
 
@@ -337,16 +338,16 @@ export interface OvviError extends Error {
 | `menu.show` | the native context menu at the pointer | `NSMenu` |
 | `pick.folder` | Choose Folder…: the folder panel on This Mac, a "Go to Folder" field on a remote machine, which shows "No folder ‹path›" for a folder that is not there | `NSOpenPanel`, or an `NSAlert` with a field |
 | `symbol` | an SF Symbol as a PNG, to use as a mask | `NSImage(systemSymbolName:)` |
-| `clipboard.write` | text on the clipboard | `NSPasteboard`; needs `clipboard` |
+| `clipboard.write` | text on the clipboard | `NSPasteboard` |
 | `console` | logs | each `console` line and every uncaught error go to the Web Inspector and to the plugin's log |
 
 - **Events** go from the app to the page. `on` returns a function that stops
   the handler. Every handler and watch ends with the page, so a reload needs
   no cleanup code.
 - **Errors.** A failed call rejects with an `OvviError` whose `code` says
-  why: `denied` (a missing permission), `notFound`, `notText` (not UTF-8),
-  `tooLarge` (over 16 MB), `changed` (the hash given to `write` differs),
-  `timeout`, `closed` (the card went), `failed` (anything else, with git's
+  why: `notFound`, `notText` (not UTF-8), `tooLarge` (over 16 MB),
+  `changed` (the hash given to `write` differs), `timeout`, `closed` (the
+  card went, or its plugin was removed), `failed` (anything else, with git's
   or the command's message).
 - **Keyboard and focus.** `keyboard` is true while the card has the
   keyboard. The page focuses its own field then (an editor puts its caret
@@ -467,12 +468,12 @@ every device must see belongs in files on the machine.
 | `Plugin` | one per card, made from its label and kept by terminal id: the label, the place, Back and Forward, the header and the web card. A dropped card loses it and reads its state file again |
 | `WebCard` | the card's `WKWebView`, the navigation lock, the context script at document start, the theme |
 | `Bridge` | one per card: the page's calls, the events, the state and its file, watches, two `run`s at a time, git writes one at a time |
-| `PluginCalls` (HerdrKit) | the calls on the card's machine (files, git, run) and the permission table; unit tested against real files, a repository with a bare remote and real processes |
+| `PluginCalls` (HerdrKit) | the calls on the card's machine (files, git, run); unit tested against real files, a repository with a bare remote and real processes |
 | `Header`, `HeaderView` | the manifest's controls with the page's changes, drawn in a pane and in a floating window |
 | `PluginInstalls`, `PluginPackages` (HerdrKit) | sources, install, update, remove and `settings.json` ([Packages and installs](/docs/plugins/packages)) |
 | `PluginBuilds` | runs a package's build script; the "not built" check; the types package; the log |
 | `DefaultPlugins` | the defaults' first-launch install, update and reset |
-| `PluginTrust` | `trust.json` and the trust prompt; the plugins whose cards wait |
+| `PluginTrust` | `trust.json` (the confirmed ids) and the confirmation in a card |
 | `PluginSettings` | the plugins' values in `settings.json`, and the `settings` event to every open card of the plugin |
 
 - The bridge is one script message handler with replies
@@ -480,8 +481,7 @@ every device must see belongs in files on the machine.
   message is `{ call, args }`, answered with a JSON string or rejected with
   `<code>: <text>`. The app calls `window.ovvi_receive(name, data)` for an
   event.
-- The card is bound to its machine, session, plugin and permissions when it
-  is made. No message carries a machine or a card.
+- The card is bound to its machine, session and plugin when it is made. No message carries a machine or a card.
 - Calls that wait for the user (a toast) answer through an event, so no Swift
   task hangs on a page that never hears back.
 

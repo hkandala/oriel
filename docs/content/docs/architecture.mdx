@@ -18,7 +18,7 @@ API bridge, a `terminal session` per streamed pane, and the event stream.
 | `HostStore` | the app's live model of one open session: snapshot, events, streams, seen state, git state, and which window controls it. One per session, shared by every window that shows it |
 | Window state | one per window: its machine, its open pages and its selection (page, workspace, tab, keyboard card, zoom, sidebar view and width), restored with `@SceneStorage` |
 | `PaneViewRegistry` | owns terminal, browser and plugin views by terminal id, so scrolling never destroys them |
-| Plugin cards | `Registry` (the browser's manifest and every package's), `Plugin` and its `WebCard` (one web view and the `ovvi-plugin://` scheme), `Bridge` (the plugin API, one per card), `Header`, and the installs, builds, defaults and trust; the API's runtime and types in `web/ovvi/`, the default plugins and the template in `plugins/` ([Plugins](/docs/plugins)) |
+| Plugin cards | `Registry` (the browser's manifest and every package's), `Plugin` and its `WebCard` (one web view and the `ovvi-plugin://` scheme), `Bridge` (the plugin API, one per card), `Header`, and the installs, builds, defaults and confirmations; the API's runtime and types in `web/ovvi/`, the default plugins and the template in `plugins/` ([Plugins](/docs/plugins)) |
 | Agent commands | `AgentCommands` in `Ovvi/Agent/`: the one parser and every command that the `ovvi` command asks for, run against the asking session's `HostStore`; the script itself, `ovvi.sh` ([Agent control](/docs/agent-control)) |
 | Views | title row, sidebar pages, Agents view, tab bar, tab page, cards, overview, floating panes, panels and dialogs |
 

@@ -17,7 +17,7 @@ ovvi plugins --for ./data.csv             # only the plugins that open it, the d
 This works only from a pane on Ovvi's Mac. A remote pane gets `other_machine`.
 
 ```sh
-ovvi --timeout 300 plugins new "CSV Table" --json    # the template, installed, built and trusted: id, folder, log
+ovvi --timeout 300 plugins new "CSV Table" --json    # the template, installed, built and confirmed: id, folder, log
 # edit the files in the folder, then:
 ovvi --timeout 120 plugins reload csv-table --json   # {"id":"csv-table","built":true,"ms":412,"cards":1}
 ovvi open csv-table ./data.csv
@@ -30,7 +30,9 @@ tail -f <log>                             # the plugin's log
   save. Ovvi never discards edits.
 - `new` and `reload` install and build, so pass a long `--timeout`.
 - `ovvi plugins reload` with no id reloads every plugin that has an open card.
-- `reload <id>` of a plugin the user did not trust yet is `failed`: its card asks the user first.
+- `reload <id>` of a plugin the user did not confirm yet is `failed`: its card asks the user first.
+- A plugin can use the whole API on its card's machine: files, git, `run` and the clipboard. The manifest has
+  no permissions.
 - The manifest, the API and the template: https://ovvi.dev/docs/plugins/building
 
 ## Install a plugin
@@ -41,7 +43,8 @@ This works only from a pane on Ovvi's Mac.
 ovvi --timeout 600 plugins install npm:@acme/ovvi-csv     # or git:<url>, or a folder: ./my-plugin, /path
 ```
 
-- Ovvi asks the user on the Mac to trust it. If the user clicks Cancel, the answer is `declined`.
+- Ovvi asks the user on the Mac to confirm the install: plugins run code as the user. If the user clicks
+  Cancel, the answer is `declined`.
 - The answer comes after the install and the build, so pass a long `--timeout`. Exit 4 means that the wait
   ended and the install goes on. `ovvi plugins` shows the plugin when it is ready.
 - The user removes and updates plugins in Ovvi's Plugins panel. A source already installed is `bad_argument`.

@@ -42,8 +42,7 @@ CSV table's manifest:
       { "id": "first-row", "type": "toggle", "symbol": "tablecells.badge.ellipsis",
         "title": "First Row Is Header", "value": true },
       { "id": "reload", "type": "button", "symbol": "arrow.clockwise", "title": "Reload" }
-    ],
-    "permissions": ["files:read"]
+    ]
   }
 }
 ```
@@ -54,8 +53,8 @@ From the package itself:
 
 | Field | Required | Value |
 |---|---|---|
-| `version` | yes | The plugin's version, shown on the Plugins page, the trust prompt and the log. The defaults' version decides when an app update replaces them. |
-| `description` | no | One line: the chooser row's detail, and a line of the trust prompt. |
+| `version` | yes | The plugin's version, shown on the Plugins page, the confirmation and the log. The defaults' version decides when an app update replaces them. |
+| `description` | no | One line: the chooser row's detail, and a line of the confirmation. |
 | `keywords` | no | More words that ⌘K finds the plugin's Open ‹chooser› Here by. |
 
 In the `ovvi` key:
@@ -73,11 +72,12 @@ In the `ovvi` key:
 | `history` | no | `true` draws Back and Forward at the left of row 2, over the places the card went to ([One plugin, many places](/docs/plugins/api#one-plugin-many-places)). |
 | `commands` | no | Menu bar and ⌘K commands of the card, with keys ([Commands](#commands)). |
 | `handles` | no | The app's own commands that the card takes: `save` (⌘S), `find` (⌘F, ⌘G, ⇧⌘G). |
-| `permissions` | no | What the page can ask the app to do ([Permissions](#permissions)). None: the page can only draw, keep state and open other cards. |
 | `settings` | no | Values the user sets on the plugin's page in Settings, which its cards read ([Settings](#settings)). |
 
 - The app reads the manifest leniently. An unknown field is ignored, so a
-  manifest written for a newer app still loads.
+  manifest written for a newer app still loads. So does an older manifest
+  with `permissions`: every plugin can use the whole API
+  ([What a plugin can do](/docs/plugins/security#what-a-plugin-can-do)).
 - A missing required field or a wrong value leaves the plugin out. The log
   and the plugin's cards name the field: `ovvi.entry must be a built .js
   file in the package`, `ovvi.header.1 has the wrong type`
@@ -88,8 +88,8 @@ In the `ovvi` key:
   `opens`, known header types with unique ids, a `gap` of 0 or more, `digits`
   only `mono`, a value on every segmented option, commands with ids unique
   among the commands and the header's controls, a
-  `file`, `edit` or `view` menu and a `cmd+` key, known `handles`, known
-  permissions, and the settings' rules ([Settings](#settings)).
+  `file`, `edit` or `view` menu and a `cmd+` key, known `handles`, and the
+  settings' rules ([Settings](#settings)).
 
 ## What a plugin opens
 
@@ -268,8 +268,7 @@ Every setting has these fields:
 | `text` | a string of up to 1 KB | `placeholder` (up to 1 KB) | a text field, saved on Return or when it loses the keyboard |
 | `path` | an absolute path (it starts with `/` or `~/`), or empty | `kind`: `file` or `folder`; `placeholder` | a path field, saved as a text field is |
 
-- A setting is a value, not a permission. A path setting gives no access to
-  the path by itself. There is no secret type: no plugin can ask for a
+- A setting is a value. There is no secret type: no plugin can ask for a
   password or a token in Settings.
 - A wrong setting leaves the plugin out, as a wrong header does. The log
   names the field: `ovvi.settings.2.default does not fit the type, options
@@ -281,25 +280,7 @@ Every setting has these fields:
   `ovvi.state.get()?.layout ?? ovvi.settings.get("diff-layout")`, so a
   setting starts new cards and a card's own choice in its header wins.
 
-## Permissions
-
-Each permission opens a part of the API. A call outside the manifest's
-permissions fails with the error `denied`, and the log names it.
-
-| Permission | Allows | Words in the trust prompt |
-|---|---|---|
-| `files:read` | `ovvi.files.read`, `readBytes`, `info`, `list`, `paths`, `watch` | "It can read files and folders on the machine of each card you open." |
-| `files:write` | `ovvi.files.write`, `ovvi.files.move` | "It can change files there." |
-| `git` | `ovvi.git`: reads, and stage, unstage, commit, fetch, pull, push and switch | "It can read git repositories there, stage, commit, switch branches, pull and push." |
-| `run` | `ovvi.run`: any command | "It can run any command as you there, including ones that use the network or keep running." |
-| `clipboard` | `ovvi.clipboard.write` | "It can write to the clipboard." |
-
-Every permission reaches only the card's machine, but any path there that
-you can reach. The first sentence says where, and the others say "there".
-When and how the prompt asks:
-[The trust prompt](/docs/plugins/security#the-trust-prompt).
-
 ## Choices
 
-The decisions are D96, D99 and D103 on the
+The decisions are D96, D99, D103 and D108 on the
 [Decisions](/docs/decisions#pane-kinds) page.

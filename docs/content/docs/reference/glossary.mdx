@@ -22,10 +22,10 @@ description: "The words these docs use"
 | browser pane | a herdr pane labeled `ovvi:browser#<iid> <url>`, which the app draws as a web page |
 | plugin pane / default plugins | a herdr pane labeled `ovvi:<id>#<iid> <arg>` that the app draws with a plugin's page / the two plugins that come with the app: File Explorer and Git |
 | plugin (package) | a folder with a `package.json` whose `ovvi` key is the manifest, its source and its own `node_modules`, built by its own `build` script ([Plugins](/docs/plugins)) |
-| manifest | the `ovvi` key of a plugin's `package.json`: its id, name, entry, icon, what it opens, its header, commands and permissions |
+| manifest | the `ovvi` key of a plugin's `package.json`: its id, name, entry, icon, what it opens, its header, commands and settings |
 | registry | the app's list of every pane kind it draws over a placeholder: the browser and each plugin package |
 | plugins folder | `~/.config/ovvi/plugins/`, where Ovvi installs plugin packages |
-| trust prompt | the question a plugin asks once before its code or build script first runs, showing what it can do |
+| plugin confirmation | the question a plugin asks once before its code or build script first runs: Install or Cancel, with a warning that plugins run code as you |
 | web card | a browser or plugin card, whose content is a web view of its own; a plugin's page comes from its package's build |
 | picture (card) | a card's last image at 1x, shown in place of a dropped web card until the card made again has loaded, and in its overview tile |
 | plugin API / `ovvi` | the typed object a plugin's page calls: files, git, run, state, the header, opens, toasts; behind it, the bridge's messages to the app |

@@ -175,7 +175,7 @@ log: /Users/me/Library/Logs/Ovvi/plugins/csv-table.log
 ```
 
 New Plugin… with the name as an argument: Ovvi copies the template into the
-plugins folder, installs its dependencies, builds it and trusts it, as the
+plugins folder, installs its dependencies, builds it and confirms it, as the
 Plugins page does ([Start from the template](/docs/plugins/building#start-from-the-template)).
 It answers `id`, `folder` and `log`. A name with no letter or digit, or a
 name that is taken, is `failed` with the page's words. The Plugins page shows
@@ -197,8 +197,8 @@ first, so a folder made by hand loads.
   and `cards` (the plugin's cards in every window: a pane shown in two
   windows counts twice). No id answers `{"plugins":[…]}`, one entry per
   plugin.
-- `built` is false for a plugin that is not trusted: it builds nothing, and
-  its cards still ask the user.
+- `built` is false for a plugin that the user did not confirm yet: it builds
+  nothing, and its cards still ask the user.
 - A card with unsaved edits stops it with `dirty`, which names the pane.
   Ovvi never discards edits for an agent. It looks before anything builds
   and again before each plugin, and the message names the plugins reloaded
@@ -209,7 +209,7 @@ first, so a folder made by hand loads.
   the build's last 20 lines.
 - An unknown id is `plugin_not_found`, with the reason when its manifest did
   not load. The browser is `bad_argument`: it has nothing to build. A plugin
-  that is not trusted yet is `failed`: its card asks the user first.
+  that the user did not confirm yet is `failed`: its card asks the user first.
 
 ### plugins install
 
@@ -222,17 +222,17 @@ Install from the Plugins page, for an agent
 ([Install](/docs/plugins/packages#install)). The source is
 `npm:<package>`, `git:<repository>` or a folder (a relative one from the
 command's folder).
-- Ovvi shows the trust prompt on the window of the asking session, with
+- Ovvi shows the confirmation on the window of the asking session, with
   "‹agent› in pane ‹pane› asks to install it." first
-  ([The trust prompt](/docs/plugins/security#the-trust-prompt)). Ovvi does
+  ([The confirmation](/docs/plugins/security#the-confirmation)). Ovvi does
   not come to the front: it asks for attention in the Dock. Return does not
-  press Install, so keys typed elsewhere cannot consent.
+  press Install, so keys typed elsewhere cannot install it.
 - It answers after the install and the build, with the plugin's entry as in
   the list. **Cancel** is `declined`. With no window of the session left to
-  show the prompt, the install is `failed`.
+  show the confirmation, the install is `failed`.
 - A source that is not one, or one already listed, is `bad_argument`.
-  Update stays on the Plugins page: it asks only when the permissions grew.
-- If the command's `--timeout` ends first, the prompt stays, and the install
+  Update stays on the Plugins page, where the user chooses it.
+- If the command's `--timeout` ends first, the confirmation stays, and the install
   goes on after the user's answer.
 - The Plugins page shows Installing… and any failure, as for its own install.
 

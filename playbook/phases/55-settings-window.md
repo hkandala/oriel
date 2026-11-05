@@ -234,3 +234,36 @@ everything end to end, and test and review everything".
   and green with the remote drop test on 47f96d29 (42131922057, Executed 2).
 - **For the user:** drag a screenshot's floating thumbnail onto an agent's card: it reads the image. Once on a
   remote machine's card too (untried with a real thumbnail).
+
+### Plugin trust, simplified
+
+The user's words: "on the plugin permissions ... it just seems like false hope to users that plugins can't do anything
+else, but they can technically run any command right? ... why do we need all these fancy permissions at all? we can
+just show a confirmation dialog when installing saying that they can run arbitrary commands and they should install
+from trusted sources blah blah, that would simplify whole thing right? i feel current permissions stuff just
+complicates thing with no guarantee of actual guardrails". Then "yep sounds good on the plugins cleanup, let's do
+this" after this plan:
+
+1. **One honest confirmation** when a plugin first runs (an npm or git install, a path added on the Plugins page, a
+   folder dropped in by hand, a path in `settings.json`): it names the plugin, its source and folder, and says
+   "Plugins run code as you on this Mac and on the machines whose cards you open, including their build script.
+   Install plugins only from sources you trust.", with Install and Cancel (in a card: the same words in its middle).
+   An agent's `ovvi plugins install` shows it on the agent's session window with the "asks to install it" line, and
+   only a click accepts.
+2. **No permission system:** the manifest's `permissions` is ignored (an old manifest loads), no `denied` checks, no
+   per-permission sentences, no prompt when permissions grow, and a plugin's Settings page keeps its settings, Show
+   Log, Reload and Remove only. `trust.json` lists the confirmed ids (old entries read as confirmed); Remove forgets.
+3. **Every protection that works stays:** the locked page, the CSP, the navigation lock, the per-card bridge, `run`
+   with argv, `--ignore-scripts`, the size limits, text is text.
+4. **The defaults never ask;** New Plugin… and `ovvi plugins new` stay prompt-free.
+
+- **Decisions.** The Settings sidebar's Plugins badge and the "Needs review" capsule went with the page's Allow they
+  pointed to: the card asks by itself. A page still running after Remove gets `closed`, so `denied` left the API
+  (`ovvi.d.ts`) entirely. The default plugins' versions went up (Explorer 1.10.1, Git 1.9.1), so an unedited copy
+  takes the manifest without `permissions` at launch instead of offering Reset to Default.
+- **Decisions, the API version stays 3.** No plugin can tell the difference in a call that worked: every call that
+  resolved still resolves the same way. Only a call that a manifest left out of its permissions changes, from
+  `denied` to working, and no plugin works by being refused. No Ovvi release is out, so no older app meets a plugin
+  without `permissions`.
+- **Decisions, the migration check.** The plugin-api UI fixture keeps an old `permissions` list and its test writes
+  an older Ovvi's `trust.json` (ids with permissions): its card loads with no confirmation.

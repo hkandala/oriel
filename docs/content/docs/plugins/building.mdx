@@ -20,8 +20,8 @@ The template is a plugin package with everything a build needs. It is
   copies the template to `~/.config/ovvi/plugins/<id>/`, with the id made
   from the name (lower case, letters and digits joined by `-`: "CSV Table"
   is `csv-table`), and puts the name and the id in `package.json`. Then it
-  installs the dependencies, runs the build, and trusts the plugin, because
-  you made it. Its row in the panel shows its folder.
+  installs the dependencies, runs the build, and confirms the plugin for you,
+  because you made it. Its row in the panel shows its folder.
 - **From an agent:** `ovvi plugins new <name>` does the same
   ([An agent makes a plugin](#an-agent-makes-a-plugin)).
 - **By hand, or by an agent:** copy the template folder to
@@ -67,8 +67,7 @@ The template's `package.json`:
     "entry": "dist/main.js",
     "icon": "doc.plaintext",
     "opens": { "files": ["*.txt"], "priority": "option" },
-    "header": [{ "id": "lines", "type": "text", "style": "dim" }],
-    "permissions": ["files:read"]
+    "header": [{ "id": "lines", "type": "text", "style": "dim" }]
   }
 }
 ```
@@ -222,9 +221,9 @@ What the code shows:
 2. Double-click a `.csv` file in a File Explorer's tree. CSV Table is now its
    default plugin, so the card opens in a new tab. On any other card that
    shows a CSV file, Open With lists CSV Table.
-3. A plugin that you did not make in the app asks for trust in its first
-   card ([The trust prompt](/docs/plugins/security#the-trust-prompt)). Click
-   **Allow**.
+3. A plugin that you did not make in the app asks to install in its first
+   card ([The confirmation](/docs/plugins/security#the-confirmation)). Click
+   **Install**.
 4. The page loads. The table shows.
 
 The same plugin opens CSV files on a remote machine. The file comes over the
@@ -241,12 +240,11 @@ for every plugin with an open card.
    "‹name› has unsaved edits.", with Discard and **Keep Editing**. Discard
    covers every card of the plugin.
 2. The app reads every manifest again.
-3. It runs the package's `build` script, if it has one. Only a trusted
+3. It runs the package's `build` script, if it has one. Only a confirmed
    plugin builds.
 4. It loads each card's page again. `main` gets the same state and header
    values, so the card comes back where it was. A card whose manifest
-   changed is made again from the new one: a new header, and a new trust
-   prompt when the permissions grew.
+   changed is made again from the new one, with its new header.
 
 | The build | What the open cards do |
 |---|---|
@@ -269,7 +267,7 @@ for every plugin with an open card.
   with breakpoints. Safari's Develop menu reaches every card too.
 - **The log.** **Show Log** (the card's menu, its error card, the panel's
   row) opens `~/Library/Logs/Ovvi/plugins/<id>.log`. `tail -f` on it shows
-  every build, `console` line, uncaught error and denied call
+  every build, `console` line and uncaught error
   ([Errors and logs](/docs/plugins/errors)).
 - **Types.** esbuild removes types and does not check them. Run `npm run
   check` (`tsc`) in the package.
@@ -281,7 +279,7 @@ An agent in a pane on This Mac makes a plugin with the `ovvi` command
 ([CLI](/docs/agent-control/cli#plugins)):
 1. `ovvi --timeout 120 plugins new "CSV Table"` does what New Plugin…
    does: it copies the template to `~/.config/ovvi/plugins/csv-table/`,
-   installs and builds it, and trusts it. It answers the plugin's `id`, its
+   installs and builds it, and confirms it. It answers the plugin's `id`, its
    `folder` and its `log`.
 2. The agent edits the folder, following these pages and the types in
    `@ovvi/plugin-api`.
@@ -295,9 +293,9 @@ An agent in a pane on This Mac makes a plugin with the `ovvi` command
    ([Errors and logs](/docs/plugins/errors)).
 
 A plugin folder that the agent makes by hand loads with
-`ovvi plugins reload <id>`. Its first card asks the user for trust. To
+`ovvi plugins reload <id>`. Its first card asks the user to confirm it. To
 install from npm, git or a folder, the agent runs
-`ovvi plugins install <source>`, and the user answers the trust prompt on
+`ovvi plugins install <source>`, and the user answers the confirmation on
 the Mac.
 
 An agent on a remote machine cannot reach the Mac's plugins folder: `plugins
@@ -335,7 +333,6 @@ Git's manifest:
   "icon": "source.branch",
   "opens": { "git": true },
   "chooser": "Git",
-  "permissions": ["files:read", "git", "clipboard"],
   "history": true,
   "header": [
     { "type": "menu", "id": "git.branch", "symbol": "source.branch", "title": "—", "label": "Branch",
