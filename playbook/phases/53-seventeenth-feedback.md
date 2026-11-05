@@ -427,22 +427,36 @@ CI runs and on-demand) at about 2–3 h.
   a bright window's text and edges came through as dark streaks and colored blots. The `hudWindow` blur is too
   narrow to hide them. Rex keeps the same `overlay` step, but puts the system glass on top of it (Liquid Glass, with a
   much wider blur) under its tint. **Fix:** dark Glass adds `glassEffect(.regular.tint(#1e1e1e at 0.5))` between the
-  blur and the tint, and the tint goes to 0.75. Light Glass is unchanged: its white tint at 0.7 already hid a black
-  window (2 to 5 steps of spread in both versions).
+  blur and the tint, as Rex's Modern window does. Light Glass is unchanged: its white tint at 0.7 already hid a black
+  window (2 to 5 levels of spread before and after).
+- **Decisions, item 32.** The top tint stays at 0.5. At 0.6 and 0.75 the window was darker than Rex's and hid the window
+  behind more (8 levels between a white and a black window at 0.75, 17 at 0.5). The glass layer alone removes the
+  streaks: a white window behind now shows only as a soft, even light.
 - **Numbers, item 32.** These are 8-bit sRGB levels from Retina screenshots, over a full-screen page of black text on
-  white, or white text on black:
+  white, or white text on black (mean, then the spread from min to max):
 
   | Where | Before over white | After over white | Before over black | After over black | Rex over white |
   |---|---|---|---|---|---|
-  | Sidebar (mean, spread) | 70, 18 | 45, 4 | 30, 8 | 37, 1 | 63, 1–3 |
-  | Card (mean, spread) | 82, 8 | 59, 2 | 46, 2 | 52, 0 | — |
+  | Sidebar | 70, 18 | 51, 7 | 30, 8 | 34, 4 | 63, 1–3 |
+  | Card | 82, 8 | 64, 3 | 46, 2 | 48, 1 | — |
 
-  The window behind still shows as light: the sidebar is 8 levels brighter over white than over black. Contrast over
-  white, at the brightest pixel: sidebar text (white 0.65) went from 4.4:1 to 6.8:1, and terminal text (`#d0d0d0`)
-  from 4.9:1 to 7.3:1. The card header buttons are 3.4:1 (at least 3:1 is needed). `cardSolid` follows the new card,
-  `#2e` → `#32`. Pictures: `/tmp/oriel-shots/t53g/before-oriel-dark-over-white.png`, `after-oriel-dark-over-white.png`,
-  `before-`/`after-oriel-dark-over-black.png`, `before-`/`after-oriel-light-over-black.png`,
-  `screen-rex-dark-white.png`.
+  Contrast over white, at the brightest pixel: sidebar text (white 0.65) went from 4.4:1 to 6.0:1, and terminal text
+  (`#d0d0d0`) from 4.9:1 to 6.6:1. The card header buttons are 3.2:1 (at least 3:1 is needed). Light over black:
+  sidebar text is 6.3:1. `cardSolid` follows the card without the keyboard (`#2e` → `#34`). Pictures:
+  `/tmp/oriel-shots/t53g/before-oriel-dark-over-white.png`, `after-oriel-dark-over-white.png`,
+  `before-`/`after-oriel-dark-over-black.png`, `before-`/`after-oriel-light-over-black.png` (light is unchanged),
+  `screen-rex-dark-white.png`; the 0.6 trial: `t0.6-oriel-dark-over-*.png`.
+- **Cost, item 32.** The glass layer costs WindowServer about 5 points of one core while a terminal prints at full speed:
+  28 % before, 33 % after (`top`, two runs each, alternating, load average 70 to 150). Oriel's own CPU is unchanged
+  (16 %). Idle, no difference shows.
+- **For the user, items 27–33.** ⌘K, then scroll to the end: a cut row runs to the panel's edge, and the gap shows
+  only after the last row. In the Agents view, only Working rows show a time ("<1m", then 1m, 2m…), and Needs you and
+  Done show the icon alone. Every window opens the Agents view in Priority order once, and keeps a choice you make
+  after. In a new pi or Claude Code session, the `oriel` skill loads from this repo
+  (`~/.agents/skills/oriel` and `~/.claude/skills/oriel` link to `~/code/oriel/skills/oriel`).
+- **For the user, item 32.** Put a white window (a web page) behind a dark Glass window: no text or edges come
+  through, only a soft light. Do the same in light Glass over a dark window. With Reduce Transparency on (System
+  Settings ▸ Accessibility ▸ Display), Glass turns opaque and stays readable.
 - **Runs.** The first chosen-tests run (41961078819) failed the new palette check. At the end of the list, the lazy
   stack no longer held the row the query used to find the list. The test now reads the list's frame first.
 
