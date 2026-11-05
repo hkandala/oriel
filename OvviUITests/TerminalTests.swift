@@ -49,6 +49,13 @@ extension OvviUITests {
         // Up and down do not change the tab.
         XCTAssertTrue(element("tab.w1:t1").isSelected)
         keepScreenshot("vertical scroll")
+        // Back at the bottom (delta is the way down now): a later test of the shard reads this pane's view.
+        try await poll("the viewport back at the bottom", times: 20) { () async throws -> Bool? in
+            terminal.scroll(byDeltaX: 0, deltaY: delta * 10)
+            try await Task.sleep(for: .milliseconds(300))
+            let offset = try await (pane("w1:p1")["scroll"] as? [String: Any])?["offset_from_bottom"] as? Int ?? 0
+            return offset == 0 ? true : nil
+        }
     }
 
     /// ⌘2 shows the second tab, whose pane attaches at its card's size; ⇧⌘[ ] step.
