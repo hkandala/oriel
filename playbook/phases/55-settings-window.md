@@ -59,3 +59,20 @@ everything end to end, and test and review everything".
 - **For the user.** Git ▸ Diff layout with a diff open, File Explorer ▸ Show hidden files with a tree open, Browser ▸
   This Mac then a new remote browser card (its chip says This Mac), and a hand-edited `settings.json` with a typo (a
   switch then shows the notice and leaves the file as it is).
+
+### Final review fixes
+- **Cause, the remote file drop** (42052483502: "the press did not start one"). The recording shows the press
+  landing on the icon, the pointer reaching the card and then, about a second later, the drag image there: on a busy
+  runner the helper's drag session began after `drag.swift` had already posted its release on its timer, and that
+  session never ended. Not phase 33's cause (the press before the icon's window was up). **Fix:** `file-drag`
+  posts the drag itself and moves only once its session began (`willBeginAt`); the helper no longer runs
+  `drag.swift` for it.
+- **Cause, the spring-load drop** (42065157131, shard 3). XCUITest plays a drag on a timetable from its start: on a
+  busy runner its moves came 0.4 s late and the release kept its time, so the 1.2 s hold was about 0.7 s on screen and
+  0.4 s in the app, under the 0.65 s spring-load; the highlight showed, then the drop. Neither lazy capsules (the
+  capsule was made and highlighted) nor the pinned settings play a part. **Fix:** the two spring-load holds go
+  through `drag.swift`, which holds after its last move.
+- **Cause, pi's `/tree`** (42065157131, shard 4). The composer types `/tree` into the terminal in a task after it
+  hides, and the test sent Enter once it hid: the Enter reached pi first (the blank line before `/tree` in the
+  pane). Not the Settings window. **Fix:** the test waits for `/tree` in the pane before its Enter.
+
