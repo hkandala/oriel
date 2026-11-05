@@ -271,7 +271,8 @@ export async function make(place: Page, root: string) {
     const deletes = fresh.length ? ` This deletes the new ${fresh.length > 1 ? "files" : "file"} ${named}.` : ""
     const question = changes.length > 1 ? `Revert all ${changes.length} files?${deletes}`
       : fresh.length ? `Delete the new file ${base}?` : `Revert changes to ${base}?`
-    if ((await oriel.toast(`${question} This cannot be undone.`, ["Cancel", "Revert"])) !== "Revert") return
+    const picked = await oriel.toast(`${question} This cannot be undone.`, ["Cancel", "Revert"], { destructive: true })
+    if (picked !== "Revert") return
     await write(oriel.git.revert(root, changes.flatMap(paths)))
   }
 

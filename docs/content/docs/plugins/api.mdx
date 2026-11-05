@@ -78,8 +78,9 @@ export interface Oriel {
     background?: boolean
   }): Promise<void>
   /** One line on glass at the top of the card, with `buttons` (the second the default) or OK. Resolves with the title
-   *  picked, or undefined when another toast took its place. */
-  toast(text: string, buttons?: [other: string, main: string]): Promise<string | undefined>
+   *  picked, or undefined when another toast took its place. `destructive`: the main button deletes or discards (a
+   *  Revert, a Delete), drawn red. */
+  toast(text: string, buttons?: [other: string, main: string], options?: { destructive?: boolean }): Promise<string | undefined>
   /** An SF Symbol, or the app's `source.branch` or `text.wrap`, as a PNG data URL, `size` points tall (16 by default),
    *  black on clear: use it as a mask. */
   symbol(name: string, size?: number): Promise<string>

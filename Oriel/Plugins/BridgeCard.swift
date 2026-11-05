@@ -15,6 +15,7 @@ extension Bridge {
                 args["text"] as? String ?? "",
                 buttons: buttons?.count == 2 ? buttons : nil,
                 id: args["id"] as? Int ?? 0,
+                destructive: (args["options"] as? [String: Any])?["destructive"] as? Bool ?? false,
             )
         case "menu.show": return menu(args["items"] as? [Any] ?? [], in: plugin.web.view)
         case "pick.folder": return await folder(from: args["from"] as? String ?? plugin.web.arg, plugin)
@@ -64,8 +65,8 @@ extension Bridge {
         }
     }
 
-    /// The page's toast, replacing one it waits on.
-    func show(_ text: String, buttons: [String]?, id: Int) {
+    /// The page's toast, replacing one it waits on. `destructive`: its main button deletes or discards.
+    func show(_ text: String, buttons: [String]?, id: Int, destructive: Bool) {
         guard let web = plugin?.web else { return }
         dropToast()
         toast = id
@@ -75,8 +76,8 @@ extension Bridge {
             event("toast", ["id": id, "button": title])
         }
         let main = buttons?.last ?? "OK"
-        web.toast = Toast(text: text, other: buttons?.first.map { title in (title, { picked(title) }) },
-                          main: (main, { picked(main) }))
+        web.toast = Toast(text: text, other: buttons?.first.map { title in .init(title: title) { picked(title) } },
+                          main: .init(title: main, role: destructive ? .destructive : nil) { picked(main) })
     }
 
     /// The plugin an open names, else the argument's default (`Registry.openers(for:)`).

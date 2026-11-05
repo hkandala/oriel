@@ -69,16 +69,16 @@ private struct ToastView: View {
         HStack(spacing: 10) {
             Text(toast.text).lineLimit(1).accessibilityIdentifier(id)
             if let other = toast.other {
-                Button(other.title) {
+                Button(other.title, role: other.role) {
                     plugin.web.toast = nil
-                    other.action()
+                    other.run()
                 }
                 .buttonStyle(.glass)
                 .accessibilityIdentifier("\(id).other")
             }
-            Button(toast.main.title) {
+            Button(toast.main.title, role: toast.main.role) {
                 plugin.web.toast = nil
-                toast.main.action()
+                toast.main.run()
             }
             .buttonStyle(.glassProminent)
             .accessibilityIdentifier("\(id).main")

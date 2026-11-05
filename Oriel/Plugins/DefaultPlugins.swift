@@ -110,7 +110,7 @@ final class DefaultPlugins {
             let alert = NSAlert()
             alert.messageText = "Replace your edited \(Self.bundled[id]?.name ?? id)?"
             alert.informativeText = "Your copy goes to the Trash, and Oriel installs its own."
-            alert.addButton(withTitle: "Replace")
+            alert.addButton(withTitle: "Replace").hasDestructiveAction = true
             alert.addButton(withTitle: "Cancel")
             let answer = if let window = NSApp.keyWindow {
                 await alert.beginSheetModal(for: window)

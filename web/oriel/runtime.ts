@@ -173,11 +173,11 @@ const oriel: Oriel = {
   run: (argv, options) =>
     call<RunResult>("run", { argv, cwd: options?.cwd ?? context.cwd, stdin: options?.stdin, timeout: options?.timeout }),
   open: (arg, options) => call("open", { arg, ...options }),
-  toast(text, buttons) {
+  toast(text, buttons, options) {
     const id = ++next
     return new Promise((resolve) => {
       toasts.set(id, resolve)
-      tell("toast", { id, text, buttons })
+      tell("toast", { id, text, buttons, options })
     })
   },
   symbol: (name, size) => call("symbol", { name, size }),

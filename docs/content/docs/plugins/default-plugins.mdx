@@ -230,16 +230,17 @@ The caret has the text's color: white in dark, black in light.
   under the header, with two small round buttons. The buttons sit 7 pt
   inside the capsule's top, bottom and right edge, so their curves follow
   its curve. The second button is the default. It slides in over 0.15 s. A
-  button's action ends it.
+  button's action ends it. A button that deletes or discards work is red
+  (marked † below): the toast's `destructive` option in the plugin API.
 
   | When | Text | Buttons |
   |---|---|---|
   | the file changed on disk and the card is dirty | "‹name› changed on disk." | Reload, **Keep Mine** |
   | ⌘S, and the file changed on disk since the last read | "‹name› changed on disk since you opened it." | Overwrite, **Reload** |
   | the save failed | "‹name› was not saved: ‹reason›" | Cancel, **Try Again** |
-  | Back, Forward, an open in the card or a close with unsaved edits | "‹name› has unsaved edits." | Discard, **Keep Editing** |
+  | Back, Forward, an open in the card or a close with unsaved edits | "‹name› has unsaved edits." | Discard†, **Keep Editing** |
   | a Git write failed | git's message, on one line | Copy, **OK** |
-  | Git's Revert or Revert All | the question (see Writes) | Cancel, **Revert** |
+  | Git's Revert or Revert All | the question (see Writes) | Cancel, **Revert**† |
 
   Keep Mine takes the disk's new hash, so the next ⌘S writes over that
   version without a question. Reload drops the edits.

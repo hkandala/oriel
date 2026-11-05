@@ -92,7 +92,7 @@ struct PluginProblem {
         Toast(
             text: "\(title): \(text.firstLine)",
             other: nil,
-            main: ("Try Again", { Task { await Plugin.reload(id) } }),
+            main: .init(title: "Try Again") { Task { await Plugin.reload(id) } },
         )
     }
 

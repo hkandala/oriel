@@ -248,8 +248,9 @@ final class Plugin {
         guard web.dirty else { return then(self) }
         web.bridge?.dropToast()
         let name = (web.arg as NSString).lastPathComponent
-        web.toast = Toast(text: "\(name) has unsaved edits.", other: ("Discard", { [weak self] in self.map(then) }),
-                          main: ("Keep Editing", {}))
+        web.toast = Toast(text: "\(name) has unsaved edits.",
+                          other: .init(title: "Discard", role: .destructive) { [weak self] in self.map(then) },
+                          main: .init(title: "Keep Editing") {})
     }
 
     /// The label follows the place, so a reload or a card made again comes back to it.
@@ -308,8 +309,15 @@ struct BackForward: View {
 struct Toast {
     let text: String
     /// None: the main button alone.
-    let other: (title: String, action: () -> Void)?
-    let main: (title: String, action: () -> Void)
+    let other: Action?
+    let main: Action
+
+    struct Action {
+        let title: String
+        /// `.destructive` for a button that deletes or discards: red.
+        var role: ButtonRole?
+        let run: () -> Void
+    }
 }
 
 extension HostStore.Pane {
