@@ -427,6 +427,17 @@ what differs unless a card needs it otherwise, and give the reason in Findings.
     - Fix it at the cause. A page that moves is not a new width: nothing in a card moves at the end of a slide.
     - A UI test that counts scroll changes during a session switch, and before/after recordings.
 
+## Track N: ⌃⇥ from every card (item 47)
+
+47. **⌃⇥ steps tabs from every card.** "create multiple tabs in workspace, in one of the tabs open an agent session in
+    chat view, ctrl+tab to switch between tabs get stuck at tab which has chat view, cmd+shift+[ works though, looks
+    like that chat view is kinda capturing ctrl+tab or something, let's fix this properly, ctrl+tab should work
+    irrespective of what view or pane is present"
+    - Find the cause and fix it there, so ⌃⇥ and ⌃⇧⇥ reach the tab switch from every card: terminal, chat (reply
+      box focused or not), browser, plugin web cards, New Pane and floating windows. Check the other app-wide keys
+      (⇧⌘[ ], ⌘T, ⌘W, ⌘K) in the same cards.
+    - A UI test that goes round the tabs with ⌃⇥, through a chat card and a browser card.
+
 ## Research, plans only (items 34–38, 42, 43)
 
 No code changes. Each report is one self-contained HTML file in `/tmp/ovvi-research/`, copied to
@@ -491,6 +502,7 @@ The tracks run in parallel, each in its own worktree. Estimates are in agent hou
 | K, New Pane's folder | 44 | 3 h |
 | L, a seen Done | 45 | 1.5 h |
 | M, session swipe flicker | 46 | 2 h |
+| N, ⌃⇥ from every card | 47 | 1 h |
 
 - D and E both touch `plugins/explorer`: D owns the tree and its header, and E owns the file cards. Each bumps
   File Explorer's version when it lands, rebasing on the other.
@@ -1078,3 +1090,22 @@ CI runs and on-demand) at about 2–3 h.
   Making the show cheaper is a separate job.
 - **For the user.** Swipe slowly between two sessions on the sidebar: drag past half a page, hold the fingers still,
   then lift. The page should settle with no stop and jump at the end. Then flick quickly: the same as before.
+
+### Track N
+
+- **Cause.** The key monitor that runs second shortcuts (`KeyboardShortcut.second`) ran ⌃⇥ and ⌃⇧⇥ only when no
+  text view had the keyboard, but it took the key in both cases. A chat card puts the keyboard in its reply box, and a
+  new browser card puts it in its address field. Both are text views, so ⌃⇥ did nothing on those tabs. ⇧⌘[ ] goes
+  through the menu, so it worked.
+- **Fix.** ⌃⇥ and ⌃⇧⇥ now run Show Next Tab and Show Previous Tab wherever the keyboard is, the same as ⇧⌘] and ⇧⌘[.
+  The monitor sees the key before any card. So it works from terminal, chat, browser, plugin web and New Pane cards.
+  In a floating window it does nothing, the same as ⇧⌘] (a floating window has no tab steps).
+- **Decisions.** This reverses phase 20's rule that ⌃⇥ stays a text field's key in the palette and in a rename.
+  ⇧⌘] already stepped the tabs there. With the palette open, the keyboard stays in the palette. A rename ends
+  without saving, as with ⇧⌘] or a click elsewhere.
+- **Other keys.** ⇧⌘[ ], ⌘T, ⌘W and ⌘K are menu keys. No chat or browser view takes them first, and this fix does not
+  change them.
+- **Runs.** The new UI test goes round w2's tabs with ⌃⇥ and back with ⌃⇧⇥, through a chat tab and a browser tab.
+  Locally, it failed on the old code (stuck on the browser tab, with its address field focused) and passed on the fix.
+- **For the user.** Open a chat card in one tab and a browser card in another. ⌃⇥ and ⌃⇧⇥ go round every tab, with
+  the reply box focused or not.
