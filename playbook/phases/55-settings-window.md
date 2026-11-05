@@ -80,13 +80,20 @@ everything end to end, and test and review everything".
   pane). Not the Settings window. **Fix:** the test waits for `/tree` in the pane before its Enter.
 
 - **Cause, the palette after Open Browser Here** (42099119524, shard 4). ⌘K right after Open Browser Here: the
-  recording shows the palette's field take the keyboard and lose it half a second later, to no visible field. The new
-  browser card's keyboard claims (its address field's retries, a claim kept while its state file is read) went on
-  after the palette opened, and a card asking the registry for the keys got them too: nothing kept a panel's keys.
-  **Fix (product):** while a panel is open no card of the window takes the keys (the registry's `focus`, the address
-  field's retries), claims from before it opened are dropped, and its close gives them to the keyboard card, all in
-  one `onChange` so the keys go back only once the panel counts as closed. No new test: the race needs a claim that
-  lands after ⌘K; the browser test repeats it.
+  recording shows the new card's address field focused under the open palette, then the palette's caret, while
+  XCUITest never saw the palette's field focused. The new browser card's keyboard claims (its address field's retries
+  every 50 ms, a claim kept while its state file is read, a late `follow`) went on after the palette opened and
+  fought the palette's own focus retries. **Fix (product):** while a panel is open no card that asks the window's
+  registry, nor the address field's retries, takes the keys; claims from before it opened are dropped; its close
+  gives them to the keyboard card, in one `onChange` so the keys go back only once the panel counts as closed. Chats,
+  plugin cards and popups that take the keys on appear are not gated (not seen). No new test: the race needs a claim
+  that lands after ⌘K. A keyboard check's failure now says what has the keyboard.
+- **Open.** Chosen-tests run 42106508443 on the fix failed the same test one step later: the palette kept the keys
+  and took "he" of "here", then after Esc the address field did not get the keyboard. The recording ends before the
+  Esc (XCUITest drops the last seconds), so what took the keys is unknown; the next failure's message names it.
+- **Runs, the palette fix.** On c8606fc8 (22 tests: the browser test, the palette and Open Session tests, two
+  workspace-menu drags) 42106499085 green, 42106508443 red as above; on edd7b80b (same code plus the failure message)
+  42109502283 and 42109512581 (the browser test alone) and 42111067562 and 42111076839 (the 22) green.
 - **Runs.** The four drag and chat tests (both file drops, the spring-load, pi's chat) green in chosen-tests runs
   42096736451 and 42096746914 on c38ecebe and 42097821135 on 70a780e8 (docs only on top); 42092809564 on 0c542f9f
   found the second leg's stuck session.
