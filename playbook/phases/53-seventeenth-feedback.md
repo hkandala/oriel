@@ -485,3 +485,43 @@ CI runs and on-demand) at about 2–3 h.
   3. On a remote machine, open a browser card on `localhost:<port>`. Click the machine chip: it says "This Mac", and
      the page loads from this Mac's `localhost`. Click it again: back to the machine's page. Quit and reopen Oriel:
      the card keeps its choice.
+
+### Track B
+
+- **Cause, ⌘W after ⌘D (3).** `closePane` returned early on purpose while a split's lit card waited for herdr's pane,
+  so each ⌘W in that time did nothing. There was no way to close a stand-in split: only new-tab stand-ins had one.
+- **Fix, ⌘W after ⌘D.** ⌘W closes the lit card. Its split is not made when its write has not started; a pane herdr made
+  for it in the same write is closed in that write and stays hidden while the split settles. The lit card steps back
+  through the quick splits before it (`Page.splitsBefore`), so each ⌘W closes the next newest. A split's starting pane
+  closes at once, as a new tab's does (`Ahead.fresh`). A close of a stand-in that herdr already made closes herdr's
+  pane.
+- **Cause, the drop's flicker (28).** At the drop, `over = nil` slid every capsule back to the old order, the dragged
+  capsule stayed dimmed until the drag session ended, and herdr's snapshot then moved the tabs to the new order.
+- **Drop at 60 fps** (a drag of the third of three labelled tabs to the front): before, 13 frames (217 ms) showed the
+  old order, then 5 frames (83 ms) the new order with the dropped capsule still dimmed. After: 0 and 0; the first
+  frame after the drop has the new order at full opacity. In both, the system's own drag image fades over about 18
+  frames on top; that is AppKit's, not the bar.
+- **Fix, the drop.** `HostStore.move(tab:to:)` is synchronous now: it shows the new order ahead (`Ahead.order`) in the
+  drop's own update, then writes. The order holds until a snapshot has herdr's order, the first or second after the
+  answer, or a tab comes or goes. The drop clears the dim in the same update. Move Tab Left and Right get the same.
+- **Active border (2).** A 1 pt `strokeBorder` inside the keyboard card's edge, over the content, only when the tab
+  shows two or more cards and none is zoomed. No fade: `.transition(.identity)`. Pixels at the card's left edge (2x,
+  sRGB), glass dark: edge 65 then fill 50 before, a 2 px line at 113/102 after; classic light: edge 202 then fill 253
+  before, 202 then 206/206 after. The light border sits next to the card's own dark edge and reads as a firmer edge.
+- **Decisions.** The border is the label colour at 30 % / 22 % in both Looks, glass and classic: by eye it stays
+  subtle on both, so no per-Look value. A zoomed card counts as one shown card (no border). The quick-close rule also
+  covers a split's pane whose shell still starts: it closes at once and comes back with the question if a program
+  runs, as a new tab already did.
+- **Runs.** The new test on the old code (local, 19:14): herdr kept 4 panes. CI on the first fix (41960707188) failed
+  the same test with 3 panes (the lit card did not step back once a snapshot had its pane); the reviewer found it too.
+  Green, 12 chosen tests: 41961788350 and 41963184169 (the pushed head before its last rebase onto Track C's browser
+  commits).
+- **Pictures** in `/tmp/oriel-shots/t53b/`: `border-before-*.png` and `border-after-*.png` (glass and classic, dark
+  and light); the drop at 60 fps, `drop-before-60fps.mov` and `drop-after-60fps.mov` (the tab bar, cropped), with the frames
+  around the drop in `drop-before-frames.png`, `drop-after-frames.png` and the `drop-*-sheet.png` strips.
+- **For the user.**
+  1. In a tab with one pane, press ⌘D three times fast, then ⌘W three times fast. One pane is left, and no pane shows
+     up after.
+  2. With two panes, click each: the active one has a thin light border (dark) or grey border (light); with one pane,
+     or when zoomed, none. Check Glass and Classic.
+  3. Drag a tab to another place and let go: it stays where you dropped it, with no slide back and no blink.
