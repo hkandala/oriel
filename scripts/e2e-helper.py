@@ -126,11 +126,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
         elif action in ("sample", "heap"):
             pid = subprocess.run(["pgrep", "-nx", "Oriel"], capture_output=True, text=True).stdout.strip()
             argv = ["sample", pid, body.decode()] if action == "sample" else ["heap", "-s", "-H", "-q", pid]
+            # A bound for a hung tool, not a measure: `heap` walks every malloc node, 37 s at the stress test's 400
+            # panes on CI, and over 60 s on a runner half as fast.
+            limit = 180
             try:
-                run = subprocess.run(argv, capture_output=True, timeout=60)
+                run = subprocess.run(argv, capture_output=True, timeout=limit)
                 status, reply = (200, run.stdout) if run.returncode == 0 else (500, run.stderr)
             except subprocess.TimeoutExpired:
-                status, reply = 500, f"{action} took over 60 s".encode()
+                status, reply = 500, f"{action} took over {limit} s".encode()
         elif action == "drag" and not re.fullmatch(rb"-?[\d.]+ -?[\d.]+( -?[\d.]+ -?[\d.]+ [\d.]+)+", body):
             status, reply = 400, b"the body must be x y (x y hold)..."
         elif action == "file-drag" and not re.fullmatch(rb"-?[\d.]+( -?[\d.]+){3}", body):

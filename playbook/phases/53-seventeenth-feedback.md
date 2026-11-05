@@ -798,6 +798,10 @@ CI runs and on-demand) at about 2–3 h.
   its frame only while hovered, deferring or skipping the terminal snapshot. VoiceOver reads the capsules in and near
   the row's view; ⌘1–9, ⇧⌘[ ] and the palette reach the rest, and a workspace row's value carries its strongest state
   (theme-and-accessibility). The tests wait on a new `tabs.count` value instead of the last capsule.
+- **Cause, on-demand tests.** Three on-demand tests (run 41988021088) still asked for a capsule out of view, which the
+  lazy row no longer makes: the kept-cards costs waited for the last tab's capsule, and the stress test checked t1's
+  capsule after ⌘T scrolled the row to the new tab. The product was right; they now wait on `tabs.count` and on t1's
+  page being gone.
 - **Pictures.** The look does not change: `/tmp/oriel-shots/t53h/before-webs-dark.png` and
   `/tmp/oriel-shots/t53h/after-webs-dark.png` are the same pixels.
 - **For the user.**
