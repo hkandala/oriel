@@ -1,6 +1,6 @@
 {
   "name": "@ovvi/explorer",
-  "version": "1.10.0",
+  "version": "1.10.1",
   "private": true,
   "description": "Files and folders",
   "keywords": ["files", "tree", "folder", "finder"],
@@ -52,7 +52,6 @@
     "opens": { "folders": true, "files": ["*"] },
     "chooser": "File Explorer",
     "handles": ["save", "find"],
-    "permissions": ["files:read", "files:write", "git"],
     "history": true,
     "header": [
       { "type": "field", "id": "root", "style": "path", "symbol": "folder", "label": "Root", "hidden": true },

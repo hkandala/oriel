@@ -46,7 +46,7 @@ enum Registry {
     }
 
     /// Whether the New Pane chooser has a row for it: it declares one, and the user did not turn it off (its page in
-    /// Settings, the trust prompt).
+    /// Settings, the confirmation).
     static func inNewPane(_ manifest: PluginManifest) -> Bool {
         manifest.chooser != nil && !current.hidden.contains(manifest.id)
     }

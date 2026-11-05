@@ -5,7 +5,7 @@ import WebKit
 
 /// The app's side of a plugin page's `ovvi` object (web/ovvi/runtime.ts, plugins/api): the page's
 /// calls, the events it hears, and the card's state. Bound to its card when the card is made, so no message names a
-/// machine or another card; each call is checked against the manifest's permissions (`PluginCalls`).
+/// machine or another card.
 @MainActor @Observable
 final class Bridge {
     @ObservationIgnored private(set) weak var plugin: Plugin?
@@ -173,10 +173,8 @@ final class Bridge {
         let name = message["call"] as? String ?? "", args = message["args"] as? [String: Any] ?? [:]
         do {
             guard let plugin, failure == nil || name == "card.failed" else { throw PluginError("closed", "Closed") }
-            // A page still open after Forget Trust, under the prompt again: it can do nothing more.
-            guard PluginTrust.shared.allows(plugin.manifest)
-            else { throw PluginError("denied", "\(name): not trusted") }
-            try PluginCalls.check(name, plugin.manifest.permissions)
+            // A page still open after Remove, under the confirmation again: it can do nothing more.
+            guard PluginTrust.shared.allows(plugin.manifest) else { throw PluginError("closed", "Removed") }
             let reply = try await answer(name, args, plugin)
             guard let reply else { return (nil, nil) }
             if let data = reply as? Data {
@@ -185,9 +183,6 @@ final class Bridge {
             let data = try JSONSerialization.data(withJSONObject: reply, options: [.fragmentsAllowed, .sortedKeys])
             return (String(decoding: data, as: UTF8.self), nil)
         } catch let error as PluginError {
-            if error.code == "denied", let id = plugin?.manifest.id {
-                PluginLog.add(id, "denied: \(error.text)")
-            }
             return (nil, "\(error.code): \(error.text)")
         } catch {
             return (nil, "failed: \(error.localizedDescription)")
@@ -274,8 +269,7 @@ final class Bridge {
     func calls(_ name: String, _ args: [String: Any]) async throws -> Data {
         guard let plugin, let store = plugin.web.store else { throw PluginError("closed", "Closed") }
         let data = try JSONSerialization.data(withJSONObject: args)
-        let calls = await PluginCalls(permissions: plugin.manifest.permissions, exec: store.machine.exec(),
-                                      remote: store.machine.isRemote,
+        let calls = await PluginCalls(exec: store.machine.exec(), remote: store.machine.isRemote,
                                       gitRuns: name != "run" ? store.gitRuns() : false)
         return try await calls.call(name, data)
     }

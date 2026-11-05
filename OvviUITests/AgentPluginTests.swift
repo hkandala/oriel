@@ -4,8 +4,8 @@ import XCTest
 /// from a pane on This Mac, each in a config folder of the test's own.
 extension OvviUITests {
     /// The list with a package that did not load, `--for` with its default, then an install of a local folder: the
-    /// trust prompt names the asking pane, Cancel is `declined`, Install answers with the plugin, which then opens CSV
-    /// files.
+    /// confirmation names the asking pane and its folder, Cancel is `declined`, Install answers with the plugin, which
+    /// then opens CSV files.
     func testTheOvviCommandListsAndInstallsPlugins() async throws {
         let config = "/tmp/ovvi-e2e-agent-plugins", csv = "/tmp/ovvi-e2e-agent-csv"
         let fixture = URL(filePath: #filePath).deletingLastPathComponent().appending(path: "Fixtures/csv-table").path
@@ -25,8 +25,9 @@ extension OvviUITests {
         XCTAssertTrue(sheet.buttons["Install"].exists(within: 10))
         let words = sheet.staticTexts.allElementsBoundByIndex.map { $0.value as? String ?? "" }.joined(separator: "\n")
         XCTAssertTrue(words.contains("in pane \(pane) asks to install it."), words)
-        XCTAssertTrue(words.contains("ovvi-e2e-csv-table 0.1.0 from \(csv)"), words)
-        keepScreenshot("agent trust prompt")
+        XCTAssertTrue(words.contains("ovvi-e2e-csv-table 0.1.0 in \(csv)"), words)
+        XCTAssertTrue(words.contains("Install plugins only from sources you trust."), words)
+        keepScreenshot("agent install confirmation")
         sheet.buttons["Cancel"].click()
         try await waitFor(pane) { $0.contains("\ncancel-42-") }
         let canceled = try await read(pane)

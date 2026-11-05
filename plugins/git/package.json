@@ -1,6 +1,6 @@
 {
   "name": "@ovvi/git",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "private": true,
   "description": "Changes and history",
   "keywords": ["diff", "changes", "commit", "uncommitted", "history"],
@@ -31,7 +31,6 @@
     "icon": "source.branch",
     "opens": { "git": true },
     "chooser": "Git",
-    "permissions": ["files:read", "git", "clipboard"],
     "history": true,
     "settings": [
       { "id": "diff-layout", "type": "choice", "title": "Diff layout", "default": "unified",

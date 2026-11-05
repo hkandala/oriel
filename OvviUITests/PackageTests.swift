@@ -1,12 +1,11 @@
 import XCTest
 
 /// Plugin packages (phase 47, tracks F and F2): the building page's CSV Table (Fixtures/csv-table, its own esbuild
-/// build
-/// script) as a local path, its dependencies installed from npm's cache as its author would. Its first card asks for
-/// trust, then says it is not built; Build runs its build script and the page loads. An edit that imports a dependency
-/// from the package's own `node_modules` shows after Reload Plugin (⌥⌘R) with the header's values kept; a failed build
-/// keeps the page and says so, and the log has it. Then Settings ▸ Plugins installs the same package from a local git
-/// repository at a tag, which installs its dependencies and builds it.
+/// build script) as a local path, its dependencies installed from npm's cache as its author would. Its first card asks
+/// to install it, then says it is not built; Build runs its build script and the page loads. An edit that imports a
+/// dependency from the package's own `node_modules` shows after Reload Plugin (⌥⌘R) with the header's values kept; a
+/// failed build keeps the page and says so, and the log has it. Then Settings ▸ Plugins installs the same package
+/// from a local git repository at a tag, which installs its dependencies and builds it.
 extension OvviUITests {
     func testAPluginPackageAsksForTrustBuildsAndReloads() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
@@ -54,18 +53,15 @@ extension OvviUITests {
         try await installFromGit(fixture, config: config, shell: shell)
     }
 
-    /// Its code runs only after Allow: Reload Plugins over the prompt builds nothing. Then it is not built yet, and
-    /// Build runs its build script.
+    /// Its code runs only after Install: Reload Plugins over the confirmation builds nothing. Then it is not built
+    /// yet, and Build runs its build script.
     private func trustsAndBuilds(_ card: String, csv: String, shell: String, tab: String,
                                  cardTab: String) async throws
     {
         let trust = element("pane.\(card).trust")
-        XCTAssertTrue(trust.has(\.stringValue, "Trust “CSV Table”?", within: 10))
-        XCTAssertEqual(element("pane.\(card).trust.words").stringValue,
-                       "It can read files and folders on the machine of each card you open. "
-                           + "Its build script runs as you on this Mac when Ovvi builds it.")
+        XCTAssertTrue(trust.has(\.stringValue, "Install “CSV Table”?", within: 10))
         XCTAssertFalse(text("CSV Table one").exists)
-        keepScreenshot("plugin trust prompt")
+        keepScreenshot("plugin confirmation")
         let filter = openPalette()
         filter.typeText("reload plugins")
         XCTAssertTrue(element("palette.command.Reload Plugins").exists(within: 2))

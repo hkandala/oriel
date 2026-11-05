@@ -10,10 +10,10 @@ extension OvviUITests {
         let (_, shell) = try await newTab("settings scenes")
         try await waitForPrompt(shell)
         let config = "/tmp/ovvi-e2e-settings-scenes"
-        // A second plugin with a long name, no settings and no permissions, that no card waits for.
+        // A second plugin with a long name and no settings, that no card waits for.
         let quiet = #"{"version":"0.1.0","description":"A plugin with a long description that runs past one line "#
             + #"of the header on purpose.","ovvi":{"id":"ovvi-e2e-quiet","name":"Quiet Plugin With A Rather Long "#
-            + #"Name","api":3,"entry":"main.js","icon":"moon","permissions":[]}}"#
+            + #"Name","api":3,"entry":"main.js","icon":"moon"}}"#
         let card = try await shoutCard(config, shell: shell, extra: "echo '{\"hideInNewPane\":[\"codex\"]}' > "
             + "\(config)/settings.json && mkdir -p \(config)/plugins/ovvi-e2e-quiet && echo '\(quiet)' > "
             + "\(config)/plugins/ovvi-e2e-quiet/package.json && touch \(config)/plugins/ovvi-e2e-quiet/main.js")
@@ -32,7 +32,7 @@ extension OvviUITests {
             try await show(card.tab)
             XCTAssertTrue(element("pane.\(card.pane).trust").exists(within: 10))
             scene("\(appearance) 00 main window", app.windows.firstMatch)
-            let tour = SettingsTour(test: self, look: appearance, last: appearance == "light")
+            let tour = SettingsTour(test: self, look: appearance)
             tour.pages()
             tour.machines()
             tour.plugins()
@@ -61,14 +61,11 @@ extension OvviUITests {
 @MainActor
 private final class SettingsTour {
     let test: OvviUITests, look: String, window: XCUIElement
-    /// The last pass: Don't Allow closes the waiting card, so only it shows the denied page.
-    let last: Bool
     var count = 0
 
-    init(test: OvviUITests, look: String, last: Bool) {
+    init(test: OvviUITests, look: String) {
         self.test = test
         self.look = look
-        self.last = last
         window = test.settingsWindow
     }
 
@@ -153,19 +150,10 @@ private final class SettingsTour {
             bottom("plugin \(plugin) bottom")
             back()
         }
-        let id = "plugins.ovvi-e2e-shout"
-        open(id, waitFor: "\(id).allow")
-        shoot("plugin waiting")
-        open("\(id).allow", waitFor: "\(id).forget")
-        shoot("plugin allowed")
-        open("\(id).forget", waitFor: "\(id).allow")
-        shoot("plugin after forget trust")
-        if last {
-            open("\(id).deny")
-            shoot("plugin denied")
-        }
+        open("plugins.ovvi-e2e-shout", waitFor: "plugins.ovvi-e2e-shout.setting.shout")
+        shoot("plugin shout")
         back()
-        open("plugins.ovvi-e2e-quiet", waitFor: "plugins.ovvi-e2e-quiet.allow")
+        open("plugins.ovvi-e2e-quiet", waitFor: "plugins.ovvi-e2e-quiet.remove")
         shoot("plugin no settings")
     }
 

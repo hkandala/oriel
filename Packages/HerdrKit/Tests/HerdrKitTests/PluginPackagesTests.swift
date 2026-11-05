@@ -12,8 +12,7 @@ private let offline = ProcessExec(localExec.environment.merging([
 private func package(_ folder: URL, version: String, extra: [String: Any] = [:]) throws {
     let json: [String: Any] = [
         "name": "csv-table", "version": version, "description": "Tables",
-        "ovvi": ["id": "csv-table", "name": "CSV Table", "api": 1, "entry": "dist/main.js", "icon": "tablecells",
-                 "permissions": ["files:read"]],
+        "ovvi": ["id": "csv-table", "name": "CSV Table", "api": 1, "entry": "dist/main.js", "icon": "tablecells"],
     ].merging(extra) { $1 }
     try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
     try JSONSerialization.data(withJSONObject: json).write(to: folder.appending(path: "package.json"))

@@ -2,89 +2,58 @@ import Foundation
 import HerdrKit
 import SwiftUI
 
-/// The plugins the user trusts, each with the permissions they allowed (plugins/security#the-trust-prompt),
-/// in `trust.json` in the config folder. A plugin asks once before its code first runs, and again only when its
-/// permissions grow; the default plugins never ask.
+/// The plugins the user confirmed (plugins/security#the-confirmation), by id in `trust.json` in the config folder. A
+/// plugin asks once before its code first runs; the default plugins never ask.
 @MainActor @Observable
 final class PluginTrust {
     static let shared = PluginTrust()
-    private var trusted: [String: [String]]
+    private var trusted: Set<String>
     private static let file = Registry.config.appending(path: "trust.json")
 
+    /// What the confirmation says, at install and in a card.
+    static let warning = "Plugins run code as you on this Mac and on the machines whose cards you open, including "
+        + "their build script. Install plugins only from sources you trust."
+
     private init() {
-        trusted = (try? JSONDecoder().decode([String: [String]].self, from: Data(contentsOf: Self.file))) ?? [:]
+        let data = (try? Data(contentsOf: Self.file)) ?? Data()
+        // An older Ovvi kept each id with its permissions: those ids count as confirmed.
+        trusted = Set((try? JSONDecoder().decode([String].self, from: data))
+            ?? (try? JSONDecoder().decode([String: [String]].self, from: data))?.keys.map(\.self) ?? [])
     }
 
     func allows(_ manifest: PluginManifest) -> Bool {
-        Registry.defaults.contains(manifest.id)
-            || trusted[manifest.id].map { Set(manifest.permissions).isSubset(of: $0) } == true
+        Registry.defaults.contains(manifest.id) || trusted.contains(manifest.id)
     }
 
-    /// Allow: kept, and the plugin's cards waiting on the prompt load.
+    /// Install: kept, and the plugin's cards waiting on the confirmation load.
     func allow(_ manifest: PluginManifest) {
-        trusted[manifest.id] = manifest.permissions
+        trusted.insert(manifest.id)
         save()
         for card in Plugin.cards where card.manifest == manifest && card.web.bridge?.failure == nil {
             card.web.reload()
         }
     }
 
-    /// Forget Trust (its page in Settings, Remove): its open cards show the trust prompt again, and their pages' calls
-    /// fail (`Bridge.call`) and their watches stop.
+    /// Remove: its open cards show the confirmation again, and their pages' calls fail (`Bridge.call`) and their
+    /// watches stop.
     func forget(_ id: String) {
-        trusted[id] = nil
+        trusted.remove(id)
         save()
         for card in Plugin.cards where card.manifest.id == id {
             card.web.bridge?.reset()
         }
     }
 
-    /// Bumped as plugin cards come and go, so `waiting` is read again.
-    var cards = 0
-
-    /// The plugins with a card that waits for an answer: the Settings sidebar's badge, and Needs review.
-    var waiting: Set<String> {
-        _ = cards
-        return Set(Plugin.cards.filter { $0.web.bridge?.failure == nil && !allows($0.manifest) }.map(\.manifest.id))
-    }
-
-    /// Don't Allow on its page: its waiting cards close, as the card's button closes its pane.
-    func deny(_ id: String) {
-        for window in WindowPages.windows {
-            let cards = window.terminals.plugins.values.filter { $0.manifest.id == id && !allows($0.manifest) }
-            for page in window.list + window.floatOnly {
-                // Never `closePane(nil)`: it closes the lit pane.
-                for card in cards where card.web.store === page.store {
-                    if let pane = page.store.pane(card.paneID) {
-                        page.closePane(pane)
-                    }
-                }
-            }
-        }
-    }
-
     private func save() {
         try? FileManager.default.createDirectory(at: Registry.config, withIntermediateDirectories: true)
-        try? JSONEncoder().encode(trusted).write(to: Self.file, options: .atomic)
+        try? JSONEncoder().encode(trusted.sorted()).write(to: Self.file, options: .atomic)
     }
 
-    /// What it can do, a sentence per permission in the manifest's order; the first says where.
-    /// `folder`: the package, whose build script, when it has one, the app runs as the user.
-    static func words(_ manifest: PluginManifest, folder: URL?) -> [String] {
-        var place = "on the machine of each card you open"
-        let words = manifest.permissions.map { permission in
-            defer { place = "there" }
-            return switch permission {
-            case "files:read": "It can read files and folders \(place)."
-            case "files:write": "It can change files \(place)."
-            case "git": "It can read git repositories \(place), stage, commit, switch branches, pull and push."
-            case "run": "It can run any command as you \(place), including ones that use the network or keep running."
-            default: "It can write to the clipboard."
-            }
-        }
-        let build = folder.map(PluginPackages.builds) == true
-            ? ["Its build script runs as you on this Mac when Ovvi builds it."] : []
-        return (words.isEmpty ? ["Its page can only draw in its card."] : words) + build
+    /// Which plugin, and where from: an npm or git source, and its folder (a local path's source).
+    static func origin(_ manifest: PluginManifest, source: String, folder: URL?) -> String {
+        let folder = folder.map { ($0.path as NSString).abbreviatingWithTildeInPath } ?? ""
+        let fetched = PluginSource(source)?.folder != nil ? "from \(source) " : ""
+        return "\(manifest.id) \(manifest.version) \(fetched)in \(folder)".shown
     }
 }
 
@@ -97,8 +66,8 @@ extension String {
     }
 }
 
-/// In the card's middle, before the plugin's code first runs: its id and folder, what it says it is, what it can do,
-/// and Don't Allow (closes the pane) or Allow.
+/// In the card's middle, before the plugin's code first runs: which plugin and where from, what it says it is, the
+/// warning, and Cancel (closes the pane) or Install.
 struct TrustPrompt: View {
     let plugin: Plugin
     let page: Page
@@ -106,19 +75,19 @@ struct TrustPrompt: View {
 
     var body: some View {
         let manifest = plugin.manifest, id = "pane.\(plugin.paneID).trust"
-        let folder = Registry.package(manifest.id).map { ($0.path as NSString).abbreviatingWithTildeInPath.shown } ?? ""
+        let source = PluginInstalls.shared.rows.first { $0.id == manifest.id }?.source ?? ""
         VStack(spacing: 12) {
             Image(symbol: manifest.icon).font(.system(size: 28)).foregroundStyle(.secondary)
             VStack(spacing: 6) {
-                Text("Trust “\(manifest.name.shown)”?").font(.system(size: 13, weight: .semibold))
+                Text("Install “\(manifest.name.shown)”?").font(.system(size: 13, weight: .semibold))
                     .accessibilityIdentifier(id)
-                Text("\(manifest.id) \(manifest.version.shown) in \(folder)").font(.system(size: 11).monospaced())
+                Text(PluginTrust.origin(manifest, source: source, folder: Registry.package(manifest.id)))
+                    .font(.system(size: 11).monospaced())
                     .foregroundStyle(.secondary).lineLimit(2).truncationMode(.middle)
                 if !manifest.description.isEmpty {
                     Text(manifest.description.shown).font(.system(size: 12)).lineLimit(3)
                 }
-                Text(PluginTrust.words(manifest, folder: Registry.package(manifest.id)).joined(separator: " "))
-                    .font(.system(size: 12))
+                Text(PluginTrust.warning).font(.system(size: 12))
                     .foregroundStyle(.secondary).accessibilityIdentifier("\(id).words")
             }
             .multilineTextAlignment(.center)
@@ -128,9 +97,9 @@ struct TrustPrompt: View {
                     .foregroundStyle(.secondary).accessibilityIdentifier("\(id).new-pane")
             }
             HStack(spacing: 8) {
-                Button("Don’t Allow") { page.closePane(page.store.pane(plugin.paneID)) }
+                Button("Cancel") { page.closePane(page.store.pane(plugin.paneID)) }
                     .buttonStyle(.glass).accessibilityIdentifier("\(id).deny")
-                Button("Allow") { PluginTrust.shared.allow(manifest) }
+                Button("Install") { PluginTrust.shared.allow(manifest) }
                     .buttonStyle(.glassProminent).accessibilityIdentifier("\(id).allow")
             }
             .controlSize(.small)

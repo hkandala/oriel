@@ -278,5 +278,5 @@ export interface Theme {
 
 /** What every failed call rejects with. */
 export interface OvviError extends Error {
-  code: "denied" | "notFound" | "notText" | "tooLarge" | "changed" | "timeout" | "closed" | "failed"
+  code: "notFound" | "notText" | "tooLarge" | "changed" | "timeout" | "closed" | "failed"
 }

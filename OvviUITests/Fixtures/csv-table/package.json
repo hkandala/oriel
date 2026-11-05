@@ -23,7 +23,6 @@
       { "type": "spacer" },
       { "id": "first-row", "type": "toggle", "symbol": "tablecells.badge.ellipsis", "title": "First Row Is Header", "value": true },
       { "id": "reload", "type": "button", "symbol": "arrow.clockwise", "title": "Reload" }
-    ],
-    "permissions": ["files:read"]
+    ]
   }
 }

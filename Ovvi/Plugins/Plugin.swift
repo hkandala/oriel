@@ -149,7 +149,6 @@ final class Plugin {
         web = WebCard(plugin: manifest.id, arg: label.place, place: place, store: store)
         header = Header(manifest: manifest)
         name()
-        Self.counted()
         web.bridge = Bridge(plugin: self)
         web.view.step = { [weak self] back in
             guard let self, back ? canGoBack : canGoForward else { return false }
@@ -160,16 +159,6 @@ final class Plugin {
             }
             return true
         }
-    }
-
-    isolated deinit {
-        Self.counted()
-    }
-
-    /// The waiting plugins are read again (`PluginTrust.waiting`). Later: a card is made in a view's update and can go
-    /// in one, and a change of observed state there stops the app.
-    private static func counted() {
-        Task { PluginTrust.shared.cards += 1 }
     }
 
     /// The page's identifier names its plugin, a File Explorer's its place: `git.<pane>.page`, `file.<pane>.page`.

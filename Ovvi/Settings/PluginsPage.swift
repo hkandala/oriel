@@ -6,11 +6,6 @@ import SwiftUI
 struct PluginsPage: View {
     @State private var source = ""
 
-    /// The plugins whose cards wait for the user's answer: the sidebar's badge.
-    static var waiting: Int {
-        PluginTrust.shared.waiting.count
-    }
-
     /// Each plugin's settings and Show in New Pane, for the sidebar's search.
     static var searchRows: [SettingsSearch] {
         Registry.all.flatMap { manifest in
@@ -88,7 +83,7 @@ struct PluginsPage: View {
     }
 }
 
-/// A plugin's row: its icon, name and version, its source, Needs review while its cards wait, and what it is doing.
+/// A plugin's row: its icon, name and version, its source, and what it is doing.
 private struct PluginLink: View {
     let row: InstalledPlugin
 
@@ -113,23 +108,10 @@ private struct PluginLink: View {
                 if let busy {
                     ProgressView().controlSize(.small)
                     Text(busy).font(.system(size: 11)).foregroundStyle(.secondary)
-                } else if PluginTrust.shared.waiting.contains(row.id) {
-                    NeedsReview()
                 }
             }
         }
         // One element, whose label reads its texts: "Git, 1.9.0, Comes with Ovvi".
         .accessibilityIdentifier("plugins.\(row.id)")
-    }
-}
-
-/// "Needs review", an orange capsule: the plugin's cards wait for an answer.
-private struct NeedsReview: View {
-    @Environment(\.look) private var look
-
-    var body: some View {
-        Text("Needs review").font(.system(size: 11, weight: .medium)).foregroundStyle(look.needsYou)
-            .padding(.horizontal, 7).padding(.vertical, 2)
-            .background(look.needsYou.opacity(0.15), in: .capsule)
     }
 }

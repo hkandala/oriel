@@ -85,7 +85,7 @@ extension AgentCommand {
                 message: "\(typed) is not npm:<package>, git:<repository> or a folder",
             )
         }
-        // Again would be an Update, which asks only when the permissions grew: the user's, on the plugin's page.
+        // Again would be an Update, which asks nothing: the user's, on the plugin's page.
         guard !PluginPackages.sources(Registry.settings).contains(source) else {
             throw AgentError(
                 code: "bad_argument",

@@ -19,7 +19,7 @@ final class PluginBuilds {
         let id = manifest.id, last = running[id]
         let task = Task { () -> PluginProblem? in
             _ = await last?.value
-            // An author's script runs only for a plugin the user trusts; the card asks first.
+            // An author's script runs only for a plugin the user confirmed; the card asks first.
             guard PluginTrust.shared.allows(manifest), let package = Registry.package(id) else { return nil }
             if Registry.defaults.contains(id), let problem = await DefaultPlugins.shared.installed(manifest) {
                 return problem
@@ -113,7 +113,7 @@ struct PluginProblem {
     }
 }
 
-/// `~/Library/Logs/Ovvi/plugins/<id>.log`: a plugin's build errors, console lines, uncaught errors and denied calls,
+/// `~/Library/Logs/Ovvi/plugins/<id>.log`: a plugin's build errors, console lines and uncaught errors,
 /// each with its time, for the author and their agents (`tail -f`). Under `-configFolder` when it is set, so tests
 /// never write the user's logs.
 enum PluginLog {
@@ -178,7 +178,7 @@ extension WebCard {
 }
 
 extension Bridge {
-    /// Before the page loads: the user trusts the plugin (else the card shows the trust prompt), a default plugin is
+    /// Before the page loads: the user confirmed the plugin (else the card shows the confirmation), a default plugin is
     /// installed, and the built entry is there; else the card says why. True when the page can load.
     func prepare() async -> Bool {
         guard let plugin else { return false }
@@ -213,9 +213,8 @@ extension Plugin {
     }
 
     /// Reload Plugin: its package read again, its build script run, then each of its cards' pages loaded again with
-    /// their state and header values. A card whose manifest changed is made again from the new one (its header, and
-    /// its trust when the permissions grew). A failed build keeps the pages and says so in each card. Unsaved edits
-    /// ask first, on the first card that has them.
+    /// their state and header values. A card whose manifest changed is made again from the new one (its header). A
+    /// failed build keeps the pages and says so in each card. Unsaved edits ask first, on the first card that has them.
     /// ponytail: Discard there drops every card's edits, and a card made again starts from its state file (up to
     /// 500 ms behind); ask per card and hand the state over if that bites.
     /// `build` false: an install that built it already, or ships its build. `keepEdits` (an agent's): a card with

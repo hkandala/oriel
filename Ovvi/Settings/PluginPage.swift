@@ -2,7 +2,7 @@ import HerdrKit
 import SwiftUI
 
 /// A plugin's page under Settings ▸ Plugins (plugins/packages#a-plugins-page): its header with what it can do here, its
-/// settings drawn from its manifest, Show in New Pane, and its permissions with the trust prompt's answer.
+/// settings drawn from its manifest, and Show in New Pane.
 struct PluginPage: View {
     let id: String
     @Environment(\.dismiss) private var dismiss
@@ -48,9 +48,6 @@ struct PluginPage: View {
                     }
                     if sections.isEmpty, manifest.chooser != nil {
                         Section { inOvvi(manifest) }
-                    }
-                    if id != Registry.browser.id {
-                        PluginPermissions(manifest: manifest)
                     }
                 }
                 if row.kind != .bundled {
@@ -165,65 +162,6 @@ private struct PluginRemove: View {
                 Text("Remove \((row.manifest?.name ?? row.id).shown)")
                 Text(PluginInstalls.removal(row))
             }
-        }
-    }
-}
-
-/// What it can do, a row per permission in the trust prompt's words, then the answer: a default plugin never asks;
-/// a trusted one has Forget Trust; one not trusted yet has Allow, and Don't Allow while its cards wait.
-private struct PluginPermissions: View {
-    let manifest: PluginManifest
-
-    var body: some View {
-        let trust = PluginTrust.shared, id = "plugins.\(manifest.id)", folder = Registry.package(manifest.id)
-        let builds = folder.map(PluginPackages.builds) == true
-        let symbols = (manifest.permissions.isEmpty ? ["rectangle.dashed"] : manifest.permissions.map(Self.symbol))
-            + (builds ? ["hammer"] : [])
-        Section {
-            ForEach(Array(zip(symbols, PluginTrust.words(manifest, folder: folder))), id: \.1) { symbol, words in
-                // One width for every symbol: the words start on one edge.
-                Label { Text(words) } icon: { Image(systemName: symbol).foregroundStyle(.secondary).frame(width: 20) }
-            }
-            if Registry.defaults.contains(manifest.id) {
-                // In the footer below.
-            } else if trust.allows(manifest) {
-                LabeledContent {
-                    Button("Forget Trust") { trust.forget(manifest.id) }.accessibilityIdentifier("\(id).forget")
-                } label: {
-                    Text("Allowed").accessibilityIdentifier("\(id).trust")
-                }
-            } else {
-                LabeledContent {
-                    HStack {
-                        if trust.waiting.contains(manifest.id) {
-                            Button("Don’t Allow") { trust.deny(manifest.id) }.accessibilityIdentifier("\(id).deny")
-                        }
-                        Button("Allow") { trust.allow(manifest) }.buttonStyle(.borderedProminent)
-                            .accessibilityIdentifier("\(id).allow")
-                    }
-                } label: {
-                    Text("Not allowed yet").accessibilityIdentifier("\(id).trust")
-                    if trust.waiting.contains(manifest.id) {
-                        Text("Its cards wait until you choose.")
-                    }
-                }
-            }
-        } header: {
-            Text("Permissions")
-        } footer: {
-            if Registry.defaults.contains(manifest.id) {
-                Text("Comes with Ovvi, so it never asks.").settingsFooter().accessibilityIdentifier("\(id).trust")
-            }
-        }
-    }
-
-    private static func symbol(_ permission: String) -> String {
-        switch permission {
-        case "files:read": "doc.text"
-        case "files:write": "pencil"
-        case "git": "arrow.triangle.branch"
-        case "run": "terminal"
-        default: "doc.on.clipboard"
         }
     }
 }

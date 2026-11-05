@@ -2,9 +2,8 @@ import Foundation
 @testable import HerdrKit
 import Testing
 
-/// Every permission, on This Mac.
-private let all = PluginCalls(permissions: ["files:read", "files:write", "git", "run", "clipboard"], exec: localExec,
-                              remote: false, gitRuns: true)
+/// On This Mac.
+private let all = PluginCalls(exec: localExec, remote: false, gitRuns: true)
 
 /// The call's reply as JSON values.
 private func call(_ name: String, _ args: [String: Any], _ calls: PluginCalls = all) async throws -> Any? {
@@ -22,27 +21,6 @@ private func failure(_ name: String, _ args: [String: Any], _ calls: PluginCalls
     } catch {
         return "\(error)"
     }
-}
-
-@Test func `a call outside the manifest's permissions is denied before it runs`() async {
-    let none = PluginCalls(permissions: [], exec: localExec, remote: false, gitRuns: true)
-    for (name, permission) in [
-        ("files.read", "files:read"),
-        ("files.list", "files:read"),
-        ("files.watch", "files:read"),
-        ("files.write", "files:write"),
-        ("files.move", "files:write"),
-        ("git.status", "git"),
-        ("git.commit", "git"),
-        ("run", "run"),
-        ("clipboard.write", "clipboard"),
-    ] {
-        #expect(PluginCalls.permission(name) == permission)
-        #expect(await failure(name, ["path": "/tmp"], none) == "denied")
-    }
-    #expect(PluginCalls.permission("toast") == nil)
-    let reader = PluginCalls(permissions: ["files:read"], exec: localExec, remote: false, gitRuns: true)
-    #expect(await failure("files.write", ["path": "/tmp/x", "text": ""], reader) == "denied")
 }
 
 @Test func `files read, write by hash, and say what is wrong`() async throws {
@@ -141,7 +119,7 @@ private func failure(_ name: String, _ args: [String: Any], _ calls: PluginCalls
     let patch = try #require(await call("git.diff", ["root": repo.path, "source": "uncommitted"]) as? String)
     #expect(patch.contains("diff --git a/sub/a.txt b/sub/a.txt"))
     #expect(await failure("git.diff", ["root": repo.path, "source": "-x"]) == "failed")
-    let none = PluginCalls(permissions: ["git"], exec: localExec, remote: false, gitRuns: false)
+    let none = PluginCalls(exec: localExec, remote: false, gitRuns: false)
     #expect(await failure("git.status", ["root": repo.path], none) == "failed")
 }
 

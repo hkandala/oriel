@@ -26,7 +26,6 @@
     "icon": "doc.plaintext",
     "opens": { "files": ["*.txt"], "priority": "option" },
     "header": [{ "id": "lines", "type": "text", "style": "dim" }],
-    "settings": [{ "id": "wrap", "type": "toggle", "title": "Wrap long lines", "default": true }],
-    "permissions": ["files:read"]
+    "settings": [{ "id": "wrap", "type": "toggle", "title": "Wrap long lines", "default": true }]
   }
 }

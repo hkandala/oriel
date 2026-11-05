@@ -26,44 +26,24 @@ public struct PluginError: Error, Equatable {
     }
 }
 
-/// A plugin page's calls on its card's machine (plugins/api): files, git and run, each behind the
-/// manifest's permission. Arguments and replies are JSON, as the page sends and reads them. The card's own calls (its
-/// place, state, header, toast, menus) are the app's.
+/// A plugin page's calls on its card's machine (plugins/api): files, git and run. Arguments and replies are JSON, as
+/// the page sends and reads them. The card's own calls (its place, state, header, toast, menus) are the app's.
 public struct PluginCalls: Sendable {
-    public let permissions: [String]
     public let exec: any Exec
     public let remote: Bool
     /// git may run on the machine (`HostStore.gitRuns`): on This Mac, not before the developer tools are there.
     public let gitRuns: Bool
 
-    public init(permissions: [String], exec: any Exec, remote: Bool, gitRuns: Bool) {
-        (self.permissions, self.exec, self.remote, self.gitRuns) = (permissions, exec, remote, gitRuns)
-    }
-
-    /// The permission a call needs (plugins/manifest#permissions); nil for none.
-    public static func permission(_ call: String) -> String? {
-        switch call {
-        case "files.write", "files.move": "files:write"
-        case "run": "run"
-        case "clipboard.write": "clipboard"
-        default: call.hasPrefix("files.") ? "files:read" : call.hasPrefix("git.") ? "git" : nil
-        }
-    }
-
-    /// Throws `denied` when the manifest lacks the call's permission.
-    public static func check(_ call: String, _ permissions: [String]) throws(PluginError) {
-        if let needed = permission(call), !permissions.contains(needed) {
-            throw PluginError("denied", "\(call) needs the permission \(needed)")
-        }
+    public init(exec: any Exec, remote: Bool, gitRuns: Bool) {
+        (self.exec, self.remote, self.gitRuns) = (exec, remote, gitRuns)
     }
 
     /// The git writes, which a card runs one at a time.
     public static let gitWrites: Set = ["git.stage", "git.unstage", "git.commit", "git.fetch", "git.pull", "git.push",
                                         "git.switch", "git.init", "git.revert"]
 
-    /// Runs one call; its JSON reply. Throws `denied` without its permission, `failed` for a call it does not know.
+    /// Runs one call; its JSON reply. Throws `failed` for a call it does not know.
     public func call(_ name: String, _ arguments: Data) async throws(PluginError) -> Data {
-        try Self.check(name, permissions)
         let reply: Any?
         do {
             let args: Args

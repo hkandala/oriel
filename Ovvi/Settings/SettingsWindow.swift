@@ -126,7 +126,6 @@ private struct SettingsSidebarRow: View {
 
     var body: some View {
         Label { Text(page.title) } icon: { SettingsIcon(page: page) }
-            .badge(page == .plugins ? PluginsPage.waiting : 0)
             .tag(page)
             .accessibilityIdentifier("settings.page.\(page.rawValue)")
     }

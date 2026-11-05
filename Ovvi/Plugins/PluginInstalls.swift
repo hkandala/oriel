@@ -2,7 +2,7 @@ import AppKit
 import HerdrKit
 
 /// The Plugins page's work (plugins/packages): install, update and remove of `npm:`, `git:` and local
-/// path sources, the `packages` list of `settings.json`, and the trust prompt before a package's dependencies install.
+/// path sources, the `packages` list of `settings.json`, and the confirmation before a package's dependencies install.
 @MainActor @Observable
 final class PluginInstalls {
     static let shared = PluginInstalls()
@@ -38,9 +38,9 @@ final class PluginInstalls {
         return plugins + missing.map { InstalledPlugin(id: $0.value, manifest: nil, kind: .installed($0.value)) }
     }
 
-    /// Install from the field, or from an agent (`ovvi plugins install`, which names it in the trust prompt): an
-    /// `npm:` or `git:` source is fetched, its manifest shown in the trust prompt, then its dependencies installed; a
-    /// local path is listed after the same prompt. The plugin installed; `CancellationError` on the prompt's Cancel.
+    /// Install from the field, or from an agent (`ovvi plugins install`, which names it in the confirmation): an
+    /// `npm:` or `git:` source is fetched, its manifest shown in the confirmation, then its dependencies installed; a
+    /// local path is listed after the same confirmation. The plugin installed; `CancellationError` on its Cancel.
     func install(_ text: String, for agent: Asker? = nil) async throws -> PluginManifest {
         let text = text.trimmingCharacters(in: .whitespaces)
         guard let source = PluginSource(text) else {
@@ -69,7 +69,7 @@ final class PluginInstalls {
     }
 
     /// Update: the source fetched again (the newest version its spec allows) and put over the installed copy; it asks
-    /// again only when the permissions grew.
+    /// only when its id changed.
     func update(_ row: InstalledPlugin) async {
         guard case let .installed(text) = row.kind, let source = PluginSource(text) else { return }
         _ = try? await run(row.id, "Updating…") {
@@ -183,8 +183,9 @@ final class PluginInstalls {
         let exec = await localExec.value
         let staged = try await PluginPackages.fetch(source, into: Self.plugins, exec: exec)
         do {
-            try free(staged.manifest.id, for: Self.plugins.appending(path: source.folder ?? ""))
-            try await trusts(staged.manifest, from: text, folder: staged.folder, for: agent)
+            let folder = Self.plugins.appending(path: source.folder ?? "")
+            try free(staged.manifest.id, for: folder)
+            try await trusts(staged.manifest, from: text, folder: folder, for: agent)
             let output = try await PluginPackages.finish(staged, into: Self.plugins, exec: exec).output
             PluginLog.add(staged.manifest.id, "installed from \(text):\n"
                 + output.trimmingCharacters(in: .whitespacesAndNewlines))
@@ -222,14 +223,15 @@ final class PluginInstalls {
         Task { await Plugin.reload(manifest.id, build: false) }
     }
 
-    /// The trust prompt at install: the source and what the plugin can do, and the agent that asks for it. A new
-    /// source always asks; an update only when its permissions grew. Cancel throws `CancellationError`.
+    /// The confirmation at install: which plugin, its source (an npm or git one) and folder, the warning, and the
+    /// agent that asks for it. A new source always asks; an update only when its id changed. Cancel throws
+    /// `CancellationError`.
     private func trusts(_ manifest: PluginManifest, from source: String, folder: URL, for agent: Asker?) async throws {
         let new = !PluginPackages.sources(Registry.settings).contains(source)
         guard new || !PluginTrust.shared.allows(manifest) else { return }
         let asks = agent.map { "\($0.name) asks to install it." }
-        let text = [asks ?? "", "\(manifest.id) \(manifest.version.shown) from \(source)", manifest.description.shown,
-                    PluginTrust.words(manifest, folder: folder).joined(separator: " ")].filter { !$0.isEmpty }
+        let text = [asks ?? "", PluginTrust.origin(manifest, source: source, folder: folder),
+                    manifest.description.shown, PluginTrust.warning].filter { !$0.isEmpty }
         // An agent's prompt is a sheet only: a modal alert would hold every request and could come up over the
         // user's app.
         if let agent, agent.window == nil {
@@ -242,7 +244,7 @@ final class PluginInstalls {
             alert.suppressionButton?.title = "Show in New Pane"
             alert.suppressionButton?.state = Registry.inNewPane(manifest) ? .on : .off
         }
-        guard await ask("Trust “\(manifest.name.shown)”?", text.joined(separator: "\n\n"), button: "Install",
+        guard await ask("Install “\(manifest.name.shown)”?", text.joined(separator: "\n\n"), button: "Install",
                         alert: alert, for: agent) else { throw CancellationError() }
         if let box = alert.suppressionButton, alert.showsSuppressionButton {
             Registry.show(manifest.id, inNewPane: box.state == .on)
@@ -301,7 +303,7 @@ final class PluginInstalls {
     }
 }
 
-/// An agent that asks for an install (`ovvi plugins install`): its name in the trust prompt, and the window of its
+/// An agent that asks for an install (`ovvi plugins install`): its name in the confirmation, and the window of its
 /// session, which the prompt's sheet goes on.
 struct Asker {
     let name: String

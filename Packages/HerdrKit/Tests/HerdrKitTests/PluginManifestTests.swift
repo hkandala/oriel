@@ -20,15 +20,16 @@ private func error(_ ovvi: String, package: String = #""version": "0.1.0""#) -> 
 }
 
 @Test func `a package's ovvi key is its manifest, with the package's version and description`() throws {
+    // An old manifest's `permissions`, even one this app never knew, and a newer app's field load and are ignored.
     let csv = try manifest(base + #""#
-        + #", "opens": {"files": ["*.csv", "public.comma-separated-values-text"]}, "permissions": ["files:read"],"#
+        + #", "opens": {"files": ["*.csv", "public.comma-separated-values-text"]}, "permissions": ["network"],"#
         + #""header": [{"id": "rows", "type": "text", "style": "dim"}, {"type": "spacer"},"#
         + #"{"id": "first-row", "type": "toggle", "symbol": "tablecells", "title": "First Row", "value": true},"#
         + #"{"id": "mode", "type": "menu", "title": "Mode", "items": [{"value": "a", "title": "A"}, "-"]}],"#
         + #""commands": [{"id": "sort", "title": "Sort", "keywords": ["order"]}], "future": {"ignored": true}"#,
         package: #""name": "@me/csv", "version": "0.1.0", "description": "A table.", "keywords": ["sheet"]"#)
     #expect(csv.id == "csv-table" && csv.version == "0.1.0" && csv.description == "A table." && csv.api == 1)
-    #expect(csv.keywords == ["sheet"] && csv.permissions == ["files:read"] && csv.chooser == nil)
+    #expect(csv.keywords == ["sheet"] && csv.chooser == nil)
     #expect(csv.header.map(\.type) == ["text", "spacer", "toggle", "menu"])
     #expect(csv.header[2].value == .bool(true) && csv.header[3].items?.last?.value == nil)
     #expect(!csv.history && csv.commands.first?.keywords == ["order"])
@@ -71,7 +72,6 @@ private func error(_ ovvi: String, package: String = #""version": "0.1.0""#) -> 
     #expect(error(base + #", "header": [{"type": "button", "id": "a"}, {"type": "text", "id": "a"}]"#) != nil)
     #expect(error(base + #", "header": [{"type": "button"}]"#) != nil)
     #expect(error(base + #", "commands": [{"id": "e", "title": "Edit", "key": "e"}]"#) != nil)
-    #expect(error(base + #", "permissions": ["network"]"#) == "ovvi.permissions has an unknown permission network")
     #expect(error(base + #", "opens": {"priority": "high"}"#) != nil)
     #expect(error(base + #", "header": [{"type": "toggle", "id": "a"}, 5]"#) != nil)
     #expect((try? PluginManifest(package: Data("not json".utf8))) == nil)

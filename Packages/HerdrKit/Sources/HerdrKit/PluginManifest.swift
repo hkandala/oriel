@@ -28,7 +28,6 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
     public let commands: [Command]
     /// The app's commands the card takes: `save`, `find`.
     public let handles: [String]
-    public let permissions: [String]
     /// What the user sets on the plugin's page in Settings (`PluginSetting`).
     public let settings: [PluginSetting]
 
@@ -142,14 +141,14 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
         public let keywords: [String]?
     }
 
-    /// A kind the app writes itself (the browser): no entry, header, commands or permissions.
+    /// A kind the app writes itself (the browser): no entry, header or commands.
     public init(id: String, name: String, icon: String, description: String, keywords: [String], opens: Opens,
                 chooser: String?, settings: [PluginSetting] = [])
     {
         self.settings = settings
         (self.id, self.name, version, api, entry, self.icon) = (id, name, "1.0.0", 1, nil, icon)
         (self.description, self.keywords, self.opens, self.chooser) = (description, keywords, opens, chooser)
-        (header, history, commands, handles, permissions) = ([], false, [], [], [])
+        (header, history, commands, handles) = ([], false, [], [])
     }
 
     /// The built entry's file name without `.js`: the runtime imports it, and its CSS shares the name.
@@ -191,7 +190,6 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
         history = try values.decodeIfPresent(Bool.self, forKey: .history) ?? false
         commands = try values.decodeIfPresent([Command].self, forKey: .commands) ?? []
         handles = try values.decodeIfPresent([String].self, forKey: .handles) ?? []
-        permissions = try values.decodeIfPresent([String].self, forKey: .permissions) ?? []
         settings = try values.decodeIfPresent([PluginSetting].self, forKey: .settings) ?? []
         try check(values.codingPath)
     }
@@ -201,7 +199,7 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
     }
 
     private enum Keys: String, CodingKey {
-        case id, name, api, entry, icon, opens, chooser, header, history, commands, handles, permissions, settings
+        case id, name, api, entry, icon, opens, chooser, header, history, commands, handles, settings
     }
 
     /// The manifest page's rules the types do not carry.
@@ -255,10 +253,6 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
         }
         if let handle = handles.first(where: { !["save", "find"].contains($0) }) {
             throw bad("handles", "has an unknown command \(handle)")
-        }
-        let known = ["files:read", "files:write", "git", "run", "clipboard"]
-        if let permission = permissions.first(where: { !known.contains($0) }) {
-            throw bad("permissions", "has an unknown permission \(permission)")
         }
     }
 
