@@ -70,14 +70,12 @@ extension KeyboardShortcut {
 
     /// The second shortcut's key went down in an Ovvi window: runs its first's command there, when enabled, and
     /// takes the key either way. A disabled Show Next Tab (one tab) let ⌃⇥ go on to AppKit's key view loop, which
-    /// stepped the panes. Whether it took the key.
+    /// stepped the panes. In a text field too, as its first does: one that skipped it (a chat's composer, a browser's
+    /// address) held ⌃⇥ on its tab. Whether it took the key.
     @MainActor static func second(_ event: NSEvent) -> Bool {
         guard let first = seconds.first(where: { $0.second.matches(event) })?.first,
               let commands = CommandList.keyWindow else { return false }
-        // ⌃⇥ in a text field (the palette, a rename) does nothing: the tabs behind it must not move.
-        if event.keyCode != 48 || !(NSApp.keyWindow?.firstResponder is NSText) {
-            commands.run { $0 == first }
-        }
+        commands.run { $0 == first }
         return true
     }
 }

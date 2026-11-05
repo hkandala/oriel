@@ -104,6 +104,31 @@ extension OvviUITests {
         }
     }
 
+    /// ⌃⇥ and ⌃⇧⇥ go round w2's tabs from every card, also from a text field: a chat's reply box and a browser's
+    /// address held them on their tab.
+    func testControlTabStepsFromChatAndBrowserCards() async throws {
+        let (chatTab, chat) = try await startChat()
+        let (browserTab, left) = try await newTab("ctrl-tab")
+        try await waitForPrompt(left)
+        element("tab.\(browserTab)").click()
+        element("terminal.\(left)").click()
+        XCTAssertTrue(hasKeyboard("terminal.\(left)"))
+        _ = try await chooseBrowser(besides: left, in: browserTab)
+        let tabs = try await (Self.call(one, "tab.list", ["workspace_id": "w2"])["tabs"] as? [[String: Any]] ?? [])
+            .compactMap { $0["tab_id"] as? String }
+        guard var index = tabs.firstIndex(of: browserTab) else { return XCTFail("\(browserTab) not in \(tabs)") }
+        for (flags, offset) in [(XCUIElement.KeyModifierFlags.control, 1), ([.control, .shift], -1)] {
+            for _ in tabs.indices {
+                app.typeKey(.tab, modifierFlags: flags)
+                index = (index + offset + tabs.count) % tabs.count
+                XCTAssertTrue(element("tab.\(tabs[index])").has(\.isSelected, true, within: 2), "\(tabs[index])")
+                if tabs[index] == chatTab {
+                    XCTAssertTrue(hasKeyboard("chat.\(chat).composer"))
+                }
+            }
+        }
+    }
+
     /// A key acts on the key window: with two windows on different tabs, ⌘D right after switching
     /// splits the key window's tab only, each time.
     func testCommandDSplitsInTheKeyWindowOnly() async throws {
