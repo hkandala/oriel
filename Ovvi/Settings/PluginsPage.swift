@@ -109,8 +109,6 @@ private struct PluginLink: View {
                     Text(row.source).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
                         .truncationMode(.middle)
                 }
-                // The row's line starts under the name, as System Settings' lists.
-                .alignmentGuide(.listRowSeparatorLeading) { $0[.leading] }
                 Spacer(minLength: 8)
                 if let busy {
                     ProgressView().controlSize(.small)

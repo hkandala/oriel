@@ -79,13 +79,21 @@ final class PluginInstalls {
 
     /// Remove: off the list, its trust forgotten, and an installed or hand-made folder to the Trash. A local path's
     /// folder stays where it is.
-    func remove(_ row: InstalledPlugin) async {
-        guard row.kind != .bundled else { return }
-        var text = "Its folder in the plugins folder goes to the Trash."
+    /// What Remove does to its folder, for the question and the plugin's page.
+    static func removal(_ row: InstalledPlugin) -> String {
         if case .local = row.kind {
-            text = "Its folder stays where it is; Ovvi stops loading it."
+            return "Its folder stays where it is; Ovvi stops loading it."
         }
-        guard await ask("Remove “\((row.manifest?.name ?? row.id).shown)”?", text, button: "Remove", destructive: true)
+        return "Its folder in the plugins folder goes to the Trash."
+    }
+
+    func remove(_ row: InstalledPlugin) async {
+        guard row.kind != .bundled, await ask(
+            "Remove “\((row.manifest?.name ?? row.id).shown)”?",
+            Self.removal(row),
+            button: "Remove",
+            destructive: true,
+        )
         else { return }
         try? await run(row.id, "Removing…") {
             // First: a settings.json that does not read stops the removal before anything goes.

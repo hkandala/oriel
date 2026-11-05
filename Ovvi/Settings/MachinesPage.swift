@@ -44,8 +44,6 @@ private struct MachineLabel: View {
                 Text(machine.name)
                 Text(detail).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
             }
-            // The row's line starts under the name, as System Settings' lists.
-            .alignmentGuide(.listRowSeparatorLeading) { $0[.leading] }
             Spacer()
             if machine.isRemote {
                 let live = MachinePage.isLive(machine)

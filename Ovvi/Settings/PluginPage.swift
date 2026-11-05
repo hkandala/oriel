@@ -41,8 +41,8 @@ struct PluginPage: View {
                         } footer: {
                             // A card's own choices are the default plugins' way; another plugin may read them live.
                             if Registry.defaults.contains(id), index == sections.count - 1 {
-                                Text("New cards start with these. A card keeps its own choice once you change it "
-                                    + "in its header.").settingsFooter()
+                                Text("New cards start with the settings above. A card keeps its own choice once you "
+                                    + "change it in its header.").settingsFooter()
                             }
                         }
                     }
@@ -163,11 +163,7 @@ private struct PluginRemove: View {
                 .accessibilityIdentifier("plugins.\(row.id).remove")
             } label: {
                 Text("Remove \((row.manifest?.name ?? row.id).shown)")
-                if case .local = row.kind {
-                    Text("Its folder stays where it is; Ovvi stops loading it.")
-                } else {
-                    Text("Its folder goes to the Trash.")
-                }
+                Text(PluginInstalls.removal(row))
             }
         }
     }
@@ -256,7 +252,7 @@ private struct SettingRow: View {
                 } label: { label }
                 // Short: they fit beside the title, as Git's Unified | Side by Side.
                 if options.count <= 4, options.map(\.title.count).reduce(0, +) <= 24 {
-                    picker.pickerStyle(.segmented).fixedSize()
+                    picker.pickerStyle(.segmented)
                 } else {
                     picker
                 }
@@ -280,7 +276,7 @@ private struct SettingRow: View {
                     TextField(setting.title.shown, text: Binding { draft ?? text } set: { draft = $0 },
                               prompt: Text((setting.placeholder ?? (setting.type == "path"
                                       ? "A \(setting.kind ?? "file")’s path" : "")).shown))
-                        .labelsHidden().multilineTextAlignment(.trailing).frame(width: 220)
+                        .labelsHidden().multilineTextAlignment(.trailing).truncationMode(.middle).frame(width: 220)
                         .focused($focused)
                         .onSubmit { save() }
                         .onChange(of: focused) {

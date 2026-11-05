@@ -22,10 +22,10 @@ struct MachinePage: View {
         HostStore.all.contains { $0.machine.id == machine.id && $0.state == .live }
     }
 
-    /// The header's lines: This Mac's own name; a remote machine's state and target; Add Machine's.
+    /// The header's line, what the fields do not say: This Mac's own name, a remote machine's state, Add Machine's.
     private static func state(_ saved: Machine?) -> [String] {
         guard let saved else { return ["Not added yet"] }
-        return saved.isRemote ? [isLive(saved) ? "Connected" : "Not connected", saved.target] : [Machine.computerName]
+        return [saved.isRemote ? isLive(saved) ? "Connected" : "Not connected" : Machine.computerName]
     }
 
     private var question: String {
@@ -54,7 +54,7 @@ struct MachinePage: View {
             Section {
                 SettingsHeader(title: saved?.name ?? (name.isEmpty ? "New Machine" : name), lines: Self.state(saved)) {
                     // On a tile of a plugin's size: the headers match.
-                    Image(systemName: draft.icon).font(.system(size: 20)).foregroundStyle(.secondary)
+                    Image(systemName: saved?.icon ?? draft.icon).font(.system(size: 20)).foregroundStyle(.secondary)
                         .frame(width: 44, height: 36).background(.quaternary, in: .rect(cornerRadius: 10))
                 }
             }
@@ -104,24 +104,27 @@ struct MachinePage: View {
     }
 
     /// Name, SSH target and icon in the form's own fields, then what is wrong with the target, and Cancel and Add (or
-    /// Revert and Save) on the trailing edge, as a macOS dialog has them.
+    /// Save) on the trailing edge, as a macOS dialog has them.
     private func connection(_ saved: Machine?, target: String) -> some View {
         Section {
             // A set width: a form's text field asks for all the room, which narrowed the sidebar.
             LabeledContent("Name") {
                 TextField("Name", text: $draft.name, prompt: Text(target.isEmpty ? "Optional" : target))
-                    .labelsHidden().multilineTextAlignment(.trailing).frame(width: 220)
+                    .labelsHidden().multilineTextAlignment(.trailing).truncationMode(.middle).frame(width: 220)
                     .accessibilityIdentifier("settings.machine.name")
             }
             LabeledContent {
                 TextField("SSH target", text: $draft.target, prompt: Text("Required")).labelsHidden()
-                    .multilineTextAlignment(.trailing).frame(width: 220)
+                    .multilineTextAlignment(.trailing).truncationMode(.middle).frame(width: 220)
                     .accessibilityIdentifier("settings.machine.target")
             } label: {
                 Text("SSH target")
                 Text("A host from ~/.ssh/config works too.")
             }
-            LabeledContent("Icon") { IconPicker(icon: $draft.icon) }
+            // The dialog's glass button is taller than the form's: its label on the button's middle.
+            LabeledContent("Icon") {
+                IconPicker(icon: $draft.icon).alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + 4 }
+            }
         } header: {
             Text("Connection")
         } footer: {
@@ -132,9 +135,7 @@ struct MachinePage: View {
                         .accessibilityIdentifier("settings.machine.problem")
                 }
                 Spacer()
-                if let saved {
-                    Button("Revert") { draft = saved }.disabled(saved == draft)
-                } else {
+                if saved == nil {
                     Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
                 }
                 Button(saved == nil ? "Add" : "Save") {

@@ -185,7 +185,9 @@ extension OvviUITests {
         XCTAssertTrue(lines.contains { $0.contains("--model e2e-opus --session-id") }, "\(lines)")
     }
 
-    /// Machines: a machine's page saves a new name, which its row shows.
+    /// Machines: a machine's page saves a new name on Return, which its row shows; Add Machine says what is wrong with
+    /// a
+    /// target, and Esc leaves it.
     func testSettingsMachinePageSavesAnEdit() {
         let machines = #"[{"id":"e2e-m1","name":"devbox","target":"ovvi-e2e@localhost","icon":"server.rack"},"#
             + #"{"id":"e2e-m2","name":"gpubox","target":"ovvi-e2e@127.0.0.1","icon":"cpu"}]"#
@@ -200,9 +202,18 @@ extension OvviUITests {
         keepScreenshot("settings machine", of: settingsWindow)
         name.click()
         name.typeKey("a", modifierFlags: .command)
-        name.typeText("buildbox")
-        element("settings.machine.save", in: settingsWindow).click()
+        name.typeText("buildbox\r")
         settingsWindow.buttons["Back"].click()
         XCTAssertTrue(until(3) { row.exists && row.label.hasPrefix("buildbox,") }, row.label)
+
+        element("settings.machines.add", in: settingsWindow).click()
+        let target = element("settings.machine.target", in: settingsWindow)
+        XCTAssertTrue(target.exists(within: 3))
+        target.click()
+        target.typeText("me@build box")
+        XCTAssertTrue(element("settings.machine.problem", in: settingsWindow).exists(within: 2))
+        XCTAssertFalse(element("settings.machine.save", in: settingsWindow).isEnabled)
+        target.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(target.vanishes(within: 2), "Esc left Add Machine open")
     }
 }

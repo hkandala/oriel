@@ -250,8 +250,6 @@ private struct AgentRow: View {
                 Text(agent.name)
                 Text(agent.command).font(.system(size: 11).monospaced()).foregroundStyle(.secondary)
             }
-            // The row's line starts under the name, as System Settings' lists.
-            .alignmentGuide(.listRowSeparatorLeading) { $0[.leading] }
             Spacer()
             TextField("Extra arguments", text: $arguments, prompt: Text("Extra arguments"))
                 // The field shows what it keeps.

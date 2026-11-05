@@ -279,9 +279,10 @@ struct SettingsHeader<Icon: View, Actions: View>: View {
                 }
                 // A description wraps; the last line, a source or a target, keeps its ends.
                 let shown = lines.filter { !$0.isEmpty }
-                ForEach(shown, id: \.self) { line in
-                    Text(line).font(.system(size: 11)).foregroundStyle(.secondary)
-                        .lineLimit(line == shown.last ? 1 : 2).truncationMode(line == shown.last ? .middle : .tail)
+                ForEach(Array(shown.enumerated()), id: \.offset) { index, line in
+                    let last = index == shown.count - 1
+                    Text(line).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(last ? 1 : 2)
+                        .truncationMode(last ? .middle : .tail)
                 }
             }
             Spacer(minLength: 8)

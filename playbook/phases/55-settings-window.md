@@ -184,3 +184,26 @@ everything end to end, and test and review everything".
   inactive window: about 10 levels darker, and in light Glass over a bright wallpaper the selected row is then about
   the sidebar's color, with only its outline left. Say if that should stay the same too. With Reduce Transparency on,
   both blurs turn opaque as before (not toggled here: it is a setting of the whole Mac).
+- **The Settings window's look.** The user's words: "very shoddy job on the settings window, it looks like mess so many
+  alignment issues, spacing issues, including the ttraffic light button is to fully corner, looks like you haven't done
+  any basic ui checks at all by taking screenshots, so invoke an agent let it take screenshots of every setting page and
+  its every state, review and fix everything and keep things fully consistent, also for the settings sidebar, i don't
+  want colorful icons, let's just keep grey for all." Then: "within machines (add or edit) and within inside each
+  plugin, its an absolute mess, they need full revamp and improvemnt".
+- **Cause, the corner traffic lights.** With the sidebar toggle removed, the window had no toolbar item, so AppKit
+  drew no toolbar: a bare 28 pt title bar with the lights 16 pt from the corner and small corner radii. The
+  `Settings` scene also grew the window by 88 pt on a pushed page and put Back alone on a second row. **Fix:** a
+  `Window` scene (Ovvi ▸ Settings… is `CommandGroup(replacing: .appSettings)`) and a `ToolbarSpacer` on the top
+  pages: the lights sit 26 pt in, as on a pushed page and in System Settings.
+- **Cause, the pushed pages.** A style set on the `NavigationStack` (`formStyle`) does not reach its pushed pages,
+  and a form's own row fields (in `LabeledContent`) ignore a text field style from above: each page sets its own.
+- **Fix, the pages.** Grey sidebar symbols, a red badge, No Results; segmented controls on the trailing edge (no
+  `fixedSize`); one field rule (a row's value field is the form's own, 220 pt, with Required/Optional; a field among
+  other controls is bordered); small header buttons; the notifications link inline; a machine's and a plugin's page
+  rebuilt as System Settings' detail pages (header card, sections, Remove last; Add Machine with Cancel and Add,
+  Return and Esc, and the target's problem in red).
+- **Decisions.** The window keeps its width and lets the height change (down to 400 pt), so there is no narrow
+  state. The plugin badge is the stock one with `badgeProminence(.increased)`. `testSettingsScenes` (on demand)
+  takes about 70 pictures of every page and state, dark and light: run it after any change to the window.
+- **For the user.** The Icon button's label sits a little above its center (the dialog's glass button is taller
+  than the form's controls).
