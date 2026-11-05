@@ -40,6 +40,11 @@ everything end to end, and test and review everything".
   now has it there.
 - **Tests.** UI tests pin the new keys at launch like the notification switches (the defaults are shared with the
   user's app); the Settings tests launch unpinned and put the shipped values back.
+- **Runs.** Full run 42052483502 on eb71f62c: one failure, `testAFileDroppedOnARemoteCardPastesItsCopysPath` ("the
+  press did not start one", the file-drag helper's press, phase 33's cause; nothing here touches it). Full run
+  42059188736 on d402cc34: every test passed, but shard 4 ran past the 25-minute job limit after its tests ended: the
+  new tests (61 s and 36 s there) counted 15 s each in `scripts/test-times.tsv`, which now has their times. On-demand
+  runs 42052489930 and 42059194411 green.
 - **For the user.** The cursor shape and blink (no test can see them); Notification Settings… opens Ovvi's page in
   System Settings; a search pick rings its row for a second.
 
