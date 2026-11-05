@@ -73,8 +73,18 @@ Every distinct form of the old name, found case-insensitive in the contents and 
 
 - **Cause.** A replace cannot see code that counts characters: four parsers dropped a fixed number of characters
   for a prefix that is now one shorter. A test hash over a command that names a folder changed too.
+- **Cause.** The new test names changed how ties sort into shards, and two old test bugs showed. Python's
+  `http.server` looks up the host's name at bind, and macOS then asks for the local network: the prompt stayed over
+  the window and failed the shard's later hovers and clicks. The scroll test left its pane scrolled up, and a later
+  test read the old view.
+- **Fix.** The test servers bind with `socketserver.ThreadingTCPServer` (as `e2e-helper.py` does), and the scroll
+  test scrolls back down.
 - **Decisions.** The old phase files keep their history with the new name. Herdr's presence tokens of the old app
   expire 30 s after it quits, so the one-off steps rename only labels.
+- **Runs.** `git grep -ai` and the paths find nothing; `make lint build build-tests test` (npm offline), the plugins
+  and `pnpm build` pass; the key check passes and fails on the script's commit alone. The on-demand suite passed.
+  Full runs this day take about 1.5 times the listed test times: a shard can pass every test and still meet the
+  job's 20-minute limit, on main too.
 - **For the user.** The installed app keeps the old name until the new build is installed. Its settings, folders
   and herdr labels move with the one-off steps. Chat-view agents that the old app started run with paths under the
   old folder: relaunch them with Chat.
