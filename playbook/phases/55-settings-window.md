@@ -180,7 +180,8 @@ everything end to end, and test and review everything".
   0.5 matched Track G best of 0.4, 0.5 and 0.6 in a probe. The selected tab and row capsules stay the system glass and
   still dim in an inactive window, as the user chose. The cost is Track G's: the same glass layer.
 - **Runs.** The new test reads an unselected workspace row with the window key, then with Settings key: red on Track
-  G's code locally (26, then 40), green on the fix (26, then 24: the glass's own step; the test allows 4).
+  G's code locally (26, then 40), green on the fix (26, then 24: the glass's own step; the test allows 4). Chosen-tests runs 42126996871
+  on 27e1425a and 42127550081 on 610679ba (comments only on top), 7 look tests each, green.
 - **For the user.** Reduce Transparency is not checked: it is a setting of the whole Mac. The blur and the glass
   should turn opaque as before, as nothing in that path changed.
 - **The Settings window's look.** The user's words: "very shoddy job on the settings window, it looks like mess so many
