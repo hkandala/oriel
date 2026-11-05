@@ -19,16 +19,26 @@ struct NewPaneFolder: View {
     @Environment(\.look) private var look
 
     var body: some View {
-        let store = page.store, remote = store.machine.isRemote
+        let store = page.store, remote = store.machine.isRemote, editing = chooser.editing
         if let folder = chooser.folder ?? store.pane(cardID)?.cwd {
             VStack(spacing: 4) {
-                Group {
-                    if chooser.editing {
-                        field(folder, remote: remote)
+                // The icon is one view in both looks: a click on it as the field lets go still lands.
+                HStack(spacing: 6) {
+                    if !remote {
+                        choose(folder).foregroundStyle(editing ? AnyShapeStyle(.secondary) : dim)
+                    }
+                    if editing {
+                        field(folder)
                     } else {
                         line(folder, remote: remote, machine: store.machine.name)
                     }
                 }
+                // The path bar's capsule (`fieldCapsule`) while editing, its padding at rest too.
+                .textFieldStyle(.plain)
+                .padding(.horizontal, 8).padding(.vertical, 5)
+                .frame(maxWidth: editing ? .infinity : nil)
+                .background(.primary.opacity(editing ? 0.07 : 0), in: .capsule)
+                .overlay { Capsule().strokeBorder(Color.accentColor, lineWidth: 1.5).opacity(editing ? 1 : 0) }
                 .font(.system(size: 12))
                 .frame(height: 26)
                 // Its room kept, so the list does not move.
@@ -40,6 +50,7 @@ struct NewPaneFolder: View {
                 draft = folder
                 error = nil
             }
+            .onChange(of: draft) { error = nil }
             .onChange(of: focused) {
                 if focused {
                     // Selected whole once the field has the keyboard, as the path bar.
@@ -49,16 +60,19 @@ struct NewPaneFolder: View {
                     chooser.editing = false
                 }
             }
+            // Tab or ⌘L while no line showed (a stand-in, a short card) leaves no field for later.
+            .onAppear { chooser.editing = false }
+            .onDisappear { chooser.editing = false }
         }
     }
 
+    private var dim: AnyShapeStyle {
+        look.contrast ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tertiary)
+    }
+
     private func line(_ folder: String, remote: Bool, machine: String) -> some View {
-        let dim = look.contrast ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tertiary)
-        return HStack(spacing: 4) {
-            if !remote {
-                choose(folder).foregroundStyle(dim).padding(.trailing, 2)
-            }
-            Text("Opens in").foregroundStyle(dim)
+        HStack(spacing: 4) {
+            Text("Opens in").foregroundStyle(dim).accessibilityHidden(true)
             Button {
                 if let pane = page.store.pane(cardID) {
                     page.go(to: pane)
@@ -78,21 +92,14 @@ struct NewPaneFolder: View {
         }
     }
 
-    private func field(_ folder: String, remote: Bool) -> some View {
-        HStack(spacing: 6) {
-            if !remote {
-                choose(folder).foregroundStyle(.secondary)
-            }
-            TextField("Folder", text: $draft)
-                .focused($focused)
-                .accessibilityIdentifier("pane.\(cardID).chooser.folder.field")
-                .onSubmit { submit(from: folder) }
-                .onExitCommand(perform: stop)
-        }
-        .fieldCapsule()
-        .overlay { Capsule().strokeBorder(Color.accentColor, lineWidth: 1.5) }
-        .focusEffectDisabled()
-        .focusSoon($focused)
+    private func field(_ folder: String) -> some View {
+        TextField("Folder", text: $draft)
+            .focused($focused)
+            .accessibilityIdentifier("pane.\(cardID).chooser.folder.field")
+            .onSubmit { submit(from: folder) }
+            .onExitCommand(perform: stop)
+            .focusEffectDisabled()
+            .focusSoon($focused)
     }
 
     /// Choose Folder…: the system's folder panel at the folder.
@@ -100,7 +107,7 @@ struct NewPaneFolder: View {
         Button {
             guard let window = NSApp.keyWindow else { return }
             Task {
-                if let path = await page.store.chooseFolder(from: folder, in: window) {
+                if let path = await page.store.chooseFolder(from: folder, in: window), path != folder {
                     chooser.folder = path
                 }
                 if chooser.editing {
@@ -125,7 +132,10 @@ struct NewPaneFolder: View {
             // Typed on, or left, meanwhile.
             guard chooser.editing, draft.trimmingCharacters(in: .whitespaces) == typed else { return }
             if let path {
-                chooser.folder = path
+                // The same folder types no `cd`.
+                if path != folder {
+                    chooser.folder = path
+                }
                 stop()
             } else {
                 error = "No folder \(typed)"
@@ -176,7 +186,7 @@ extension HostStore {
     /// The folder a typed path names on the machine, as its shell resolves it: `~` its home folder, a relative path
     /// from `base`, links resolved. Nil when it is no folder there.
     func folder(_ typed: String, from base: String) async -> String? {
-        let script = #"case $1 in "~"|"~/"*) set -- "$HOME${1#\~}";; esac; cd -- "$2" 2>/dev/null; "#
+        let script = #"cd -- "$2" 2>/dev/null; case $1 in "~"|"~/"*) set -- "$HOME${1#\~}";; esac; "#
             + #"cd -- "$1" 2>/dev/null && pwd -P"#
         guard let channel = try? await machine.exec().run(["sh", "-c", script, "sh", typed, base]) else { return nil }
         channel.closeInput()

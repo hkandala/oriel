@@ -39,7 +39,8 @@ struct NewPane: View {
                         list(rows, details: size.width >= 300)
                             .frame(width: width, height: max(0, min(height, size.height - 16)))
                         if folder {
-                            NewPaneFolder(chooser: chooser, page: page, cardID: cardID).frame(maxWidth: width)
+                            NewPaneFolder(chooser: chooser, page: page, cardID: cardID)
+                                .frame(width: width, height: NewPaneFolder.height)
                         }
                     }
                 }

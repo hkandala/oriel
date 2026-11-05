@@ -22,7 +22,7 @@ extension Page {
 extension CommandList {
     /// A browser card's (ui/browser#commands-on-a-browser-card), in the main and the floating windows. Open Location
     /// edits a new pane's folder line too (ui/new-pane#folder).
-    static func browser(_ browser: Browser?, chooser: Chooser? = nil) -> [Command] {
+    static func browser(_ browser: Browser?, chooser: Chooser?) -> [Command] {
         [
             Command(section: .view, title: "Reload Page", key: .init("r"), symbol: "arrow.clockwise",
                     keywords: "refresh browser", enabled: browser?.loaded == true) { browser?.reload() },

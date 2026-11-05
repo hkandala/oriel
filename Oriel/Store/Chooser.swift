@@ -54,7 +54,7 @@ final class Chooser {
     var editing = false
     /// The `cd` to its folder, typed before the picked shell or agent runs, as Go to Directory types it.
     var cdCommand: String? {
-        folder.map { "cd -- '" + $0.replacing("'", with: #"'\''"#) + "'" }
+        folder.map { "cd -- " + $0.shellQuoted }
     }
 
     init(standIn: String? = nil) {

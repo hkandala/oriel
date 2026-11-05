@@ -34,7 +34,8 @@ struct PathField: View {
     }
 
     /// A path as File Explorer's path bar and New Pane's folder line show it: the home folder as `~`. A remote
-    /// machine's home is where macOS and Linux put it (ponytail: ask the machine if one lives elsewhere).
+    /// machine's home is where macOS and Linux put it, any user's (ponytail: another user's home and one elsewhere read
+    /// wrong; ask the machine for its home once if that matters).
     static func short(_ path: String, remote: Bool) -> String {
         guard remote else { return (path as NSString).abbreviatingWithTildeInPath }
         return path.replacing(/^\/(?:Users\/(?!Shared(?:\/|$))|home\/)[^\/]+(?=\/|$)|^\/root(?=\/|$)/, with: "~",

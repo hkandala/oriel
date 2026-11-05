@@ -64,7 +64,7 @@ extension PaneSurfaceView {
     /// shell without bracketed paste would run the line after it.
     private static func escaped(_ path: String) -> String {
         if path.contains(where: \.isNewline) {
-            return "'" + path.replacing("'", with: #"'\''"#) + "'"
+            return path.shellQuoted
         }
         return path.unicodeScalars.reduce(into: "") { text, scalar in
             if "\\ ()[]{}<>\"'`!#$&;|*?\t".unicodeScalars.contains(scalar) {
@@ -120,10 +120,19 @@ extension Page {
             await store.show(Notice(text: error.localizedDescription))
             return
         }
-        let quoted = "'" + path.replacing("'", with: #"'\''"#) + "'"
         await store.write { client in
-            try await client.sendInput(directory ? "cd -- \(quoted)" : quoted, keys: directory ? ["enter"] : [],
-                                       pane: pane.id)
+            try await client.sendInput(
+                directory ? "cd -- \(path.shellQuoted)" : path.shellQuoted,
+                keys: directory ? ["enter"] : [],
+                pane: pane.id,
+            )
         }
+    }
+}
+
+extension String {
+    /// In single quotes for a shell, each `'` as `'\''`.
+    var shellQuoted: String {
+        "'" + replacing("'", with: #"'\''"#) + "'"
     }
 }
