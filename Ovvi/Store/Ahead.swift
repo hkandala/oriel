@@ -96,7 +96,7 @@ struct Ahead {
         replaced = replacing.filter { !ids.contains($0.key) }
         keepCards(ids)
         replacing = replacing.filter { ids.contains($0.key) }
-        let hidden = closing.union(replacing.values.flatMap { $0.hidden(snapshot.panes) })
+        let hidden = closing.union(replacing.flatMap { $1.hidden(snapshot.panes, old: $0) })
         // herdr's tab for each stand-in: the first new one of its workspace.
         tabs.removeAll { standIn in !snapshot.workspaces.contains { $0.id == standIn.workspaceID } }
         for id in tabs.map(\.id) {

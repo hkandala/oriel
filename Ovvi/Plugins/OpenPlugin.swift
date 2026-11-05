@@ -94,7 +94,7 @@ extension HostStore {
     {
         var pane: HerdrKit.Pane?
         if let label {
-            if let id = try await client.newTab(workspace: workspaceID, cwd: cwd, label: label.text,
+            if let id = try await client.newTab(workspace: workspaceID, cwd: cwd, label: label,
                                                 command: label.placeholder)
             {
                 pane = try await client.pane(id)

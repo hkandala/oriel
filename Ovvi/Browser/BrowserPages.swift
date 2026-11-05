@@ -175,7 +175,7 @@ extension Browser {
         }
         Task {
             await store.write {
-                _ = try await $0.newTab(workspace: workspace.id, cwd: pane.cwd ?? "~", label: label.text,
+                _ = try await $0.newTab(workspace: workspace.id, cwd: pane.cwd ?? "~", label: label,
                                         command: label.placeholder)
             }
         }

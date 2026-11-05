@@ -362,10 +362,14 @@ extension HostStore {
         pane.placed = shell
         pane.drawnLabel = pane.label
         // In place of the shell, so the pane runs only the placeholder; base64, which any login shell passes on. ⌃U
-        // first clears a line half typed in a herdr TUI (spiked: zsh). The space keeps it out of a history that
-        // ignores such lines (fish; zsh and bash when set to).
-        let line = "\u{15} exec " + SSHExec.envelope(["exec"] + label.placeholder)
-        Task { try? await client.sendInput(line, keys: ["enter"], pane: pane.id) }
+        // first clears a line half typed in a herdr TUI, as a key: herdr pastes text into a shell that turned
+        // bracketed paste on (zsh, bash 5.1+, fish at their prompt), where a ⌃U in it is a plain character. The space
+        // keeps the line out of a history that ignores such lines (fish; zsh and bash when set to).
+        let line = " exec " + SSHExec.envelope(["exec"] + label.placeholder)
+        Task {
+            try? await client.sendKeys(["ctrl+u"], pane: pane.id)
+            try? await client.sendInput(line, keys: ["enter"], pane: pane.id)
+        }
     }
 
     /// After a new label (a browser's typed address; a label change asks for the program again), the placeholder

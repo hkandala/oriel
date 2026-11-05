@@ -85,11 +85,13 @@ public struct Pane: Decodable, Sendable, Identifiable {
     public let agentSession: AgentSession?
     /// Of its tokens only the `ovvi` command's ring.
     let tokens: Ring?
+    /// Why herdr brought the pane back from its saved session without a program: its saved folder is gone.
+    public let restoreError: String?
 
     enum CodingKeys: String, CodingKey {
         case id = "pane_id", terminalID = "terminal_id", tabID = "tab_id", label, cwd, agent
         case title = "terminal_title_stripped", scroll, agentStatus = "agent_status", agentSession = "agent_session"
-        case tokens
+        case tokens, restoreError = "restore_error"
     }
 }
 

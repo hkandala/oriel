@@ -54,9 +54,9 @@ public protocol Multiplexer: Sendable {
     func move(pane paneID: String, to destination: Destination) async throws -> Pane?
     /// A nil label clears it.
     func rename(pane paneID: String, label: String?) async throws
-    /// A new tab of one pane with this label, running `command` (argv, no shell) instead of a shell; returns its pane
-    /// id.
-    func newTab(workspace workspaceID: String, cwd: String, label: String, command: [String]) async throws -> String?
+    /// A new tab of one pane with this label, running `command` (argv, no shell) instead of a shell, in the label's
+    /// folder (it survives a restart better than the folder it was asked from), else in `cwd`; returns its pane id.
+    func newTab(workspace workspaceID: String, cwd: String, label: PaneLabel, command: [String]) async throws -> String?
     /// Returns the new tab's pane.
     func newTab(workspace workspaceID: String, cwd: String) async throws -> Pane?
     /// Returns the new workspace's first pane. Without a label the multiplexer names it.
@@ -184,11 +184,12 @@ extension HerdrClient: Multiplexer {
         try await (call("tab.create", ["workspace_id": workspaceID, "cwd": cwd, "focus": false]) as Created).rootPane
     }
 
-    public nonisolated func newTab(workspace workspaceID: String, cwd: String, label: String,
+    public nonisolated func newTab(workspace workspaceID: String, cwd: String, label: PaneLabel,
                                    command: [String]) async throws -> String?
     {
         // Never a `tab_id`: layout.apply would replace that tab and kill its panes.
-        let root: [String: any Sendable] = ["type": "pane", "cwd": cwd, "label": label, "command": command]
+        let root: [String: any Sendable] = ["type": "pane", "cwd": label.folder ?? cwd, "label": label.text,
+                                            "command": command]
         return try await (call("layout.apply", ["workspace_id": workspaceID, "focus": false, "root": root])
             as Applied).layout.root.pane_id
     }

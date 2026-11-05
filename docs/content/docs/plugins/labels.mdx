@@ -65,8 +65,12 @@ Browser and plugin panes are created the same way.
                  root:{type:"pane", cwd, label:"ovvi:<plugin>#<iid> <arg>",
                        command:["sh","-c",<script>,"sh",<title>,<arg>]}}
    ```
-   - `cwd` is the source pane's cwd, so a diff split from an agent's pane
-     opens in that agent's repository.
+   - `cwd` is the folder of the label's argument when it is a path (a file's
+     folder, a root), and home (`~`) for a URL. herdr saves it and brings the
+     pane back after a restart only when that folder is still there, so a
+     card is not tied to the folder it was opened from. A card with no
+     argument (a plugin with no `opens`) starts in the source pane's folder,
+     which it uses.
    - The script prints the title, the argument without its scheme and "Shown
      in Ovvi" in the middle of the pane. On `SIGWINCH` it reads the label's
      argument from herdr (`herdr pane get $HERDR_PANE_ID`) and draws again: on
@@ -105,16 +109,18 @@ by its label).
 
 ## The placeholder
 
-Every browser and plugin pane runs the placeholder. Two kinds of pane come
+Every browser and plugin pane runs the placeholder. Three kinds of pane come
 without it: after a cold restart herdr brings each pane back as a plain shell
 with its label (it saves the command, but runs it again only after a live
-update), and a pane that an agent or a person labels by hand has the shell it
-was made with.
+update), or with no program at all when its saved folder is gone ("Saved
+directory is unavailable"); and a pane that an agent or a person labels by
+hand has the shell it was made with.
 
 - Each time the app learns what a pane runs (`pane.process_info`), a browser
   or plugin pane with only its shell in front gets the placeholder: the app
-  types ⌃U (which clears a line half typed in herdr's TUI), then `exec` and
-  the placeholder's argv, in the base64 envelope that every
+  sends ⌃U as a key (`pane.send_keys`; it clears a line half typed in
+  herdr's TUI), then types `exec` and the placeholder's argv
+  (`pane.send_input`), in the base64 envelope that every
   login shell passes on ([Running commands](/docs/talking-to-herdr#running-commands)),
   and Return. The placeholder takes the shell's place, so the pane runs only
   the placeholder.
@@ -124,6 +130,12 @@ was made with.
   nothing typed. The line starts with a space, which keeps it out of a history
   that ignores such lines. A shell's own question that waits for a line (an
   update prompt in a `.zshrc`) looks like the shell, and gets the line.
+- ⌃U goes as a key, not in the text: herdr wraps text in bracketed paste when
+  the shell turned it on (zsh, bash 5.1 and later, and fish at their prompt),
+  and a pasted ⌃U is a plain character, so the line fails with
+  `command not found: ^U` (checked on herdr 0.9.5).
+- A pane that came back with no program gets a new pane with the same label
+  and the placeholder in its place, as Replace Pane makes one, once per pane.
 
 ## Choices
 

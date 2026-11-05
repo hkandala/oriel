@@ -15,9 +15,13 @@ extension Ahead {
         /// snapshot, and its going took the pane out of the keyboard history).
         var label: String?
 
-        /// The new panes, hidden until the old one is gone.
-        func hidden(_ panes: [HerdrKit.Pane]) -> [String] {
-            panes.filter { $0.tabID == tabID && !known.contains($0.id) || label != nil && $0.label == label }.map(\.id)
+        /// The new panes, hidden until the old one is gone: not the old one, which has the label of a card made again.
+        func hidden(_ panes: [HerdrKit.Pane], old: String) -> [String] {
+            panes
+                .filter {
+                    $0.id != old && ($0.tabID == tabID && !known.contains($0.id) || label != nil && $0.label == label)
+                }
+                .map(\.id)
         }
     }
 
@@ -34,9 +38,9 @@ extension HostStore {
     /// herdr 0.9.5 has no respawn: the pane is split (herdr starts the new one in the pane's live folder) and closed,
     /// so the new one fills the old one's place in the tree, at its size. The new pane hides until the old one is
     /// gone (`Ahead.replacing`). `made` runs as herdr makes the new pane, before the close.
-    /// A browser or plugin pane (`plugin`) is made with its label and placeholder in a new tab, then moved beside the
-    /// pane (plugins/labels#create).
-    func replace(_ paneID: String, plugin: PluginManifest? = nil, folder: String? = nil,
+    /// A browser or plugin pane (`plugin`, or a `label` kept as it is) is made with its label and placeholder in a new
+    /// tab, then moved beside the pane (plugins/labels#create).
+    func replace(_ paneID: String, plugin: PluginManifest? = nil, label: PaneLabel? = nil, folder: String? = nil,
                  made: (HerdrKit.Pane) -> Void) async
     {
         guard let old = pane(paneID), let workspace = workspace(of: old.tabID) else { return }
@@ -44,16 +48,20 @@ extension HostStore {
                                                   terminal: old.terminalID)
         let done = await write { client in
             var new: HerdrKit.Pane?
-            if let plugin {
+            // A kept label's card is made again because its folder is gone: home, unless its label names one.
+            var label = label, cwd = "~"
+            if label == nil, let plugin {
                 // In the chooser's folder, else the pane's live folder, as a split is.
-                let cwd = if let folder {
+                cwd = if let folder {
                     folder
                 } else {
                     try await client.pane(paneID).cwd ?? old.cwd ?? "~"
                 }
-                let label = await newLabel(plugin, arg: arg(plugin, in: cwd))
+                label = await newLabel(plugin, arg: arg(plugin, in: cwd))
+            }
+            if let label {
                 ahead.replacing[paneID]?.label = label.text
-                if let tab = try await client.newTab(workspace: workspace.id, cwd: cwd, label: label.text,
+                if let tab = try await client.newTab(workspace: workspace.id, cwd: cwd, label: label,
                                                      command: label.placeholder)
                 {
                     do {
@@ -79,6 +87,16 @@ extension HostStore {
             ahead.replacing[paneID] = nil
             redraw()
         }
+    }
+}
+
+extension HostStore {
+    /// herdr brings a card pane back from its saved session without a program when its saved folder is gone: a new
+    /// pane with the same label, so the card keeps its state, takes its place. Once per pane.
+    func remakeCard(_ pane: Pane, _ new: HerdrKit.Pane) {
+        guard new.restoreError != nil, let label = PaneLabel(new.label), !pane.remade else { return }
+        pane.remade = true
+        Task { await replace(pane.id, label: label) { _ in } }
     }
 }
 

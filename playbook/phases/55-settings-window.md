@@ -97,3 +97,28 @@ everything end to end, and test and review everything".
   (42106377248), beside the agent-control, open, balance and agent-start tests (the last skips on CI: it has claude).
 - **For the user:** with Ovvi open, start a pi agent hidden (a new pi-herd server), then open it from pi's agents
   tab: it floats.
+- **Cause, the placeholder typed into zsh failed** (the user's File Explorer card after the update). The app started
+  herdr's server again at 12:07 and herdr brought the card's pane back as a login zsh, with the old placeholder's
+  screen above its prompt (the placeholder did not exit). The app typed ⌃U, then the `exec` line, in one
+  `pane.send_input` text. zsh had turned bracketed paste on at its prompt, so herdr pasted the text and the ⌃U arrived as
+  a plain character: `command not found: ^U`. Twice, as two launches each tried once (pids 65384 at 12:07 and 23261 at
+  12:19); the guard is once per shell process per launch. Bash 5.1 and later fails the same way (spiked on herdr 0.9.5);
+  the old spike passed only on a shell that had not turned bracketed paste on yet. **Fix:** ⌃U goes as a key
+  (`pane.send_keys`), then the line as text. A retry now lands on a line that works.
+- **Why the other cards were fine.** Of the cards, only this one came back live from the restart; the browser cards in
+  `w6`, `w7` and `wB` came back without a program and were made again by Replace Pane, which starts a card with its placeholder as the pane's command,
+  with no shell to type into.
+- **Cause, "Saved directory is unavailable"** (the user's second explorer card; eleven panes of `default` at that restart). Cards were
+  made in the folder of the pane they were opened from, here `~/code/oriel`, which the migration moved. herdr saves that
+  folder and, after a restart, keeps a pane whose folder is gone with no program at all. **Fix:** a card with an
+  argument starts in its argument's folder (a file's folder, a root), a URL card in home; a card with no argument (a
+  plugin with no `opens`) still starts in the source folder, which it uses. A card pane that herdr brings back with a
+  `restore_error` is made again in its place under the same label (so it keeps its state), once per pane.
+- **Decisions.** Two Macs that see the restart at once can both make the card again: two cards, one to close by hand.
+- **Left (not fixed here).** 766 `tail -F … /T/oriel-follow-*` and `oriel-unread-*` processes (with their `awk`)
+  from older builds run with parent 1, and 40 `ovvi-` ones from today: the chat followers outlive a killed app, as
+  `tail -F` never reads its stdin. They depend on removed temporary files and do nothing; `pkill -f 'T/oriel-'` ends
+  the old ones. No process in the user's panes uses a removed path; two shell panes of
+  `default`, `w2K:p1` and `w2M:p1`, still wait without a program for `~/code/oriel-design` and `~/code/oriel-agentapi`.
+- **For the user.** In pane `w4:pHQ` (File Explorer, `mira-features-since-oct-9.md`), close the card and open the file
+  again, or, once this build is installed, relaunch Ovvi: it sends ⌃U and the line again into that pane's zsh.

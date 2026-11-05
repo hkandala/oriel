@@ -298,6 +298,7 @@ final class HostStore {
         let focused = snapshot.focusedPaneIDs
         reuse(self, \.panes, shown.panes, make) { pane, new in
             watchProgram(pane, new)
+            remakeCard(pane, new)
             pane.agent = new.agent
             pane.terminalTitle = new.title
             pane.label = new.label

@@ -70,17 +70,59 @@ extension OvviUITests {
         XCTAssertTrue(names.contains("cat"), "\(names)")
 
         // A shell pane the app has known for a while, labeled a card later as an agent does (a rename sends no event;
-        // the metadata token makes the app read the layout).
+        // the metadata token makes the app read the layout). zsh at its prompt with a line half typed, as the user's
+        // pane was: zsh turns bracketed paste on, so herdr pastes text into it, and a ⌃U in the text was a plain
+        // character (`command not found: ^U`); as a key it clears the line.
         let (relabel, shell) = try await newTab("relabel")
         try await show(relabel)
         try await waitForPrompt(shell)
-        // The app knows its shell: the card's title leads with it (zsh here, bash on CI).
+        try await send("exec zsh -f\r", to: shell)
+        try await waitFor(shell) { $0.contains("% ") }
+        try await send("half typed", to: shell)
+        try await waitFor(shell) { $0.contains("% half typed") }
+        // The app knows its shell: the card's title leads with it.
         let title = element("pane.\(shell).title")
         XCTAssertTrue(until(10) { title.stringValue.contains("sh ") }, title.stringValue)
         try await Self.call(one, "pane.rename", ["pane_id": shell, "label": "ovvi:explorer#e2epl2 /tmp/"])
         try await Self.call(one, "pane.report_metadata", ["pane_id": shell, "source": "ovvi-panes",
                                                           "tokens": ["ovvi-label": "1"], "ttl_ms": 1000])
         try await waitFor(shell, in: nil) { $0.contains("Shown in Ovvi") }
+    }
+
+    /// A card pane whose saved folder went while herdr was stopped comes back with no program ("Saved directory is
+    /// unavailable"): the app makes it again in its place under the same label, with its placeholder.
+    func testACardWhoseFolderWentComesBackWithItsPlaceholder() async throws {
+        let five = try env("OVVI_SESSION5")
+        let (workspace, _) = try await shown(running(five))
+        relaunch(five)
+        // A shell in session one, which keeps running.
+        let (tab, shell) = try await createTab(in: "w2", label: "gone")
+        closeAfter("tab", tab)
+        try await waitForPrompt(shell)
+        let folder = "/tmp/ovvi-e2e-gone", label = "ovvi:explorer#e2egon /tmp/"
+        try await send("mkdir -p \(folder) && clear && echo made-$((6*7))\r", to: shell)
+        try await waitFor(shell) { $0.contains("made-42") }
+        // Made as a card was made in the folder it was opened from.
+        let reply = try await Self.call(five, "layout.apply", ["workspace_id": workspace, "focus": false, "root": [
+            "type": "pane", "cwd": folder, "label": label, "command": ["sh", "-c", "cat", "sh"],
+        ]])
+        let old: String = try field(((reply["layout"] as? [String: Any])?["root"] as? [String: Any])?["pane_id"],
+                                    "layout's pane")
+        addTeardownBlock { _ = try? await Self.call(five, "pane.close", ["pane_id": old]) }
+        try await Self.post("\(five)/stop")
+        XCTAssertTrue(element("detail.start").exists(within: 10))
+        try await send("rm -rf \(folder) && clear && echo gone-$((6*7))\r", to: shell)
+        try await waitFor(shell) { $0.contains("gone-42") }
+        try await Self.post("\(five)/start")
+        let made = try await poll("the card made again", times: 200) { () async throws -> String? in
+            let panes = try await Self.snapshot(five)["panes"] as? [[String: Any]] ?? []
+            let card = panes.first { $0["label"] as? String == label }
+            guard panes.allSatisfy({ $0["pane_id"] as? String != old }),
+                  card?["restore_error"] == nil else { return nil }
+            return card?["pane_id"] as? String
+        }
+        addTeardownBlock { _ = try? await Self.call(five, "pane.close", ["pane_id": made]) }
+        try await waitFor(made, in: five) { $0.contains("File Explorer") && $0.contains("Shown in Ovvi") }
     }
 
     /// A tab per file page made as Ovvi makes one (`layout.apply` with the label and a placeholder): its card and
