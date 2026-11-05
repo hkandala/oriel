@@ -11,7 +11,7 @@ extension AgentCommand {
         help: """
         plugins: the browser and every plugin, and why a package did not load. --for: only the ones that open a \
         file, folder or URL, best first, the default marked, then a file's other Open With choices.
-        new <name>: a plugin from the template in the plugins folder, built and trusted (This Mac only). Pass a long \
+        new <name>: a plugin from the template in the plugins folder, built and confirmed (This Mac only). Pass a long \
         --timeout: it installs the template's dependencies and builds it.
         reload [<id>]: builds one plugin, or every plugin with an open card, and loads its cards again (This Mac \
         only). A card with unsaved edits stops it ("dirty"). Pass a long --timeout for a slow build.
@@ -85,7 +85,7 @@ extension AgentCommand {
                 message: "\(typed) is not npm:<package>, git:<repository> or a folder",
             )
         }
-        // Again would be an Update, which asks nothing: the user's, on the plugin's page.
+        // Again would be an Update, which asks only when its id changed: the user's, on the plugin's page.
         guard !PluginPackages.sources(Registry.settings).contains(source) else {
             throw AgentError(
                 code: "bad_argument",
@@ -122,7 +122,7 @@ extension AgentCommand {
                 throw AgentError(code: "bad_argument", message: "\(id) is part of Ovvi and has nothing to build")
             }
             guard PluginTrust.shared.allows(manifest) else {
-                throw AgentError(code: "failed", message: "\(id) is not trusted yet: its card asks the user first")
+                throw AgentError(code: "failed", message: "\(id) is not confirmed yet: its card asks the user first")
             }
             ids = [manifest.id]
         }
@@ -147,7 +147,7 @@ extension AgentCommand {
             }
             results.append([
                 "id": id,
-                // An untrusted plugin builds nothing: its cards still ask the user.
+                // A plugin not confirmed yet builds nothing: its cards still ask the user.
                 "built": problem == nil && Registry.plugin(id).map(PluginTrust.shared.allows) == true,
                 "ms": Int((ContinuousClock.now - start) / .milliseconds(1)),
                 "cards": Plugin.cards.count { $0.manifest.id == id },
@@ -160,7 +160,7 @@ extension AgentCommand {
             return AgentOutput(result)
         }
         return AgentOutput(["plugins": results], text: results.map { result in
-            let built = result["built"] as? Bool == true ? "built" : "not built (not trusted)"
+            let built = result["built"] as? Bool == true ? "built" : "not built (not confirmed)"
             return "\(result["id"] ?? "") \(built) in \(result["ms"] ?? 0) ms, \(result["cards"] ?? 0) card(s)\n"
         }.joined())
     }

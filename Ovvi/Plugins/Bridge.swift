@@ -173,7 +173,7 @@ final class Bridge {
         let name = message["call"] as? String ?? "", args = message["args"] as? [String: Any] ?? [:]
         do {
             guard let plugin, failure == nil || name == "card.failed" else { throw PluginError("closed", "Closed") }
-            // A page still open after Remove, under the confirmation again: it can do nothing more.
+            // A page still running after Remove (its card shows the plugin missing): it can do nothing more.
             guard PluginTrust.shared.allows(plugin.manifest) else { throw PluginError("closed", "Removed") }
             let reply = try await answer(name, args, plugin)
             guard let reply else { return (nil, nil) }

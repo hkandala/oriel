@@ -71,7 +71,7 @@ extension OvviUITests {
         try await send("clear; ls \(csv)/dist || echo unbuilt-$((6*7))\r", to: shell)
         try await waitFor(shell) { $0.contains("unbuilt-42") }
         try await show(cardTab)
-        element("pane.\(card).trust.allow").click()
+        element("pane.\(card).trust.install").click()
         XCTAssertTrue(element("pane.\(card).failure").has(\.stringValue, "CSV Table is not built", within: 10))
         XCTAssertEqual(element("pane.\(card).failure.text").stringValue,
                        "dist/main.js is missing. Build runs its build script.")
@@ -116,7 +116,7 @@ extension OvviUITests {
     }
 
     /// Ovvi ▸ Plugins… opens Settings ▸ Plugins, which installs the fixture from a local git repository at its tag,
-    /// after the trust prompt, with its dependencies and its build; the row shows the tag's version and its source, and
+    /// after the confirmation, with its dependencies and its build; the row shows the tag's version and its source, and
     /// its page has Update. New Plugin… makes one from the template.
     private func installFromGit(_ fixture: String, config: String, shell: String) async throws {
         let repo = "/tmp/ovvi-e2e-csv-repo", git = "git -C \(repo) -c user.name=e2e -c user.email=e2e@e2e"

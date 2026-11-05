@@ -34,7 +34,7 @@ final class PluginTrust {
         }
     }
 
-    /// Remove: its open cards show the confirmation again, and their pages' calls fail (`Bridge.call`) and their
+    /// Remove: a page still running (its card shows the plugin missing) can call nothing more (`Bridge.call`), and its
     /// watches stop.
     func forget(_ id: String) {
         trusted.remove(id)
@@ -49,11 +49,10 @@ final class PluginTrust {
         try? JSONEncoder().encode(trusted.sorted()).write(to: Self.file, options: .atomic)
     }
 
-    /// Which plugin, and where from: an npm or git source, and its folder (a local path's source).
-    static func origin(_ manifest: PluginManifest, source: String, folder: URL?) -> String {
+    /// Which plugin, and where from: its npm or git source, if it has one, and its folder.
+    static func origin(_ manifest: PluginManifest, source: String?, folder: URL?) -> String {
         let folder = folder.map { ($0.path as NSString).abbreviatingWithTildeInPath } ?? ""
-        let fetched = PluginSource(source)?.folder != nil ? "from \(source) " : ""
-        return "\(manifest.id) \(manifest.version) \(fetched)in \(folder)".shown
+        return "\(manifest.id) \(manifest.version) \(source.map { "from \($0) " } ?? "")in \(folder)".shown
     }
 }
 
@@ -75,15 +74,19 @@ struct TrustPrompt: View {
 
     var body: some View {
         let manifest = plugin.manifest, id = "pane.\(plugin.paneID).trust"
-        let source = PluginInstalls.shared.rows.first { $0.id == manifest.id }?.source ?? ""
+        let folder = Registry.package(manifest.id)
+        // The npm or git source installed into its folder; a local path or a hand-made folder has none.
+        let name = folder?.lastPathComponent
+        let source = PluginPackages.sources(Registry.settings).first { name != nil && PluginSource($0)?.folder == name }
         VStack(spacing: 12) {
             Image(symbol: manifest.icon).font(.system(size: 28)).foregroundStyle(.secondary)
             VStack(spacing: 6) {
                 Text("Install “\(manifest.name.shown)”?").font(.system(size: 13, weight: .semibold))
                     .accessibilityIdentifier(id)
-                Text(PluginTrust.origin(manifest, source: source, folder: Registry.package(manifest.id)))
+                Text(PluginTrust.origin(manifest, source: source, folder: folder))
                     .font(.system(size: 11).monospaced())
                     .foregroundStyle(.secondary).lineLimit(2).truncationMode(.middle)
+                    .accessibilityIdentifier("\(id).origin")
                 if !manifest.description.isEmpty {
                     Text(manifest.description.shown).font(.system(size: 12)).lineLimit(3)
                 }
@@ -98,9 +101,9 @@ struct TrustPrompt: View {
             }
             HStack(spacing: 8) {
                 Button("Cancel") { page.closePane(page.store.pane(plugin.paneID)) }
-                    .buttonStyle(.glass).accessibilityIdentifier("\(id).deny")
+                    .buttonStyle(.glass).accessibilityIdentifier("\(id).cancel")
                 Button("Install") { PluginTrust.shared.allow(manifest) }
-                    .buttonStyle(.glassProminent).accessibilityIdentifier("\(id).allow")
+                    .buttonStyle(.glassProminent).accessibilityIdentifier("\(id).install")
             }
             .controlSize(.small)
             .padding(.top, 4)

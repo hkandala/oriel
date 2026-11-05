@@ -69,11 +69,14 @@ final class PluginInstalls {
     }
 
     /// Update: the source fetched again (the newest version its spec allows) and put over the installed copy; it asks
-    /// only when its id changed.
+    /// only when its id changed, and then the old id is forgotten.
     func update(_ row: InstalledPlugin) async {
         guard case let .installed(text) = row.kind, let source = PluginSource(text) else { return }
-        _ = try? await run(row.id, "Updating…") {
+        let manifest = try? await run(row.id, "Updating…") {
             try await self.fetch(source, text, for: nil)
+        }
+        if let manifest, manifest.id != row.id {
+            PluginTrust.shared.forget(row.id)
         }
     }
 
@@ -230,7 +233,8 @@ final class PluginInstalls {
         let new = !PluginPackages.sources(Registry.settings).contains(source)
         guard new || !PluginTrust.shared.allows(manifest) else { return }
         let asks = agent.map { "\($0.name) asks to install it." }
-        let text = [asks ?? "", PluginTrust.origin(manifest, source: source, folder: folder),
+        let fetched = PluginSource(source)?.folder == nil ? nil : source
+        let text = [asks ?? "", PluginTrust.origin(manifest, source: fetched, folder: folder),
                     manifest.description.shown, PluginTrust.warning].filter { !$0.isEmpty }
         // An agent's prompt is a sheet only: a modal alert would hold every request and could come up over the
         // user's app.

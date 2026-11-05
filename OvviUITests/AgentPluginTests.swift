@@ -54,8 +54,8 @@ extension OvviUITests {
         try await run(install, in: pane, "again", 1, "ovvi: \(csv) is installed")
     }
 
-    /// New Plugin from an agent: made, built and trusted; Reload Plugin answers its build, and a broken build its last
-    /// lines. A card with unsaved edits stops a reload with `dirty`, and keeps its edits.
+    /// New Plugin from an agent: made, built and confirmed; Reload Plugin answers its build, and a broken build its
+    /// last lines. A card with unsaved edits stops a reload with `dirty`, and keeps its edits.
     func testTheOvviCommandMakesAndReloadsAPlugin() async throws {
         let config = "/tmp/ovvi-e2e-agent-new", folder = "/tmp/ovvi-e2e-agent-file"
         let (tab, pane) = try await agentPluginsSetUp(config, "rm -rf \(folder) && mkdir \(folder) && echo one > "

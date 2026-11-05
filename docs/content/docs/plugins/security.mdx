@@ -31,14 +31,16 @@ or its build script first runs.
 
 | Where it comes from | When it asks | Where |
 |---|---|---|
-| An install from npm or git | for a new source, before its dependencies install. An update does not ask | a dialog over the window, with **Install** and **Cancel** |
+| An install from npm or git | for a new source, before its dependencies install. An update asks only when the new version has another id | a dialog over the window, with **Install** and **Cancel** |
 | A local path from the Plugins page | when you add it | the same dialog |
 | An agent's `ovvi plugins install` | as for the page's install | the same dialog, on the window of the agent's session ([An agent's install](#an-agents-install)) |
 | New Plugin…, or an agent's `ovvi plugins new` on This Mac | never: you or your agent made it | |
 | A folder put in the plugins folder by hand, or a path written in `settings.json` | in its first card | the card's middle |
 
-A change to the plugin's code or manifest does not ask again. Reload depends
-on that, and a program that can edit the code can already run as you.
+A change to the plugin's code or manifest does not ask again, and an update
+runs the new version's code with no question. Reload depends on that, and a
+program that can edit the code can already run as you. When you confirm a
+plugin, you trust its source with its later versions too.
 
 The confirmation in a card sits under the plugin's icon:
 
@@ -138,7 +140,7 @@ The rules below keep that content from taking over the card and its bridge
   or passes a file's words to `run` can be used by that file. The CSP and the
   navigation lock limit the first. Nothing in the app limits the second.
 - **A machine.** A machine writes labels. So any process on a machine (a
-  script, an agent) can open a card of any trusted plugin on that machine.
+  script, an agent) can open a card of any plugin that you confirmed on that machine.
   That gives it what the plugin does there, as the user it runs as. It cannot
   open a card on another machine. `ovvi open` writes the same label, so it
   gives nothing more ([Agent control](/docs/agent-control#security)).

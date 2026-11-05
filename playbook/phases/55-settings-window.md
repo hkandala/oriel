@@ -267,3 +267,8 @@ this" after this plan:
   without `permissions`.
 - **Decisions, the migration check.** The plugin-api UI fixture keeps an old `permissions` list and its test writes
   an older Ovvi's `trust.json` (ids with permissions): its card loads with no confirmation.
+- **Decisions, an Update with another id** confirms the new id and forgets the old one, so a later plugin with the old
+  id asks again.
+- **For the user.** Put a plugin folder into `~/.config/ovvi/plugins/` by hand and open its card: the confirmation in
+  the card's middle, in Glass and in Classic. Run `ovvi plugins install <folder>` from an agent's pane: the sheet comes
+  on that session's window, and Return does not install it.
