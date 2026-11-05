@@ -905,8 +905,9 @@ CI runs and on-demand) at about 2–3 h.
   unknown, so no shell makes every agent grey. The hover tip names an npm package for each agent.
 - **Decisions, keys.** A missing agent keeps its place in the numbering (Pi stays 3 when Codex is missing), so the keys
   of the others never change. If the answer comes while a missing agent is selected, Return does nothing on it.
-- **Tests.** CI has no agents, so every UI test now launches the app with stand-in `claude`, `codex`, `pi` and
-  `opencode` files on its `PATH` (the login shell keeps the inherited entries). The agent test hides the user's real
+- **Tests.** CI has no agents, so its UI test job puts stand-in `claude`, `codex`, `pi` and `opencode` files on the
+  login shell's `PATH` in its rc files: This Mac's and the sshd machine's (the remote chat tests pick agents in a
+  remote window). The agent test hides the user's real
   agents with a stand-in login shell that reads no profile, and a `PATH` of the stand-ins without `codex` plus herdr's
   folder (the e2e helper passes herdr's path).
 - **For the user.** Open New Pane, then Agent, in a window on a Mac without one of the four agents: its row is dimmed

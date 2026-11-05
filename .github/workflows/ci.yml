@@ -72,6 +72,11 @@ jobs:
         run: *install-herdr
       # The remote-host tests' machines.
       - run: scripts/ci-sshd.sh
+      # CI has no coding agents: stand-ins on the login shell's PATH (This Mac's and the remote machine's), so New Pane
+      # finds all four.
+      - run: |
+          agents="$PWD/OrielUITests/Fixtures/agents"
+          echo "export PATH=\"\$PATH:$agents:$agents/codex\"" | tee -a ~/.zshrc >> ~/.bash_profile
       - if: ${{ inputs.only_testing }}
         run: make e2e
         env:
