@@ -394,6 +394,23 @@ what differs unless a card needs it otherwise, and give the reason in Findings.
     - A UI test: type a folder, pick Terminal, and check the shell's folder; a bad folder shows the error.
     - Pictures, dark and light.
 
+## Track L: a seen Done leaves when the user leaves (item 45)
+
+45. **Done moves to Idle after the user looked and left.** "in previous runs, we have updated sidebar, and one
+    speciifc thing i mentioned in there is, if something is done, we shouldn't remove it from done immediately after
+    its activated, instead it should be removed from done once user looks at the agent and goes to some other agent,
+    basically when user looking at agent when its done for first time, it shouldn't be removed from that section, as
+    soon as user left that agent it should be moved to idle. right now after done, they are just stuck at done, even
+    after i go back to other agents etc".
+    - Phase 52 (item 23, `Pane.finishSeen`) kept a seen Done in its group until the agent works again or leaves. The
+      user meant: it stays while they look at it, and moves to Idle as soon as they leave it.
+    - Leaving means the agent's pane stops being the one with the keyboard. The user selects another pane, tab,
+      workspace or session, or the window closes. Not leaving: the app losing focus, or the pane staying shown
+      while the keyboard moves within it.
+    - The same rule for the tab pill's icon, the hover card and the Workspaces view's priority. A Done that was never
+      looked at stays Done.
+    - A UI test: an agent finishes, the user opens it (it stays under Done), selects another agent (it moves to Idle).
+
 ## Research, plans only (items 34–38, 42, 43)
 
 No code changes. Each report is one self-contained HTML file in `/tmp/oriel-research/`, copied to
@@ -456,6 +473,7 @@ The tracks run in parallel, each in its own worktree. Estimates are in agent hou
 | I, the chat view's load | 40 | 3 h |
 | J, missing agents | 41 | 2 h |
 | K, New Pane's folder | 44 | 3 h |
+| L, a seen Done | 45 | 1.5 h |
 
 - D and E both touch `plugins/explorer`: D owns the tree and its header, and E owns the file cards. Each bumps
   File Explorer's version when it lands, rebasing on the other.
