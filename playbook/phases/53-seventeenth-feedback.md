@@ -868,6 +868,15 @@ CI runs and on-demand) at about 2–3 h.
   page being gone. Then the stress test's `heap` of the app (37 s at 400 panes on CI) ran past the e2e helper's 60 s
   on a runner half as fast: that bound is for a hung tool, now 180 s. Runs: 41991682831 (red at heap),
   41994389862 (the three tests green).
+- **Cause, the kept-cards flake.** testManyKeptCardsCost made its workspace right after relaunching the app; on one CI
+  run (42026085641) the sidebar row came 3.4 s later, with the first terminal's text at the same moment (herdr and the
+  app busy with the launch's asks and streams), past the helper's 3 s. **Fix:** the workspace and its tabs are made in
+  herdr before the launch, so the app's first snapshot has them; no wait changed.
+- **Cause, job time.** Phase 53's new tests counted 15 s each in `scripts/test-times.tsv`, and runners were slower, so
+  shards ran 655–896 s and one crossed the job's 20 minutes after every test passed (42026081029). **Fix:** the times
+  are the means of full runs 41988017252, 42004828681 and 42026081029 (five shards of 796–798 s). Replayed with the
+  slowest run's own times the worst shard is 873 s, plus up to 370 s of setup, build and upload: 1243 s, so a test job
+  now stops at 25 minutes (ci.md).
 - **Pictures.** The look does not change: `/tmp/oriel-shots/t53h/before-webs-dark.png` and
   `/tmp/oriel-shots/t53h/after-webs-dark.png` are the same pixels.
 - **For the user.**
