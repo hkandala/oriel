@@ -32,7 +32,12 @@ extension OrielUITests {
         element("terminal.\(left)").click()
         XCTAssertTrue(hasKeyboard("terminal.\(left)"))
         message.click()
-        XCTAssertTrue(hasKeyboard("browser.\(browser)"))
+        // The page took the keyboard (a web view reports no focus of its own), on the keyboard card: ⌘L is its.
+        let terminal = element("terminal.\(left)")
+        XCTAssertTrue(until(2) { !NSPredicate(format: "hasKeyboardFocus == true").evaluate(with: terminal) })
+        app.typeKey("l", modifierFlags: .command)
+        XCTAssertTrue(hasKeyboard(address))
+        app.typeKey(.escape, modifierFlags: [])
 
         try await send("python3 -m http.server \(port) --bind 127.0.0.1 -d /tmp/oriel-e2e-browser\r", to: left)
         // The first python3 on CI starts slowly (xcrun).
