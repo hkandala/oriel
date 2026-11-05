@@ -61,6 +61,9 @@ final class Page: Identifiable {
     /// The latest split's card (its stand-in, then herdr's pane) until its terminal has the keyboard, and the
     /// terminal that had it before. Observed: its card is lit.
     var newest: (id: String, from: String?)?
+    /// The quick splits' cards before the newest, the latest last: ⌘W closes back through them. Read only with a
+    /// newest.
+    @ObservationIgnored var splitsBefore: [String] = []
     /// The tab whose terminal last got the keyboard from the app.
     @ObservationIgnored var keyboardTabID: String?
     /// A moved pane's terminal, which takes the keyboard once a snapshot shows it in its tab: a write does not wait

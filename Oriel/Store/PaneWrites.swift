@@ -30,8 +30,20 @@ extension HostStore {
         var made: HerdrKit.Pane?
         let done = await write { client in
             let paneID = ahead.splitPanes[paneID] ?? paneID
-            // The split before failed: its notice says so.
-            guard !Ahead.isStandIn(paneID), let new = try await client.split(paneID, direction) else { return }
+            // The split before failed: its notice says so. Or the stand-in closed (⌘W right after ⌘D): no split.
+            guard !Ahead.isStandIn(paneID), !ahead.closing.contains(standIn),
+                  let new = try await client.split(paneID, direction) else { return }
+            // Closed while herdr made it: closed before a snapshot shows it.
+            if ahead.closing.contains(standIn) {
+                ahead.closing.insert(new.id)
+                do {
+                    try await client.close(pane: new.id)
+                } catch {
+                    ahead.closing.remove(new.id)
+                    throw error
+                }
+                return
+            }
             made = new
             chooser.made(new)
             // Here, not after `write`: the next write may start first.
@@ -216,6 +228,9 @@ extension Page {
         let key = String(describing: close)
         // The old pane of a replace that runs: herdr closes it already.
         guard !asking.contains(key), close.paneID.flatMap({ store.ahead.replacing[$0] }) == nil else { return }
+        if let id = close.paneID, id == newest?.id, store.pane(id) == nil {
+            closedNewest()
+        }
         let before = (selectedWorkspaceID, selectedTabIDs)
         if let (pane, card) = store.panes(closedBy: close).lazy.compactMap({ pane in
             pane.terminalID.flatMap(self.terminals.builtPlugin).map { (pane, $0) }
@@ -271,6 +286,7 @@ extension Page {
             }
         }
         let standIn = Ahead.standIn()
+        splitsBefore = newest.map { splitsBefore + [$0.id] } ?? []
         newest = (standIn, newest?.from ?? terminals.keyboardTerminalID)
         let new = await store.split(target, direction, before: before, standIn: standIn)
         guard newest?.id == standIn else {
@@ -283,14 +299,27 @@ extension Page {
         follow(new, new?.terminalID, select: false)
     }
 
-    /// Close Pane: the pane, else the shown stand-in, which has no pane yet; ⌘W closes it too. Not the
-    /// old keyboard card while a split's lit stand-in waits for herdr's pane.
+    /// Close Pane: the pane, else the shown stand-in, which has no pane yet; ⌘W closes it too. While a quick split's
+    /// card is lit and herdr's pane does not show yet, that card, not the old one that still has the first responder.
     func closePane(_ pane: HostStore.Pane?) {
-        if let newest, store.pane(newest.id) == nil, pane?.id == keyboardPane?.id {
-            return
-        }
-        if let id = pane?.id ?? standIn {
+        let lit = newest.flatMap { store.pane($0.id) == nil && pane?.id == keyboardPane?.id ? $0.id : nil }
+        if let id = lit ?? pane?.id ?? standIn {
             close(.pane(id))
+        }
+    }
+
+    /// The lit split card closed before herdr's pane showed: the quick split before it is lit, and takes the keyboard
+    /// once herdr made it.
+    private func closedNewest() {
+        guard let newest else { return }
+        let id = splitsBefore.popLast().map { store.ahead.splitPanes[$0] ?? $0 }
+        self.newest = id.map { ($0, newest.from) }
+        guard let id, !Ahead.isStandIn(id) else { return }
+        if let pane = store.pane(id) {
+            go(to: pane)
+        } else {
+            // Its terminal is the latest used (`split`): the next snapshot gives it the keyboard (`shown`).
+            keyboardTabID = nil
         }
     }
 }

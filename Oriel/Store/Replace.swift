@@ -89,7 +89,7 @@ struct Replacement {
 
 extension Page {
     /// Replace Pane: asks first in this window when something besides the shell runs, as Close Pane does (D41). Not
-    /// the old keyboard card while a split's lit stand-in waits for herdr's pane (as `closePane`), nor a held ⇧⌘R's
+    /// the old keyboard card while a split's lit stand-in waits for herdr's pane, nor a held ⇧⌘R's
     /// repeats.
     func replacePane(_ pane: HostStore.Pane?, _ replacement: Replacement? = nil) {
         let key = "replace \(pane?.id ?? "")", event = NSApp.currentEvent

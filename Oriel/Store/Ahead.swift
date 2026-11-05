@@ -6,7 +6,9 @@ import HerdrKit
 /// out until a snapshot no longer has it; a new tab or a split shows an empty card under a stand-in id until a
 /// snapshot has what herdr made. A failed write takes it back.
 struct Ahead {
-    /// Panes, tabs and workspaces being closed. herdr never gives a closed id to a new one while its server runs.
+    /// Panes, tabs and workspaces being closed, and split stand-ins closed before herdr made their panes (kept while a
+    /// split shows: the latest split's tree has the ones before). herdr never gives a closed id to a new one while its
+    /// server runs.
     var closing: Set<String> = []
     /// New tabs not in a snapshot yet, oldest first.
     var tabs: [NewTab] = []
@@ -16,9 +18,9 @@ struct Ahead {
     /// herdr's tabs that took stand-ins' places in the last snapshot, by stand-in id: every page's selection and tab
     /// history follow them as they settle on that snapshot.
     var arrived: [String: String] = [:]
-    /// herdr's tabs that took a stand-in's place, while they last: a close of one whose shell still starts shows at
-    /// once (quick ⌘W after quick ⌘T). Not every starting pane: a program run in a pane split a second ago
-    /// would hide, then come back with the question.
+    /// herdr's tabs that took a stand-in's place, and the panes of the app's splits, while they last: a close of one
+    /// whose shell still starts shows at once (quick ⌘W after quick ⌘T or ⌘D). Not every starting pane: one another
+    /// client made may run a program already.
     var fresh: Set<String> = []
     /// herdr's tabs for stand-ins closed before they came: the store closes them.
     var toClose: [String] = []
@@ -79,8 +81,9 @@ struct Ahead {
 
     mutating func show(_ snapshot: Snapshot) -> Shown {
         let ids = snapshot.workspaces.map(\.id) + snapshot.tabs.map(\.id) + snapshot.panes.map(\.id)
-        closing.formIntersection(ids)
+        closing = closing.filter { ids.contains($0) || split != nil && Self.isStandIn($0) }
         fresh.formIntersection(ids)
+        fresh.formUnion(splitPanes.values.filter(ids.contains))
         arrived = [:]
         replaced = replacing.filter { !ids.contains($0.key) }
         keepCards(ids)
@@ -107,7 +110,9 @@ struct Ahead {
             if now == nil || split.after.map({ $0 > 0 || even }) == true {
                 self.split = nil
             } else {
-                trees[split.tabID] = split.tree.removing(closing)
+                // Also a stand-in whose pane herdr made, shown under the stand-in's id still.
+                trees[split.tabID] = split.tree.removing(closing.union(splitPanes.filter { closing.contains($0.value) }
+                        .keys))
                 self.split?.after = split.after.map { $0 + 1 }
             }
         }
@@ -151,10 +156,11 @@ extension HostStore {
         }
         let asked = panes(closedBy: request)
         let action = closing(request)
-        // ponytail: a program typed in a new tab in its first seconds hides too, and comes back with the question.
+        // ponytail: a program typed in a new tab or split in its first seconds hides too, and comes back with the
+        // question.
         let clear = asked.allSatisfy {
             $0.program?.isShell == true || $0.plugin != nil && $0.program?.isPlaceholder == true
-                || $0.starting && ahead.fresh.contains($0.tabID)
+                || $0.starting && (ahead.fresh.contains($0.tabID) || ahead.fresh.contains($0.id))
         }
         if clear {
             hide(request)
@@ -177,8 +183,10 @@ extension HostStore {
         }
     }
 
+    /// New tabs close as herdr makes them (`made`); splits are not made, or closed as herdr makes them (`split`).
     private func closeStandIns(_ ids: [String]) {
         guard !ids.isEmpty else { return }
+        ahead.closing.formUnion(ids)
         for index in ahead.tabs.indices where ids.contains(ahead.tabs[index].id) {
             ahead.tabs[index].closed = true
         }
