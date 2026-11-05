@@ -13,7 +13,8 @@ struct Sidebar: View {
     let agents: Bool
     @Binding var width: Double
     let openSession: () -> Void
-    @SceneStorage("agentSort") private var sort = AgentSort.priority
+    /// Not the old `agentSort` key: windows had kept Workspace there, and Priority is what the user wants to see first.
+    @SceneStorage("agentOrder") private var sort = AgentSort.priority
     @State private var filter = ""
     @State private var swipe = Swipe()
     /// The pages' frame in the window, for the router.
