@@ -218,8 +218,6 @@ final class Swipe {
     var moving = false
     /// Counts the moves, so only the latest one's end sets the pages at rest.
     @ObservationIgnored var moves = 0
-    /// A slide's end, run once the pages are drawn on their place (`Slid`).
-    @ObservationIgnored var arrived: (() -> Void)?
 
     /// The page of `count` that a lift at `page` (from the first) lands on, from the fingers' `speed` in points a
     /// second: the next one that way, or the nearest when slow.
@@ -237,8 +235,7 @@ struct Pager<Content: View>: View {
 
     var body: some View {
         // At rest it holds only the page in view.
-        let offset = swipe.moving ? swipe.slide * width : 0
-        content.modifier(Slid(offset: offset, target: offset, swipe: swipe))
+        content.modifier(Slid(offset: swipe.moving ? swipe.slide * width : 0, swipe: swipe))
             .frame(width: width, alignment: .leading)
             .frame(maxHeight: .infinity)
             .clipped()
@@ -248,8 +245,6 @@ struct Pager<Content: View>: View {
 /// The pages' offset, animatable, so a test can read it at each frame of a slide.
 private struct Slid: ViewModifier, Animatable {
     var offset: Double
-    /// Where the offset goes: not animated.
-    let target: Double
     let swipe: Swipe
     var animatableData: Double {
         get { offset }
@@ -260,13 +255,42 @@ private struct Slid: ViewModifier, Animatable {
         if swipe.moving {
             swipe.drawn = offset
             Latency.shared.slid(offset)
-            // On its place within half a point: the slide ends after this frame's update, so the show's hold leaves
-            // it there.
-            if abs(offset - target) < 0.5, let arrived = swipe.arrived {
-                swipe.arrived = nil
-                Task { arrived() }
-            }
         }
         return content.offset(x: -offset)
+    }
+}
+
+extension Animation {
+    /// The sidebar's session pages: 0.2 s with no bounce (0.14 s felt too
+    /// quick and odd). A swipe's slide starts at the fingers' `speed`
+    /// toward the page `distance` away (in pages a second, and pages), so it goes on from the lift.
+    static func session(speed: Double = 0, distance: Double = 0) -> Animation {
+        // Critically damped, it would go past the page from a relative speed over ω = 2π / response.
+        let response = 0.2, initial = distance == 0 ? 0 : min(max(speed / distance, 0), 2 * .pi / response)
+        return Animation(Arrive(spring: .interpolatingSpring(duration: response, bounce: 0, initialVelocity: initial)))
+    }
+}
+
+/// A spring that is logically complete once within half a point of its end. Its own logical end, at its 0.2 s, left a
+/// slow lift's pages up to 3 pt short: the session's show (100 ms of main thread) held them there, then they jumped.
+private struct Arrive: CustomAnimation {
+    let spring: Animation
+
+    func animate<V: VectorArithmetic>(value: V, time: TimeInterval, context: inout AnimationContext<V>) -> V? {
+        let now = spring.animate(value: value, time: time, context: &context)
+        var left = value
+        left -= now ?? value
+        context.isLogicallyComplete = left.magnitudeSquared < 0.25
+        return now
+    }
+
+    func velocity<V: VectorArithmetic>(value: V, time: TimeInterval, context: AnimationContext<V>) -> V? {
+        spring.velocity(value: value, time: time, context: context)
+    }
+
+    func shouldMerge<V: VectorArithmetic>(previous: Animation, value: V, time: TimeInterval,
+                                          context: inout AnimationContext<V>) -> Bool
+    {
+        spring.shouldMerge(previous: previous, value: value, time: time, context: &context)
     }
 }

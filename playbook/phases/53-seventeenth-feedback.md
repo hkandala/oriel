@@ -1045,11 +1045,17 @@ CI runs and on-demand) at about 2–3 h.
   probe (two sessions, a ticking TUI in a two-pane tab, 16 swipes) gave the same show cost of 85–135 ms in a Debug
   build on `fa375b18` (Oct 29), `efa26b24` (your build) and main, with the same timing. The jump depends on how the
   user swipes: how far the page still had to go at the lift, and how slowly.
-- **Fix.** The session shows once the pages are *drawn* within half a point of their place. `Slid` sees each frame's
-  offset and ends the slide after the frame that drew it there. The spring's full end (`.removed`) is kept only as a
-  fallback for a window that draws no frame. A slow swipe's session now shows about 45 ms later (252 ms after the
-  lift, not 205), with the page 0.3 pt from its place (before: 1.3 pt, and it jumped after the hold). A quick flick is
-  unchanged. The swipe record now keeps tenths of a point.
+- **Fix.** The session spring is a `CustomAnimation` around the same spring, and it counts as logically complete only
+  once it is within half a point of its end. The slide still ends on SwiftUI's `.logicallyComplete` completion. A slow
+  swipe's session now shows about 45 ms later (252 ms after the lift, not 205), with the page 0.3 pt from its place
+  (before: 1.3 pt, and it jumped after the hold). A quick flick is unchanged. The swipe record now keeps tenths of a
+  point.
+- **Cause, the first fix (59935e85).** That fix watched each frame's offset in `Slid` and showed the session from a
+  `Task` started there. The on-demand `testATabComesIntoViewWithoutAFlicker` then recorded a commit in which the new
+  tab's terminal sat in no card (`-`), after each session swipe (runs 42026085641 and 42030510917). The show ran as a
+  main-queue job outside SwiftUI's update, so a commit came after the page changed and before SwiftUI had built the
+  new page. SwiftUI's own completion runs the show inside its update, as it always did; the `Task`, `Swipe.arrived`
+  and the `Slid` target are gone.
 - **Runs.** `testSessionSwipeFollowsTheFingersAndSlidesOnFromTheirSpeed` gets a slow swipe that rests before it lifts,
   and checks that the page is within 0.5 pt of its place in the last frame before the show. Locally on the old code:
   red, "1.6 is not equal to 0.0 +/- 0.5". On the new code: green, with the quick flick test. The show now waits about

@@ -362,17 +362,15 @@ extension Sidebar {
             then()
             return
         }
-        // Once on their place (`Slid`): logically complete, a slow lift's pages were up to 3 pt short, and the show's
-        // 100 ms of main thread held them there, then they jumped. `.removed`: pages gone mid-slide (no `Slid` runs).
-        let arrive = {
-            if swipe.moves == move, swipe.moving {
-                swipe.moving = false
-                then()
-            }
-        }
         let slide = {
-            swipe.arrived = arrive
-            withAnimation(animation, completionCriteria: .removed, { swipe.slide = Double(index) }, completion: arrive)
+            withAnimation(animation, completionCriteria: .logicallyComplete) {
+                swipe.slide = Double(index)
+            } completion: {
+                if swipe.moves == move {
+                    swipe.moving = false
+                    then()
+                }
+            }
         }
         guard swipe.moving else {
             // The other pages first, in an update of their own: in the slide's, their offset from rest would too.
@@ -385,16 +383,5 @@ extension Sidebar {
             return
         }
         slide()
-    }
-}
-
-extension Animation {
-    /// The sidebar's session pages: 0.2 s with no bounce (0.14 s felt too
-    /// quick and odd). A swipe's slide starts at the fingers' `speed`
-    /// toward the page `distance` away (in pages a second, and pages), so it goes on from the lift.
-    static func session(speed: Double = 0, distance: Double = 0) -> Animation {
-        // Critically damped, it would go past the page from a relative speed over ω = 2π / response.
-        let response = 0.2, initial = distance == 0 ? 0 : min(max(speed / distance, 0), 2 * .pi / response)
-        return .interpolatingSpring(duration: response, bounce: 0, initialVelocity: initial)
     }
 }
