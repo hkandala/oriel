@@ -194,7 +194,12 @@ and no backslash.
   problem ([Waiting](#waiting)). A tool the parser does not know shows its
   own name (an MCP tool's last part) and its first text argument by key.
 - Codex's parser reads only whole items (`item_completed`), `task_complete`,
-  `turn_aborted`, `error` and `turn_context`. A plan reads as a reply.
+  `turn_aborted`, `error` and `turn_context`. A plan reads as a reply. A
+  subagent is one `agent` row named by its path, from its start to its end.
+  A tool between agents (`wait`) reads as an MCP tool.
+- pi's parser reads the calls of a codemode script from its result: each
+  call's tool, arguments, time taken and error. They become rows of pi's own
+  tools.
 - **Markdown:** parsed by Apple's `swift-markdown` (cmark-gfm) and drawn
   with SwiftUI, block by block ([What it looks like](#what-it-looks-like)).
 - **Model and effort.** The model as the agent writes it. The effort is
@@ -356,7 +361,7 @@ A run is one quiet line with no card: its summary and a chevron.
   in the order the tools first ran), the others as "+N more", then the
   failures: "Ran 89 commands, talked to 69 agents, stopped 26 agents, +4
   more, 4 failed". A tool it does not know reads "ran ‹tool› N times". The
-  tool calls of a codemode script count as their own.
+  tool calls of a codemode script count as their own, failures too.
 - As in its groups, thinking between tool calls is a step of the run (a
   "Thought" row inside it).
 - Open, a run has one row per step: a symbol for its kind, the tool, its
@@ -365,6 +370,9 @@ A run is one quiet line with no card: its summary and a chevron.
   rectangles of one size: `doc.text` (read), `square.and.pencil` (edit),
   `terminal` (command), `doc.text.magnifyingglass` (search),
   `curlybraces.square` (other) and `text.bubble` (thinking).
+- A codemode script's calls are rows of their own under the codemode row,
+  20 pt in: every tool the summary counts has a row. They show once the
+  script ends, with no result text unless one failed.
 - A call opens on its own to its **Input** (an edit's diff instead, the
   first 40 lines) and its **Output**: 11 pt monospaced, selectable, at most
   180 pt tall, then it scrolls both ways. The parsers keep each call's input and output whole, up to

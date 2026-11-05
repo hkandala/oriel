@@ -128,16 +128,35 @@ private extension ChatHistory {
     #expect(read && history.users == ["hello"])
 }
 
-@Test func `a codemode result keeps the names of its script's calls`() {
+/// In pi's shapes: `nestedCalls` with whole arguments, and `details.calls` with arguments as JSON text, which an older
+/// pi writes alone and cuts when long.
+@Test func `a codemode result keeps its script's calls as rows of their own`() throws {
     var transcript = PiTranscript(), history = ChatHistory()
     let call = #"{"type":"toolCall","id":"c","name":"codemode","arguments":{"code":"…"}}"#
+    let calls = #"[{"id":"c/1","name":"read","status":"ok","arguments":{"path":"/w/a.txt"},"durationMs":120},"#
+        + #"{"id":"c/2","name":"web_fetch","status":"error","error":"404\nNot Found","#
+        + #""arguments":{"url":"u"},"durationMs":2500}]"#
     let lines = [
+        #"{"type":"session","cwd":"/w"}"#,
         #"{"type":"message","id":"a","parentId":null,"message":{"role":"assistant","content":[\#(call)]}}"#,
-        #"{"type":"message","id":"r","parentId":"a","message":{"role":"toolResult","toolCallId":"c","#
-            + #""content":[],"details":{"calls":[{"id":"c/1","name":"read"},{"id":"c/2","name":"web_fetch"}]}}}"#,
+        #"{"type":"message","id":"r","parentId":"a","timestamp":"2026-10-28T12:00:10.000Z","message":"#
+            + #"{"role":"toolResult","toolCallId":"c","content":[],"details":{"calls":[]},"#
+            + #""nestedCalls":{"calls":\#(calls),"complete":true}}}"#,
+        #"{"type":"message","id":"b","parentId":"r","message":{"role":"assistant","content":[\#(call)]}}"#,
+        #"{"type":"message","id":"s","parentId":"b","message":{"role":"toolResult","toolCallId":"c","content":[],"#
+            + #""details":{"calls":[{"id":"c/1","name":"edit","args":"{\"path\":\"/w/b.txt\"}","status":"ok"},"#
+            + #"{"id":"c/2","name":"bash","args":"{\"command\":\"echo cut...","status":"ok"}]}}}"#,
     ]
     for line in lines {
-        transcript.read(line, end: 0, into: &history)
+        #expect(transcript.read(line, end: 0, into: &history))
     }
-    #expect(history.tools.first?.calls == ["read", "web_fetch"])
+    let first = try #require(history.tools.first?.calls), second = try #require(history.tools.last?.calls)
+    #expect(first.map(\.name) == ["read", "web_fetch"])
+    #expect(first[0].category == .read && first[0].target == "a.txt" && first[0].result == "" && !first[0].failed)
+    let started = try #require(first[0].started), taken = try #require(first[0].ended?.timeIntervalSince(started))
+    #expect(abs(taken - 0.12) < 0.001)
+    #expect(first[1].failed && first[1].result == "404" && first[1].output == "404\nNot Found")
+    #expect(first[1].target == "u" && first[1].input == "url: u")
+    #expect(second.map(\.name) == ["edit", "bash"] && second[0].target == "b.txt" && second[1].target == "")
+    #expect(ChatTool.summary(history.tools) == "Ran 3 commands, read 1 file, fetched 1 web page, +1 more, 1 failed")
 }

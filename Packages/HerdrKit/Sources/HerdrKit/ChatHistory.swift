@@ -20,7 +20,7 @@ public struct ChatHistory: Equatable, Sendable {
 
     /// A tool call's result, also in a later read than its call; dropped when the call is not known.
     public mutating func finish(tool id: String, result: String, failed: Bool, diff: [ChatTool.DiffLine] = [],
-                                output: String = "", calls: [String] = [], at time: Date?)
+                                output: String = "", calls: [ChatTool] = [], at time: Date?)
     {
         guard let index = tools.removeValue(forKey: id), case var .tool(tool) = entries[index].kind else { return }
         tool.result = result
@@ -124,8 +124,8 @@ public struct ChatTool: Equatable, Sendable {
     /// What it was given and what it gave back, whole (`ChatHistory.detail`), for its open row.
     public let input: String
     public var output = ""
-    /// The tools a codemode script called, by name: a run counts them as its own.
-    public var calls: [String] = []
+    /// The tools a codemode script called: rows under its own, and a run counts them as its own.
+    public var calls: [ChatTool] = []
     public let started: Date?
     public var ended: Date?
 
@@ -244,10 +244,11 @@ extension ChatTodo {
 public extension ChatTool {
     /// A run's front as pi-content-layout words it (its tools.ts), on one line: the three largest counts (ties in the
     /// order the tools first ran), the rest as "+N more", and the failures: "Ran 89 commands, talked to 69 agents,
-    /// stopped 26 agents, +3 more, 4 failed". codemode's calls count as their own.
+    /// stopped 26 agents, +3 more, 4 failed". codemode's calls, failures too, count as their own.
     static func summary(_ tools: [ChatTool]) -> String {
         var order: [(verb: String, noun: String)] = [], numbers: [String: Int] = [:]
-        for name in tools.flatMap({ [$0.name] + $0.calls }) {
+        let tools = tools.flatMap { [$0] + $0.calls }
+        for name in tools.map(\.name) {
             let wording = wording[name] ?? ("ran \(name)", "time")
             if numbers[wording.verb] == nil {
                 order.append(wording)
@@ -269,15 +270,16 @@ public extension ChatTool {
         let ran = ("ran", "command"), searched = ("searched", "pattern"), edited = ("edited", "file")
         let read = ("read", "file"), listed = ("listed", "directory"), web = ("searched the web", "time")
         let fetched = ("fetched", "web page"), asked = ("asked", "question"), talked = ("talked to", "agent")
-        let checked = ("checked agents", "")
+        let checked = ("checked agents", ""), started = ("started", "agent")
         return [
             "read": read, "notebookread": read, "write": ("wrote", "file"),
             "edit": edited, "multiedit": edited, "notebookedit": edited, "apply_patch": edited, "patch": edited,
             "bash": ran, "codemode": ran, "bash_list": ran, "bash_watch": ran,
             "grep": searched, "find": searched, "glob": searched, "ls": listed, "list": listed,
             "websearch": web, "web_search": web, "webfetch": fetched, "web_fetch": fetched,
-            "askuserquestion": asked, "question": asked, "agent_start": ("started", "agent"), "agent_send": talked,
+            "askuserquestion": asked, "question": asked, "agent_start": started, "agent": started, "agent_send": talked,
             "agent_watch": talked, "agent_read": checked, "agent_list": checked, "agent_stop": ("stopped", "agent"),
+            "wait": ("waited for agents", ""),
         ]
     }()
 }

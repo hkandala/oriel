@@ -4,7 +4,7 @@ import Testing
 
 /// A real Codex 0.163 session, cut to the lines the parser reads (`Fixtures/codex-rollout.jsonl`): a command, a turn
 /// with an added and an edited file, a failed command and a read, an interrupted turn, and a last turn written by
-/// hand in the shapes of real rollouts (a compaction, a plan, an MCP tool).
+/// hand in the shapes of real rollouts (a compaction, a plan, a subagent and its wait, an MCP tool).
 private func history() throws -> ChatHistory {
     let url = try #require(Bundle.module.url(forResource: "codex-rollout", withExtension: "jsonl",
                                              subdirectory: "Fixtures"))
@@ -37,6 +37,10 @@ private func history() throws -> ChatHistory {
     #expect(failed.target == "false" && failed.result == "exit 1")
     #expect(tools.contains { $0.category == .read && $0.target == "launch.py" })
     #expect(tools.last?.name == "agent_send" && tools.last?.target == "hello")
+    // A subagent from its start to its end, and the wait for it.
+    let agent = try #require(tools.first { $0.name == "agent" })
+    #expect(agent.target == "subreply" && agent.result == "" && agent.ended != nil)
+    #expect(tools.contains { $0.name == "wait" && !$0.failed })
     #expect(history.entries.contains { $0.kind == .turnEnd(seconds: 8.954) })
     #expect(history.entries.contains { $0.kind == .note("Interrupted", failed: false) })
     #expect(history.entries.contains { $0.kind == .note("Compacted", failed: false) })

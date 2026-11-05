@@ -56,9 +56,23 @@ public enum CodexRollout {
                 let change = (change as? [String: Any] ?? [:]).merging(["status": item["status"] ?? ""]) { $1 }
                 edit(path, change, id: "\(id).\(path)", time: time, into: &history)
             }
-        case "McpToolCall": mcp(item, id: id, time: time, into: &history)
+        // A tool between agents (`wait`) reads as an MCP tool.
+        case "McpToolCall", "CollabAgentToolCall": mcp(item, id: id, time: time, into: &history)
+        case "SubAgentActivity": subagent(item, id: id, time: time, into: &history)
         default: break
         }
+    }
+
+    /// A subagent as one row named by its path, from its start to its end, paired by its thread.
+    private static func subagent(_ item: [String: Any], id: String, time: Date?, into history: inout ChatHistory) {
+        let thread = item["agent_thread_id"] as? String ?? id, kind = item["kind"] as? String ?? ""
+        guard kind == "started" else {
+            history.finish(tool: thread, result: kind == "completed" ? "" : kind, failed: kind != "completed", at: time)
+            return
+        }
+        let name = (item["agent_path"] as? String ?? "").split(separator: "/").last.map(String.init) ?? ""
+        history.append(ChatEntry(id: id, .tool(ChatTool(id: thread, name: "agent", category: .other, target: name,
+                                                        started: time)), time: time))
     }
 
     /// An MCP tool's own name, and its first text argument by name.

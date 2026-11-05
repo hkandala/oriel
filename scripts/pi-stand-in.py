@@ -5,7 +5,7 @@ Started by the chooser with Oriel's flags (`-e <pi-oriel-<sha8>.ts> --oriel <sta
 file whole (its sha256 starts with the name's sha8), writes the state lines pi-oriel writes and a session file in pi's
 format, reports its state to herdr and answers prompts on its terminal: "wait" opens a dialog until 1 is typed, "slow"
 works until Esc and takes a message sent meanwhile after its tool, as pi steers, "/tree" moves the leaf back before
-the last user message, anything else gets one command and the reply "Echo: <prompt>".
+the last user message, "tools" runs every kind of tool, anything else gets one command and the reply "Echo: <prompt>".
 """
 import hashlib
 import json
@@ -113,6 +113,8 @@ def prompt(text):
         line(state, {"type": "unblocked"})
         report("working")
         assistant([{"type": "text", "text": "Allowed."}], "stop")
+    elif text == "tools":
+        tools()
     elif text == "slow":
         call = "toolu_" + uuid.uuid4().hex[:12]
         assistant([{"type": "toolCall", "id": call, "name": "bash", "arguments": {"command": "sleep 30"}}], "toolUse")
@@ -138,6 +140,28 @@ def prompt(text):
         say("Echo: **" + text + "**")
     line(state, {"type": "idle"})
     report("idle")
+
+
+def tools():
+    """A run with every kind of step, in pi's real shapes: thinking, then read, write, edit, grep, find, ls, bash,
+    codemode with the read its script made and agent_start, each its own message with its result, then a reply."""
+    calls = [("read", {"path": os.path.join(os.getcwd(), "a.txt")}, {}),
+             ("write", {"path": "b.txt", "content": "x\ny\n"}, {}),
+             ("edit", {"path": "b.txt", "edits": [{"oldText": "x", "newText": "z"}]},
+              {"diff": "- 1 x\n+ 1 z\n  2 y"}),
+             ("grep", {"pattern": "needle"}, {}), ("find", {"pattern": "*.txt"}, {}), ("ls", {"path": "."}, {}),
+             ("bash", {"command": "echo hi"}, {}),
+             ("codemode", {"code": "await tools.read({path: 'c.txt'})"},
+              {"calls": [{"id": "c/1", "name": "read", "args": '{"path":"c.txt"}', "status": "ok", "durationMs": 9}]}),
+             ("agent_start", {"name": "helper", "message": {"text": "hi"}}, {})]
+    assistant([{"type": "thinking", "thinking": "Plan.", "thinkingSignature": "x"}], "stop")
+    for name, arguments, details in calls:
+        call = "toolu_" + uuid.uuid4().hex[:12]
+        assistant([{"type": "toolCall", "id": call, "name": name, "arguments": arguments}], "toolUse")
+        entry("toolResult", toolCallId=call, toolName=name, content=[{"type": "text", "text": "ok"}],
+              details=details, isError=False)
+    assistant([{"type": "text", "text": "All tools."}], "stop")
+    say("All tools.")
 
 
 def main():

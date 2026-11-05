@@ -97,7 +97,7 @@ private extension ChatRow {
     func tool(_ name: String, failed: Bool = false, calls: [String] = []) -> ChatTool {
         var tool = ChatTool(id: name, name: name, category: .other, target: "", started: nil)
         tool.failed = failed
-        tool.calls = calls
+        tool.calls = calls.map { ChatTool(id: $0, name: $0, category: .other, target: "", started: nil) }
         return tool
     }
     // The largest counts first, ties in the order they first ran.

@@ -29,7 +29,7 @@ public struct PiTranscript: Sendable {
     private enum Step {
         case add(ChatEntry)
         case finish(id: String, result: String, failed: Bool, diff: [ChatTool.DiffLine], output: String,
-                    calls: [String] = [], time: Date?)
+                    calls: [ChatTool] = [], time: Date?)
         case model(String, effort: String?)
     }
 
@@ -210,8 +210,22 @@ public struct PiTranscript: Sendable {
         } else {
             text = ChatHistory.firstLine(content)
         }
-        // A codemode script's calls, tools and models alike.
-        let calls = (details?["calls"] as? [[String: Any]] ?? []).compactMap { $0["name"] as? String }
+        // A codemode script's calls, tools and models alike, as rows of pi's own tools; it tells their time taken and
+        // their arguments: whole in `nestedCalls`, else as JSON text that may be cut.
+        let nested = (message["nestedCalls"] as? [String: Any])?["calls"] ?? details?["calls"]
+        let calls = (nested as? [[String: Any]] ?? []).enumerated().map { index, step in
+            var block = step
+            block["arguments"] = step["arguments"] ?? (step["args"] as? String).flatMap {
+                try? JSONSerialization.jsonObject(with: Data($0.utf8))
+            }
+            let seconds = (step["durationMs"] as? Double ?? 0) / 1000
+            var row = tool(block, id: "\(call)/\(index + 1)", time: time?.addingTimeInterval(-seconds))
+            row.failed = step["status"] as? String == "error"
+            row.result = row.failed ? ChatHistory.firstLine(step["error"] ?? "failed") : ""
+            row.output = ChatHistory.detail(step["error"])
+            row.ended = time
+            return row
+        }
         return .finish(id: call, result: text, failed: failed, diff: diff, output: ChatHistory.detail(content),
                        calls: calls, time: time)
     }

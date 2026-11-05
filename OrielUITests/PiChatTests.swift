@@ -46,6 +46,25 @@ extension OrielUITests {
         XCTAssertFalse(row(pane, "user", "later").exists)
     }
 
+    /// An opened run lists every step in order, as pi writes them: its thinking, then read, write, edit, grep, find,
+    /// ls, bash, codemode with the read its script made, and a subagent.
+    func testAPiRunListsEveryKindOfTool() async throws {
+        let pane = try await startChat(agent: 2).pane
+        try await say("tools", in: pane)
+        XCTAssertTrue(row(pane, "reply", "All tools.").exists(within: 5))
+        let stack = element("chat.\(pane).stack")
+        XCTAssertEqual(stack.label, "Read 2 files, searched 2 patterns, ran 2 commands, +4 more")
+        stack.click()
+        let tools = app.descendants(matching: .any).matching(identifier: "chat.\(pane).tool")
+        XCTAssertTrue(until(2) { tools.count == 10 }, "\(tools.count)")
+        keepScreenshot("every tool")
+        XCTAssertEqual(tools.allElementsBoundByIndex.map(\.label), [
+            "read, a.txt, 1 line", "write, b.txt, ok", "edit, b.txt, +1 -1", "grep, needle, ok", "find, *.txt, ok",
+            "ls, ., ok", "bash, echo hi, ok", "codemode, await tools.read({path: 'c.txt'}), ok", "read, c.txt",
+            "agent_start, helper, ok",
+        ])
+    }
+
     /// The same chat on a remote machine: the extension written there, the state file and the transcript over the
     /// relay.
     func testPiChatOnARemoteMachine() async throws {

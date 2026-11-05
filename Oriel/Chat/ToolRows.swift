@@ -30,6 +30,11 @@ struct ToolStack: View {
                 ForEach(steps) { step in
                     if let tool = step.tool {
                         ToolRow(tool: tool, open: opened.contains(tool.id), paneID: paneID) { toggleTool(tool.id) }
+                        // A codemode script's calls, under its name.
+                        ForEach(tool.calls, id: \.id) { call in
+                            ToolRow(tool: call, open: opened.contains(call.id), paneID: paneID) { toggleTool(call.id) }
+                        }
+                        .padding(.leading, 20)
                     } else {
                         // Lined up with the tool rows around it: their icon and height.
                         HStack(spacing: 6) {
