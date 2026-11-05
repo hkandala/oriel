@@ -76,7 +76,7 @@ private func history() throws -> ChatHistory {
         + "echo>>$HOME/.cache/ovvi/chat/11111111-2222-4333-8444-555555555555/hooks.jsonl;"
         + "find $HOME/.cache/ovvi/chat -mindepth 1 -maxdepth 1 -mtime +30 -exec rm -rf {} +"
     // Codex 0.163 ran this hook from `-c hooks.state` with no "Hooks need review" picker.
-    #expect(CodexRollout.trust(command) == "sha256:8573ebd0ca560392787a8597d28edaed82f341be511519f80ceb5a91d429795a")
+    #expect(CodexRollout.trust(command) == "sha256:59e8711e0546bcc8001a71abda156fad60107f0500e9785c2402205f09acd187")
 }
 
 @Test func `declined and killed calls are failures, not successes`() {
