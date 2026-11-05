@@ -422,6 +422,27 @@ CI runs and on-demand) at about 2–3 h.
 - **Item 33.** The skill moved unchanged (byte for byte) from pi-hkandala `skills/oriel` at `7ac9136`. `make install`
   links it where no `oriel` skill exists, and `-f` replaces a link whose checkout is gone. The agent-control page
   tells how to copy it to a remote machine.
+- **Cause, item 32.** Dark Glass darkened the blur with black blended `overlay`, under a `#1e1e1e` tint at 0.5. An
+  `overlay` blend leaves white as it is and turns dark parts black, so it raised the contrast of whatever was behind:
+  a bright window's text and edges came through as dark streaks and colored blots. The `hudWindow` blur is too
+  narrow to hide them. Rex keeps the same `overlay` step, but puts the system glass on top of it (Liquid Glass, with a
+  much wider blur) under its tint. **Fix:** dark Glass adds `glassEffect(.regular.tint(#1e1e1e at 0.5))` between the
+  blur and the tint, and the tint goes to 0.75. Light Glass is unchanged: its white tint at 0.7 already hid a black
+  window (2 to 5 steps of spread in both versions).
+- **Numbers, item 32.** These are 8-bit sRGB levels from Retina screenshots, over a full-screen page of black text on
+  white, or white text on black:
+
+  | Where | Before over white | After over white | Before over black | After over black | Rex over white |
+  |---|---|---|---|---|---|
+  | Sidebar (mean, spread) | 70, 18 | 45, 4 | 30, 8 | 37, 1 | 63, 1–3 |
+  | Card (mean, spread) | 82, 8 | 59, 2 | 46, 2 | 52, 0 | — |
+
+  The window behind still shows as light: the sidebar is 8 levels brighter over white than over black. Contrast over
+  white, at the brightest pixel: sidebar text (white 0.65) went from 4.4:1 to 6.8:1, and terminal text (`#d0d0d0`)
+  from 4.9:1 to 7.3:1. The card header buttons are 3.4:1 (at least 3:1 is needed). `cardSolid` follows the new card,
+  `#2e` → `#32`. Pictures: `/tmp/oriel-shots/t53g/before-oriel-dark-over-white.png`, `after-oriel-dark-over-white.png`,
+  `before-`/`after-oriel-dark-over-black.png`, `before-`/`after-oriel-light-over-black.png`,
+  `screen-rex-dark-white.png`.
 - **Runs.** The first chosen-tests run (41961078819) failed the new palette check. At the end of the list, the lazy
   stack no longer held the row the query used to find the list. The test now reads the list's frame first.
 

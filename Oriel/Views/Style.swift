@@ -37,8 +37,15 @@ struct Look {
     /// Glass: the tint over the behind-window blur (light: Rex's Modern 0.7, so it depends less on the desktop).
     /// Classic: the whole window.
     var window: Color {
-        pick(Color(white: 0x1E / 255).opacity(0.5), .white.opacity(0.7),
+        pick(Color(white: 0x1E / 255).opacity(0.75), .white.opacity(0.7),
              Color(white: 0x1E / 255), Color(white: 0xF6 / 255))
+    }
+
+    /// Glass dark: the tint of the system glass between the blur and `window`, as Rex's Modern window. Its wide blur
+    /// smooths the text and edges of a bright window behind, which the `overlay` darkening sharpens. Light needs
+    /// none: its white tint already hides what is behind.
+    var glassTint: Color? {
+        style == .glass && dark ? Color(white: 0x1E / 255).opacity(0.5) : nil
     }
 
     var cardFill: Color {
@@ -48,10 +55,10 @@ struct Look {
     }
 
     /// An opaque stand-in for a card's fill, for a web card's band that text scrolls under (the diff's file header).
-    /// Classic's is exact; Glass's is measured on a card (the desktop's blur under it moves it a few steps).
+    /// Classic's is exact; Glass's is measured on a card: #2F over a black window, #36 over a white one.
     /// ponytail: the keyboard card's fill is a step brighter; pass `keyboard` if the band shows there.
     var cardSolid: Color {
-        pick(Color(white: 0x2E / 255), Color(white: 0xF9 / 255), Color(white: 0x22 / 255), Color(white: 0xFB / 255))
+        pick(Color(white: 0x32 / 255), Color(white: 0xF9 / 255), Color(white: 0x22 / 255), Color(white: 0xFB / 255))
     }
 
     /// Over `cardFill` on the card that has the keyboard: Glass a little brighter; light cards end at white 0.7
