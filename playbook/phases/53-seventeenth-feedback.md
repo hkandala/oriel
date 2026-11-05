@@ -381,7 +381,10 @@ what differs unless a card needs it otherwise, and give the reason in Findings.
     - A click on the path turns it into a text field with the path selected. Return applies it and Esc cancels it.
       `~` and relative paths are taken. A folder that does not exist on that machine shows an inline error, and the
       old folder stays.
-    - A folder icon at the line's end opens the macOS folder picker (NSOpenPanel, folders only) at the current folder.
+    - A folder icon at the line's leading end, before the path as in File Explorer's path bar, opens the macOS folder
+      picker (NSOpenPanel, folders only) at the current folder. The user, after the first pictures: "keep folder icon to
+      the left of the path not to the right, and make sure error message comes below the input, i saw it was
+      overlapping". The error has its own line under the field, kept free, so the list does not move.
       On a remote machine the icon is hidden, because the Mac's picker cannot browse that machine; typing still works.
     - The picked folder is the start folder of whatever the user picks next: Terminal, an agent, File Explorer, Git,
       or a plugin. It is kept for that chooser only, not saved.
@@ -913,6 +916,29 @@ CI runs and on-demand) at about 2–3 h.
 - **For the user.** Open New Pane, then Agent, in a window on a Mac without one of the four agents: its row is dimmed
   with "Not installed", the pointer does not select it and its hover tip gives the install command. Install it, open a
   new window: the row is enabled there, and still dimmed in the old window.
+
+### Track K
+
+- **Fix.** A folder line under the chooser's list: "Opens in ‹folder›", the pane's folder from herdr until the user
+  sets one. A click on it, Tab or ⌘L (Open Location, now enabled on a chooser card) makes it File Explorer's capsule
+  field. The pane's machine resolves the typed path in its shell (`cd` then `pwd -P`), so `~`, relative paths and remote
+  machines work with one call. The folder is kept on the `Chooser`, not saved.
+- **Fix, the pick.** Terminal and Esc type `cd -- '‹folder›'`, and an agent's first line starts with it
+  (`cd -- … && claude …`), as Go to Directory types its `cd`. A plugin pane is made with that folder as herdr's `cwd`.
+- **Decisions.** The short path is the path bar's rule (`PathField.short`): `~` for the home folder. On a remote machine
+  it uses File Explorer's breadcrumb rule (`/Users/x`, `/home/x`, `/root`), so the path bar on a remote machine shows
+  `~` now too. Repository-relative names are left to the breadcrumbs: they need a git call per line. The folder shows
+  with links resolved, as herdr reports it (`/private/tmp`).
+- **Decisions, sharing.** Choose Folder… (the NSOpenPanel, and the remote folder dialog) moved from the plugin bridge to
+  `HostStore.chooseFolder`, which both use; the path resolve is `HostStore.folder(_:from:)`. The line's field is its own
+  small view rather than `PathField`, which is bound to a plugin's header control.
+- **Decisions, look.** The folder icon leads, before "Opens in" and before the path in the field, as in the path bar
+  (the user's word after the first pictures). The error has its own line under the field, kept free at all times, so
+  the list never moves. A card too short for the list and the line has no line.
+- **Fix, Track J.** A missing agent's row drops its command: only "Not installed" shows at its end.
+- **Moved.** Relaunch with Chat's part of `Chooser.swift` went to `Store/Relaunch.swift`: the file was at 392 lines.
+- **For the user.** Choose Folder… on This Mac (the panel opens at the folder; the picked one shows); File Explorer
+  and Git picked after a typed folder open on its repository.
 
 ### Final review fixes
 
