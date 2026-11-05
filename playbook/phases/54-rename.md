@@ -83,7 +83,10 @@ tracked file.
   test scrolls back down.
 - **Decisions.** Earlier phase files tell their history with the name Ovvi. Herdr's presence tokens live 30 s, so
   the one-off steps rename only labels.
-- **Runs.** RUNS
+- **Runs.** On 1247fd2e (main d5dc44f2 plus this phase; only this record came after): the full run 42038178366
+  and the on-demand run 42038185879, green on the first try. `git grep -ai` and the paths find nothing;
+  `make lint build build-tests test` (npm offline), the plugins and `pnpm build` pass; the key check passes, and
+  fails on the script's commit alone.
 - **For the user.** Install the new build (`make install`): the one-off steps then move its settings, folders,
   browser logins and herdr labels, and put the previous build in the Trash. macOS asks again for Notifications and the
   local network. Chat-view agents started before the steps keep their launch paths: relaunch them with Chat.
