@@ -222,3 +222,11 @@ everything end to end, and test and review everything".
   an inactive row measure the same. General ▸ Open at login is `SMAppService.mainApp`, read again each time the app
   comes forward; a run with its own config folder (the UI tests) only flips the switch, so no test build becomes a login
   item.
+- **Cause, a screenshot thumbnail's drop could not be read** ("Operation not permitted" for the agent in the card).
+  The thumbnail drops a file in `$TMPDIR/TemporaryItems/NSIRD_screencaptureui_*`, as any app's
+  `itemReplacementDirectory` does. macOS lets only the process tree that made a file there, and a drop's receiver,
+  read it: a file made by a launchd job was readable by that job and not by `cat` in a pane of `ovvi-dev-drop` (nor
+  is `TemporaryItems` listable by anyone). Files from Finder or the Desktop were fine. **Fix:** on This Mac a dropped
+  file in a `TemporaryItems` folder is copied into a new `ovvi-*` folder in `$TMPDIR`, with its name, and the copy's
+  path is pasted; other paths paste as they are. **Decisions:** not every drop is copied: a repo file or a folder
+  must keep its real path.

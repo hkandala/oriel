@@ -51,7 +51,8 @@ extension OvviUITests {
     }
 
     /// A dragged file pastes its shell-escaped path, as a drop on Ghostty (herdr's usual terminal) does. The drag comes
-    /// from a window of the helper's: from Finder, now and then no drag started on CI.
+    /// from a window of the helper's: from Finder, now and then no drag started on CI. A file in a `TemporaryItems`
+    /// folder (a screenshot's thumbnail) pastes the path of a copy the pane's programs can read.
     func testDroppingAFilePastesItsPath() async throws {
         let (tab, pane) = try await newTab("drop")
         element("tab.\(tab)").click()
@@ -62,8 +63,24 @@ extension OvviUITests {
         // From over the sidebar onto the card.
         let from = element("sidebar").frame, card = terminal.frame
         let points = "\(from.midX) \(from.midY) \(card.midX) \(card.midY)"
+        try await send("cat ", to: pane)
         let path = try await String(decoding: Self.post("\(one)/file-drag", Data(points.utf8)), as: UTF8.self)
         let folder = URL(filePath: path).deletingLastPathComponent().lastPathComponent
-        try await waitFor(pane) { $0.replacing("\n", with: "").contains(#"\#(folder)/drop\ me\'s\ \(1\).txt"#) }
+        let name = #"drop\ me\'s\ \(1\).txt"#
+        try await waitFor(pane) { $0.replacing("\n", with: "").contains("\(folder)/\(name)") }
+
+        try await send(" ", to: pane)
+        let temporary = try await String(
+            decoding: Self.post("\(one)/temporary-file-drag", Data(points.utf8)),
+            as: UTF8.self,
+        )
+        let line = try await poll("the copy's path") { () async throws -> String? in
+            let text = try await read(pane).replacing("\n", with: "")
+            return text.components(separatedBy: "\(folder)/\(name) ").last.flatMap { $0.contains(name) ? $0 : nil }
+        }
+        XCTAssertFalse(line.contains("TemporaryItems"), "pasted \(line) for \(temporary)")
+        XCTAssertTrue(line.contains("/ovvi-"), "pasted \(line) for \(temporary)")
+        try await Self.call(one, "pane.send_keys", ["pane_id": pane, "keys": ["enter"]])
+        try await waitFor(pane) { $0.components(separatedBy: "ovvi-e2e-dropped").count == 3 }
     }
 }

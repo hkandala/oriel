@@ -86,8 +86,11 @@ spaces, in one bracketed paste. That is what Ghostty, herdr's usual terminal,
 sends herdr for a drop. An image with no file (from a browser or a screenshot
 thumbnail) is saved as a PNG in a new folder in the user's temporary folder
 first, or, when the source only promises a file (as browsers may), received
-there; then that path is pasted. A pane drag over a terminal still shows its
-drop zones.
+there; then that path is pasted. A file in a `TemporaryItems` folder (a
+screenshot's floating thumbnail drops one) is copied into such a new folder
+first, with its name, and the copy's path is pasted: macOS lets the app that
+drops it read it, but not the programs in the pane. A pane drag over a
+terminal still shows its drop zones.
 
 A browser or plugin card's page takes no part in the app's own drags: a
 pane dragged over it shows the card's drop zones, as over a terminal. Files,

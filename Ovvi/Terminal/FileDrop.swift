@@ -4,7 +4,8 @@ import HerdrKit
 
 /// Drops paste their paths shell-escaped, as Ghostty (herdr's usual terminal) does; an image with no file is saved
 /// as a PNG first, or received from its source (a browser's image may be only a file promise). On a remote machine
-/// the files are copied there first and their copies' paths pasted (`Exec.upload`). A pane drag carries none of these
+/// the files are copied there first and their copies' paths pasted (`Exec.upload`); on This Mac only a file in a
+/// `TemporaryItems` folder is (`reachable`). A pane drag carries none of these
 /// types, so it goes on to the card's drop zones.
 extension PaneSurfaceView {
     static let dropTypes: [NSPasteboard.PasteboardType] = [.fileURL, .tiff, .png]
@@ -43,7 +44,8 @@ extension PaneSurfaceView {
     /// copied. A copy that fails shows why, and nothing is pasted.
     private func drop(_ urls: [URL]) -> Bool {
         guard let store = store(), store.machine.isRemote else {
-            return paste(text: urls.map { Self.escaped($0.path(percentEncoded: false)) }.joined(separator: " "))
+            return paste(text: urls.map { Self.escaped(Self.reachable($0).path(percentEncoded: false)) }
+                .joined(separator: " "))
         }
         Task {
             let exec = await store.machine.exec()
@@ -72,6 +74,18 @@ extension PaneSurfaceView {
             }
             text.unicodeScalars.append(scalar)
         }
+    }
+
+    /// The file, or a copy of it in a new folder when it is in a `TemporaryItems` folder: macOS lets only the app that
+    /// made a file there and the drop's receiver read it, not the pane's programs (herdr's server runs them). A
+    /// screenshot's floating thumbnail drops a file there, as any app's `itemReplacementDirectory` does. The copy
+    /// keeps the file's name; if it fails, the file's own path goes.
+    private static func reachable(_ url: URL) -> URL {
+        guard url.pathComponents.contains("TemporaryItems"),
+              let copy = newFolder()?.appending(path: url.lastPathComponent),
+              (try? FileManager.default.copyItem(at: url, to: copy)) != nil
+        else { return url }
+        return copy
     }
 
     /// The dragged image as a PNG.

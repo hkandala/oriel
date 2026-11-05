@@ -18,6 +18,8 @@ a launch gets the tests' config folder).
 POST /<session>/file-drag with "x y tx ty" (screen points) as the body makes a file whose name needs shell escaping in
 a new folder in /tmp (its one line: ovvi-e2e-dropped), shows its icon at x y in a window of scripts/file-drag.swift
 and drags it to tx ty (both points in an Ovvi window). The file's path comes back once a drop took it.
+POST /<session>/temporary-file-drag does the same from a new NSIRD_ folder in $TMPDIR/TemporaryItems, as a
+screenshot's floating thumbnail drops one.
 POST /<session>/usage with a number of seconds as the body measures the app (the one process named Ovvi, on CI) over
 that time: its footprint (`footprint`'s summary), its CPU and the session's `terminal session` runs, count and memory;
 and the app's, WebKit's and all its processes' count, footprint, CPU, threads and interrupt wake-ups (scripts/usage.swift).
@@ -99,7 +101,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if session not in sessions:
             status, reply = 403, f"refusing session '{session}'".encode()
         elif action not in ("", "control", "takeover", "children", "stop", "start", "open-folder", "open-url",
-                            "file-drag", "usage", "ssh-drop", "ssh-forget", "ssh-connections", "swipe", "drag",
+                            "file-drag", "temporary-file-drag", "usage", "ssh-drop", "ssh-forget", "ssh-connections", "swipe", "drag",
                             "stress", "sample", "heap", "press", "release"):
             status, reply = 404, f"no action '{action}'".encode()
         elif action in ("control", "takeover") and not re.fullmatch(rb"\w[\w-]*", body):
@@ -140,7 +142,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 status, reply = 500, f"{action} took over {limit} s".encode()
         elif action == "drag" and not re.fullmatch(rb"-?[\d.]+ -?[\d.]+( -?[\d.]+ -?[\d.]+ [\d.]+)+", body):
             status, reply = 400, b"the body must be x y (x y hold)..."
-        elif action in ("file-drag", "press") and not re.fullmatch(rb"-?[\d.]+( -?[\d.]+){3}", body):
+        elif action in ("file-drag", "temporary-file-drag", "press") and not re.fullmatch(rb"-?[\d.]+( -?[\d.]+){3}", body):
             status, reply = 400, b"the body must be x y tx ty"
         elif action == "release" and session not in held:
             status, reply = 400, b"no drag held"
@@ -196,8 +198,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
                                   "-configFolder", NO_CONFIG],
                                  capture_output=True, timeout=10)
             status, reply = (200, b"") if run.returncode == 0 else (500, run.stderr)
-        elif action == "file-drag":
-            folder = tempfile.mkdtemp(prefix="ovvi-e2e-file-", dir="/tmp")
+        elif action in ("file-drag", "temporary-file-drag"):
+            if action == "file-drag":
+                folder = tempfile.mkdtemp(prefix="ovvi-e2e-file-", dir="/tmp")
+            else:
+                items = os.path.join(tempfile.gettempdir(), "TemporaryItems")
+                os.makedirs(items, exist_ok=True)
+                folder = tempfile.mkdtemp(prefix="NSIRD_ovvi-e2e_", dir=items)
             folders.append(folder)
             path = os.path.join(folder, "drop me's (1).txt")
             with open(path, "w") as file:
