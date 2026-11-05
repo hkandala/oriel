@@ -350,7 +350,7 @@ export async function make(place: Page, root: string) {
     if (!place.shown || content.hidden || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey
       || target.closest("textarea, input")) return
     const rows = [...page.querySelectorAll<HTMLElement>(".commit")], at = rows.findIndex((row) => row.id === `commit.${selected}`)
-    if (event.key === "Enter" && at >= 0 && (target === document.body || target.closest(".commit"))) openCommit(event, rows[at])
+    if (event.key === "Enter" && at >= 0 && (target === document.body || target.closest(".commit.selected"))) openCommit(event, rows[at])
     else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       const down = event.key === "ArrowDown"
       const next = at < 0 ? (down ? 0 : rows.length - 1) : Math.min(Math.max(at + (down ? 1 : -1), 0), rows.length - 1)

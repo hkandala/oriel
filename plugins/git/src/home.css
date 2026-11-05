@@ -61,7 +61,7 @@
   .commit { padding-left: 4px; }
   /* The selected commit, as File Explorer's selected row: the accent's fill, and its ring from an arrow key on. */
   .commit.selected { background: color-mix(in srgb, var(--accent) 24%, transparent); }
-  .commit .open:focus-visible { outline: none; }
+  .commit.selected .open:focus-visible { outline: none; }
   &[data-keys] .commit.selected:has(.open:focus) { outline: 1.5px solid var(--accent); outline-offset: -1.5px; }
   .commit .open { gap: 6px; }
   .commit svg { flex: none; }
