@@ -55,10 +55,14 @@ extension OrielUITests {
         other.hover()
         XCTAssertTrue(other.has(\.isSelected, true, within: 2))
 
+        // Its frame first: at the end the lazy list no longer holds New Tab, which found it.
         let list = app.scrollViews.containing(.button, identifier: "palette.command.New Tab").firstMatch
+        let bottom = list.frame.maxY
         list.scroll(byDeltaX: 0, deltaY: -10000)
-        let gap = { list.frame.maxY - (list.buttons.allElementsBoundByIndex.last?.frame.maxY ?? 0) }
-        XCTAssertTrue(until(2) { abs(gap() - 10) < 1.5 }, "the end's gap: \(gap())")
+        // The lowest row is the last: the rows past the end are never built.
+        let rows = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'palette.'"))
+        let gap = { bottom - (rows.allElementsBoundByIndex.map(\.frame.maxY).max() ?? 0) }
+        XCTAssertTrue(until(3) { abs(gap() - 10) < 1.5 }, "the end's gap: \(gap())")
         app.typeKey(.escape, modifierFlags: [])
     }
 
