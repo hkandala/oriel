@@ -23,7 +23,9 @@ Settings that are not on this page do not exist.
   its top, and the toolbar shows the page's title and, on a machine's or a
   plugin's page, the Back button.
 - **Sidebar.** General, Appearance, Terminal, Agents, Machines, Plugins and
-  Privacy, each with its symbol in grey. Privacy shows only when it has
+  Privacy, each with its symbol in white on the same grey rounded tile
+  (22 pt, as System Settings' tiles but one grey), so the symbols' different
+  shapes read as one set. Privacy shows only when it has
   something in it. Plugins shows the number of plugins whose cards wait for
   your answer ([The trust prompt](/docs/plugins/security#the-trust-prompt)).
 - **Controls.** Each row has its title on the left and its control on the
@@ -45,8 +47,15 @@ Settings that are not on this page do not exist.
 
 | Setting | Control | Key | Default |
 |---|---|---|---|
+| Open at login | switch | none: the system's login item (`SMAppService.mainApp`) | off |
 | Focus follows mouse | switch | `focusFollowsMouse` | off |
 | Keyboard shortcuts | Show Shortcuts, which opens the panel in the front window | | |
+
+Open at login: macOS opens Ovvi when you log in, as any launch. The switch
+reads the system each time Ovvi comes forward, so a change in System Settings ▸
+General ▸ Login Items shows here. When macOS waits for you to allow it, the
+switch says so and Open Login Items opens that page. A run with a config
+folder of its own (the UI tests) only flips the switch.
 
 Focus follows mouse: a card gets the keyboard when the pointer rests on it for
 0.15 s, only in the key window

@@ -1,12 +1,14 @@
 import GhosttyTerminal
+import ServiceManagement
 import SwiftUI
 
-/// Settings ▸ General: how panes take the keyboard, and the shortcuts.
+/// Settings ▸ General: opening at login, how panes take the keyboard, and the shortcuts.
 struct GeneralPage: View {
     private var settings = AppSettings()
 
     var body: some View {
         Form {
+            Section("Startup") { OpenAtLogin() }
             Section("Panes") {
                 Toggle(isOn: settings.$followMouse) {
                     Text("Focus follows mouse")
@@ -22,6 +24,66 @@ struct GeneralPage: View {
                 .settingsRow("general.shortcuts")
             }
         }
+    }
+}
+
+/// Open at login: the system's login item for the app (`SMAppService.mainApp`), read again each time the app comes
+/// forward, so a change in System Settings ▸ General ▸ Login Items shows here; never kept in the app's defaults. A run
+/// with a config folder of its own (the UI tests) only flips the switch: a test build must never become a login item.
+private struct OpenAtLogin: View {
+    @State private var status = Self.read()
+    @State private var problem: String?
+    @Environment(\.look) private var look
+
+    private static var isTest: Bool {
+        UserDefaults.standard.string(forKey: "configFolder") != nil
+    }
+
+    private static func read() -> SMAppService.Status {
+        isTest ? .notRegistered : SMAppService.mainApp.status
+    }
+
+    var body: some View {
+        Toggle(isOn: Binding { status == .enabled || status == .requiresApproval } set: { set($0) }) {
+            Text("Open at login")
+            if let problem {
+                Text(problem).foregroundStyle(look.error)
+            } else if status == .requiresApproval {
+                Text("Allow Ovvi in System Settings ▸ General ▸ Login Items.")
+            }
+        }
+        .accessibilityIdentifier("settings.general.open-at-login").settingsRow("general.open-at-login")
+        .task {
+            // A test run's switch keeps its own value.
+            guard !Self.isTest else { return }
+            for await _ in NotificationCenter.default.notifications(named: NSApplication.didBecomeActiveNotification) {
+                status = Self.read()
+            }
+        }
+        if status == .requiresApproval {
+            LabeledContent("Waiting for your approval") {
+                Button("Open Login Items") { SMAppService.openSystemSettingsLoginItems() }
+                    .accessibilityIdentifier("settings.general.login-items")
+            }
+        }
+    }
+
+    private func set(_ isOn: Bool) {
+        problem = nil
+        if Self.isTest {
+            status = isOn ? .enabled : .notRegistered
+            return
+        }
+        do {
+            if isOn {
+                try SMAppService.mainApp.register()
+            } else {
+                try SMAppService.mainApp.unregister()
+            }
+        } catch {
+            problem = error.localizedDescription
+        }
+        status = Self.read()
     }
 }
 

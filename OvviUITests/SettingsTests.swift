@@ -39,13 +39,13 @@ extension OvviUITests {
         XCTAssertTrue(until(2) { (toggle.value as? Int == 1) == isOn }, "\(id): \(String(describing: toggle.value))")
     }
 
-    /// Every page opens with its first control, in dark and in light (pictures for people reviewing a run); a search
-    /// pick opens the page of the row it found; Appearance's tiles change the main window's look.
+    /// Every page opens with its first control, in dark and in light (pictures for people reviewing a run); Open at
+    /// login flips; a search pick opens the page of the row it found; Appearance's tiles change the main window's look.
     func testSettingsPagesSearchAndLook() {
         for appearance in ["dark", "light"] {
             relaunch(one, ["-appearance", appearance])
             XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
-            let controls = ["general": "settings.general.follow-mouse", "appearance": "settings.style.glass",
+            let controls = ["general": "settings.general.open-at-login", "appearance": "settings.style.glass",
                             "terminal": "settings.terminal.font", "agents": "settings.agents.view",
                             "machines": "settings.machines.add", "plugins": "plugins.source"]
             for page in ["general", "appearance", "terminal", "agents", "machines", "plugins"] {
@@ -54,6 +54,10 @@ extension OvviUITests {
                 keepScreenshot("settings \(page) \(appearance)", of: settingsWindow)
             }
         }
+        // Open at login flips (a run with a test config folder never registers the build for login).
+        openSettings("general")
+        turn("settings.general.open-at-login", true)
+        turn("settings.general.open-at-login", false)
         // A search lists the rows it finds; a pick opens their page.
         let search = settingsWindow.searchFields.firstMatch
         search.click()

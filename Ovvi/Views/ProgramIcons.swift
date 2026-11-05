@@ -43,6 +43,18 @@ struct ProgramTile: View {
     }
 }
 
+/// A page's symbol on its tile, as System Settings draws its rows but grey for every page (the user's pick): the same
+/// tile gives symbols of different shapes (a gear, a rectangle, a hand) one outline.
+struct SettingsIcon: View {
+    let page: SettingsPage
+
+    var body: some View {
+        Image(systemName: page.symbol).font(.system(size: 11, weight: .medium)).imageScale(.medium)
+            .foregroundStyle(.white)
+            .frame(width: 22, height: 22).background(Color.gray, in: .rect(cornerRadius: 5.5, style: .continuous))
+    }
+}
+
 /// The program's glyph alone, for card headers, hover card rows and an empty chat.
 struct ProgramGlyph: View {
     let icon: String

@@ -210,3 +210,12 @@ everything end to end, and test and review everything".
   pictures are in `/tmp/ovvi-shots/settings-polish/` (before, after).
 - **For the user.** Open Settings (⌘,) and push a machine's and a plugin's page: the window keeps its size and the
   traffic lights their place.
+- **Sidebar icons and Open at Login.** The user's words: "on the icons, i see icons feel like of different sizes as
+  some are circle in shape, some are rectangle etc, can we bring consistency with icons? like may be all circular
+  ones something like that" and "in general settings let's also have open at login option which is disabld by
+  default". **Fix:** each page symbol is white on one 22 pt grey rounded tile (5.5 pt corners), in the sidebar and
+  the search results: the user's pick of seven options rendered in the real sidebar (plain symbols in one box,
+  fitted symbols, tiles, circles). A first try with circles drew badly: the sidebar draws a Label's icon at a large
+  image scale and makes a label style such as `.quaternary` heavy, so the tile uses fixed colors and `.imageScale`. General ▸ Open at
+  login is `SMAppService.mainApp`, read again each time the app comes forward; a run with its own config folder (the
+  UI tests) only flips the switch, so no test build becomes a login item.

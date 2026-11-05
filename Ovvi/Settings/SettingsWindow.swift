@@ -8,14 +8,14 @@ enum SettingsPage: String, CaseIterable, Hashable {
         rawValue.capitalized
     }
 
-    /// Its sidebar row's SF Symbol, drawn grey.
+    /// Its sidebar row's SF Symbol, drawn white on a grey tile (`SettingsIcon`).
     var symbol: String {
         switch self {
         case .general: "gearshape"
         case .appearance: "circle.lefthalf.filled"
         case .terminal: "apple.terminal"
         case .agents: "sparkles"
-        case .machines: "server.rack"
+        case .machines: "desktopcomputer"
         case .plugins: Registry.missing
         case .privacy: "hand.raised"
         }
@@ -132,15 +132,6 @@ private struct SettingsSidebarRow: View {
     }
 }
 
-/// A page's symbol in the sidebar: grey, as the user asked, not System Settings' colored tiles.
-private struct SettingsIcon: View {
-    let page: SettingsPage
-
-    var body: some View {
-        Image(systemName: page.symbol).foregroundStyle(.secondary)
-    }
-}
-
 /// The sidebar page's form.
 private struct SettingsPageView: View {
     let page: SettingsPage
@@ -221,6 +212,8 @@ struct SettingsSearch: Identifiable {
     var place: String?
 
     static let app = [
+        SettingsSearch(id: "general.open-at-login", title: "Open at login", page: .general,
+                       words: "startup launch login items"),
         SettingsSearch(id: "general.follow-mouse", title: "Focus follows mouse", page: .general, words: "pane hover"),
         SettingsSearch(id: "general.shortcuts", title: "Keyboard shortcuts", page: .general, words: "keys help"),
         SettingsSearch(id: "appearance.appearance", title: "Appearance", page: .appearance,
