@@ -936,6 +936,10 @@ CI runs and on-demand) at about 2–3 h.
   (the user's word after the first pictures). The error has its own line under the field, kept free at all times, so
   the list never moves. A card too short for the list and the line has no line.
 - **Fix, Track J.** A missing agent's row drops its command: only "Not installed" shows at its end.
+- **Decisions, review.** The line keeps its room while a stand-in waits for herdr's pane, so the list never moves. The
+  folder icon is one view in both looks, so a click on it as the field lets go still lands. Return on the shown folder
+  types no `cd`. On a remote machine any user's home reads as `~` (a `ponytail:` note): asking each machine for its home
+  costs a call per line.
 - **Moved.** Relaunch with Chat's part of `Chooser.swift` went to `Store/Relaunch.swift`: the file was at 392 lines.
 - **For the user.** Choose Folder… on This Mac (the panel opens at the folder; the picked one shows); File Explorer
   and Git picked after a typed folder open on its repository.
