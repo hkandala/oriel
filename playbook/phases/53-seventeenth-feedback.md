@@ -379,3 +379,22 @@ The whole phase is about 6 h of wall time with all tracks at once, then the fini
 CI runs and on-demand) at about 2–3 h.
 
 ## Findings
+
+### Track G
+
+- **Cause, item 27.** Each panel padded all four sides of its content, so the scroll view's clip stopped 10 pt (palette)
+  or 8 pt (Open Session) above the panel's edge: a cut row hung over an empty strip. **Fix:** the panel pads only its
+  top and sides, and `FilterList` puts that padding inside the scrolled rows, after the last one. ↓ onto the last row
+  scrolls the gap into view. The workspace menu keeps its own padding: its pinned rows sit under the scroll. Before:
+  the user's `.build/fb53/5.12.18.png`.
+- **Decision, item 29.** Only Working rows show a time. Idle rows lost their age too: a seen finish is idle under Done,
+  so it still showed a time there. The time shows "<1m", then minutes, on SwiftUI's `.periodic(from:by: 60)`, which
+  replaces the custom schedule.
+- **Cause, item 30.** The default was already Priority. The user's windows had saved Workspace in scene storage, so
+  they kept showing it. **Fix:** the key is now `agentOrder`. Every window starts at Priority once and keeps any later
+  choice (agreed with the orchestrator).
+- **Item 33.** The skill moved unchanged (byte for byte) from pi-hkandala `skills/oriel` at `7ac9136`. `make install`
+  links it where no `oriel` skill exists, and `-f` replaces a link whose checkout is gone. The agent-control page
+  tells how to copy it to a remote machine.
+- **Runs.** The first chosen-tests run (41961078819) failed the new palette check. At the end of the list, the lazy
+  stack no longer held the row the query used to find the list. The test now reads the list's frame first.
