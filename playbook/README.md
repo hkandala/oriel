@@ -70,3 +70,4 @@ run and test it is in the root `README.md`.
 | 52 | Sixteenth feedback: clean back and forth, Markdown done right, the sidebar's final design | [52-sixteenth-feedback.md](phases/52-sixteenth-feedback.md) |
 | 53 | Seventeenth feedback: a Finder-like File Explorer, one file-card header, clean Git diffs, the active pane | [53-seventeenth-feedback.md](phases/53-seventeenth-feedback.md) |
 | 54 | The name Ovvi everywhere, its website ovvi.dev | [54-rename.md](phases/54-rename.md) |
+| 55 | A Settings window like System Settings, and settings that plugins declare | [55-settings-window.md](phases/55-settings-window.md) |
