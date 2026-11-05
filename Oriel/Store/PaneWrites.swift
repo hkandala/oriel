@@ -259,7 +259,8 @@ extension Page {
         let key = String(describing: close)
         // The old pane of a replace that runs: herdr closes it already.
         guard !asking.contains(key), close.paneID.flatMap({ store.ahead.replacing[$0] }) == nil else { return }
-        // The lit split card, also before herdr's pane took its stand-in's place.
+        // The lit split card, also before herdr's pane took its stand-in's place. ponytail: it steps back before a
+        // question too, so a cancelled one leaves the card before it lit; a split card runs only its shell that soon.
         if let id = close.paneID, id == newest.map({ store.ahead.splitPanes[$0.id] ?? $0.id }) {
             closedNewest()
         }
