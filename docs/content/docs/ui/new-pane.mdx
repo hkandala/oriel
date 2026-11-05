@@ -67,8 +67,10 @@ no title and no key hint. While the chooser shows, the card's header says
   | OpenCode | `opencode` |
 
   An agent that is not on the machine has a dimmed row. "Not installed" in
-  11 pt secondary text, dimmed with the row, takes the place of its number key
-  ([Agents that are not installed](#agents-that-are-not-installed)).
+  11 pt secondary text, dimmed with the row, takes the place of its command
+  and its number key ([Agents that are not installed](#agents-that-are-not-installed)).
+- **Folder line.** 12 pt under the list, one centered line in 12 pt
+  ([The folder](#the-folder)).
 - **Selection.** The palette's accent pill
   ([Command palette](/docs/ui/window#command-palette)), with the row's text
   and symbol on the accent. It moves in the same frame, with no fade.
@@ -77,6 +79,7 @@ no title and no key hint. While the chooser shows, the card's header says
   out over 0.15 s while the terminal fades in. Reduce Motion makes each change
   at once.
 - **Small cards.** A card lower than the list scrolls it to the selected row.
+  A card lower than the list and the folder line has no folder line.
   A zoomed card and a [floating window](/docs/ui/window#floating-pane)
   (Replace Pane on a floated agent pane) show it in their middle, with the
   same rules.
@@ -93,6 +96,9 @@ and Return never reaches the old card's shell.
   and open selects the first installed agent.
 - → on Agent opens it. ← and Esc close it again, with Agent selected.
 - Esc on a closed list picks Terminal.
+- Tab and ⌘L (Open Location) make the folder line a field
+  ([The folder](#the-folder)). While the field has the keyboard, the keys
+  type into it.
 - 1 to 5 pick the top rows. While Agent is open, 1 to 4 pick the agents. The
   key of an agent that is not installed does nothing.
 - A held key moves on, but picks only once.
@@ -102,6 +108,34 @@ and Return never reaches the old card's shell.
   shell. The app's ⌘ shortcuts (⌘T, ⌘W, ⌘K, ⌘[ and others) and text fields
   work as usual. When the keyboard moves to another card, the chooser stays
   on its card and has the keyboard again when the card does.
+
+## The folder
+
+The folder line says where the pick starts: "Opens in ~/code/oriel". At
+first the folder is the pane's own folder, as herdr reports it.
+
+- **Look.** "Opens in" is tertiary. The folder is secondary and medium. The
+  folder shows short, as File Explorer's path bar shows it: the home folder
+  is `~`. A long folder loses its first parts. On a remote machine the line
+  ends with "on ‹machine›".
+- **Edit.** A click on the folder, Tab or ⌘L makes the line a field in File
+  Explorer's capsule with the accent border. The field shows the whole path,
+  selected. Return takes the typed folder. Esc, or a click somewhere else,
+  puts the line back with no change.
+- **Typed paths.** The pane's machine reads the path in its shell. `~` is the
+  home folder there, and a relative path starts at the shown folder. The
+  folder shows with its links resolved (`/tmp` is `/private/tmp`).
+- **Error.** If the folder is not on the machine, "No folder ‹path›" shows
+  in 11 pt red on its own line under the field. The line has room for it
+  at all times, so the list does not move. The old folder stays, and the
+  field keeps the typed text.
+- **Choose Folder.** The folder icon at the line's leading end, before
+  "Opens in" and in the field before the path, as in File Explorer's path
+  bar, opens the macOS folder panel at the folder. The icon is only on This Mac: the Mac's panel cannot
+  show the folders of a remote machine.
+- **The pick.** Terminal and an agent type `cd -- '‹folder›'` into the shell
+  first, as Go to Directory does. A plugin pane is made in the folder. The
+  folder is for this chooser only: the app does not save it.
 
 ## Terminal
 
@@ -181,11 +215,11 @@ and under it a spinner and "Opening Browser…", "Opening File Explorer…" or
 in the old one's place, so the old pane's shell never shows.
 - **Browser** fades in with an empty address field that has the keyboard
   ([Browser](/docs/ui/browser)).
-- **File Explorer** shows the tree of the git repository that the pane's
-  folder is in, else of the folder. **Git** shows that repository's Git home:
+- **File Explorer** shows the tree of the git repository that the folder of
+  the folder line is in, else of the folder. **Git** shows that repository's Git home:
   its changes, Commit and the history of every branch
   ([File Explorer and Git](/docs/plugins/default-plugins)).
-- **Another plugin** opens on the pane's folder: the root of its git
+- **Another plugin** opens on the folder of the folder line: the root of its git
   repository, else the folder, when its manifest opens `folders` or `git`,
   else with an empty argument.
 
@@ -233,6 +267,9 @@ the palette. They have no shortcut.
   (a plugin row's is its id),
   `.claude`, `.codex`,
   `.pi`, `.opencode`, and `pane.‹id›.loader` for the loader.
+- The folder line: `pane.‹id›.chooser.folder` is the folder, a button named
+  "Opens in" with the whole path as its value. `.folder.field` is the field,
+  `.folder.error` the error and `.folder.choose` the folder icon.
 
 ## Later
 

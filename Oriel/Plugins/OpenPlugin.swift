@@ -30,7 +30,7 @@ extension Page {
                 try? await Task.sleep(for: .milliseconds(100))
             }
             if let id = chooser.paneID {
-                await replace(id, Replacement(plugin: plugin))
+                await replace(id, Replacement(plugin: plugin, folder: chooser.folder))
             }
         }
     }

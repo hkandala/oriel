@@ -31,10 +31,17 @@ struct NewPane: View {
                 } else if let plugin = chooser.opening {
                     PluginLoader(plugin: plugin).accessibilityIdentifier("pane.\(cardID).loader")
                 } else {
-                    let rows = chooser.rows
+                    let rows = chooser.rows, width = max(0, min(300, size.width - 24))
                     let height = CGFloat(rows.count) * (Self.row + Self.spacing) - Self.spacing
-                    list(rows, details: size.width >= 300)
-                        .frame(width: max(0, min(300, size.width - 24)), height: max(0, min(height, size.height - 16)))
+                    // The folder line under the list, on a card with room for both.
+                    let folder = size.height - 16 >= height + 12 + NewPaneFolder.height
+                    VStack(spacing: 12) {
+                        list(rows, details: size.width >= 300)
+                            .frame(width: width, height: max(0, min(height, size.height - 16)))
+                        if folder {
+                            NewPaneFolder(chooser: chooser, page: page, cardID: cardID).frame(maxWidth: width)
+                        }
+                    }
                 }
             }
             .frame(width: size.width, height: size.height)
@@ -103,7 +110,7 @@ struct NewPane: View {
                         .font(.system(size: 9, weight: .semibold)).foregroundStyle(dim)
                 }
                 Spacer(minLength: 4)
-                if details {
+                if details, !missing {
                     Text(detail).font(.system(size: 12, design: agent != nil ? .monospaced : .default))
                         .foregroundStyle(dim).lineLimit(1)
                 }

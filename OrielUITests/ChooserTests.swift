@@ -217,4 +217,61 @@ extension OrielUITests {
         try await waitForPrompt(chosen)
         try await typeAndRead(chosen)
     }
+
+    /// New Pane's folder line (ui/new-pane#folder) on the selected workspace's ⌘T: ⌘L or a click makes it a field and
+    /// Esc puts it back; Tab does too, and a folder that is not there shows the error and keeps the old one. A typed
+    /// `/usr` is where Terminal's shell starts. Choose Folder… shows on This Mac only.
+    func typeFolderAndPickTerminal(remote: Bool) async throws {
+        let before = try await tabIDs()
+        closeNew("tab", besides: before)
+        app.typeKey("t", modifierFlags: .command)
+        let pane = try await pane(of: newTabID(after: before))
+        let folder = element("pane.\(pane).chooser.folder"), field = element("pane.\(pane).chooser.folder.field")
+        XCTAssertTrue(folder.exists(within: 3))
+        XCTAssertEqual(element("pane.\(pane).chooser.folder.choose").exists, !remote)
+        let start = folder.stringValue
+        XCTAssertNotEqual(start, "/usr")
+        keepScreenshot("folder line")
+        for open in [{ self.app.typeKey("l", modifierFlags: .command) }, { folder.click() }] {
+            open()
+            XCTAssertTrue(hasKeyboard(field))
+            app.typeKey(.escape, modifierFlags: [])
+            XCTAssertTrue(field.vanishes(within: 2))
+            XCTAssertEqual(folder.stringValue, start)
+        }
+        XCTAssertTrue(element("pane.\(pane).chooser.terminal").exists)
+        app.typeKey(.tab, modifierFlags: [])
+        XCTAssertTrue(hasKeyboard(field))
+        keepScreenshot("folder editing")
+        app.typeText("/oriel-no-folder\r")
+        let error = element("pane.\(pane).chooser.folder.error")
+        XCTAssertTrue(error.has(\.stringValue, "No folder /oriel-no-folder", within: 3), error.debugDescription)
+        XCTAssertGreaterThanOrEqual(error.frame.minY, field.frame.maxY, "the error over the field")
+        keepScreenshot("folder error")
+        app.typeKey("a", modifierFlags: .command)
+        app.typeText("/usr\r")
+        XCTAssertTrue(field.vanishes(within: 3))
+        XCTAssertEqual(folder.stringValue, "/usr")
+        app.typeKey(.return, modifierFlags: [])
+        XCTAssertTrue(folder.vanishes(within: 2))
+        try await expect("the shell in /usr") { try await self.pane(pane)["cwd"] as? String == "/usr" }
+    }
+
+    func testTheFolderLineSetsWhereThePickStarts() async throws {
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        element("workspace.w2").click()
+        XCTAssertTrue(element("pane.w2:p1").has(\.isHittable, true, within: 2))
+        try await typeFolderAndPickTerminal(remote: false)
+    }
+
+    /// New Pane's folder line on Key Host, in the light look: the folder is the machine's, typed with no Choose
+    /// Folder….
+    func testARemoteNewPanesFolderLineTakesATypedFolder() async throws {
+        try await skipWithoutSSH()
+        relaunch(one, ["-machines", Self.keyHost, "-machine", "e2e-key", "-appearance", "light"])
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        element("workspace.w2").click()
+        XCTAssertTrue(element("pane.w2:p1").has(\.isHittable, true, within: 3))
+        try await typeFolderAndPickTerminal(remote: true)
+    }
 }

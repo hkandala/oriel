@@ -36,15 +36,21 @@ extension HostStore {
     /// gone (`Ahead.replacing`). `made` runs as herdr makes the new pane, before the close.
     /// A browser or plugin pane (`plugin`) is made with its label and placeholder in a new tab, then moved beside the
     /// pane (plugins/labels#create).
-    func replace(_ paneID: String, plugin: PluginManifest? = nil, made: (HerdrKit.Pane) -> Void) async {
+    func replace(_ paneID: String, plugin: PluginManifest? = nil, folder: String? = nil,
+                 made: (HerdrKit.Pane) -> Void) async
+    {
         guard let old = pane(paneID), let workspace = workspace(of: old.tabID) else { return }
         ahead.replacing[paneID] = Ahead.Replacing(tabID: old.tabID, known: Set(last?.panes.map(\.id) ?? []),
                                                   terminal: old.terminalID)
         let done = await write { client in
             var new: HerdrKit.Pane?
             if let plugin {
-                // In the pane's live folder, as a split is.
-                let cwd = try await client.pane(paneID).cwd ?? old.cwd ?? "~"
+                // In the chooser's folder, else the pane's live folder, as a split is.
+                let cwd = if let folder {
+                    folder
+                } else {
+                    try await client.pane(paneID).cwd ?? old.cwd ?? "~"
+                }
                 let label = await newLabel(plugin, arg: arg(plugin, in: cwd))
                 ahead.replacing[paneID]?.label = label.text
                 if let tab = try await client.newTab(workspace: workspace.id, cwd: cwd, label: label.text,
@@ -85,6 +91,8 @@ struct Replacement {
     var agent: Chooser.Agent?
     /// A browser or plugin pane (Open Browser Here, the chooser's Browser).
     var plugin: PluginManifest?
+    /// The plugin pane's folder, picked in the chooser; nil: the old pane's.
+    var folder: String?
 }
 
 extension Page {
@@ -114,7 +122,7 @@ extension Page {
     /// window as the old one's closes (`floatReplaced`).
     func replace(_ paneID: String, _ replacement: Replacement) async {
         let old = store.pane(paneID)?.terminalID
-        await store.replace(paneID, plugin: replacement.plugin) { new in
+        await store.replace(paneID, plugin: replacement.plugin, folder: replacement.folder) { new in
             if replacement.chooser {
                 store.choose(new, starting: replacement.agent)
             }

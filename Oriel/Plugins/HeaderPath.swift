@@ -2,8 +2,8 @@ import AppKit
 import HerdrKit
 import SwiftUI
 
-/// A `field` with `"style": "path"` (File Explorer's root), as the browser's address: at rest the value with the home
-/// as `~` on This Mac, its last parts when long; a click shows the whole path selected, to edit. Return sends it
+/// A `field` with `"style": "path"` (File Explorer's root), as the browser's address: at rest the value short
+/// (`short`), its last parts when long; a click shows the whole path selected, to edit. Return sends it
 /// (`submit`), tidied (`..`, `.` and `//` resolved; `~` on This Mac), Esc puts it back. A path the page refuses shakes
 /// the field (a beep with Reduce Motion), which keeps the typed text. Its symbol is a button that sends no value
 /// (Choose Folder…).
@@ -33,9 +33,17 @@ struct PathField: View {
         return "/" + parts.joined(separator: "/")
     }
 
+    /// A path as File Explorer's path bar and New Pane's folder line show it: the home folder as `~`. A remote
+    /// machine's home is where macOS and Linux put it (ponytail: ask the machine if one lives elsewhere).
+    static func short(_ path: String, remote: Bool) -> String {
+        guard remote else { return (path as NSString).abbreviatingWithTildeInPath }
+        return path.replacing(/^\/(?:Users\/(?!Shared(?:\/|$))|home\/)[^\/]+(?=\/|$)|^\/root(?=\/|$)/, with: "~",
+                              maxReplacements: 1)
+    }
+
     var body: some View {
         let id = control.id ?? "", value = control.value?.text ?? "", remote = page.store.machine.isRemote
-        let header = plugin.header, shown = remote ? value : (value as NSString).abbreviatingWithTildeInPath
+        let header = plugin.header, shown = Self.short(value, remote: remote)
         HStack(spacing: 6) {
             Button { header.send?(["id": id]) } label: {
                 Image(symbol: control.symbol ?? "folder").foregroundStyle(.secondary)

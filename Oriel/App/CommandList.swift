@@ -116,7 +116,7 @@ struct CommandList {
                     enabled: terminal) { Task { await page?.choosePath(directory: false) } },
         ] + Self.editorCommands(page: page, pane: nil, terminal: live && terminal) { [page] in page?.editor }
         let list = file + Self.pane(page, tabs: tabs) { [page] in page?.keyboardPane } + close + edit + Self
-            .browser(browser)
+            .browser(browser, chooser: page?.keyCardID.flatMap { page?.store.chooser($0) })
             + view + paneKeys
             + palette(page) + window(page, pages)
         return list + Self.plugin(page?.keyboardPane?.terminalID.flatMap { page?.terminals.builtPlugin($0) },

@@ -114,41 +114,10 @@ extension Bridge {
         return picked
     }
 
-    /// Choose Folder…: This Mac's folder panel; a remote machine's folder field, the path as the machine resolves it
-    /// (`~` its home folder), with a notice for a path that is no folder. Nil when cancelled or no folder.
+    /// Choose Folder… (`HostStore.chooseFolder`) over the card's window.
     private func folder(from start: String, _ plugin: Plugin) async -> String? {
         guard let store = plugin.web.store, let window = plugin.web.view.window else { return nil }
-        if !store.machine.isRemote {
-            let panel = NSOpenPanel()
-            panel.canChooseDirectories = true
-            panel.canChooseFiles = false
-            panel.directoryURL = URL(filePath: start)
-            guard await panel.beginSheetModal(for: window) == .OK, let url = panel.url else { return nil }
-            let path = url.path(percentEncoded: false)
-            return path.count > 1 && path.hasSuffix("/") ? String(path.dropLast()) : path
-        }
-        let alert = NSAlert()
-        alert.messageText = "Go to Folder"
-        alert.informativeText = "A folder on \(store.machine.name)"
-        let field = NSTextField(string: start)
-        field.frame.size.width = 280
-        alert.accessoryView = field
-        alert.addButton(withTitle: "Go")
-        alert.addButton(withTitle: "Cancel")
-        alert.window.initialFirstResponder = field
-        guard await alert.beginSheetModal(for: window) == .alertFirstButtonReturn else { return nil }
-        let script = #"case $1 in "~"*) set -- "$HOME${1#\~}";; esac; cd "$1" 2>/dev/null && pwd -P"#
-        var path = ""
-        if let channel = try? await store.machine.exec().run(["sh", "-c", script, "sh", field.stringValue]) {
-            channel.closeInput()
-            path = await channel.lines.reduce("", +)
-            path = await channel.exit().status == 0 ? path : ""
-        }
-        guard path.hasPrefix("/") else {
-            await store.show(Notice(text: "No folder \(field.stringValue)", tone: .warning))
-            return nil
-        }
-        return path
+        return await store.chooseFolder(from: start, in: window)
     }
 
     /// An SF Symbol or the app's own, `size` points tall at 2x, as a PNG data URL: black on clear, for a mask.

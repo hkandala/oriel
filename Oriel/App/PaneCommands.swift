@@ -137,7 +137,7 @@ extension CommandList {
                 var command = $0
                 command.key = command.key == .closePane ? .closeTab : command.key
                 return command
-            } + sizes + Self.browser(pane.flatMap(page.browser))
+            } + sizes + Self.browser(pane.flatMap(page.browser), chooser: pane.flatMap { page.store.chooser($0.id) })
         return list + Self.plugin(pane?.terminalID.flatMap(page.terminals.builtPlugin), besides: list)
     }
 }

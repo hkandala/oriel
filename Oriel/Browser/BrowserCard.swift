@@ -20,13 +20,18 @@ extension Page {
 }
 
 extension CommandList {
-    /// A browser card's (ui/browser#commands-on-a-browser-card), in the main and the floating windows.
-    static func browser(_ browser: Browser?) -> [Command] {
+    /// A browser card's (ui/browser#commands-on-a-browser-card), in the main and the floating windows. Open Location
+    /// edits a new pane's folder line too (ui/new-pane#folder).
+    static func browser(_ browser: Browser?, chooser: Chooser? = nil) -> [Command] {
         [
             Command(section: .view, title: "Reload Page", key: .init("r"), symbol: "arrow.clockwise",
                     keywords: "refresh browser", enabled: browser?.loaded == true) { browser?.reload() },
             Command(section: .edit, title: "Open Location", key: .init("l"), symbol: "link",
-                    keywords: "address url browser", enabled: browser != nil) { browser?.wantsAddress = true },
+                    keywords: "address url browser folder", enabled: browser != nil || chooser != nil,
+                    action: {
+                        browser?.wantsAddress = true
+                        chooser?.editing = true
+                    }),
             Command(section: .edit, title: "Show Web Inspector", key: .init("i", modifiers: [.command, .option]),
                     symbol: "hammer", keywords: "developer tools devtools browser",
                     enabled: browser?.loaded == true) { browser?.view.showInspector() },
