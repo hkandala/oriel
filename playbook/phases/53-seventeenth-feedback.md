@@ -1052,7 +1052,9 @@ CI runs and on-demand) at about 2–3 h.
   unchanged. The swipe record now keeps tenths of a point.
 - **Runs.** `testSessionSwipeFollowsTheFingersAndSlidesOnFromTheirSpeed` gets a slow swipe that rests before it lifts,
   and checks that the page is within 0.5 pt of its place in the last frame before the show. Locally on the old code:
-  red, "1.6 is not equal to 0.0 +/- 0.5". On the new code: green, with the quick flick test.
+  red, "1.6 is not equal to 0.0 +/- 0.5". On the new code: green, with the quick flick test. The show now waits about
+  50 ms longer after the pages come within 2 pt, so the two tests' bound on that wait went from 80 to 120 ms: still
+  well under the old 150–200 ms tail it guards against.
 - **Recordings.** The UI test's screen recordings, before and after:
   `/tmp/oriel-shots/t53m/before-swipe-test.mp4` and `after-swipe-test.mp4`. Each frame's offsets:
   `before-latency.txt` and `after-latency.txt`. I made no screen recording at 120 fps, because the Mac was in use.

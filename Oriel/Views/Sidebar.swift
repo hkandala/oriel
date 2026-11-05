@@ -362,8 +362,8 @@ extension Sidebar {
             then()
             return
         }
-        // Once drawn on their place (`Slid`): logically complete, a slow lift's pages were up to 3 pt short, and the
-        // show's 100 ms of main thread held them there, then they jumped. `.removed`: a window that draws no frame.
+        // Once on their place (`Slid`): logically complete, a slow lift's pages were up to 3 pt short, and the show's
+        // 100 ms of main thread held them there, then they jumped. `.removed`: pages gone mid-slide (no `Slid` runs).
         let arrive = {
             if swipe.moves == move, swipe.moving {
                 swipe.moving = false

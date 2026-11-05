@@ -260,7 +260,8 @@ private struct Slid: ViewModifier, Animatable {
         if swipe.moving {
             swipe.drawn = offset
             Latency.shared.slid(offset)
-            // On its place within a pixel: the slide ends after this frame commits.
+            // On its place within half a point: the slide ends after this frame's update, so the show's hold leaves
+            // it there.
             if abs(offset - target) < 0.5, let arrived = swipe.arrived {
                 swipe.arrived = nil
                 Task { arrived() }

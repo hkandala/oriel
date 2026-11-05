@@ -148,7 +148,7 @@ extension OrielUITests {
         XCTAssertGreaterThan(settled, 150, "\(swipe)")
         XCTAssertLessThan(settled, 400, "\(swipe)")
         XCTAssertGreaterThan(shown, 0, "\(swipe)")
-        XCTAssertLessThan(beforeShow(path, shown) - settled, 80, "\(swipe)")
+        XCTAssertLessThan(beforeShow(path) - settled, 120, "\(swipe)")
         // A step at least every 100 ms until then: no stall (a slide started at the scroll view's own end stood still
         // 100–350 ms, then jumped). A debug build under XCUITest still drops a few frames at the start (about 50 ms).
         let steps = times.filter { $0 <= settled }
@@ -167,14 +167,14 @@ extension OrielUITests {
         XCTAssertEqual(name.frame.minX, place, accuracy: 1)
 
         // Slowly past half a page, a rest, a lift: the spring from rest is logically complete still about 1.4 % of its
-        // way short (1.2 pt here). The session shows only once the pages are drawn on their place: shown before, its
-        // 100 ms of main thread held them short, then they jumped.
+        // way short (1.3–1.6 pt here). The session shows only once the pages are on their place: shown before, its
+        // 100 ms of main thread held them short, then they jumped. The last frame recorded started the show.
         try await Self.post("\(one)/swipe", Data("\(center) \(-2 * forward) 70 200".utf8))
         try await Task.sleep(for: .seconds(1.5))
         XCTAssertEqual(header, one)
         let (slow, slowPath, slowShown) = try XCTUnwrap(swipes().last, "no swipe moved")
         XCTAssertGreaterThan(slowShown, 0, slow)
-        XCTAssertEqual(slowPath.last { $0[0] < slowShown }?[1] ?? -1, 0, accuracy: 0.5, slow)
+        XCTAssertEqual(slowPath.last?[1] ?? -1, 0, accuracy: 0.5, slow)
     }
 
     /// A quick flick between sessions: the fingers on the pad for 48 ms, then momentum. The pages slide on
@@ -199,12 +199,12 @@ extension OrielUITests {
         XCTAssertEqual(header, two)
         // The pages rest on the session the window shows.
         XCTAssertEqual(name.frame.minX, place, accuracy: 1)
-        let (swipe, path, shown) = try XCTUnwrap(swipes().last, "no swipe moved")
+        let (swipe, path, _) = try XCTUnwrap(swipes().last, "no swipe moved")
         XCTAssertEqual(path.last?[1] ?? 0, sidebar.frame.width - 8, accuracy: 2, "\(swipe)")
         // A step at least every 100 ms until the page: no stall. The session shows with it.
         let settled = path.first { abs($0[1] - sidebar.frame.width + 8) <= 2 }?[0] ?? 1000
         XCTAssertLessThan(settled, 400, "\(swipe)")
-        XCTAssertLessThan(beforeShow(path, shown) - settled, 80, "\(swipe)")
+        XCTAssertLessThan(beforeShow(path) - settled, 120, "\(swipe)")
         let steps = path.map { $0[0] }.filter { $0 <= settled }
         XCTAssertLessThan(zip(steps, steps.dropFirst()).map { $1 - $0 }.max() ?? 1000, 100, "\(swipe)")
     }
@@ -260,12 +260,11 @@ extension OrielUITests {
         }.filter { $0.1.count > 4 }
     }
 
-    /// The ms of the slide's last frame before the show's. The window shows the session as the pages look arrived, not
-    /// in the spring's tail (150–200 ms after they are within 2 pt): the show runs in the first frame after
-    /// the spring is logically complete, so the frame before it is still near the page. Not the show's own time: a late
-    /// frame delays it (CI's VM drew none for 60 ms there, the show 80 ms after the page).
-    private func beforeShow(_ path: [[Double]], _ shown: Double) -> Double {
-        path.last { $0[0] < shown }?[0] ?? 0
+    /// The ms of the slide's last frame, which started the show: the pages record only until it. The window shows the
+    /// session as the pages are drawn within 0.5 pt of their place, not in the spring's long tail. Not the show's own
+    /// time: a late frame delays it (CI's VM drew none for 60 ms there, the show 80 ms after the page).
+    private func beforeShow(_ path: [[Double]]) -> Double {
+        path.last?[0] ?? 0
     }
 
     private func launchRecordingLatency(_ args: [String] = []) throws {
@@ -282,7 +281,7 @@ extension OrielUITests {
         Thread.sleep(forTimeInterval: 0.5)
     }
 
-    /// "⌘T 12ms 0 9ms": the key, the time to its frame, the turns, the app's own time; "swipe 230ms 0:145,8:152,…".
+    /// "⌘T 12ms 0 9ms": the key, the time to its frame, the turns, the app's own time; "swipe 230ms 0:145.0,…".
     struct Entry {
         let name: String, turns: Int
     }
