@@ -159,6 +159,7 @@ struct FloatingWindow: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var colorSchemeContrast
     @Environment(\.dismissWindow) private var dismissWindow
+    @Environment(\.appearsActive) private var appearsActive
 
     private var look: Look {
         Look(style: settings.style, dark: colorScheme == .dark, contrast: colorSchemeContrast == .increased)
@@ -182,6 +183,12 @@ struct FloatingWindow: View {
         .background(FloatReader(terminalID: floating.terminalID,
                                 pinned: page?.floating[floating.terminalID] == true,
                                 closed: { page?.floating[floating.terminalID] = nil }))
+        // Its pane is the one the user looks at while it is key (D14).
+        .onChange(of: appearsActive, initial: true) { _, active in
+            if active, let page {
+                HostStore.look(pane, in: page.store)
+            }
+        }
         // Also gone before it first drew (a Detach right after the Float).
         .onChange(of: page == nil, initial: true) { _, gone in
             if gone {

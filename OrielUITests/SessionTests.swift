@@ -262,4 +262,25 @@ extension OrielUITests {
     var header: String? {
         element("sidebar.header").value as? String
     }
+
+    func testAnotherSessionsAgentCountsInTheDockBadgeOnly() async throws {
+        XCTAssertTrue(element("workspace.w1").exists(within: connect))
+        openPage(two)
+        element("sidebar.dot.\(one)").click()
+        XCTAssertTrue(element("workspace.w2").exists(within: 2))
+
+        addTeardownBlock { [two] in
+            _ = try? await Self.call(two, "pane.release_agent", ["pane_id": "w1:p1", "source": "oriel-e2e",
+                                                                 "agent": "codex"])
+        }
+        try await report("w1:p1", "blocked", session: two)
+        try await expect("the badge to count the other page") { element("app.badge").value as? String == "1" }
+        XCTAssertEqual(element("titlebar.agents").value as? String, "0 need you")
+        element("sidebar.dot.\(two)").click()
+        try await waitForValue("titlebar.agents", containing: "1 need you")
+        app.typeKey(".", modifierFlags: .command)
+        XCTAssertTrue(element("agents.sort").exists(within: 2))
+        XCTAssertEqual(element("sidebar.header").value as? String, two)
+        try await waitForValue("agent.w1:p1", containing: "Needs you")
+    }
 }

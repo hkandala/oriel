@@ -37,13 +37,14 @@ extension OrielUITests {
         let other = try await split(pane)
         try await report(other, "blocked", agent: "claude")
         XCTAssertTrue(icon.has(\.stringValue, "Needs you", within: 3))
-        try await report(other, "idle", agent: "claude")
+        try await report(other, "working", agent: "claude")
         XCTAssertTrue(icon.has(\.stringValue, "Working", within: 3))
-        // Idle and seen: no state.
+        // A finish under the user's eyes (the keyboard card's) stays Done until they leave it.
         try await report(pane, "idle")
-        try await waitForValue("workspace.w1", containing: "idle")
-        XCTAssertTrue(state.vanishes(within: 2))
-        XCTAssertTrue(icon.vanishes(within: 2))
+        XCTAssertTrue(icon.has(\.stringValue, "Done", within: 3))
+        // Leaving it for another card of the same tab is leaving.
+        element("terminal.\(other)").click()
+        XCTAssertTrue(icon.has(\.stringValue, "Working", within: 3))
     }
 
     func testBlockedAgentNeedsYouAndThePopoverGoesToIt() async throws {
@@ -111,37 +112,18 @@ extension OrielUITests {
         XCTAssertEqual(element("agents.popover.header").stringValue, "Agents · \(one)")
         keepScreenshot("agents panel, needs you and done")
 
-        // A click shows the done agent's tab, which clears it.
+        // A click shows the done agent's tab; leaving it clears it.
         row(done).click()
         XCTAssertTrue(element("tab.\(docs.tab)").has(\.isSelected, true, within: 2))
         XCTAssertTrue(panel.vanishes(within: 2))
+        XCTAssertTrue(element("tab.\(docs.tab)").stringValue.contains("finished"))
+        app.typeKey("1", modifierFlags: .command)
         try await expect("the finish seen") { !element("tab.\(docs.tab)").stringValue.contains("finished") }
         element("workspace.w1").hover()
         button.hover()
         XCTAssertTrue(row(blocked).exists(within: 2))
         XCTAssertFalse(group("Done").exists)
         XCTAssertFalse(row(done).exists)
-    }
-
-    func testAnotherSessionsAgentCountsInTheDockBadgeOnly() async throws {
-        XCTAssertTrue(element("workspace.w1").exists(within: connect))
-        openPage(two)
-        element("sidebar.dot.\(one)").click()
-        XCTAssertTrue(element("workspace.w2").exists(within: 2))
-
-        addTeardownBlock { [two] in
-            _ = try? await Self.call(two, "pane.release_agent", ["pane_id": "w1:p1", "source": "oriel-e2e",
-                                                                 "agent": "codex"])
-        }
-        try await report("w1:p1", "blocked", session: two)
-        try await expect("the badge to count the other page") { element("app.badge").value as? String == "1" }
-        XCTAssertEqual(element("titlebar.agents").value as? String, "0 need you")
-        element("sidebar.dot.\(two)").click()
-        try await waitForValue("titlebar.agents", containing: "1 need you")
-        app.typeKey(".", modifierFlags: .command)
-        XCTAssertTrue(element("agents.sort").exists(within: 2))
-        XCTAssertEqual(element("sidebar.header").value as? String, two)
-        try await waitForValue("agent.w1:p1", containing: "Needs you")
     }
 
     func testAgentsViewListsEveryAgentByPriorityOrWorkspaceOrder() async throws {
@@ -315,8 +297,10 @@ extension OrielUITests {
         XCTAssertFalse(rows[1].isSelected)
     }
 
-    func testAFinishShowsDoneUntilItsRowIsClicked() async throws {
+    func testAFinishShowsDoneUntilTheUserLeavesIt() async throws {
         XCTAssertTrue(element("workspace.w1").exists(within: connect))
+        let other = try await newTab("review").pane
+        try await report(other, "idle", agent: "pi")
         let created = try await newTab("docs")
         let pane = try await finish(created)
         // The title says so for 3 s.
@@ -334,17 +318,24 @@ extension OrielUITests {
         XCTAssertTrue(element("agents.sort").exists(within: 2))
         let row = element("agent.\(pane)")
         try await waitForValue("agent.\(pane)", containing: "Done")
+        // Opened, it stays Done while the user looks at it, also with the app in the background.
         row.click()
-        try await waitForValue("agent.\(pane)", containing: "Idle")
-        XCTAssertTrue(element("tab.\(created.tab)").isSelected)
-        // Seen, it stays under Done (no jump to Idle) until it works again.
-        let done = element("agents.group.Done")
-        XCTAssertTrue(done.exists)
-        XCTAssertFalse(element("agents.group.Idle").exists)
+        XCTAssertTrue(element("tab.\(created.tab)").has(\.isSelected, true, within: 2))
+        XCTAssertTrue(hasKeyboard("terminal.\(pane)"))
+        let done = element("agents.group.Done"), idle = element("agents.group.Idle")
+        XCTAssertFalse(until(1) { !done.exists })
+        XCTAssertEqual(row.value as? String, "Done")
         XCTAssertGreaterThan(row.frame.minY, done.frame.minY)
-        try await report(pane, "working")
+        XCTAssertEqual(idle.label, "Idle 1")
+        XCUIApplication(bundleIdentifier: "com.apple.finder").activate()
+        XCTAssertFalse(until(1) { row.value as? String != "Done" })
+        app.activate()
+        // Another agent opened: it moves to Idle.
+        element("agent.\(other)").click()
         XCTAssertTrue(done.vanishes(within: 3))
-        XCTAssertTrue(element("agents.group.Working").exists)
+        try await waitForValue("agent.\(pane)", containing: "Idle")
+        XCTAssertEqual(idle.label, "Idle 2")
+        XCTAssertGreaterThan(row.frame.minY, idle.frame.minY)
         // View ▸ Show Agents turns it off; the sidebar stays.
         app.menuBars.menuBarItems["View"].click()
         app.menuItems["Show Agents"].click()

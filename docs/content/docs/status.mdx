@@ -17,8 +17,11 @@ description: "The Agents button and view, notifications and the Dock"
   seen) or idle. herdr's `done` is not used. A tab and a workspace show the
   strongest state of their panes, as one icon: needs you, then finished, then
   working; nothing when all are idle.
-- Looking at a pane means its tab is selected on the page in view and the
-  window is key. Looking records its finish as seen.
+- Looking at a pane means it is the keyboard card on the page in view of the
+  last key window, or the pane of a floating window that was key last; the
+  app going to the background does not change it. A
+  finish counts as seen when the user leaves the pane: another pane, tab,
+  workspace or session gets the keyboard. Until then it stays Done.
 - Each change carries the time the app saw it. The Agents view shows a
   Working agent's time from that time.
 
@@ -33,9 +36,8 @@ The Agents button (D61) covers the session of the page in view.
 - **Agents view.** A click, ⌘. or View ▸ Show Agents turns the sidebar page into the list of every
   agent pane of that session, idle ones too, sorted by priority (needs you,
   working, done, idle) or by workspace, in groups that fold. A click on a row selects that
-  workspace, tab and pane and gives the pane the keyboard, so its finish is
-  seen. A seen finish stays in the Done group (with no box) until the agent
-  works again or goes away (`Seen.seenFinishes`).
+  workspace, tab and pane and gives the pane the keyboard. Its row stays
+  under Done until the user leaves the pane.
 
 The look is in [Main window: Agents button](/docs/ui/window#agents-button)
 and [Agents view](/docs/ui/window#agents-view).
@@ -49,14 +51,14 @@ the session:
   ‹workspace› · ‹tab›" as the body.
 - `completion_seq` changes to a new non-null value: "pi finished", with the
   same body.
-- None for the pane the user is looking at. While the app is active, the
-  others still show as banners.
+- None for the panes of the tab shown in the key window while the app is
+  active. The others still show as banners.
 - The first snapshot after app launch, or after a page opens, never
   notifies. After a reconnect, changes against the last known state do
   notify.
 - The id is `"<machine>|<session>|<terminal_id>"` (`local` for This Mac), so
-  a newer notification replaces the older one. It is removed when the user
-  looks at the pane, and when its state no longer holds (the pane works,
+  a newer notification replaces the older one. It is removed when its tab
+  shows in the key window, and when its state no longer holds (the pane works,
   idles, closes or loses its agent).
 - A click activates the app, shows that page and selects the pane.
 - The app asks for permission (alerts and the badge) at launch; macOS asks the

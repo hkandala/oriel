@@ -194,11 +194,11 @@ One capsule per herdr tab of the selected workspace (D42).
   "Agents · ‹page title›" (11 pt, secondary; the title as in the
   [page header](#sidebar)) it lists the agents of the page in view in two
   groups: those that need you, then those that finished since you last
-  looked (Done), each under the Agents view's group label with its count
+  left them (Done), each under the Agents view's group label with its count
   ("Needs you · 1", "Done · 2"; the panel's groups do not fold). The rows are the
   same as in the Agents view. A click on a row selects that workspace and tab
-  and gives the pane the keyboard, which also clears a Done; the sidebar does
-  not change. With both groups empty it does not show at all. The orange dot
+  and gives the pane the keyboard; a Done clears once the user leaves that
+  pane. The sidebar does not change. With both groups empty it does not show at all. The orange dot
   and the Dock badge count only agents that need you. There is no footer. A
   click on the button is not a rest: the panel opens only after the pointer
   leaves the button and comes back.
@@ -349,9 +349,10 @@ or below ([Swiping](/docs/ui/swiping)). The page dots and the footer stay.
   section labels, as in a macOS sidebar: 11 pt semibold, secondary (the
   count too), with 12 pt of room above each group. No line under the
   header.
-- **Done stays put.** In Priority order, an agent whose finish the user has
-  seen stays in the Done group, with no box, until it works again or goes
-  away. So a click on a done agent does not move its row to Idle.
+- **Done stays while you look.** A done agent stays Done (its row under
+  Done, its box, its icon on the tab and the workspace) while its pane has the
+  keyboard, also while the app is in the background. When the user gives the
+  keyboard to another pane, tab, workspace or session, it moves to Idle.
 - **Folding.** A click on a group label folds its rows or shows them again; a
   chevron at the label's end points right while folded; while open it shows,
   pointing down, only under the pointer, as in a macOS sidebar. A
@@ -379,7 +380,7 @@ or below ([Swiping](/docs/ui/swiping)). The page dots and the footer stay.
 - The footer filter keeps the rows whose pane, agent, workspace or tab name
   matches.
 - A click goes to that workspace, tab and pane and gives the pane the
-  keyboard, which records a finish as seen.
+  keyboard. Its finish counts as seen when the user leaves the pane.
 - Rest the pointer on a row to see the [hover card](#hover-card) of its tab.
 
 How it works: [Agents and notifications](/docs/status#agents-and-notifications).

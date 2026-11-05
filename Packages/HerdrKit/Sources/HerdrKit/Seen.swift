@@ -6,7 +6,8 @@ public enum AgentState: Comparable, Sendable {
 }
 
 /// The app's own "seen" (D14, design: layout, Selection and "seen"): herdr's statuses plus which finishes the user
-/// has not looked at yet, from `completion_seq`. herdr's `done` is not used. Keyed by terminal (else pane id): a moved
+/// has not looked at and left yet, from `completion_seq`. herdr's `done` is not used. Keyed by terminal (else pane id):
+/// a moved
 /// pane gets a new pane id and keeps its terminal, and herdr reuses pane ids for new terminals.
 public struct Seen: Sendable {
     public struct Change: Equatable, Sendable {
@@ -18,10 +19,9 @@ public struct Seen: Sendable {
     public private(set) var states: [String: AgentState] = [:]
     /// When each agent's state last changed, for the ages.
     public private(set) var since: [String: Date] = [:]
-    /// The agents that went idle from an unseen finish (the user saw it, or herdr cleared it): they stay in the Agents
-    /// view's Done group until they work again or go away.
-    public private(set) var seenFinishes: Set<String> = []
     private var agents: [Agent] = []
+    /// The keys of the panes the user looks at: a finish counts as seen once the user leaves its pane.
+    private var looking: Set<String> = []
     /// Each agent's `completion_seq` recorded as seen; an agent in here was sighted (its value may be nil).
     private var seen: [String: Int?] = [:]
     /// A snapshot was applied: the first one reports no changes.
@@ -33,7 +33,8 @@ public struct Seen: Sendable {
         terminalID ?? paneID
     }
 
-    /// A new snapshot's agents. `looking`: the keys of the panes the user looks at, whose finishes count as seen.
+    /// A new snapshot's agents. `looking`: the keys of the panes the user looks at; their finishes count as seen once
+    /// the user leaves them.
     public mutating func update(_ agents: [Agent], looking: Set<String>, now: Date = .now) -> [Change] {
         self.agents = agents
         defer { started = true }
@@ -44,12 +45,12 @@ public struct Seen: Sendable {
     @discardableResult
     public mutating func look(_ looking: Set<String>, now: Date = .now) -> [Change] {
         var states: [String: AgentState] = [:]
-        var finishes: Set<String> = []
         var changes: [Change] = []
         for agent in agents {
             let id = Self.key(terminalID: agent.terminalID, paneID: agent.paneID)
-            // The first sighting counts as seen: no flood of old finishes after launch.
-            if seen[id] == nil || looking.contains(id) {
+            // The first sighting counts as seen: no flood of old finishes after launch. A finish the user looks at
+            // stays Done until they leave it.
+            if seen[id] == nil || self.looking.contains(id) && !looking.contains(id) {
                 seen[id] = .some(agent.completionSeq)
             }
             // Different, not greater: the counter starts at 0 again when herdr restarts.
@@ -60,9 +61,6 @@ public struct Seen: Sendable {
             default: finished ? .finishedUnseen : .idle
             }
             states[id] = state
-            if state == .idle, self.states[id] == .finishedUnseen || seenFinishes.contains(id) {
-                finishes.insert(id)
-            }
             if self.states[id] != state {
                 since[id] = now
                 if started {
@@ -74,7 +72,7 @@ public struct Seen: Sendable {
         seen = seen.filter { states[$0.key] != nil }
         since = since.filter { states[$0.key] != nil }
         self.states = states
-        seenFinishes = finishes
+        self.looking = looking
         return changes
     }
 }

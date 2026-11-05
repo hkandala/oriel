@@ -168,9 +168,8 @@ struct AgentsList: View {
         let groups = switch sort {
         case .priority:
             [AgentState.needsYou, .working, .finishedUnseen, .idle].map { state in
-                // A seen finish stays under Done (with no box) until the agent works again: no jump as it is opened.
                 Group(label: state.title, key: key("\(state)"), id: "agents.group.\(state.title)",
-                      rows: rows.filter { ($0.finishSeen ? .finishedUnseen : $0.state) == state })
+                      rows: rows.filter { $0.state == state })
             }
         case .workspace:
             page.store.workspaces.map { workspace in
@@ -248,7 +247,7 @@ private struct GroupLabel: View {
     }
 }
 
-/// The Dock badge over every open page (also `app.badge`, for tests), and the tab the user looks at (D14).
+/// The Dock badge over every open page (also `app.badge`, for tests), and the tab and pane the user looks at (D14).
 struct AgentsWatch: ViewModifier {
     let pages: WindowPages
     let page: Page
@@ -259,11 +258,17 @@ struct AgentsWatch: ViewModifier {
         // ponytail: `HostStore.all` is not observed, so this window's `app.badge` may lag a store only another
         // window shows until one of this window's own changes; the Dock tile is right (the last writer counts all).
         let needsYou = pages.list.isEmpty ? 0 : HostStore.needsYou
+        let card = page.keyboardCard(page.selectedTab?.id)
+        let looked = [page.id, page.selectedTab?.id ?? "", card?.id ?? ""]
         content
             .testValue("app.badge", "Dock Badge", "\(needsYou)")
             .onChange(of: needsYou, initial: true) { HostStore.showBadge() }
-            .onChange(of: [page.id, page.selectedTab?.id ?? "", appearsActive ? "key" : ""], initial: true) {
+            .onChange(of: looked + [appearsActive ? "key" : ""], initial: true) {
                 pages.look(key: appearsActive)
+                // The app in the background keeps the pane looked at.
+                if appearsActive {
+                    HostStore.look(card, in: page.store)
+                }
             }
     }
 }

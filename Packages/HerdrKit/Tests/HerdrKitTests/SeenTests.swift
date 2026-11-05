@@ -21,39 +21,36 @@ private func agent(_ status: AgentStatus, _ completion: Int? = nil, pane: String
     #expect(seen.states["w1:p3"] == .idle)
 }
 
-@Test func `a finish is unseen until the user looks at the pane`() {
+@Test func `a finish stays Done while the user looks at it and is seen when they leave`() {
     var seen = Seen()
     _ = seen.update([agent(.idle, 2)], looking: [])
     let start = Date(timeIntervalSince1970: 100)
     #expect(seen.update([agent(.working)], looking: [], now: start).map(\.state) == [.working])
     #expect(seen.since["w1:p1"] == start)
     #expect(seen.update([agent(.idle, 5)], looking: []).map(\.state) == [.finishedUnseen])
-    // Another snapshot with the same finish changes nothing.
+    // Another snapshot with the same finish changes nothing; looking at it does not clear it.
     #expect(seen.update([agent(.idle, 5)], looking: ["w1:p2"]).isEmpty)
-    #expect(seen.look(["w1:p1"]).map(\.state) == [.idle])
-    #expect(seen.states["w1:p1"] == .idle)
-    // A seen finish stays one until the agent works again.
-    #expect(seen.seenFinishes == ["w1:p1"])
-    _ = seen.update([agent(.idle, 5)], looking: [])
-    #expect(seen.seenFinishes == ["w1:p1"])
-    _ = seen.update([agent(.working)], looking: [])
-    #expect(seen.seenFinishes.isEmpty)
+    #expect(seen.look(["w1:p1"]).isEmpty)
+    #expect(seen.update([agent(.idle, 5)], looking: ["w1:p1"]).isEmpty)
+    // Leaving it does.
+    #expect(seen.look(["w1:p2"]).map(\.state) == [.idle])
+    #expect(seen.look(["w1:p1"]).isEmpty)
 }
 
-@Test func `a finish while the user looks is seen at once`() {
+@Test func `a finish while the user looks is seen when they leave`() {
     var seen = Seen()
     _ = seen.update([agent(.working)], looking: ["w1:p1"])
-    #expect(seen.update([agent(.idle, 3)], looking: ["w1:p1"]).map(\.state) == [.idle])
-    #expect(seen.update([agent(.idle, 3)], looking: []).isEmpty)
-    #expect(seen.seenFinishes.isEmpty)
+    #expect(seen.update([agent(.idle, 3)], looking: ["w1:p1"]).map(\.state) == [.finishedUnseen])
+    #expect(seen.update([agent(.idle, 3)], looking: []).map(\.state) == [.idle])
 }
 
 @Test func `blocked needs you and its end is a finish`() {
     var seen = Seen()
     _ = seen.update([agent(.idle)], looking: [])
     #expect(seen.update([agent(.blocked)], looking: []).map(\.state) == [.needsYou])
-    // Looking does not answer it.
+    // Looking does not answer it, nor does leaving it.
     #expect(seen.look(["w1:p1"]).isEmpty)
+    #expect(seen.look([]).isEmpty)
     #expect(seen.update([agent(.idle, 7)], looking: []).map(\.state) == [.finishedUnseen])
     // herdr's done is not used: the counter decides.
     #expect(seen.update([agent(.done, 7)], looking: []).isEmpty)

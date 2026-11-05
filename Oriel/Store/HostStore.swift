@@ -49,10 +49,14 @@ final class HostStore {
     /// Panes being closed (`Ahead`), kept with what was asked of them in case the close comes back. A closing card
     /// fades out with its header, not a stand-in's "terminal".
     @ObservationIgnored private(set) var parked: [String: Pane] = [:]
-    /// The tab the user looks at (D14): selected on the page in view of the key window. Its finishes are seen.
-    @ObservationIgnored var lookingTabID: String? {
+    /// The tab the user looks at (D14): selected on the page in view of the key window. Its notifications go.
+    @ObservationIgnored var lookingTabID: String?
+    /// The pane the user looks at (D14), as `Seen` keys it (its terminal: a moved pane stays looked at): the keyboard
+    /// card on the page in view of the last key window, or a key floating window's pane; kept while the app is in the
+    /// background. Its finish counts as seen once it is another pane (`Seen`).
+    @ObservationIgnored private var lookingKey: String? {
         didSet {
-            if lookingTabID != oldValue {
+            if lookingKey != oldValue {
                 seen.look(looking)
                 showStates()
             }
@@ -228,9 +232,8 @@ final class HostStore {
         sessions = await (try? client.sessions()) ?? sessions
     }
 
-    /// The panes of the tab the user looks at, as `Seen` keys them.
     private var looking: Set<String> {
-        Set(panes(in: lookingTabID).map { Seen.key(terminalID: $0.terminalID, paneID: $0.id) })
+        Set([lookingKey].compactMap(\.self))
     }
 
     private func showStates() {
@@ -238,7 +241,6 @@ final class HostStore {
             let key = Seen.key(terminalID: pane.terminalID, paneID: pane.id)
             pane.state = seen.states[key]
             pane.since = seen.since[key]
-            pane.finishSeen = seen.seenFinishes.contains(key)
         }
         showStrongest()
     }
@@ -335,6 +337,16 @@ final class HostStore {
             // One after another: 30 workspaces are not 30 git processes at once.
             workspace.git = await GitStatus.of(root, exec: machine.exec())
             gitRuns.remove(workspace.id)
+        }
+    }
+}
+
+extension HostStore {
+    /// The user looks at `pane` of `store` (a key window's), and at nothing in the other sessions.
+    static func look(_ pane: Pane?, in store: HostStore) {
+        let key = pane.map { Seen.key(terminalID: $0.terminalID, paneID: $0.id) }
+        for other in all {
+            other.lookingKey = other === store ? key : nil
         }
     }
 }

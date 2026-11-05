@@ -994,3 +994,19 @@ CI runs and on-demand) at about 2–3 h.
 - **For the user.** Open File Explorer's Filter (or type a letter): a small capsule at the top right, the rows stay
   put; Esc closes it. In a long commit diff, scroll down without stepping changes, switch Unified and Side by Side: the
   file in view stays.
+
+### Track L
+
+- **Cause (45).** Phase 52 kept a seen finish in the Done group by a second flag (`Seen.seenFinishes` →
+  `Pane.finishSeen`) that held until the agent worked again, while the state itself turned Idle the moment the tab
+  showed. So the row stayed under Done after the user left, and the tab and workspace icons had already gone.
+- **Fix.** One rule in `Seen`: a finish counts as seen when the user leaves its pane, not when they reach it. The pane
+  looked at is the keyboard card on the page in view of the last key window, or a key floating window's pane
+  (`HostStore.lookingKey`, the terminal, so a moved pane stays looked at; set by `AgentsWatch` and `FloatingWindow`
+  while their window is active), so the app going to the background keeps it. The flag, its grouping and
+  its docs are gone; the tab pill, the hover card, the Workspaces view and the Agents groups all read the one state.
+- **Decisions.** Looking is now one pane, not the whole shown tab: a finish in another card of the shown tab stays Done
+  until the user gives that card the keyboard and leaves it. Notifications still key on the shown tab
+  (`lookingTabID`). Closing a window needs no code: the next key window, main or floating, or the page switch, sets the pane again.
+- **For the user.** Open a done agent from the Agents view, switch to another app and back (still Done), then open
+  another agent: the first moves to Idle.
