@@ -63,16 +63,15 @@ public enum CodexRollout {
         }
     }
 
-    /// A subagent as one row named by its path, from its start to its end, paired by its thread.
+    /// A subagent started (`agent`) or sent a message (`agent_send`), named by its path: a finished step. Its end is
+    /// a notice, no step, and Codex seldom writes it (its subagents outlive the turn).
     private static func subagent(_ item: [String: Any], id: String, time: Date?, into history: inout ChatHistory) {
-        let thread = item["agent_thread_id"] as? String ?? id, kind = item["kind"] as? String ?? ""
-        guard kind == "started" else {
-            history.finish(tool: thread, result: kind == "completed" ? "" : kind, failed: kind != "completed", at: time)
-            return
-        }
-        let name = (item["agent_path"] as? String ?? "").split(separator: "/").last.map(String.init) ?? ""
-        history.append(ChatEntry(id: id, .tool(ChatTool(id: thread, name: "agent", category: .other, target: name,
-                                                        started: time)), time: time))
+        guard let name = ["started": "agent", "interacted": "agent_send"][item["kind"] as? String ?? ""] else { return }
+        let path = (item["agent_path"] as? String ?? "").split(separator: "/").last.map(String.init) ?? ""
+        var tool = ChatTool(id: id, name: name, category: .other, target: path, started: time)
+        tool.result = ""
+        tool.ended = time
+        history.append(ChatEntry(id: id, .tool(tool), time: time))
     }
 
     /// An MCP tool's own name, and its first text argument by name.

@@ -195,11 +195,13 @@ and no backslash.
   own name (an MCP tool's last part) and its first text argument by key.
 - Codex's parser reads only whole items (`item_completed`), `task_complete`,
   `turn_aborted`, `error` and `turn_context`. A plan reads as a reply. A
-  subagent is one `agent` row named by its path, from its start to its end.
-  A tool between agents (`wait`) reads as an MCP tool.
+  subagent's start is an `agent` row and each message sent to it an
+  `agent_send` row, named by its path. Its end is no row. A tool between
+  agents (`wait`) reads as an MCP tool.
 - pi's parser reads the calls of a codemode script from its result: each
   call's tool, arguments, time taken and error. They become rows of pi's own
-  tools.
+  tools. pi cuts a large call's arguments at 200 characters; the row then
+  takes the first path, command or pattern left in them.
 - **Markdown:** parsed by Apple's `swift-markdown` (cmark-gfm) and drawn
   with SwiftUI, block by block ([What it looks like](#what-it-looks-like)).
 - **Model and effort.** The model as the agent writes it. The effort is

@@ -145,18 +145,25 @@ private extension ChatHistory {
         #"{"type":"message","id":"b","parentId":"r","message":{"role":"assistant","content":[\#(call)]}}"#,
         #"{"type":"message","id":"s","parentId":"b","message":{"role":"toolResult","toolCallId":"c","content":[],"#
             + #""details":{"calls":[{"id":"c/1","name":"edit","args":"{\"path\":\"/w/b.txt\"}","status":"ok"},"#
-            + #"{"id":"c/2","name":"bash","args":"{\"command\":\"echo cut...","status":"ok"}]}}}"#,
+            + #"{"id":"c/2","name":"bash","args":"{\"command\":\"echo hi\",\"x\":\"cut...","status":"ok"}]}}}"#,
+        // A large call has no arguments in `nestedCalls`, only their size.
+        #"{"type":"message","id":"d","parentId":"s","message":{"role":"assistant","content":[\#(call)]}}"#,
+        #"{"type":"message","id":"e","parentId":"d","message":{"role":"toolResult","toolCallId":"c","content":[],"#
+            + #""details":{"calls":[{"id":"c/1","name":"write","#
+            + #""args":"{\"path\":\"/w/big.md\",\"content\":\"Big..."}]},"#
+            + #""nestedCalls":{"calls":[{"id":"c/1","name":"write","status":"ok","argumentsBytes":16946}]}}}"#,
     ]
     for line in lines {
         #expect(transcript.read(line, end: 0, into: &history))
     }
-    let first = try #require(history.tools.first?.calls), second = try #require(history.tools.last?.calls)
+    let first = try #require(history.tools.first?.calls), second = try #require(history.tools.dropFirst().first?.calls)
     #expect(first.map(\.name) == ["read", "web_fetch"])
     #expect(first[0].category == .read && first[0].target == "a.txt" && first[0].result == "" && !first[0].failed)
     let started = try #require(first[0].started), taken = try #require(first[0].ended?.timeIntervalSince(started))
     #expect(abs(taken - 0.12) < 0.001)
     #expect(first[1].failed && first[1].result == "404" && first[1].output == "404\nNot Found")
     #expect(first[1].target == "u" && first[1].input == "url: u")
-    #expect(second.map(\.name) == ["edit", "bash"] && second[0].target == "b.txt" && second[1].target == "")
-    #expect(ChatTool.summary(history.tools) == "Ran 3 commands, read 1 file, fetched 1 web page, +1 more, 1 failed")
+    #expect(second.map(\.name) == ["edit", "bash"] && second[0].target == "b.txt" && second[1].target == "echo hi")
+    #expect(history.tools.last?.calls.map(\.target) == ["big.md"])
+    #expect(ChatTool.summary(history.tools) == "Ran 4 commands, read 1 file, fetched 1 web page, +2 more, 1 failed")
 }

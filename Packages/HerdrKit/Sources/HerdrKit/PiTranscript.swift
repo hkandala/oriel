@@ -184,6 +184,13 @@ public struct PiTranscript: Sendable {
                         input: ChatHistory.detail(input), started: time)
     }
 
+    /// Arguments as JSON text; cut, the first path, command or pattern it still holds.
+    private static func arguments(_ text: String) -> Any? {
+        let match = text.firstMatch(of: /"(path|command|pattern)":"(?:[^"\\]|\\.)*"/)
+        return (try? JSONSerialization.jsonObject(with: Data(text.utf8)))
+            ?? match.flatMap { try? JSONSerialization.jsonObject(with: Data("{\($0.0)}".utf8)) }
+    }
+
     /// A result as its row says it: lines read, lines changed with the diff, a failed command's exit, else its first
     /// line.
     private func result(_ message: [String: Any], _ blocks: [[String: Any]], call: String, time: Date?) -> Step {
@@ -211,13 +218,13 @@ public struct PiTranscript: Sendable {
             text = ChatHistory.firstLine(content)
         }
         // A codemode script's calls, tools and models alike, as rows of pi's own tools; it tells their time taken and
-        // their arguments: whole in `nestedCalls`, else as JSON text that may be cut.
-        let nested = (message["nestedCalls"] as? [String: Any])?["calls"] ?? details?["calls"]
-        let calls = (nested as? [[String: Any]] ?? []).enumerated().map { index, step in
+        // their arguments: whole in `nestedCalls` unless large, else as JSON text cut at 200 characters in `details`.
+        let cut = details?["calls"] as? [[String: Any]] ?? []
+        let nested = (message["nestedCalls"] as? [String: Any])?["calls"] as? [[String: Any]] ?? cut
+        let calls = nested.enumerated().map { index, step in
             var block = step
-            block["arguments"] = step["arguments"] ?? (step["args"] as? String).flatMap {
-                try? JSONSerialization.jsonObject(with: Data($0.utf8))
-            }
+            let text = step["args"] as? String ?? (cut.indices.contains(index) ? cut[index]["args"] as? String : nil)
+            block["arguments"] = step["arguments"] ?? text.flatMap(Self.arguments)
             let seconds = (step["durationMs"] as? Double ?? 0) / 1000
             var row = tool(block, id: "\(call)/\(index + 1)", time: time?.addingTimeInterval(-seconds))
             row.failed = step["status"] as? String == "error"

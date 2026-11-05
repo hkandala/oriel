@@ -46,8 +46,8 @@ extension OrielUITests {
         XCTAssertFalse(row(pane, "user", "later").exists)
     }
 
-    /// An opened run lists every step in order, as pi writes them: its thinking, then read, write, edit, grep, find,
-    /// ls, bash, codemode with the read its script made, and a subagent.
+    /// An opened run lists every tool call in order, as pi writes them: read, write, edit, grep, find, ls, bash,
+    /// codemode with the read its script made, and agent_start.
     func testAPiRunListsEveryKindOfTool() async throws {
         let pane = try await startChat(agent: 2).pane
         try await say("tools", in: pane)
