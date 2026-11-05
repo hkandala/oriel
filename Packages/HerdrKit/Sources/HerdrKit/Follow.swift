@@ -102,9 +102,11 @@ public extension Exec {
     /// of each skipped one, so the mark still counts the file's bytes. The whole lines go out through `head` from a
     /// seek (`dd … count=0`), and only the rest through `tail`: macOS's `tail` copies 17 MB a second, and a pi session
     /// can pass 100 MB. With nothing to skip, no awk (macOS's passes 30 MB a second). awk reads a pipe that only
-    /// `head`, then `tail` write to (a FIFO opened, then removed at once): the wrapper's kill ends `tail`, or ends
-    /// `head` through the trap (a dropped follow sends no more of its backlog over the relay), and awk ends on its
-    /// EOF. mawk (Debian's and Ubuntu's awk) holds lines until 8 KiB come unless it reads interactively.
+    /// `head`, then `tail` write to (a FIFO opened, then removed at once), and ends on its EOF. The wrapper's kill
+    /// reaches the shell, whose trap ends the job it waits on, `head` or `tail` (a dropped follow sends no more of its
+    /// backlog over the relay). The shell never `exec`s after the trap is set: a kill that came while the trap was
+    /// pending was lost in the `exec`, and that `tail` ran on forever. mawk (Debian's and Ubuntu's awk) holds lines
+    /// until 8 KiB come unless it reads interactively.
     static var followScript: String {
         #"""
         f=$1; case $f in /*) ;; *) f=$HOME/$f ;; esac
@@ -114,15 +116,15 @@ public extension Exec {
         [ "$s" -eq 0 ] || [ -z "$(tail -c +"$s" "$f" | head -c 1)" ] ||
           s=$((s - $(head -c "$s" "$f" | tail -n 1 | wc -c)))
         echo "ovvi-follow $n $o $s"
+        trap 'kill $! 2>/dev/null; exit 143' TERM
         r() { [ "$s" -gt "$o" ] || return 0
-          trap 'kill $! 2>/dev/null; exit 143' TERM
           { dd bs=1 skip="$o" count=0 2>/dev/null; exec head -c $((s - o)); } <"$f" & wait $!; }
-        [ "$4" = 0 ] && { r; exec tail -c +$((s + 1)) -F "$f" 2>/dev/null; }
+        [ "$4" = 0 ] && { r; tail -c +$((s + 1)) -F "$f" 2>/dev/null & wait $!; exit; }
         p=$(mktemp -u "${TMPDIR:-/tmp}/ovvi-follow.XXXXXX") && mkfifo -m 600 "$p" && exec 5<>"$p" 6<"$p" &&
           rm -f "$p" || exit 1
         a=awk; command -v mawk >/dev/null && a="mawk -W interactive"
         LC_ALL=C $a "$4"' { print "ovvi-skip " length($0) + 1; fflush(); next } { print; fflush() }' <&6 5>&- 6<&- &
-        exec 6<&-; r >&5; exec tail -c +$((s + 1)) -F "$f" 2>/dev/null >&5 5>&-
+        exec 6<&-; r >&5; tail -c +$((s + 1)) -F "$f" 2>/dev/null >&5 5>&- & wait $!
         """#
     }
 

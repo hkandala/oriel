@@ -117,6 +117,31 @@ private func lineByLine(_ path: String, from mark: FileMark,
     #expect(after < 10000)
 }
 
+/// A follow dropped just as its backlog ends, as a chat card scrolled past or the app quit, leaves no process: the
+/// wrapper's one kill reached the shell while its trap was pending and it went on to `exec tail`, which lived on.
+@Test(.timeLimit(.minutes(1)), arguments: ["0", "/^skip/"])
+func `a dropped follow leaves no process`(skip: String) async throws {
+    let file = FileManager.default.temporaryDirectory.appending(path: "ovvi-left-\(UUID().uuidString).jsonl")
+    defer { try? FileManager.default.removeItem(at: file) }
+    try Data(("first\n" + String(repeating: "x", count: 300_000) + "\nlast\n").utf8).write(to: file)
+    for _ in 0 ..< 3 {
+        for await line in try await lineByLine(file.path, from: FileMark(), skip: skip) {
+            if case .loaded = line {
+                break
+            }
+        }
+        let end = ContinuousClock.now + .seconds(20)
+        while try await !localExec.output(["pgrep", "-f", file.lastPathComponent]).isEmpty {
+            guard ContinuousClock.now < end else {
+                _ = try? await localExec.output(["pkill", "-f", file.lastPathComponent])
+                Issue.record("the follow's processes outlived the drop")
+                return
+            }
+            try await Task.sleep(for: .milliseconds(50))
+        }
+    }
+}
+
 /// A pi session can pass 100 MB: its backlog loads at `head`'s speed (0.9 s at a load of 15), not at macOS `tail`'s
 /// 17 MB a second (5.3 s). Measured against `tail` on the same file just before, so a busy Mac slows both, from each
 /// one's first line to its last: the follow starts a dozen processes before it reads, `tail` one, and on a starved Mac
