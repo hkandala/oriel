@@ -780,6 +780,56 @@ CI runs and on-demand) at about 2–3 h.
      dimmed capsule and the drop place look right as it scrolls.
   4. With VoiceOver on, move through the tab row: it reads the tabs in view; ⌘1–9 reach the others.
 
+### Track I
+
+- **How measured.** Release builds on this Mac, the user's session copied to `/tmp` and opened with pi in a chat card of
+  a throwaway session, idle, no message sent. An in-app driver (local patch) switched tabs and workspaces in a
+  background window, 1.2 s apart, and logged each switch's main-thread CPU time to the end of the turn that drew it,
+  with counts of the bodies run. The Mac's load was 100–140, so I compared CPU medians of 6–7 switches, before and after
+  in the same hour, and checked each cause with a count. Time Profiler and SwiftUI traces of 14 switches to the chat
+  tab are in `/tmp/oriel-shots/t53i/` (`tp-before`, `tp-lines`, `sui-before`, `sui-after`).
+- **Cause.** An idle chat costs nothing (13–50 ms of main thread per 5 s, as a terminal tab). The cost is each show:
+  the card's views go with its tab, so every switch to the chat builds and lays out its whole block of rows again, each
+  body once. The block was the newest 34 rows: here 31 rows of long replies, 383 Markdown blocks of selectable text
+  (TextKit 2 layout and text selection were about a third of it; SwiftUI's graph and layout the rest). Leaving the chat
+  tore all of that down and took the chat's picture (phase 52's overview tile, 10–20 ms).
+- **Fix.** The block is the newest rows that hold about 120 lines of text (each line break, and each 90 characters,
+  counts as a line), at most 34 rows; Show Earlier adds the next block by the same rule. Here that is 5 rows. A long
+  chat of short rows still gets 34. The block no longer moves its start to a user's message (fewer rules, and a smaller
+  block would lose its turn's last rows to it). D95 and chat-view say so.
+- **Numbers** (main-thread CPU ms, then wall ms; medians):
+
+  | Switch | Before | After |
+  |---|---|---|
+  | terminal tab → terminal tab (the floor) | 32–34, 36–40 | 34, 39–42 |
+  | terminal tab → chat tab | 394, 410 | 124, 131 |
+  | chat tab → terminal tab | 100, 104 | 56, 60 |
+  | workspace → workspace whose active tab is the chat | 430, 438 | 135, 143 |
+  | that workspace → another | 96, 98 | 56, 58 |
+  | the same, with a terminal tab active | 41, 46–50 | 44–48, 48–57 |
+
+- **Tried and dropped.** A host view per chat that the window keeps, as browsers and terminals are kept, adopted by the
+  card when it shows: SwiftUI builds every row again whenever the host view moves to another superview (also within the
+  window, also unhidden), so the cost only moved to after the switch's first frame.
+- **Left, and why.** Two targets hold only in part. A show still costs about 90 ms more than a terminal: the rows in
+  view must be laid out, and this session's last reply alone is a table and 50 lines (SwiftUI keeps no layout of a card
+  that left). And the block holds about one view of rows above the view on purpose, so that the view is full and the
+  user can scroll back a little before Show Earlier. Lines are an estimate: long code lines (they do not wrap) and blank
+  lines count too many, so a block of long logs, or a very tall card, can show the block's top with room above it
+  (a `ponytail:` note says so).
+- **Runs.** The new UI test counts the rows built (the stack's rows in the accessibility tree), then again after Show
+  Earlier and a workspace switch back. Its first version (the count after a switch back) on the old code: 33 rows,
+  red (run 41985315591); at most 10 on the new.
+- **Pictures.** The chat at the bottom looks the same, pixel for pixel: `/tmp/oriel-shots/t53i/before-chat.png`,
+  `/tmp/oriel-shots/t53i/after-chat.png`.
+- **For the user.**
+  1. Open your long session in a chat tab, then switch to another tab and back, and to another workspace and back,
+     a few times: it shows about three times faster than before (124 ms of main thread against 394 here; a terminal
+     tab takes 34).
+  2. In that chat, scroll up: Show Earlier comes after about two views of text (not 34 rows) and adds the next ones in
+     place.
+  3. Scroll up, click Show Earlier, switch away and back: the chat shows its newest rows at the bottom.
+
 ### Final review fixes
 
 - **Docs pass.** The design pages already had most of the phase from the tracks. It added: a Git home commit opens on a

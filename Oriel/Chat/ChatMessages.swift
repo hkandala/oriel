@@ -19,7 +19,7 @@ struct ChatMessages: View, Equatable {
     @State private var width: CGFloat?
     @State private var settling: Task<Void, Never>?
     /// The oldest row shown, kept once the chat left the bottom or Show Earlier moved it up, until the card shows its
-    /// TUI or a new chat starts; nil: the newest `block` rows.
+    /// TUI, leaves view or a new chat starts; nil: the newest rows (`start`).
     @State private var first: String?
     /// Show Earlier's rows are on their way: its spinner shows.
     @State private var earlier = false
@@ -29,10 +29,13 @@ struct ChatMessages: View, Equatable {
     @Environment(\.look) private var look
     private static let end = "end"
     fileprivate nonisolated static let space = "chat.messages"
-    /// The rows a long chat shows at a time, and Show Earlier adds. A split lays them out once, at its end: 40 rows of
-    /// long replies took one frame of 40–50 ms, 100 rows one of 110–160 ms. With every reply shown, 34 rows lay out in
-    /// the time 40 rows of last replies did (the open's worst frame on a 117 MB session: 120 ms; 40 rows: 141 ms).
+    /// The rows a long chat shows at a time, and Show Earlier adds: the newest rows that hold about `budget` lines of
+    /// text (about two views), at most `block` rows. Every show of the card (a tab or workspace switch to it) builds
+    /// and lays them out again: 31 rows of long replies, 383 Markdown blocks, took 394 ms of main thread, and 120 lines
+    /// (5 rows) 124 ms, against 34 ms for a terminal tab. A split lays them out once, at its end: 40 rows of long
+    /// replies took one frame of 40–50 ms, 100 rows one of 110–160 ms.
     private static let block = 34
+    private static let budget = 120
 
     init(chat: Chat, page: Page, floats: Bool, composing: FocusState<Bool>.Binding) {
         self.chat = chat
@@ -113,7 +116,7 @@ struct ChatMessages: View, Equatable {
         return ScrollViewReader { proxy in
             ScrollView {
                 // Not lazy: a lazy stack guessed the height of the rows it had not built, by up to four times, and
-                // after a split showed a blank where it guessed wrong. `block` keeps the layout short.
+                // after a split showed a blank where it guessed wrong. `start` keeps the layout short.
                 VStack(alignment: .leading, spacing: 10) {
                     if start > 0 {
                         earlierButton(loading: loading) { showEarlier(rows, before: start) }
@@ -202,18 +205,26 @@ struct ChatMessages: View, Equatable {
         }
     }
 
-    /// The first of the newest `block` rows, at a user's message near there so its turn shows whole.
+    /// The first of the newest rows that hold about `budget` lines of text, at most `block` rows: the last row always.
     private static func start(_ rows: ArraySlice<ChatRow>) -> Int {
-        let cut = max(rows.startIndex, rows.endIndex - block)
-        guard cut > rows.startIndex else { return cut }
-        let user = rows[cut...].prefix(block / 2).firstIndex {
-            if case .user = $0 {
-                true
-            } else {
-                false
-            }
+        var first = rows.endIndex, total = 0
+        while first > rows.startIndex, rows.endIndex - first < block, total < budget {
+            first -= 1
+            total += lines(rows[first])
         }
-        return user ?? cut
+        return first
+    }
+
+    /// About how many lines a row takes in the reading column: its line breaks, and 90 characters a line.
+    /// ponytail: long code lines (they do not wrap) and blank lines count too many, so a block of long logs, or a very
+    /// tall card, can show the block's top with room above it; take the budget from the scroll view's height if so.
+    private static func lines(_ row: ChatRow) -> Int {
+        switch row {
+        case let .user(_, text), let .reply(_, text):
+            1 + text.utf8.count / 90 + text.utf8.count { $0 == UInt8(ascii: "\n") }
+        case let .todos(_, todos): todos.count + 1
+        default: 2
+        }
     }
 
     /// Down to the newest message, over the messages' bottom: above the reply box.

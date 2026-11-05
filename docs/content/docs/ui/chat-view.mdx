@@ -411,12 +411,19 @@ A run is one quiet line with no card: its summary and a chevron.
   at the bottom, and fade in under the header. In a floating window they
   start 28 pt under the title row, not 16 pt, because the card has no header
   there.
-- **Scrolling.** The messages are a plain stack that starts with the newest 34 rows, not
-  a lazy one: every row is built, so every height is
-  real, and an open, a split and Scroll to Bottom land exactly. (A lazy
-  stack guessed the heights of rows it had not built, and after a split
-  showed a blank where it guessed wrong.) The block starts at a user's
-  message near its cut, so its turn shows whole.
+- **Scrolling.** The messages are a plain stack, not a lazy one: every row
+  in it is built, so every height is real, and an open, a split and Scroll
+  to Bottom land exactly. (A lazy stack guessed the heights of rows it had
+  not built, and after a split showed a blank where it guessed wrong.)
+- **The newest rows.** The stack starts with a block of the newest rows:
+  the rows that hold about 120 lines of text, at most 34 rows. Each line
+  break counts as a line, and so does each 90 characters of text. A tool
+  row, Worked or a note counts as 2 lines, and a plan as its items plus 1.
+  120 lines are about two views of text, so the block fills a usual view.
+  Each time the card shows (a switch to its tab or workspace), the app
+  builds the block and lays it out again, so the block's size is the cost
+  of the switch. (34 rows of long replies took 394 ms of the main thread
+  on a switch; 120 lines take about 124 ms, and a terminal tab 34 ms.)
 - **The bottom.** One rule holds the bottom: the scroll view's bottom
   anchor (SwiftUI's `defaultScrollAnchor(.bottom)`). The chat opens at the
   bottom. Exactly at the bottom, it stays there as messages come and as the
@@ -424,10 +431,12 @@ A run is one quiet line with no card: its summary and a chevron.
   messages come below without moving what is in view. Nothing else moves
   the scroll as it nears or leaves the bottom, so a slow trackpad scroll
   moves the messages exactly as far as the fingers.
-- **Rows stay.** At the bottom the stack shows the newest 34 rows. Once the
+- **Rows stay.** At the bottom the stack shows the newest block. Once the
   chat leaves the exact bottom, the oldest row shown is fixed: new rows no
-  longer take rows off the top. The rows stay shown until the card closes
-  or shows its TUI, or a new chat starts.
+  longer take rows off the top. The rows stay shown until the card leaves
+  view (it closes, or another tab or workspace shows) or shows its TUI, or
+  a new chat starts. When the card shows again, it shows the newest block
+  at the bottom.
 - **The place on the top row.** Scrolled up, the app knows the row at the
   top of the view and how far the view's top is into it. When the rows
   above that row change height (a new width) or come (Show Earlier), the
@@ -439,11 +448,11 @@ A run is one quiet line with no card: its summary and a chevron.
 - **Show Earlier.** When a chat has older rows, a glass pill "Show Earlier"
   (12 pt, 28 pt tall) is the stack's first row, centered, with the
   messages' top padding above it and the rows' 10 pt gap under it. A click
-  shows a small spinner in place of its words, and the next block of 34
-  comes above on the next run loop turn, so the spinner draws before the
-  rows lay out. The rows in view stay where they are (the place on the top
-  row). The rows it
-  adds stay when the chat scrolls back to the bottom.
+  shows a small spinner in place of its words, and the next block (the same
+  rule: about 120 lines, at most 34 rows) comes above on the next run loop
+  turn, so the spinner draws before the rows lay out. The rows in view stay
+  where they are (the place on the top row). The rows it adds stay when the
+  chat scrolls back to the bottom.
 - **Resizing.** A narrow card (under 824 pt, where the column narrows too)
   lays its messages out at its new width once the width stops changing for
   150 ms, as a terminal does: a split's motion or a drag wraps the text once,
