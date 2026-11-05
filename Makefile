@@ -5,8 +5,11 @@ DERIVED_DATA ?= .build/DerivedData
 XCODEBUILD := xcodebuild -project Oriel.xcodeproj -scheme Oriel -derivedDataPath $(DERIVED_DATA)
 MAC := -destination 'platform=macOS,arch=$(shell uname -m)'
 comma := ,
-# Swift's warnings-as-errors leaves some concurrency warnings as warnings: any warning in our own sources fails.
-NOWARN := | awk '{ print } index($$0, "$(CURDIR)/") && / warning: / { w = 1 } END { exit w }'
+# Swift's warnings-as-errors leaves some concurrency warnings as warnings: any warning in our own sources fails. Matched
+# by the path in the repo, since the compiler prints a symlinked path (/tmp) where CURDIR is the real one; the warned
+# files are touched so the next build compiles them again and fails again (Xcode does not replay warnings).
+NOWARN := | awk '{ print } /(^|\/)(Oriel|OrielUITests|Packages)\/[^:]*:[0-9]+:[0-9]+: warning: / { w = 1; \
+	split($$0, at, ":"); warned[at[1]] } END { for (f in warned) system("touch -c \"" f "\""); exit w }'
 BEAUTIFY := $(if $(shell command -v xcbeautify),| xcbeautify $(if $(CI),--renderer github-actions))
 
 setup:
