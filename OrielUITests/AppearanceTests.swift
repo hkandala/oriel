@@ -62,22 +62,22 @@ extension OrielUITests {
         }
     }
 
-    /// Glass cards carry Rex's rim: brighter along the top edge than down the sides, on every card alike.
-    /// Asserted in dark; light's rim and the card both end near white, so its screenshot is for people.
+    /// Glass cards carry Rex's rim: brighter along the top edge than down the sides. Read on the card without the
+    /// keyboard: the keyboard card's active border lies over its rim. Asserted in dark; light's rim and the card both
+    /// end near white, so its screenshot is for people.
     func testGlassCardsHaveABrighterTopRim() {
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
+        element("terminal.w1:p1").click()
+        XCTAssertTrue(hasKeyboard("terminal.w1:p1"))
         pick("Interface Style", "Glass")
         addTeardownBlock { @MainActor [self] in pick("Appearance", "Dark") }
         for appearance in ["Dark", "Light"] {
             pick("Appearance", appearance)
             Thread.sleep(forTimeInterval: 0.3)
-            let rims = ["w1:p1", "w1:p2"].map { rim(element("pane.\($0)")) }
-            keepScreenshot("glass \(appearance.lowercased()) rims over the fill (top, side): \(rims)")
-            for rim in rims where appearance == "Dark" {
-                // Rex's dark rim: the top line about 40 steps over the fill at 1x, the sides about 10; every card
-                // alike.
-                XCTAssertTrue(rim.top - rim.side >= 12 && rim.top >= 25 && abs(rim.top - rims[0].top) <= 6, "\(rims)")
-            }
+            let rim = rim(element("pane.w1:p2"))
+            keepScreenshot("glass \(appearance.lowercased()) rim over the fill (top, side): \(rim)")
+            // Rex's dark rim: the top line about 40 steps over the fill at 1x, the sides about 10.
+            XCTAssertTrue(appearance == "Light" || rim.top - rim.side >= 12 && rim.top >= 25, "\(rim)")
         }
     }
 

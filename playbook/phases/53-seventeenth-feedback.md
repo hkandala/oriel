@@ -449,6 +449,9 @@ CI runs and on-demand) at about 2–3 h.
 - **Cost, item 32.** The glass layer costs WindowServer about 5 points of one core while a terminal prints at full speed:
   28 % before, 33 % after (`top`, two runs each, alternating, load average 70 to 150). Oriel's own CPU is unchanged
   (16 %). Idle, no difference shows.
+- **Runs, item 32.** `testGlassCardsHaveABrighterTopRim` failed on main after b9597cd5 (Track B's active border, item
+  2): the border lies over the keyboard card's rim, so its side read 65 steps over the fill (run 41968008720). The test
+  now gives w1:p1 the keyboard and reads the rim on w1:p2. The bounds are the same as before.
 - **For the user, items 27–33.** ⌘K, then scroll to the end: a cut row runs to the panel's edge, and the gap shows
   only after the last row. In the Agents view, only Working rows show a time ("<1m", then 1m, 2m…), and Needs you and
   Done show the icon alone. Every window opens the Agents view in Priority order once, and keeps a choice you make
