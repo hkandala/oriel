@@ -411,6 +411,22 @@ what differs unless a card needs it otherwise, and give the reason in Findings.
       looked at stays Done.
     - A UI test: an agent finishes, the user opens it (it stays under Done), selects another agent (it moves to Idle).
 
+## Track M: a flicker at the end of a session swipe (item 46)
+
+46. **No flicker when a session slides in.** Scrawl capture `scrawl-1793877050856-1c27-3` (in
+    `~/Library/Application Support/scrawl/captures/`): "so let me have multiple sessions. And then I do swipe between
+    them, there is a slide flicker at the end of the animation, if you notice. I'm doing this multiple times so I can
+    capture what I'm trying to say. Yeah, this was not there before. I don't know. I think this has started recently.
+    Let's investigate and fix this."
+    - The page that slides in shows a Claude Code chat card. In the capture's frames 2 and 3, its rows sit at
+      different scroll places at the end of the slide, so the chat seems to jump. The user's installed build is
+      `efa26b24`, so the cause landed by then. Suspects: phase 52's place keeping (`d404044c`: rows report their top
+      in a named space, and a new top restores the place) reacting to the page moving, and the bottom anchor.
+    - Reproduce on a build at `efa26b24` and on main, with two sessions and a long chat card, swiping (⌥ +
+      two-finger swipe and the session keys). Record at 120 fps, and bisect if the cause is not plain.
+    - Fix it at the cause. A page that moves is not a new width: nothing in a card moves at the end of a slide.
+    - A UI test that counts scroll changes during a session switch, and before/after recordings.
+
 ## Research, plans only (items 34–38, 42, 43)
 
 No code changes. Each report is one self-contained HTML file in `/tmp/oriel-research/`, copied to
@@ -474,6 +490,7 @@ The tracks run in parallel, each in its own worktree. Estimates are in agent hou
 | J, missing agents | 41 | 2 h |
 | K, New Pane's folder | 44 | 3 h |
 | L, a seen Done | 45 | 1.5 h |
+| M, session swipe flicker | 46 | 2 h |
 
 - D and E both touch `plugins/explorer`: D owns the tree and its header, and E owns the file cards. Each bumps
   File Explorer's version when it lands, rebasing on the other.
