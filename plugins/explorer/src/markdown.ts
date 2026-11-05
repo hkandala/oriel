@@ -1,29 +1,55 @@
-// The Markdown place: one CodeMirror view of the file in both modes, drawn as rendered Markdown (a live preview,
-// live.ts). Read is the view not editable with every line drawn; Edit puts back the marks of the caret's lines. So a
-// switch moves nothing on screen but the caret's line. The outline lists the headings; row 2 picks the mode and the
-// outline (its toggle shows only while the file has a heading), and the page sets them when it changes them itself.
+// The Markdown place: one CodeMirror view of the file in four modes. Read and Live Edit draw it as rendered Markdown (a
+// live preview, live.ts): Read is the view not editable with every line drawn; Live Edit puts back the marks of the
+// caret's lines, so a switch between them moves nothing on screen but the caret's line. Source draws the file as code
+// cards do; Side by Side puts the rendered page beside Source (split.ts). The outline lists the headings; row 2 picks
+// the mode and the outline (its toggle shows only while the file has a heading), and the page sets them when it
+// changes them itself.
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown"
 import { yamlFrontmatter } from "@codemirror/lang-yaml"
 import { ensureSyntaxTree, syntaxTree, syntaxTreeAvailable } from "@codemirror/language"
 import { closeSearchPanel } from "@codemirror/search"
 import { Compartment, EditorState, Prec } from "@codemirror/state"
 import { EditorView } from "@codemirror/view"
-import { type Editor, editor } from "./editor"
+import { code, type Editor, editor } from "./editor"
 import { containers, editing, live, referenceField, ticked } from "./live"
-import { how, open, type Place, type Reveal } from "./place"
+import { how, open, type Place, type Reveal, symbols } from "./place"
+import { sideBySide } from "./split"
+
+type Mode = "read" | "live" | "source" | "split"
+const MODES: Mode[] = ["read", "live", "source", "split"]
+/** The card's mode, the last its Markdown pages showed: a page shown anew or again shows it. */
+let cardMode: Mode | undefined
 
 /** GitHub's anchor of a heading's text, for `#` links. */
 const slug = (text: string) => text.trim().toLowerCase().replace(/[^\p{L}\p{N}\s_-]/gu, "").replace(/\s/g, "-")
 
-/** Read: no text box for VoiceOver, an article; read only, so a drag, a drop or a cut changes nothing. */
-const mode = (edit: boolean) => [
+/** Read: no text box for VoiceOver, an article; a drop changes nothing. Not read only: the editor's read only is
+ *  the file's (`editor`), and a tick in Read writes. */
+const markdownMode = (edit: boolean) => [
   EditorView.editable.of(edit),
-  EditorState.readOnly.of(!edit),
-  edit ? [] : Prec.highest(EditorView.contentAttributes.of({ role: "article", "aria-readonly": "true" })),
+  edit ? [] : [
+    Prec.highest(EditorView.contentAttributes.of({ role: "article", "aria-readonly": "true" })),
+    EditorView.domEventHandlers({ drop: (event) => (event.preventDefault(), true) }),
+  ],
 ]
 const modeClass = EditorView.editorAttributes.compute([EditorView.editable], (state) => ({
   class: editing(state) ? "" : "cm-reading",
 }))
+/** Read's and Live Edit's look, and Side by Side's page: prose in the system font at the mockup's 14 pt (the app's
+ *  13 pt text size plus one), over the shared monospace, in a 640 pt column. */
+const rendered = [
+  live,
+  modeClass,
+  Prec.highest(EditorView.theme({
+    "&": { fontSize: "calc(var(--font-size) + 1px)" },
+    ".cm-scroller": { fontFamily: "system-ui", lineHeight: "1.55", outline: "none" },
+    ".cm-content": { boxSizing: "border-box", maxWidth: "640px", margin: "0 auto", padding: "28px 24px 48px" },
+    "&.cm-reading .cm-activeLine": { background: "none" },
+    ".cm-frontmatter, .cm-frontmatter *": {
+      fontFamily: "ui-monospace, monospace", fontSize: "12px", color: "var(--dim)",
+    },
+  })),
+]
 /** The headings in the editor's syntax tree, at the top level, in lists and in quotes: their line and text. */
 function headings(state: EditorState, tree = syntaxTree(state)) {
   const found: { from: number; level: number; text: string }[] = []
@@ -70,32 +96,51 @@ export async function show(place: Place): Promise<Reveal> {
   outline.hidden = true
   outline.toggleAttribute("data-closed", true)
   root.append(outline, pane)
+  // The card's mode: as another Markdown page left it, else as row 2 kept it (a relaunch).
+  const kept = oriel.controls.get("mode") as Mode, first = cardMode ?? (MODES.includes(kept) ? kept : "read")
+  let mode: Mode = "read"
+  /** Every mode but Read edits; ⌘E goes back to the last one. */
   let edit = false
+  let lastEdit: Mode = first === "read" ? "live" : first
   let outlined = false
   /** The file has a heading: the outline's toggle shows only then. */
   let titled = false
-  const editable = new Compartment()
+  const editable = new Compartment(), look = new Compartment()
+  /** Side by Side's page, while it shows. */
+  let split: ReturnType<typeof sideBySide> | undefined
+  keep(() => split?.destroy())
 
-  /** Shows Read or Edit and the outline or not, and sets row 2 and Edit Mode to match. */
-  function present(view: EditorView, nowEdit: boolean, nowOutlined: boolean) {
-    if (nowEdit !== edit) {
+  /** Shows the mode and the outline or not, and sets row 2 and Edit Mode to match. */
+  function present(view: EditorView, now: Mode, nowOutlined: boolean) {
+    const nowEdit = now !== "read", coded = (each: Mode) => each === "source" || each === "split"
+    if (now !== mode) {
       // Read keeps no selection drawn, nor a search panel (its Replace would write).
       if (!nowEdit) closeSearchPanel(view)
       const selection = nowEdit ? undefined : { anchor: view.state.selection.main.head }
-      view.dispatch({ selection, effects: editable.reconfigure(mode(nowEdit)) })
+      const effects = [editable.reconfigure(markdownMode(nowEdit)), look.reconfigure(coded(now) ? source : rendered)]
+      // A new look keeps the line at the top in place.
+      if (coded(now) !== coded(mode)) {
+        const top = view.lineBlockAtHeight(view.scrollDOM.scrollTop - view.documentPadding.top).from
+        effects.push(EditorView.scrollIntoView(top, { y: "start" }))
+      }
+      view.dispatch({ selection, effects })
+      split?.destroy()
+      split = now === "split" ? sideBySide(view, pane, page) : undefined
     }
+    mode = cardMode = now
     edit = nowEdit
+    if (edit) lastEdit = mode
     outlined = nowOutlined && titled
     outline.hidden = false
     outline.toggleAttribute("data-closed", !outlined)
     if (outlined) list(view, all(view.state))
     focus(view)
-    oriel.controls.set("mode", { value: edit ? "edit" : "read" })
+    oriel.controls.set("mode", { value: mode })
     oriel.controls.set("outline", { value: outlined })
     oriel.controls.set("edit-mode", { enabled: true, checked: edit })
   }
 
-  /** Edit's editor takes the keyboard; Read's page, so the keys scroll it. */
+  /** An edit mode's editor takes the keyboard; Read's page, so the keys scroll it. */
   function focus(view: EditorView) {
     if (edit) view.focus()
     else view.scrollDOM.focus({ preventScroll: true })
@@ -107,12 +152,12 @@ export async function show(place: Place): Promise<Reveal> {
     if (now !== titled) {
       titled = now
       oriel.controls.set("outline", { hidden: !titled })
-      if (!titled && outlined) present(view, edit, false)
+      if (!titled && outlined) present(view, mode, false)
     }
     if (outlined) list(view, found)
   }
 
-  /** The outline's rows; a click scrolls to its heading, and in Edit puts the caret there. */
+  /** The outline's rows; a click scrolls to its heading, and in an edit mode puts the caret there. */
   function list(view: EditorView, found: ReturnType<typeof headings>) {
     outline.replaceChildren(...found.map((heading) => {
       const row = document.createElement("button")
@@ -132,9 +177,9 @@ export async function show(place: Place): Promise<Reveal> {
   function follow(view: EditorView, event: MouseEvent) {
     const link = (event.target as Element).closest("a")
     if (!link) return false
-    // In Edit too: a table's `href=""` link would load the page again and lose the edits.
+    // In Live Edit too: a table's `href=""` link would load the page again and lose the edits.
     event.preventDefault()
-    if (edit) return false
+    if (editing(view.state)) return false
     const target = link.getAttribute("href") ?? ""
     if (target.startsWith("#")) {
       let anchor = target.slice(1)
@@ -161,38 +206,38 @@ export async function show(place: Place): Promise<Reveal> {
     return true
   }
 
-  // Read with the outline closed until the file shows.
-  oriel.controls.set("mode", { value: "read" })
+  // The outline closed until the file shows.
+  oriel.controls.set("mode", { value: first })
   oriel.controls.set("outline", { value: false })
   oriel.controls.set("edit-mode", { enabled: true, checked: false })
+  symbols(oriel, ["chevron.left", "chevron.right"])
   let shown: Editor
   /** The saves of Read's ticks, one after the other: a save under way skips a second one. */
   let ticks = Promise.resolve()
-  // Before the editor's own: ⌘F, ⌘G and ⇧⌘G in Read show Edit, where the search panel is.
-  for (const name of ["find", "findNext", "findPrevious"] as const) {
-    oriel.on(name, () => shown && !edit && present(shown.view, true, outlined))
-  }
+  // Before the editor's own: ⌘F, ⌘G and ⇧⌘G in Read show the last edit mode, where the search panel is; ⌥⌘F too.
+  const finding = () => shown && !edit && present(shown.view, lastEdit, outlined)
+  for (const name of ["find", "findNext", "findPrevious"] as const) oriel.on(name, finding)
+  const replacing = (event: KeyboardEvent) =>
+    place.shown() && event.code === "KeyF" && event.metaKey && event.altKey && finding()
+  addEventListener("keydown", replacing)
+  keep(() => removeEventListener("keydown", replacing))
+  // Front matter as YAML, not as a rule and a heading.
+  const language = yamlFrontmatter({ content: markdown({ base: markdownLanguage }) })
+  const links = EditorView.domEventHandlers({ click: (event, view) => follow(view, event) })
+  /** Source: the file as code cards draw it. */
+  const source = [code, Prec.highest(EditorView.theme({ ".cm-content": { paddingBottom: "48px" } }))]
+  /** Side by Side's page: Read's look, its links and its ticks. */
+  const page = [language, rendered, markdownMode(false), EditorView.lineWrapping, links]
   shown = await editor(place, [
-    // Front matter as YAML, not as a rule and a heading.
-    yamlFrontmatter({ content: markdown({ base: markdownLanguage }) }),
-    live,
-    modeClass,
-    editable.of(mode(false)),
+    language,
+    look.of(rendered),
+    editable.of(markdownMode(false)),
     EditorView.lineWrapping,
-    EditorView.domEventHandlers({ click: (event, view) => follow(view, event) }),
-    // Prose in the system font at the mockup's 14 pt (the app's 13 pt text size plus one), over the shared monospace.
-    Prec.highest(EditorView.theme({
-      "&": { fontSize: "calc(var(--font-size) + 1px)" },
-      ".cm-scroller": { fontFamily: "system-ui", lineHeight: "1.55", outline: "none" },
-      ".cm-content": { boxSizing: "border-box", maxWidth: "640px", margin: "0 auto", padding: "28px 24px 48px" },
-      "&.cm-reading .cm-activeLine": { background: "none" },
-      ".cm-frontmatter, .cm-frontmatter *": {
-        fontFamily: "ui-monospace, monospace", fontSize: "12px", color: "var(--dim)",
-      },
-    })),
+    links,
     EditorView.updateListener.of((update) => {
-      // A box ticked in Read is saved at once, as the card's ⌘S, after any save under way; in Edit it waits for ⌘S
-      // as any edit.
+      split?.follow(update)
+      // A box ticked in Read is saved at once, as the card's ⌘S, after any save under way; in an edit mode it waits
+      // for ⌘S as any edit.
       if (!edit && update.transactions.some((tr) => tr.annotation(ticked))) ticks = ticks.then(() => shown?.save())
       // Also as the background parse reaches more headings.
       if (update.docChanged || syntaxTree(update.startState) !== syntaxTree(update.state)) {
@@ -206,6 +251,7 @@ export async function show(place: Place): Promise<Reveal> {
   // None when the file is too large to show: the info view is there instead, and Edit Mode does nothing.
   if (!shown) {
     oriel.controls.set("edit-mode", { enabled: false })
+    oriel.controls.set("mode", { hidden: true })
     return undefined
   }
   const { view, land } = shown
@@ -220,19 +266,21 @@ export async function show(place: Place): Promise<Reveal> {
   document.addEventListener("copy", copy)
   keep(() => document.removeEventListener("copy", copy))
   oriel.on("control", ({ id, value }) => {
-    if (id === "mode") present(view, value === "edit", outlined)
-    else if (id === "outline") present(view, edit, value === true)
-    else if (id === "edit-mode") present(view, !edit, outlined)
+    if (id === "mode" && MODES.includes(value as Mode)) present(view, value as Mode, outlined)
+    else if (id === "outline") present(view, mode, value === true)
+    else if (id === "edit-mode") present(view, edit ? "read" : lastEdit, outlined)
   })
   titles(view, all(view.state))
-  // A linked open at a line (a diff's): Edit, with the caret there (`editor`). Back's landing is a path.
-  present(view, Number(place.at) >= 1, false)
+  // A linked open at a line (a diff's): an edit mode, with the caret there (`editor`). Back's landing is a path.
+  present(view, Number(place.at) >= 1 && first === "read" ? lastEdit : first, false)
+  // A kept page shown again (Back, Forward, a link) takes the card's mode.
+  oriel.on("place", () => cardMode && present(view, cardMode, outlined))
   // The app gives the card the keyboard: after the editor's own handler, Read's page takes it.
   const take = () => place.shown() && focus(view)
   addEventListener("focus", take)
   keep(() => removeEventListener("focus", take))
   return (at) => {
-    if (Number(at) >= 1 && !edit) present(view, true, outlined)
+    if (Number(at) >= 1 && !edit) present(view, lastEdit, outlined)
     land(at)
   }
 }

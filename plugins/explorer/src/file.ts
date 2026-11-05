@@ -1,43 +1,10 @@
 // File: the card's file in CodeMirror with its language's colors, and the breadcrumbs `repo › … › file › {} symbol`.
-import { HighlightStyle, StreamLanguage, type StreamParser, syntaxHighlighting, syntaxTree } from "@codemirror/language"
+import { StreamLanguage, type StreamParser, syntaxTree } from "@codemirror/language"
 import { type EditorState, type Extension, RangeSetBuilder } from "@codemirror/state"
-import {
-  Decoration,
-  type DecorationSet,
-  EditorView,
-  highlightActiveLineGutter,
-  lineNumbers,
-  ViewPlugin,
-  type ViewUpdate,
-} from "@codemirror/view"
+import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from "@codemirror/view"
 import type { SyntaxNode } from "@lezer/common"
-import { tags } from "@lezer/highlight"
-import { editor } from "./editor"
+import { code, editor } from "./editor"
 import { name, type Place, type Reveal } from "./place"
-
-/** One color per look: the card's `color-scheme` picks the side. */
-const color = (light: string, dark: string) => `light-dark(${light}, ${dark})`
-
-/** The diff's colors: @pierre/diffs' default Shiki themes, Pierre Light and Pierre Dark (@pierre/theme), by the
- *  TextMate scope each tag stands for. */
-const highlight = HighlightStyle.define([
-  { tag: [tags.keyword, tags.modifier, tags.controlKeyword, tags.operatorKeyword], color: color("#d32a61", "#ff678d") },
-  { tag: [tags.string, tags.special(tags.string)], color: color("#199f43", "#5ecc71") },
-  { tag: tags.regexp, color: color("#17a5af", "#64d1db") },
-  { tag: tags.escape, color: color("#16a994", "#61d5c0") },
-  { tag: [tags.number, tags.bool, tags.null, tags.atom], color: color("#1ca1c7", "#68cdf2") },
-  { tag: [tags.comment, tags.meta], color: "#737373" },
-  { tag: [tags.typeName, tags.className], color: color("#a631be", "#d568ea") },
-  { tag: [tags.namespace, tags.self, tags.constant(tags.variableName)], color: color("#d5901c", "#ffab16") },
-  { tag: [tags.function(tags.variableName), tags.function(tags.propertyName)], color: color("#693acf", "#9d6afb") },
-  { tag: [tags.variableName, tags.propertyName], color: color("#d47628", "#ffa359") },
-  { tag: [tags.operator, tags.definitionOperator, tags.compareOperator], color: "#08c0ef" },
-  { tag: [tags.punctuation, tags.bracket, tags.separator], color: "#636363" },
-  { tag: [tags.tagName, tags.heading], color: color("#d5512f", "#ff855e") },
-  { tag: tags.attributeName, color: color("#18a46c", "#60d199") },
-  { tag: tags.annotation, color: color("#1a85d4", "#69b1ff") },
-  { tag: tags.invalid, color: "var(--error)" },
-])
 
 const legacy = (parser: Promise<StreamParser<unknown>>) => parser.then((p) => StreamLanguage.define(p))
 
@@ -159,9 +126,7 @@ export async function show(place: Place): Promise<Reveal> {
     oriel.controls.set("jump", { value: [...trail, ...(scope ? [scope] : [])], symbol: scope ? "curlybraces" : "" })
   let last = ""
   const shown = await editor(place, [
-    lineNumbers(),
-    highlightActiveLineGutter(),
-    syntaxHighlighting(highlight),
+    code,
     EditorView.lineWrapping,
     hanging,
     await language(arg),

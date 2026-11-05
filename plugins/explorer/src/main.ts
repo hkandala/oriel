@@ -5,6 +5,7 @@
 import type { Oriel } from "@oriel/plugin-api"
 import "./explorer.css"
 import "./files.css"
+import "./find.css"
 import "./markdown.css"
 import "./preview.css"
 import { kind, type Place, type Reveal, trail } from "./place"

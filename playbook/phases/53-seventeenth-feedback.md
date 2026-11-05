@@ -563,3 +563,47 @@ CI runs and on-demand) at about 2–3 h.
   2. With two panes, click each: the active one has a thin light border (dark) or grey border (light); with one pane,
      or when zoomed, none. Check Glass and Classic.
   3. Drag a tab to another place and let go: it stays where you dropped it, with no slide back and no blink.
+### Track E
+
+- **Cause, Show in File Explorer (14).** The button went to the last tree the card had shown that held the file, and
+  a card that started on `~/` always matched that first. **Fix:** it now roots the tree at the file's own folder;
+  the tree's `reveal` selects the file and scrolls it into view (`focusPath` and `scrollToPath`).
+- **One row 2 (19, 15).** File, Preview and Markdown share the manifest's order: Back, Forward, the outline toggle
+  (Markdown, only while the file has a heading; it was disabled before), the breadcrumbs; then Preview's page and
+  zoom, Show in File Explorer, the mode, Open With. The breadcrumbs start at the repository's root (its name first),
+  else `~`, else `/`, for every kind; Preview's absolute dim path is gone. git names a root with links resolved, so a
+  `/private` prefix is stripped to match `/tmp/…`. ponytail: the home folder is found by its usual place
+  (`/Users/<name>`, `/home/<name>`, `/root`).
+- **Decisions, narrow cards.** In a 360 pt card the row had no room left for the breadcrumbs (they showed as `t…` or
+  nothing). The mode menu shows its symbol alone (a new menu `"style": "icon"`, the mode's name in the tooltip and
+  in VoiceOver's value). Open With keeps its full name: a Menu let free to shrink clipped at the card's edge instead
+  of cutting its name. In a narrow PDF card the breadcrumbs still give way to the page and zoom buttons.
+- **Find bar (13).** CodeMirror's own panel was a band of HTML buttons and checkboxes over the text. A custom panel
+  draws the terminal's ⌘F bar: a 32 pt capsule floating at the top right (no line pushed down), the field, the
+  count ("3 of 12"), Match Case, Whole Word and Regular Expression as SF Symbol toggles, Previous, Next, Close. The
+  first match is selected as you type. **Decision:** ⌥⌘F (Find and Replace) is the page's own key: no menu item
+  has it, and the find bar is per card.
+- **Markdown's modes (18).** One editor with two compartments (editable, look) gives Read, Live Edit and Source;
+  Side by Side adds a second CodeMirror view of the same text (`split.ts`), kept in step by passing each view's
+  changes to the other under an annotation that stops the echo. They scroll together by source line; the side the
+  user last scrolled, clicked or typed in leads (not hover, which broke typing under a resting pointer). The mode is
+  the header control's value, so the card keeps it through other files, Back, and relaunches.
+- **Cause, a mode pick that did not show.** The runtime keeps each page's controls and sends a page's change only when
+  it differs from that record. A menu pick reached the record at once, but the app does not store a menu's value (the
+  page does), so the page's own set of the picked value was dropped and the menu kept "Read". The runtime now also
+  sends a change the app's header was not told yet.
+- **Cause, typed letters lost in the find field.** CodeMirror's `findNext` selects the field's text after each step,
+  so the next letter replaced the query ("w = 4" became "4"). Typing selects the first match itself.
+- **Decisions, keys.** No ⌘1–⌘4 for the modes: they are the app's Show Tab 1–9 jumps, and ⌃⌘, ⌥⌘ and ⇧⌘ digits are
+  taken too (workspaces, sessions, screenshots). ⌘E switches Read and the last edit mode; it is listed in View ▸ Edit
+  Mode and the palette, not in the mode menu (no hint text in the UI).
+- **Task boxes (26).** 0.95 em → 1.1 em (13.3 → 15.4 px at the 14 px prose size), not 1.15: the box sits in the
+  bullet's 1.1 em slot, and a wider box pushed the first line 0.05 em right of its wrapped lines.
+- **Pictures** in `/tmp/oriel-shots/t53e/`: `before-{dark,light}.png`, `step1-after-{dark,light}.png` (the row),
+  `step2-after-{dark,light}.png` (Side by Side and Source), `find-replace-dark.png`,
+  `markdown-side-by-side-dark.png` (from the UI tests).
+- **For the user:** open a code file, an image and a Markdown file from a repository and from `~/Downloads`: the
+  breadcrumbs start at the repository's name or at `~`. Show in File Explorer on a deep file: the tree's root is its
+  folder, the file selected. ⌘F in a code card, then ⌥⌘F: the capsule, the toggles, Replace and All. In Markdown,
+  pick each mode; in Side by Side scroll each half (the other follows), tick a box in the preview (the source
+  changes, the dot shows), fold and unfold the preview. Check the task box size on the Retina screen.

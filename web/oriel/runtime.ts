@@ -106,10 +106,18 @@ const card: Card = {
   },
 }
 
+/** Each control as the page last set it in the app. A menu pick reaches the page's record of it, not the app's (the
+ *  page sets a menu's value), so a page setting the picked value must still send it. */
+const sent = new Map<string, Record<string, unknown>>()
+/** The change says something the app's header was not told. */
+const news = (id: string, change: Record<string, unknown>) => !same({ ...sent.get(id), ...change }, sent.get(id))
+
 const controls: Controls = {
   get: (id) => context.controls[id],
   set(id, change) {
     if (change.value !== undefined) context.controls[id] = change.value
+    const { focus, refused, ...rest } = change
+    sent.set(id, { ...sent.get(id), ...rest })
     tell("controls.set", { id, change })
   },
 }
@@ -247,7 +255,7 @@ function make(arg: string, at?: string): Kept {
           const { focus, refused, ...rest } = change
           const was = kept.controls.get(id) ?? {}, next = { ...was, ...rest }
           kept.controls.set(id, next)
-          if (current === kept && (focus || refused || !same(next, was))) controls.set(id, change)
+          if (current === kept && (focus || refused || !same(next, was) || news(id, rest))) controls.set(id, change)
         },
       } satisfies Controls,
     },
@@ -323,9 +331,9 @@ function present(kept: Kept, again?: { arg: string; at?: string }) {
     kept.shownOnce = true
     for (const [id, value] of Object.entries(context.controls)) kept.controls.set(id, { value, ...kept.controls.get(id) })
   }
-  // Only what differs from the page before.
+  // Only what differs from the page before, or from what the app's header was told.
   for (const [id, change] of kept.controls) {
-    if (!same(change, old?.controls.get(id))) controls.set(id, change)
+    if (!same(change, old?.controls.get(id)) || news(id, change)) controls.set(id, change)
   }
   for (const fn of kept.due) fn()
   kept.due.clear()

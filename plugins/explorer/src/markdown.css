@@ -203,3 +203,57 @@ nav button:hover {
 .cm-md-block img {
   max-width: 100%;
 }
+
+/* Side by Side (split.ts): Source, the divider with its fold button, the rendered page. */
+main:has(> .split-divider) {
+  display: flex;
+}
+main:has(> .split-divider) > .cm-editor {
+  flex: 1;
+  min-width: 0;
+}
+/* Over CodeMirror's own `display: flex !important`. */
+main[data-folded] > .cm-editor:last-child {
+  display: none !important;
+}
+.split-divider {
+  flex: none;
+  position: relative;
+  z-index: 1;
+  width: 1px;
+  background: var(--divider);
+}
+/* Placed by offsets, not a transform: VoiceOver's frame of the button follows them. */
+.split-fold {
+  position: absolute;
+  top: calc(50% - 16px);
+  left: -8px;
+  width: 16px;
+  height: 32px;
+  padding: 0;
+  border: 0.5px solid var(--divider);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--dim);
+}
+.split-fold:hover {
+  color: var(--text);
+}
+.split-fold::before {
+  content: "";
+  display: block;
+  width: 10px;
+  height: 10px;
+  margin: auto;
+  background: currentColor;
+  -webkit-mask: var(--sf-chevron-right) center / contain no-repeat;
+  mask: var(--sf-chevron-right) center / contain no-repeat;
+}
+/* Folded, the button sits inside the card's right edge and points back. */
+main[data-folded] .split-fold {
+  left: -16px;
+}
+main[data-folded] .split-fold::before {
+  -webkit-mask-image: var(--sf-chevron-left);
+  mask-image: var(--sf-chevron-left);
+}

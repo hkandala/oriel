@@ -68,6 +68,18 @@ export async function menu(oriel: Oriel, event: MouseEvent, arg: string) {
   if (picked) open(oriel, arg, picked as How)
 }
 
+/** SF Symbols as masks (`oriel.symbol`), each loaded once: CSS draws `--sf-<name with - for .>`. */
+const loaded = new Set<string>()
+export function symbols(oriel: Oriel, names: string[], size = 12) {
+  for (const name of names.filter((name) => !loaded.has(name))) {
+    loaded.add(name)
+    void oriel.symbol(name, size).then(
+      (url) => document.documentElement.style.setProperty(`--sf-${name.replaceAll(".", "-")}`, `url(${url})`),
+      () => loaded.delete(name),
+    )
+  }
+}
+
 /** The last part of a path; `/` is its own. */
 export const name = (path: string) => (path === "/" ? "/" : path.replace(/\/$/, "").split("/").pop() ?? "")
 

@@ -1,6 +1,6 @@
 {
   "name": "@oriel/explorer",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "private": true,
   "description": "Files and folders",
   "keywords": ["files", "tree", "folder", "finder"],
@@ -76,8 +76,12 @@
         "hidden": true },
       { "type": "button", "id": "reveal", "symbol": "list.bullet.indent", "title": "Show in File Explorer",
         "hidden": true },
-      { "type": "segmented", "id": "mode", "value": "read", "hidden": true,
-        "options": [{ "value": "read", "title": "Read" }, { "value": "edit", "title": "Edit" }] },
+      { "type": "menu", "id": "mode", "value": "read", "title": "Mode", "symbol": "book", "style": "icon",
+        "hidden": true,
+        "items": [{ "value": "read", "title": "Read", "symbol": "book" },
+          { "value": "live", "title": "Live Edit", "symbol": "pencil" },
+          { "value": "source", "title": "Source", "symbol": "chevron.left.forwardslash.chevron.right" },
+          { "value": "split", "title": "Side by Side", "symbol": "rectangle.split.2x1" }] },
       { "type": "openWith", "id": "open-with", "hidden": true }
     ],
     "commands": [

@@ -1,9 +1,10 @@
 import AppKit
 import XCTest
 
-/// File Explorer's Markdown place: Read draws the file rendered, Edit (⌘E) is the same view with the marks of the
+/// File Explorer's Markdown place: Read draws the file rendered, Live Edit (⌘E) is the same view with the marks of the
 /// caret's line shown, the outline lists the headings, ⌘S saves, Read follows the file on disk, the
-/// overview's tile shows the page and a relative link shows its file in the card, or a new tab with ⌘.
+/// overview's tile shows the page and a relative link shows its file in the card, or a new tab with ⌘. Side by Side
+/// shows the source beside the page.
 extension OrielUITests {
     func testMarkdownCardReadsEditsSavesAndLinks() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
@@ -24,7 +25,7 @@ extension OrielUITests {
         // Read: the rendered page with no marks (`Second` alone), a table drawn; no text box.
         let page = element("markdown.\(card).page")
         XCTAssertTrue(page.staticTexts.matching(NSPredicate(format: "value == 'Second'")).firstMatch.exists(within: 10))
-        XCTAssertTrue(element("pane.\(card).mode.read").isSelected)
+        XCTAssertEqual(element("pane.\(card).mode").stringValue, "Read")
         XCTAssertTrue(page.staticTexts.matching(NSPredicate(format: "value == 'B'")).firstMatch.exists)
         XCTAssertFalse(page.textViews.firstMatch.exists)
         element("pane.\(card).outline").click()
@@ -49,7 +50,7 @@ extension OrielUITests {
         app.typeText("markdown read")
         XCTAssertTrue(element("palette.command.Edit Mode").has(\.isSelected, true, within: 2))
         app.typeKey(.return, modifierFlags: [])
-        XCTAssertTrue(element("pane.\(card).mode.read").has(\.isSelected, true, within: 3))
+        XCTAssertTrue(element("pane.\(card).mode").has(\.stringValue, "Read", within: 3))
         try await send("printf '## Third\\n' >>notes.md\r", to: shell)
         XCTAssertTrue(page.staticTexts.matching(NSPredicate(format: "value == 'Third'")).firstMatch.exists(within: 5))
         copyAll(page)
@@ -62,6 +63,38 @@ extension OrielUITests {
         XCTAssertTrue(label.hasPrefix("oriel:explorer#") && label.hasSuffix(" \(folder)/other.md"), label)
         try await show(tab)
         follow(card, page: page)
+        try await sideBySide(card, page: page, shell: shell)
+    }
+
+    /// Side by Side from the mode menu: the source as text beside the rendered page; a tick in the page is an edit of
+    /// the source, saved with ⌘S; the divider's button hides the page and shows it again.
+    private func sideBySide(_ card: String, page: XCUIElement, shell: String) async throws {
+        let mode = element("pane.\(card).mode")
+        mode.click()
+        mode.menuItems["Side by Side"].click()
+        XCTAssertTrue(mode.has(\.stringValue, "Side by Side", within: 3))
+        let source = page.textViews.firstMatch, box = page.checkBoxes.firstMatch
+        XCTAssertTrue(until(5) { source.exists && source.stringValue.contains("Some *words*.") }, source.stringValue)
+        XCTAssertTrue(box.exists(within: 5))
+        keepScreenshot("markdown card, side by side")
+        box.click()
+        XCTAssertTrue(until(3) { source.stringValue.contains("- [ ] Ship it") }, source.stringValue)
+        let dirty = element("pane.\(card).dirty")
+        XCTAssertTrue(dirty.exists(within: 3))
+        source.click()
+        app.typeKey("s", modifierFlags: .command)
+        XCTAssertTrue(dirty.vanishes(within: 3))
+        try await send("clear && grep -q '^- \\[ \\] Ship it$' notes.md && echo split-$((6*7))\r", to: shell)
+        try await waitFor(shell) { $0.contains("split-42") }
+        page.buttons["Hide Preview"].click()
+        XCTAssertTrue(box.vanishes(within: 3))
+        page.buttons["Show Preview"].click()
+        XCTAssertTrue(box.exists(within: 3))
+        // The card keeps its mode: a link in the page shows other.md in Side by Side.
+        page.links["Other"].click()
+        // Shown once its outline toggle hides (other.md has no heading): the old page's row is gone.
+        XCTAssertTrue(element("pane.\(card).outline").vanishes(within: 5))
+        XCTAssertTrue(mode.has(\.stringValue, "Side by Side", within: 3))
     }
 
     /// A relative link shows its file in the card: with no heading, the outline's toggle hides; Back shows it.
@@ -102,7 +135,7 @@ extension OrielUITests {
         app.typeText("q")
         let link = page.links["Other"].frame
         app.typeKey("e", modifierFlags: .command)
-        XCTAssertTrue(element("pane.\(card).mode.edit").has(\.isSelected, true, within: 3))
+        XCTAssertTrue(element("pane.\(card).mode").has(\.stringValue, "Live Edit", within: 3))
         let editor = page.textViews.firstMatch
         XCTAssertTrue(until(5) { editor.exists && editor.stringValue.contains("## Second") }, editor.stringValue)
         XCTAssertTrue(editor.stringValue.contains("Some words."))

@@ -169,15 +169,17 @@ private struct HeaderItem: View {
     }
 }
 
-/// A borderless pop-up: the picked item's title (else the control's), its symbol or a spinner while busy; the picked
-/// item checked. A `{ title }` item starts a section, `"-"` is a divider.
+/// A borderless pop-up: the picked item's title and symbol (else the control's), a spinner while busy; the picked
+/// item checked. `"style": "icon"` shows the symbol alone, the title as its help (Markdown's mode, which leaves the row
+/// to the breadcrumbs). A `{ title }` item starts a section, `"-"` is a divider.
 private struct HeaderMenu: View {
     let control: PluginManifest.Control
     let header: Header
 
     var body: some View {
         let items = control.items ?? [], value = control.value?.text
-        let shown = items.first { $0.value != nil && $0.value == value }?.title ?? control.title ?? ""
+        let picked = items.first { $0.value != nil && $0.value == value }
+        let shown = picked?.title ?? control.title ?? "", symbol = picked?.symbol ?? control.symbol
         let sections = sections(items)
         Menu {
             ForEach(sections.indices, id: \.self) { index in
@@ -192,12 +194,15 @@ private struct HeaderMenu: View {
             HStack(spacing: 4) {
                 if control.busy == true {
                     ProgressView().controlSize(.mini)
-                } else if let symbol = control.symbol {
+                } else if let symbol {
                     Image(symbol: symbol)
                 }
-                Text(shown).lineLimit(1).truncationMode(.middle)
+                if control.style != "icon" {
+                    Text(shown).lineLimit(1).truncationMode(.middle)
+                }
             }
         }
+        .help(control.style == "icon" ? shown : "")
         .menuStyle(.button)
         .buttonStyle(.borderless)
         .fixedSize()

@@ -66,7 +66,7 @@ extension OrielUITests {
     }
 
     /// ⌘F opens the editor's search with the keyboard; ⌘G and ⇧⌘G (Find Next and Previous) reach it too, and open
-    /// it again.
+    /// it again. ⌥⌘F adds Replace's row; the count reads the matches; ⌘Return replaces them all; Esc closes the bar.
     private func findKeys(_ card: String) {
         let editor = element("file.\(card).page").textViews.firstMatch
         // WebKit takes CodeMirror's `name="search"` field for a search field.
@@ -82,6 +82,22 @@ extension OrielUITests {
             app.typeKey(.escape, modifierFlags: [])
             XCTAssertTrue(search.vanishes(within: 2))
         }
+        editor.click()
+        app.typeKey("f", modifierFlags: [.command, .option])
+        let replace = element("file.\(card).page").textFields["Replace"]
+        XCTAssertTrue(replace.exists(within: 2) && hasKeyboard(replace))
+        search.click()
+        app.typeKey("a", modifierFlags: .command)
+        app.typeText("w = 4")
+        let count = element("file.\(card).page").staticTexts.matching(NSPredicate(format: "value == '1 of 1'"))
+        XCTAssertTrue(count.firstMatch.exists(within: 2))
+        replace.click()
+        app.typeText("w = 5")
+        keepScreenshot("file card, find and replace")
+        app.typeKey(.return, modifierFlags: .command)
+        XCTAssertTrue(until(3) { editor.stringValue.hasPrefix("let w = 5") }, editor.stringValue)
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(replace.vanishes(within: 2))
     }
 
     /// The card's breadcrumbs read `value` within 3 s.

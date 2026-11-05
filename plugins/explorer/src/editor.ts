@@ -1,20 +1,55 @@
 // The CodeMirror editor of a card's file, shared by File and Markdown: the file read through the app, the Edited dot,
-// ⌘S saved by the hash it was read with, ⌘F from the app's menu, and the file again after a change on disk.
+// ⌘S saved by the hash it was read with, ⌘F from the app's menu and ⌥⌘F (find.ts), and the file again after a change
+// on disk.
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands"
-import { bracketMatching, indentOnInput } from "@codemirror/language"
-import {
-  findNext,
-  findPrevious,
-  highlightSelectionMatches,
-  openSearchPanel,
-  search,
-  searchKeymap,
-} from "@codemirror/search"
+import { bracketMatching, HighlightStyle, indentOnInput, syntaxHighlighting } from "@codemirror/language"
+import { findNext, findPrevious, highlightSelectionMatches, search, searchKeymap } from "@codemirror/search"
 import { EditorState, type Extension, type Text } from "@codemirror/state"
-import { drawSelection, EditorView, highlightActiveLine, highlightSpecialChars, keymap } from "@codemirror/view"
+import {
+  drawSelection,
+  EditorView,
+  highlightActiveLine,
+  highlightActiveLineGutter,
+  highlightSpecialChars,
+  keymap,
+  lineNumbers,
+} from "@codemirror/view"
+import { tags } from "@lezer/highlight"
 import type { OrielError } from "@oriel/plugin-api"
+import { finder } from "./find"
 import { failed, info } from "./info"
 import { name, type Place } from "./place"
+
+/** One color per look: the card's `color-scheme` picks the side. */
+const color = (light: string, dark: string) => `light-dark(${light}, ${dark})`
+
+/** The diff's colors: @pierre/diffs' default Shiki themes, Pierre Light and Pierre Dark (@pierre/theme), by the
+ *  TextMate scope each tag stands for; Markdown's marks as punctuation, its links, code and quotes as the themes draw
+ *  them in Markdown. */
+const highlight = HighlightStyle.define([
+  { tag: [tags.keyword, tags.modifier, tags.controlKeyword, tags.operatorKeyword], color: color("#d32a61", "#ff678d") },
+  { tag: [tags.string, tags.special(tags.string), tags.monospace], color: color("#199f43", "#5ecc71") },
+  { tag: tags.regexp, color: color("#17a5af", "#64d1db") },
+  { tag: tags.escape, color: color("#16a994", "#61d5c0") },
+  { tag: [tags.number, tags.bool, tags.null, tags.atom], color: color("#1ca1c7", "#68cdf2") },
+  { tag: [tags.comment, tags.meta, tags.quote], color: "#737373" },
+  { tag: [tags.typeName, tags.className], color: color("#a631be", "#d568ea") },
+  { tag: [tags.namespace, tags.self, tags.constant(tags.variableName)], color: color("#d5901c", "#ffab16") },
+  { tag: [tags.function(tags.variableName), tags.function(tags.propertyName)], color: color("#693acf", "#9d6afb") },
+  { tag: [tags.variableName, tags.propertyName], color: color("#d47628", "#ffa359") },
+  { tag: [tags.operator, tags.definitionOperator, tags.compareOperator], color: "#08c0ef" },
+  { tag: [tags.punctuation, tags.bracket, tags.separator, tags.processingInstruction], color: "#636363" },
+  { tag: [tags.tagName, tags.heading], color: color("#d5512f", "#ff855e") },
+  { tag: tags.attributeName, color: color("#18a46c", "#60d199") },
+  { tag: [tags.annotation, tags.link, tags.url], color: color("#1a85d4", "#69b1ff") },
+  { tag: tags.emphasis, fontStyle: "italic" },
+  { tag: tags.strong, fontWeight: "bold" },
+  { tag: tags.strikethrough, textDecoration: "line-through" },
+  { tag: tags.invalid, color: "var(--error)" },
+])
+
+/** Code as File draws it: line numbers, the caret's line number lit, the colors. Markdown's Source too. */
+export const code = [lineNumbers(), highlightActiveLineGutter(), syntaxHighlighting(highlight)]
 
 const theme = EditorView.theme({
   "&": { height: "100%", fontSize: "var(--font-size)" },
@@ -29,8 +64,11 @@ const theme = EditorView.theme({
     background: "color-mix(in srgb, var(--accent) 35%, transparent)",
   },
   ".cm-searchMatch": { background: "color-mix(in srgb, var(--finished) 35%, transparent)" },
-  ".cm-panels": { background: "transparent", color: "var(--text)" },
-  ".cm-panels-top": { borderBottom: "1px solid var(--divider)" },
+  // The find bar floats at the top right over the text, as the terminal's (find.css); a match scrolls below it.
+  ".cm-panels.cm-panels-top": {
+    position: "absolute", top: "8px", right: "12px", left: "auto", background: "none", border: "none",
+    maxWidth: "calc(100% - 24px)",
+  },
 })
 
 /** The editor, the caret's landing and ⌘S's save; undefined when the info view shows instead. */
@@ -53,6 +91,7 @@ export async function editor(place: Place, extensions: Extension[], parent: HTML
   /** Saves begun, so a check that read the disk before one does not answer after it. */
   let saves = 0
   let dirty = false
+  const find = finder(oriel)
 
   const update = (state: EditorState) => {
     const now = !state.doc.eq(disk)
@@ -77,7 +116,7 @@ export async function editor(place: Place, extensions: Extension[], parent: HTML
         bracketMatching(),
         highlightActiveLine(),
         highlightSelectionMatches(),
-        search({ top: true }),
+        search({ top: true, createPanel: find.createPanel }),
         keymap.of([...defaultKeymap, ...searchKeymap, ...historyKeymap, indentWithTab]),
         theme,
         EditorView.updateListener.of((u) => u.docChanged && update(u.state)),
@@ -196,7 +235,18 @@ export async function editor(place: Place, extensions: Extension[], parent: HTML
   land(place.at)
 
   oriel.on("save", () => void save())
-  oriel.on("find", () => openSearchPanel(view))
+  oriel.on("find", () => find.open(view, false))
+  // Find and Replace, as in the Mac's editors: the menu has no item for it, so the page takes the key, also from
+  // Markdown's Read, whose keyboard is on the scroller.
+  const replace = (event: KeyboardEvent) => {
+    if (!place.shown() || event.code !== "KeyF" || !event.metaKey || !event.altKey || event.shiftKey || event.ctrlKey) {
+      return
+    }
+    event.preventDefault()
+    find.open(view, true)
+  }
+  addEventListener("keydown", replace)
+  keep(() => removeEventListener("keydown", replace))
   oriel.on("findNext", () => findNext(view))
   oriel.on("findPrevious", () => findPrevious(view))
   oriel.files.watch(path, () => void check())

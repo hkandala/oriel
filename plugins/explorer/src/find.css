@@ -1,0 +1,106 @@
+/* The find bar (find.ts), as the terminal's ⌘F bar: a capsule of the card's fill with a blur behind, a plain field,
+   the count, 22 pt icon buttons; Replace's row under it makes it a rounded rectangle. */
+.find {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 360px;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 4.5px 6px 4.5px 12px;
+  border: 0.5px solid var(--divider);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--card) 82%, transparent);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  backdrop-filter: blur(20px) saturate(1.6);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.18);
+  font: var(--font-size) system-ui;
+  color: var(--text);
+}
+.find:has(.find-row:not([hidden]) + .find-row:not([hidden])) {
+  border-radius: 12px;
+}
+.find-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 22px;
+}
+.find-row[hidden] {
+  display: none;
+}
+.find-field {
+  flex: 1;
+  min-width: 0;
+  appearance: none;
+  border: 0;
+  outline: 0;
+  padding: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+}
+.find-field::placeholder {
+  color: var(--dim);
+}
+/* Replace's field sits in a row fill, so the two fields read apart. */
+.find-row + .find-row .find-field {
+  align-self: stretch;
+  margin: 0 4px 0 -6px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--text) 7%, transparent);
+}
+.find-count {
+  min-width: 56px;
+  padding-right: 4px;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+.find-icon,
+.find-button {
+  flex: none;
+  height: 22px;
+  border: 0;
+  border-radius: 5.5px;
+  background: none;
+  color: var(--dim);
+  font: inherit;
+}
+.find-icon {
+  width: 22px;
+  padding: 0;
+}
+.find-icon::before {
+  content: "";
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin: auto;
+  background: currentColor;
+  -webkit-mask: var(--symbol) center / contain no-repeat;
+  mask: var(--symbol) center / contain no-repeat;
+}
+.find-button {
+  padding: 0 8px;
+  background: color-mix(in srgb, var(--text) 9%, transparent);
+  color: var(--text);
+}
+.find-icon:hover,
+.find-button:hover {
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+}
+.find-icon:active,
+.find-button:active {
+  background: color-mix(in srgb, var(--text) 18%, transparent);
+}
+.find-icon[aria-pressed="true"] {
+  color: var(--accent);
+}
+.find-icon:focus-visible,
+.find-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+  outline-offset: 0;
+}
