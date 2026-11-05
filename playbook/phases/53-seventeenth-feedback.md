@@ -11,7 +11,7 @@ Goal: the fixes from the user's seventeenth round:
 - Glass stays readable over a bright window.
 - The `oriel` skill moves into this repo.
 
-Three research reports (herdr-core, releases with an updater, telemetry) are plans only. They change no code.
+Four research reports (herdr-core, releases with an updater, telemetry, onboarding) are plans only. They change no code.
 
 Design:
 - [File Explorer and Git](../../docs/content/docs/plugins/default-plugins.mdx)
@@ -295,7 +295,7 @@ what differs unless a card needs it otherwise, and give the reason in Findings.
     - A remote machine gets the skill the way the docs say: copy or link it. Shipping it with the app waits for the
       herdr-core plan.
 
-## Research, plans only (items 34–36)
+## Research, plans only (items 34–37)
 
 No code changes. Each report is one self-contained HTML file in `/tmp/oriel-research/`, copied to
 `~/Downloads/oriel-research/`, written in plain English.
@@ -315,6 +315,15 @@ No code changes. Each report is one self-contained HTML file in `/tmp/oriel-rese
     generally do telemetry in open source projects, we can may be go with posthog, suggest if there are any better
     alternatives as well, and tell me what all things we should collect by default in our app". Report:
     `telemetry-plan.html`.
+
+37. **Onboarding.** "invoke another research agent for onboarding flow as well, start this after herdr-core research
+    keeping that in mind, as in our onboarding as well we shouldn't mention on herdr things, so this onboarding should
+    be minimal and clarify basic things to user, like may be we can open one session with some tabs, workspaces and
+    plugins opened, and during the onboarding, we should switch to tab or workspace and explain each item briefly,
+    with text info hovering somewhere, give me some ui mockups for this, you can give me different ideas as well,
+    give me like 5 onboarding flow ideas and how we can do it. in all ui mockups keep in mind of our native mac app
+    style with minimal style and may be glass effects where needed". Report: `onboarding-plan.html`, with five flows
+    and mockups of each. It starts after item 34's report and builds on its plan.
 
 ## Order and estimates
 
