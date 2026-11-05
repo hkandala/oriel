@@ -165,9 +165,14 @@ export async function make(place: Page, root: string) {
     section("staged", "Staged Changes", staged, true)
     section("unstaged", "Changes", unstaged, false)
     const commits = state.commits ?? []
-    const rows = page.querySelector("#history .rows")!
+    const rows = page.querySelector("#history .rows")!, had = rows.contains(document.activeElement)
     rows.replaceChildren(...(commits.length ? graph(commits) : [element("p", "empty", "No commits yet")]))
-    select(page.querySelector<HTMLElement>(`[id="commit.${selected}"]`))
+    // The selection stays, with no scroll, and takes the keyboard only if it had it: a redraw comes after every write
+    // and every change in the work tree.
+    const again = page.querySelector<HTMLElement>(`[id="commit.${selected}"]`)
+    if (!again) selected = undefined
+    again?.classList.add("selected")
+    if (had) again?.querySelector<HTMLElement>(".open")!.focus({ preventScroll: true })
     if (state.more) {
       const more = element("button", "more", "Show More")
       more.onclick = () => {
@@ -301,9 +306,9 @@ export async function make(place: Page, root: string) {
     const { node, open } = row(label, `${home(root)} ${hash}`)
     node.id = `commit.${hash}`
     node.classList.add("commit")
-    // As File Explorer's rows: a click selects, a double-click opens; ⌘ and ⌥ still open in a new tab or to the side.
-    node.onclick = (event) => (how(event) === "card" ? select(node) : openCommit(event, node))
-    node.ondblclick = (event) => how(event) === "card" && openCommit(event, node)
+    // As File Explorer's rows: a click selects, a double-click's second click opens, as does a press (VoiceOver: no
+    // clicks counted); ⌘ and ⌥ open in a new tab or to the side.
+    node.onclick = (event) => (how(event) === "card" && event.detail === 1 ? select(node) : openCommit(event, node))
     node.title = `${subject}\n${commit.author} · ${hash.slice(0, 10)}`
     open.insertAdjacentHTML("afterbegin", `<svg width="${width}" height="${HEIGHT}" fill="none" stroke-width="1.5">${[
       ...through.map((at) => line(at, 0, at, HEIGHT)),
@@ -332,21 +337,25 @@ export async function make(place: Page, root: string) {
     open(`${home(root)} ${node.id.slice("commit.".length)}`, { how: how(event), plugin: "git" })
   }
 
-  // A click elsewhere clears the selection, as in File Explorer.
+  // A click elsewhere clears the selection, as in File Explorer, also on a row's own buttons; the ring shows from an
+  // arrow key on, until the next click.
   page.addEventListener("click", (event) => {
     if (!(event.target as Element).closest(".commit")) select(null)
-  })
-  // ↑ and ↓ move the selection; the first arrow selects the first commit (↑ the last). Return opens it. Not while
-  // the message has the keyboard.
+  }, true)
+  page.addEventListener("pointerdown", () => page.removeAttribute("data-keys"), true)
+  // ↑ and ↓ move the selection; the first arrow selects the first commit (↑ the last). Return on the selected commit
+  // opens it. Not while the message has the keyboard, nor under git's error.
   const keys = (event: KeyboardEvent) => {
-    if (!place.shown || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey
-      || (event.target as Element).closest("textarea, input")) return
+    const target = event.target as Element
+    if (!place.shown || content.hidden || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey
+      || target.closest("textarea, input")) return
     const rows = [...page.querySelectorAll<HTMLElement>(".commit")], at = rows.findIndex((row) => row.id === `commit.${selected}`)
-    if (event.key === "Enter" && at >= 0) openCommit(event, rows[at])
+    if (event.key === "Enter" && at >= 0 && (target === document.body || target.closest(".commit"))) openCommit(event, rows[at])
     else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       const down = event.key === "ArrowDown"
       const next = at < 0 ? (down ? 0 : rows.length - 1) : Math.min(Math.max(at + (down ? 1 : -1), 0), rows.length - 1)
       if (!rows[next]) return
+      page.setAttribute("data-keys", "")
       select(rows[next])
     } else return
     event.preventDefault()

@@ -230,17 +230,17 @@ The caret has the text's color: white in dark, black in light.
   under the header, with two small round buttons. The buttons sit 7 pt
   inside the capsule's top, bottom and right edge, so their curves follow
   its curve. The second button is the default. It slides in over 0.15 s. A
-  button's action ends it. A button that deletes or discards work is red
-  (marked † below): the toast's `destructive` option in the plugin API.
+  button's action ends it. A button that deletes or discards work is red:
+  the main button with the toast's `destructive` option in the plugin API.
 
   | When | Text | Buttons |
   |---|---|---|
   | the file changed on disk and the card is dirty | "‹name› changed on disk." | Reload, **Keep Mine** |
   | ⌘S, and the file changed on disk since the last read | "‹name› changed on disk since you opened it." | Overwrite, **Reload** |
   | the save failed | "‹name› was not saved: ‹reason›" | Cancel, **Try Again** |
-  | Back, Forward, an open in the card or a close with unsaved edits | "‹name› has unsaved edits." | Discard†, **Keep Editing** |
+  | Back, Forward, an open in the card or a close with unsaved edits | "‹name› has unsaved edits." | Discard (red), **Keep Editing** |
   | a Git write failed | git's message, on one line | Copy, **OK** |
-  | Git's Revert or Revert All | the question (see Writes) | Cancel, **Revert**† |
+  | Git's Revert or Revert All | the question (see Writes) | Cancel, **Revert** (red) |
 
   Keep Mine takes the disk's new hash, so the next ⌘S writes over that
   version without a question. Reload drops the edits.
@@ -495,16 +495,18 @@ app's fonts and `Look` colors. From the top:
   day). The checked-out branch's capsule is on the accent, and HEAD's dot is
   a ring. The first parent stays in its child's lane, as in `git log
   --graph`. Lane colors cycle through the accent, finished, working,
-  needs-you and error colors. "No commits yet" before the first commit.
+  needs-you and error colors. "No commits yet" before the first commit. A
+  full page ends with **Show More**, a plain gray button in the middle,
+  which reads 500 more (`git log -n 1000`, and so on). The page ends 10 pt
+  under the last row.
 - **Selecting a commit** works as in File Explorer. A click selects a
   commit: its row takes the accent at 24 %. A double-click or Return opens
   its diff in the card. ⌘-click opens it in a new tab and ⌥-click to the
   side. ↑ and ↓ move the selection, and the first arrow selects the first
-  commit (↑ the last). From an arrow key on, the selected row has a 1.5 pt
-  ring in the accent. A click anywhere else clears the selection. The
-  arrows do nothing while the message field has the keyboard. A full page ends with **Show More**, a plain
-  gray button in the middle, which reads 500 more (`git log -n 1000`, and so
-  on). The page ends 10 pt under the last row.
+  commit (↑ the last). After an arrow key, the selected row has a 1.5 pt
+  ring in the accent, until the next click. A click anywhere else clears
+  the selection. The arrows do nothing while the message field has the
+  keyboard. A refresh keeps the selection where it is and does not scroll.
 - **Not a Git repository:** when the root is in no repository
   (`git.root` is null), the page shows `folder.badge.questionmark`, "Not a
   Git repository", the folder's short path (`~/…`) and **Initialize
@@ -612,10 +614,11 @@ The changes of one source in one scroll (`@pierre/diffs`).
   shows at once and reads its patch again only if the work tree changed
   while it was hidden.
 - A new diff starts with the card's Side by Side and Word Wrap (the header's
-  values) and its file list (the card's state; closed until the user opens
-  it), saved in the state file, so
-  they survive a drop, a reload and a relaunch. A kept diff keeps its own.
-  Viewed marks last while the page is kept.
+  values) and its file list (the card's state). The file list starts
+  closed; when the user opens or closes it, the card keeps that choice.
+  These are saved in the state file, so they survive a drop, a reload and a
+  relaunch. A kept diff keeps its own. Viewed marks last while the page is
+  kept.
 - A file with no hunks (binary, a mode change, a pure rename) shows its
   header alone. `N unmodified lines` rows do not expand.
 - `Look.cardSolid` is exact in Classic. In Glass it is measured on a card

@@ -63,6 +63,7 @@ struct PluginCard: View {
 private struct ToastView: View {
     let toast: Toast
     let plugin: Plugin
+    @Environment(\.look) private var look
 
     var body: some View {
         let id = "pane.\(plugin.paneID).toast"
@@ -74,6 +75,8 @@ private struct ToastView: View {
                     other.run()
                 }
                 .buttonStyle(.glass)
+                // The role alone draws nothing on glass. A red label: a red fill would read as a second default.
+                .foregroundStyle(other.role == .destructive ? look.error : Color.primary)
                 .accessibilityIdentifier("\(id).other")
             }
             Button(toast.main.title, role: toast.main.role) {
@@ -81,6 +84,7 @@ private struct ToastView: View {
                 toast.main.run()
             }
             .buttonStyle(.glassProminent)
+            .tint(toast.main.role == .destructive ? look.error : nil)
             .accessibilityIdentifier("\(id).main")
         }
         .controlSize(.small)

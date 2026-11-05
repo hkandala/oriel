@@ -85,7 +85,8 @@ final class PluginInstalls {
         if case .local = row.kind {
             text = "Its folder stays where it is; Oriel stops loading it."
         }
-        guard await ask("Remove “\((row.manifest?.name ?? row.id).shown)”?", text, button: "Remove") else { return }
+        guard await ask("Remove “\((row.manifest?.name ?? row.id).shown)”?", text, button: "Remove", destructive: true)
+        else { return }
         try? await run(row.id, "Removing…") {
             if case let .installed(text) = row.kind {
                 try PluginPackages.list(text, in: Registry.settings, add: false)
@@ -240,12 +241,16 @@ final class PluginInstalls {
 
     /// A sheet on the key window, or for an agent on its session's window. An agent's prompt never takes the user's
     /// keys: Oriel only asks for attention, and Return is not Install, so typing that lands here installs nothing.
-    private func ask(_ title: String, _ text: String, button: String, alert: NSAlert = NSAlert(),
-                     for agent: Asker? = nil) async -> Bool
+    /// `destructive`: the button is red, so not the default button; Return clicks it all the same (`NSWindow.confirm`).
+    private func ask(_ title: String, _ text: String, button: String, destructive: Bool = false,
+                     alert: NSAlert = NSAlert(), for agent: Asker? = nil) async -> Bool
     {
         alert.messageText = title
         alert.informativeText = text
-        alert.addButton(withTitle: button)
+        let action = alert.addButton(withTitle: button)
+        if destructive {
+            (action.hasDestructiveAction, action.keyEquivalent) = (true, "")
+        }
         alert.addButton(withTitle: "Cancel")
         if agent != nil {
             alert.buttons[0].keyEquivalent = ""
