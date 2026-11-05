@@ -318,6 +318,33 @@ what differs unless a card needs it otherwise, and give the reason in Findings.
       number of web views laid out, or of cards made, on one switch.
     - Before and after numbers in Findings, also for the phase 48 table's measures.
 
+## Track I: the chat view's load (item 40)
+
+40. **A chat tab slows every switch.** "that workspace switch thing right, i mentioned its because of browser plugin,
+    but its not actually due to browser, its due to chat view, so create a tab with this session: pi --session
+    01a1a982-7be3-7238-8079-7fb4260c4712, opened in chat view, and even tab switching is slow when i am activating
+    that tab, and workspace switch becomes slow if that tab is active tab, so i am thinking this chat view is adding
+    some extra cpu load or something making everything slow, investigate this properly, reproduce measure and fix
+    it".
+    - Reproduce with a copy of that session file, never the user's live one. Open it in a chat card, idle, with no
+      messages sent.
+    - Measure, on a Release build:
+      - the main thread's idle CPU with the chat tab shown versus a terminal tab;
+      - a switch to the chat tab;
+      - a switch away from it to another tab or workspace;
+      - a workspace switch while the chat tab is the active tab.
+    - Profile with Instruments: Time Profiler, SwiftUI, and hangs.
+    - Find what grows with the chat's length or keeps working while idle. Suspects: phase 52's pinned rows, which
+      keep every row from its first show (D95); geometry observers on every row (`onGeometryChange` for the top-row
+      anchor); Markdown laid out again on every update; the transcript watcher re-parsing; scroll position bindings;
+      timers.
+    - Fix the cause:
+      - an idle chat costs nothing;
+      - showing or leaving a long chat costs no more than a terminal;
+      - a switch never lays out rows out of view.
+    - A pacing test with counts, for example rows laid out or bodies run per switch, and idle updates per second.
+    - Before and after numbers in Findings.
+
 ## Research, plans only (items 34–38)
 
 No code changes. Each report is one self-contained HTML file in `/tmp/oriel-research/`, copied to
@@ -370,6 +397,7 @@ The tracks run in parallel, each in its own worktree. Estimates are in agent hou
 | F, Git | 20–25 | 5 h |
 | G, window | 27, 29, 30, 32, 33 | 3.5 h |
 | H, workspace switches | 39 | 3 h |
+| I, the chat view's load | 40 | 3 h |
 
 - D and E both touch `plugins/explorer`: D owns the tree and its header, and E owns the file cards. Each bumps
   File Explorer's version when it lands, rebasing on the other.
