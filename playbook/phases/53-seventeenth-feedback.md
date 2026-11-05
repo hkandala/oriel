@@ -11,7 +11,7 @@ Goal: the fixes from the user's seventeenth round:
 - Glass stays readable over a bright window.
 - The `oriel` skill moves into this repo.
 
-Four research reports (herdr-core, releases with an updater, telemetry, onboarding) are plans only. They change no code.
+Five research reports (herdr-core, releases with an updater, telemetry, onboarding, the Settings window) are plans only. They change no code.
 
 Design:
 - [File Explorer and Git](../../docs/content/docs/plugins/default-plugins.mdx)
@@ -295,7 +295,7 @@ what differs unless a card needs it otherwise, and give the reason in Findings.
     - A remote machine gets the skill the way the docs say: copy or link it. Shipping it with the app waits for the
       herdr-core plan.
 
-## Research, plans only (items 34–37)
+## Research, plans only (items 34–38)
 
 No code changes. Each report is one self-contained HTML file in `/tmp/oriel-research/`, copied to
 `~/Downloads/oriel-research/`, written in plain English.
@@ -324,6 +324,14 @@ No code changes. Each report is one self-contained HTML file in `/tmp/oriel-rese
     give me like 5 onboarding flow ideas and how we can do it. in all ui mockups keep in mind of our native mac app
     style with minimal style and may be glass effects where needed". Report: `onboarding-plan.html`, with five flows
     and mockups of each. It starts after item 34's report and builds on its plan.
+38. **The Settings window.** "once all research agents are done, invoke another research agent on settings window.
+    basically we need new settings window, look through entire code, and figure out what can go into our settings
+    window, we should group our settings window into multiple pages like macos settings with sidebar. let's not
+    overload with too many settings, we should keep it minimal but shouold have enough required things to configure.
+    consider all the research agents are implemented, that's why this should be started after all research agents
+    are done. give me 5 ui mockups and different way settings can be grouped etc, plugins should have settings as
+    well". Report: `settings-plan.html`, with five groupings and mockups, and settings for plugins. It starts after
+    items 34–37 and assumes they are built.
 
 ## Order and estimates
 
