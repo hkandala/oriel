@@ -167,6 +167,7 @@ export async function make(place: Page, root: string) {
     const commits = state.commits ?? []
     const rows = page.querySelector("#history .rows")!
     rows.replaceChildren(...(commits.length ? graph(commits) : [element("p", "empty", "No commits yet")]))
+    select(page.querySelector<HTMLElement>(`[id="commit.${selected}"]`))
     if (state.more) {
       const more = element("button", "more", "Show More")
       more.onclick = () => {
@@ -300,6 +301,9 @@ export async function make(place: Page, root: string) {
     const { node, open } = row(label, `${home(root)} ${hash}`)
     node.id = `commit.${hash}`
     node.classList.add("commit")
+    // As File Explorer's rows: a click selects, a double-click opens; ⌘ and ⌥ still open in a new tab or to the side.
+    node.onclick = (event) => (how(event) === "card" ? select(node) : openCommit(event, node))
+    node.ondblclick = (event) => how(event) === "card" && openCommit(event, node)
     node.title = `${subject}\n${commit.author} · ${hash.slice(0, 10)}`
     open.insertAdjacentHTML("afterbegin", `<svg width="${width}" height="${HEIGHT}" fill="none" stroke-width="1.5">${[
       ...through.map((at) => line(at, 0, at, HEIGHT)),
@@ -310,6 +314,45 @@ export async function make(place: Page, root: string) {
       element("span", "when", when(date)))
     return node
   }
+
+  /** The selected commit's hash: a redraw keeps it selected. */
+  let selected: string | undefined
+
+  /** The commit row selected, with the keyboard; none clears it. */
+  function select(node: HTMLElement | null) {
+    page.querySelector(".commit.selected")?.classList.remove("selected")
+    selected = node?.id.slice("commit.".length)
+    if (!node) return
+    node.classList.add("selected")
+    node.querySelector<HTMLElement>(".open")!.focus()
+    node.scrollIntoView({ block: "nearest" })
+  }
+
+  function openCommit(event: MouseEvent | KeyboardEvent, node: HTMLElement) {
+    open(`${home(root)} ${node.id.slice("commit.".length)}`, { how: how(event), plugin: "git" })
+  }
+
+  // A click elsewhere clears the selection, as in File Explorer.
+  page.addEventListener("click", (event) => {
+    if (!(event.target as Element).closest(".commit")) select(null)
+  })
+  // ↑ and ↓ move the selection; the first arrow selects the first commit (↑ the last). Return opens it. Not while
+  // the message has the keyboard.
+  const keys = (event: KeyboardEvent) => {
+    if (!place.shown || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey
+      || (event.target as Element).closest("textarea, input")) return
+    const rows = [...page.querySelectorAll<HTMLElement>(".commit")], at = rows.findIndex((row) => row.id === `commit.${selected}`)
+    if (event.key === "Enter" && at >= 0) openCommit(event, rows[at])
+    else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      const down = event.key === "ArrowDown"
+      const next = at < 0 ? (down ? 0 : rows.length - 1) : Math.min(Math.max(at + (down ? 1 : -1), 0), rows.length - 1)
+      if (!rows[next]) return
+      select(rows[next])
+    } else return
+    event.preventDefault()
+  }
+  document.addEventListener("keydown", keys)
+  place.keep(() => document.removeEventListener("keydown", keys))
 
   /** A branch, remote branch or tag on its commit; the checked-out branch on the accent. */
   function badge(ref: string) {

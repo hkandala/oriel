@@ -5,12 +5,13 @@ import XCTest
 /// repository.
 extension OrielUITests {
     /// The home lists every branch's commits and the changes; Stage moves a file to the staged list, Commit commits it
-    /// with the typed message, Push sends it to the remote; a commit opens its diff in the card, and Back and Forward
-    /// walk between the home and the diff; Revert and Revert All put the changes back; the branch menu switches the
-    /// branch. The diff: a commit's subject is its title, and its Parent opens in the card; the working tree from a
-    /// change follows the work tree, also in a file it shows; Open File opens the file in a new tab at the end;
-    /// Viewed folds the file; Next Change scrolls to a change the page has not drawn; ⌘-click on a line opens the file
-    /// at the line, in Unified and in Side by Side; Word Wrap toggles in Unified only; the file list hides.
+    /// with the typed message, Push sends it to the remote; a click selects a commit, ↑ moves the selection and Return
+    /// opens it; a double-click opens a commit's diff in the card, and Back and Forward walk between the home and the
+    /// diff; Revert and Revert All put the changes back; the branch menu switches the branch. The diff: a commit's
+    /// subject is its title, and its Parent opens in the card; the working tree from a change follows the work tree,
+    /// also in a file it shows; Open File opens the file in a new tab at the end; Viewed folds the file; Next Change
+    /// scrolls to a change the page has not drawn; ⌘-click on a line opens the file at the line, in Unified and in Side
+    /// by Side; Word Wrap toggles in Unified only; the file list starts closed and opens.
     func testGitCardCommitsPushesAndOpensDiffs() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, left) = try await newTab("git")
@@ -29,14 +30,22 @@ extension OrielUITests {
         keepScreenshot("git home")
         try await commitAndPush(home, card: card, shell: left, repo: repo)
 
-        // A commit opens its diff in the card; Back and Forward walk the card's places.
+        // A click selects a commit and opens nothing: ↑ then selects its child above it (`--topo-order`), and Return
+        // opens that one.
         commit("second", in: home).click()
+        app.typeKey(.upArrow, modifierFlags: [])
+        app.typeKey(.return, modifierFlags: [])
+        XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, "e2e commit", within: 10))
+        element("pane.\(card).go-back").click()
+        // A double-click opens its diff in the card; Back and Forward walk the card's places.
+        XCTAssertTrue(commit("second", in: home).has(\.isHittable, true, within: 10))
+        commit("second", in: home).doubleClick()
         try await expect("the label names the commit") { try await paneLabel(card).hasSuffix(" \(root)/ \(hash)") }
         // The commit's subject is the title.
         XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, "second", within: 10))
         let page = element("git.\(card).page")
-        XCTAssertTrue(page.buttons["a.txt"].exists(within: 10))
-        XCTAssertFalse(page.buttons["b.md"].exists)
+        XCTAssertTrue(page.buttons["Open a.txt"].exists(within: 10))
+        XCTAssertFalse(page.buttons["Open b.md"].exists)
         element("pane.\(card).go-back").click()
         try await expect("back home") { try await paneLabel(card).hasSuffix("e2egit \(root)/") }
         element("pane.\(card).go-forward").click()
@@ -114,11 +123,11 @@ extension OrielUITests {
         XCTAssertTrue(home.buttons["Modified: a.txt"].exists(within: 10))
         home.buttons["Modified: a.txt"].click()
         try await expect("the label is Working Tree's") { try await paneLabel(card).hasSuffix(" \(root)/ uncommitted") }
-        XCTAssertTrue(page.buttons["a.txt"].exists(within: 10))
+        XCTAssertTrue(page.buttons["Open a.txt"].exists(within: 10))
         XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, "Working Tree", within: 3))
         // It follows the work tree.
         try await send("echo new >c.txt\r", to: left)
-        XCTAssertTrue(page.buttons["c.txt"].exists(within: 10))
+        XCTAssertTrue(page.buttons["Open c.txt"].exists(within: 10))
         // A file already shown draws its new text.
         try await send("sed -i '' 's/^changed 200$/live 200/' a.txt\r", to: left)
         XCTAssertTrue(page.staticTexts.matching(NSPredicate(format: "value CONTAINS 'live 200'")).firstMatch
@@ -253,7 +262,7 @@ extension OrielUITests {
         XCTAssertTrue(until(5) { (editor.value as? String)?.contains("far290") == true })
     }
 
-    /// Side by Side puts the old line and the new one on one row; the file list hides and comes back.
+    /// Side by Side puts the old line and the new one on one row; the file list, closed at first, opens and closes.
     private func sideBySide(_ card: String, _ page: XCUIElement, _ far: XCUIElement) async throws {
         // Word Wrap wraps the long line in Unified; Side by Side always wraps, so there it is off.
         let wrap = element("pane.\(card).diff.wrap")
@@ -274,10 +283,12 @@ extension OrielUITests {
             old.exists && abs(old.frame.minY - far.frame.minY) < 2 && old.frame.maxX < far.frame.minX
         }, "old \(old.exists ? old.frame : .zero), new \(far.exists ? far.frame : .zero)")
         keepScreenshot("diff card, side by side")
-        element("pane.\(card).diff.file-list").click()
-        XCTAssertTrue(page.buttons["a.txt"].vanishes(within: 3))
+        // The file list starts closed, opens and closes again.
+        XCTAssertFalse(page.buttons["a.txt"].exists)
         element("pane.\(card).diff.file-list").click()
         XCTAssertTrue(page.buttons["a.txt"].exists(within: 3))
+        element("pane.\(card).diff.file-list").click()
+        XCTAssertTrue(page.buttons["a.txt"].vanishes(within: 3))
     }
 
     /// A repository with two commits and uncommitted changes, made in the shell pane; HEAD's hash.

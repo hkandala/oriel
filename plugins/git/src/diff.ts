@@ -129,7 +129,7 @@ export async function make(place: Page, root: string, source: string) {
   // Side by Side and the wrap as the header has them, then the page's own; the file list as the card keeps it.
   let split = api.controls.get("diff.layout") === "split"
   let wrap = api.controls.get("diff.wrap") === true
-  let list = oriel.state.get<{ list?: boolean }>()?.list ?? true
+  let list = oriel.state.get<{ list?: boolean }>()?.list ?? false
   nav.toggleAttribute("data-closed", !list)
 
   const options: CodeViewOptions<undefined, undefined> = {
