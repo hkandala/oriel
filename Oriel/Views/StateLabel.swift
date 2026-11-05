@@ -75,8 +75,8 @@ struct StateLabel: View {
     }
 }
 
-/// An Agents view row's state: its icon and how long it has been in it ("42s", "3m", "1h 5m") in the state's color,
-/// on a 14 % tint with a 1 pt border at 45 % and 6 pt corners.
+/// An Agents view row's state: its icon, and for Working how long it has worked ("<1m", "3m", "1h 5m"), in the state's
+/// color, on a 14 % tint with a 1 pt border at 45 % and 6 pt corners.
 struct StateBox: View {
     let state: AgentState
     let since: Date?
@@ -87,9 +87,8 @@ struct StateBox: View {
         HStack(spacing: 4) {
             StateIcon(state: state)
             if let since {
-                let start = Date(timeIntervalSinceReferenceDate: since.timeIntervalSinceReferenceDate.rounded(.down))
-                TimelineView(Ticks(start: start)) { context in
-                    Text(Self.elapsed(context.date.timeIntervalSince(start))).monospacedDigit()
+                TimelineView(.periodic(from: since, by: 60)) { context in
+                    Text(Self.elapsed(context.date.timeIntervalSince(since))).monospacedDigit()
                 }
             }
         }
@@ -101,27 +100,10 @@ struct StateBox: View {
         .fixedSize()
     }
 
-    /// Each second for the first minute, then each minute, when the text changes: from a whole second, so every box
-    /// ticks in the same update (a hundred boxes on their own phases laid out a hundred times a second).
-    private struct Ticks: TimelineSchedule {
-        let start: Date
-
-        func entries(from date: Date, mode _: Mode) -> AnyIterator<Date> {
-            var next = date
-            return AnyIterator {
-                defer {
-                    let age = next.timeIntervalSince(start)
-                    next = start + (age < 59 ? age.rounded(.down) + 1 : ((age / 60).rounded(.down) + 1) * 60)
-                }
-                return next
-            }
-        }
-    }
-
-    /// Seconds, then minutes, then hours and minutes (shorter than a chat turn's "1m 48s", `ChatHistory.duration`,
-    /// to fit a sidebar row).
+    /// Minutes, then hours and minutes (shorter than a chat turn's "1m 48s", `ChatHistory.duration`, to fit a sidebar
+    /// row); no seconds, so the text changes once a minute.
     static func elapsed(_ interval: TimeInterval) -> String {
-        let seconds = max(0, Int(interval)), minutes = seconds / 60
-        return seconds < 60 ? "\(seconds)s" : minutes < 60 ? "\(minutes)m" : "\(minutes / 60)h \(minutes % 60)m"
+        let minutes = max(0, Int(interval)) / 60
+        return minutes < 1 ? "<1m" : minutes < 60 ? "\(minutes)m" : "\(minutes / 60)h \(minutes % 60)m"
     }
 }

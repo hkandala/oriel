@@ -359,13 +359,13 @@ or below ([Swiping](/docs/ui/swiping)). The page dots and the footer stay.
   lines, 3 pt apart. Line 1: the program tile (with no badge), then the
   pane's name (its label, else its session's title, else "Untitled":
   [Session titles](/docs/ui/chat-view#session-titles)), then at the line's
-  end the state box: the state icon (12 pt) and the time since the app saw
-  the state start ("42s", "3m", "1h 5m"), 11 pt semibold with tabular digits,
-  all in the state's color, on a 14 % tint of it with a 1 pt border at 45 %
-  and 6 pt corners. The time counts each second for the first minute, then
-  each minute, every box on the same second. After a launch it counts from
-  the launch: herdr gives no start time. An idle agent shows no box, only its
-  age ("now", "3m", "2h", "4d") in secondary text. The name is medium weight
+  end the state box: the state icon (12 pt), 11 pt semibold, in the state's
+  color, on a 14 % tint of it with a 1 pt border at 45 % and 6 pt corners.
+  Only a Working box adds a time after the icon: how long since the app saw
+  the agent start working, with tabular digits. It shows "<1m" for the first
+  minute, then "1m", "2m", … and "1h 5m", and changes once a minute. After a
+  launch it counts from the launch: herdr gives no start time. Needs you and
+  Done show the icon alone. An idle agent shows no box and no time. The name is medium weight
   for needs you and done. Line 2, under the name and the box, full width:
   "‹workspace› · ‹tab title›" in
   secondary text (the tab bar's title, D65); only the tab title in Workspace

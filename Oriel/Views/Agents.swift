@@ -83,7 +83,7 @@ struct AgentButton: View {
     }
 
     private func label(_ state: AgentState) -> some View {
-        // The tile on line 1: the name, then the state's box or (idle) the age; line 2 the place, full width.
+        // The tile on line 1: the name, then the state's box (none while idle); line 2 the place, full width.
         HStack(alignment: .top, spacing: 8) {
             ProgramTile(icon: pane.iconID, letter: pane.letter)
             VStack(alignment: .leading, spacing: 3) {
@@ -92,10 +92,7 @@ struct AgentButton: View {
                         .foregroundStyle(lit ? look.selected : look.chrome)
                     Spacer(minLength: 0)
                     if state != .idle {
-                        StateBox(state: state, since: pane.since)
-                    } else if let since = pane.since {
-                        TimelineView(.everyMinute) { context in Text(age(since, context.date)) }
-                            .font(.system(size: 11)).foregroundStyle(.secondary)
+                        StateBox(state: state, since: state == .working ? pane.since : nil)
                     }
                 }
                 Text(line2).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
@@ -103,16 +100,6 @@ struct AgentButton: View {
         }
         .padding(.horizontal, 8)
         .frame(height: 48)
-    }
-
-    private func age(_ since: Date, _ now: Date) -> String {
-        let minutes = Int(now.timeIntervalSince(since) / 60)
-        return switch minutes {
-        case ..<1: "now"
-        case ..<60: "\(minutes)m"
-        case ..<(24 * 60): "\(minutes / 60)h"
-        default: "\(minutes / (24 * 60))d"
-        }
     }
 }
 
