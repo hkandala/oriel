@@ -253,7 +253,8 @@ what differs unless a card needs it otherwise, and give the reason in Findings.
     slightly rounded border radius, right now all files are kinda merged and have sharp corners".
     - Each file is a box with about 8 pt corners and a 1 px border in the separator colour, and 8 pt between boxes.
     - The sticky header takes the box's top corners while it sticks.
-    - Also in the file list's flat view.
+    - The same in every diff layout (Unified and Side by Side, file list open or closed, Working Tree and commits);
+      the file list's rows stay plain rows.
 25. **Revert is red.** "toast button showing revert, it should be red in color as its destructive action".
     - `ToastView` buttons get a destructive role.
     - Revert, Revert All and every delete or discard confirmation in the app and the plugins use it.
@@ -477,9 +478,41 @@ CI runs and on-demand) at about 2–3 h.
   as a second default). The plugin API's toast gets `{ destructive: true }` for its main button (folded into API 2, which
   has no release yet). Git's Revert and Revert All use it, and so does the app's Discard. The Remove Plugin and Replace
   alerts mark their button destructive and drop its Return key, so AppKit draws it red; Return still clicks it in a
-  sheet (`NSWindow.confirm`).
-- **Decisions (25).** File Explorer's "changed on disk" toasts (Reload, Keep Mine; Overwrite, Reload) are choices in a
-  conflict, not confirmations of a delete or a discard, so they stay plain.
+  sheet (`NSWindow.confirm`). File Explorer's "changed on disk" toasts (Reload, Keep Mine; Overwrite, Reload) are
+  choices in a conflict, not confirmations of a delete or a discard, so they stay plain.
+- **Cause, the jumping header (23).** `@pierre/diffs`' CodeView puts every drawn file into one `position: sticky`
+  container whose `top` and `bottom` script sets again at each render (with a random jitter of up to a line), and a
+  file's header is sticky only inside that file's drawn part. The compositor scrolls at once and the script follows a
+  frame or more later, so pierre's header moved on screen, and phase 52's copy under it and the lines between showed.
+  **Fix:** CodeView is gone. Each file is our own box (`section.box`) with our own header row, `position: sticky` in the
+  box, and its lines in a `VirtualizedFileDiff` under pierre's simple `Virtualizer`, which keeps the whole file's height
+  (buffers above and below the drawn lines). No script moves a header; the phase 52 copy is deleted.
+- **Runs (23).** The real app on this Mac, two 30-step trackpad flicks (HID) over a 483-line file: the header sat at
+  the same pixel row in all 131 frames while it stuck, and no frame showed text above it
+  (`/tmp/oriel-shots/t53f/sticky-after-real.mov`, `sticky-after-real-sheet.png`). Synthetic probe flicks: the header
+  in every frame, a few frames of blank lines at file boundaries while the next lines draw. First draw, probe, 1,000
+  new 30-line files: CodeView ~550 ms, every view at once ~2,300 ms, lazy views ~500 ms; 53 files about the same
+  before and after. A file growing 40 lines above the one in view moved it 800 px without `steady`, 0 px with it; the
+  UI test for it fails without `steady` (run 41974415624: c.txt moved 194 pt) and passes with it (41974411474). Git is
+  1.8.0.
+- **Cause, the scroll bar (22).** WebKit draws a scroll's overlay scroll bar under its descendants' z-index layers
+  unless the scroll is a stacking context; the sticky header needs `z-index: 1` over pierre's lines. **Fix:**
+  `isolation: isolate` on the diff's scroll. With the boxes pushed to the edge, the thumb hid under the header without
+  it and drew over it with it (`zorder-padding0.png` → `zorder-padding0-isolate.png`); the boxes' 8 pt inset also keeps
+  the thin thumb clear of them (`scrollbar-before.png` → `scrollbar-after-inset.png`).
+- **Fix, boxes (24).** 8 pt corners, a 1 px divider border and 8 pt between and beside the boxes. The header draws the
+  box's top on a square of the card's color, so its round corners show no lines while it sticks; the lines draw the
+  sides and the bottom; a folded or bare file is the header alone, round all over.
+- **Decisions (23).** A box makes its view only within about 1,500 pt of the view (pierre adds a 16 KB icon sprite to
+  every view: 1.5 ms each), with an estimated height till then. A height change above the view keeps the file in view
+  where it is (`steady`), as CodeView's own anchor did; WebKit's `overflow-anchor` is off, since it exists only from
+  macOS 27 and moved the view twice with pierre's anchor. The themes load before the first draw.
+- **For the user.** In Git: click a commit (selected, nothing opens), ↑/↓, Return opens; double-click opens; Revert's
+  toast button is red, as is Discard in an unsaved file's toast; Remove Plugin's button is red and Return still removes.
+  Open a long commit diff: the file list starts closed; flick fast through it and back: the header never moves or
+  shows text above it; the boxes have round corners, 8 pt apart; scroll so the scroll bar shows and point at it over
+  a stuck header: the bar draws over the header. With an agent editing files, scroll into a lower file of Working Tree:
+  it stays put while files above it change.
 
 ### Track C
 
