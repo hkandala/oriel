@@ -512,10 +512,12 @@ export async function make(place: Page, root: string, source: string) {
     api.controls.set("diff.wrap", { enabled: !split })
     options.diffStyle = split ? "split" : "unified"
     options.overflow = overflow()
-    for (const box of boxes.values()) {
-      if (box.view) box.view.setOptions(fileOptions(box))
-      else show(box)
-    }
+    steady(() => {
+      for (const box of boxes.values()) {
+        if (box.view) box.view.setOptions(fileOptions(box))
+        else show(box)
+      }
+    })
     // Once the files have their new heights: pierre lays them out on the next frame.
     requestAnimationFrame(() => requestAnimationFrame(keepChange))
   }
