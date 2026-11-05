@@ -192,8 +192,10 @@ builds on one Mac) both hear it.
 | `oriel-open` on a workspace | each Oriel, source `oriel`, with `workspace.report_metadata` | `1`; `ttl_ms` 30000; on each workspace while a window has the session open, every 10 s and on a snapshot with a new workspace; cleared (`null`) when the last window lets the session go and on quit, which waits up to 1 s |
 
 Both go in the same burst as the 10 s refresh, over the same bridge,
-`oriel-open` first. A session with 8 workspaces adds 8 small calls every
-10 s.
+the panes' `oriel-shown` first: a tool reads it at each click, and the
+workspaces' marks are one call each. At quit the workspaces go first,
+because `oriel status` reads them and the quit waits only 1 s. A session
+with 8 workspaces adds 8 small calls every 10 s.
 
 ## Security
 
