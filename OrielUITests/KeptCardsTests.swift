@@ -18,8 +18,9 @@ extension OrielUITests {
         relaunch(nil, ["-spareTerminals", "\(kept)", "-spareWebCards", "\(kept)", "-recordLatency", "YES"])
         addTeardownBlock { @MainActor in self.keep(self.element("app.latency").stringValue, as: "latency") }
         let (opened, titles) = try await keptTabs(kept)
-        // Each tab once, by Show Next Tab, until its card shows; then back to the first.
-        XCTAssertTrue(element("tab.\(opened.last?.0 ?? "")").exists(within: 10))
+        // Each tab once, by Show Next Tab, until its card shows; then back to the first. The app has every tab: by the
+        // count, as the row makes only the capsules in view.
+        XCTAssertTrue(element("tabs.count").has(\.stringValue, "\(opened.count)", within: 10))
         app.typeKey("1", modifierFlags: .command)
         for (tab, pane) in opened.dropFirst() {
             app.typeKey("]", modifierFlags: [.command, .shift])

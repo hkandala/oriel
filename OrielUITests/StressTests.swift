@@ -78,7 +78,8 @@ extension OrielUITests {
     /// ⌘T, a quiet tab of its own (measured while 100 agents work in others), ⌘D, ⌘W and ⇧⌘W.
     private func newTabSplitAndCloses(in eight: String) async throws {
         let before = try await tabIDs(in: eight)
-        quietKey("t", .command) { !self.element("tab.w1:t1").isSelected }
+        // t1's page is gone: its capsule may be out of view, so not made (the row makes only the capsules in view).
+        quietKey("t", .command) { !self.element("page.w1:t1").exists }
         let new = try await newTabID(after: before, in: eight)
         XCTAssertTrue(element("tab.\(new)").has(\.isSelected, true, within: 10))
         _ = try await measure("quiet tab, 100 agents elsewhere", seconds: 5, session: eight)
