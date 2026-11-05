@@ -33,11 +33,9 @@ struct NewPaneFolder: View {
                         line(folder, remote: remote, machine: store.machine.name)
                     }
                 }
-                // The path bar's capsule (`fieldCapsule`) while editing, its padding at rest too.
-                .textFieldStyle(.plain)
-                .padding(.horizontal, 8).padding(.vertical, 5)
                 .frame(maxWidth: editing ? .infinity : nil)
-                .background(.primary.opacity(editing ? 0.07 : 0), in: .capsule)
+                // The path bar's capsule while editing, its padding at rest too.
+                .fieldCapsule(fill: editing)
                 .overlay { Capsule().strokeBorder(Color.accentColor, lineWidth: 1.5).opacity(editing ? 1 : 0) }
                 .font(.system(size: 12))
                 .frame(height: 26)
