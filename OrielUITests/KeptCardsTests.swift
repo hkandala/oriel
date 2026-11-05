@@ -15,9 +15,14 @@ extension OrielUITests {
 
     private func keptCardsCost(_ kept: Int) async throws {
         executionTimeAllowance = 1200
+        // Made in herdr before the launch, so the app's first snapshot has them: a workspace made right after a launch
+        // showed in the sidebar 3.4 s later on CI (herdr and the app busy with the launch's asks and streams).
+        let (opened, titles) = try await keptTabs(kept)
         relaunch(nil, ["-spareTerminals", "\(kept)", "-spareWebCards", "\(kept)", "-recordLatency", "YES"])
         addTeardownBlock { @MainActor in self.keep(self.element("app.latency").stringValue, as: "latency") }
-        let (opened, titles) = try await keptTabs(kept)
+        let row = element("workspace.\(workspace(of: opened[0].0))")
+        XCTAssertTrue(row.exists(within: connect))
+        row.click()
         // Each tab once, by Show Next Tab, until its card shows; then back to the first. The app has every tab: by the
         // count, as the row makes only the capsules in view.
         XCTAssertTrue(element("tabs.count").has(\.stringValue, "\(opened.count)", within: 10))
@@ -51,11 +56,11 @@ extension OrielUITests {
         XCTAssertTrue(element("overview").vanishes(within: 5))
     }
 
-    /// A workspace of a terminal beside a browser, then terminal and web tabs in turn: each tab and its pane, and the
-    /// browsers' page titles.
+    /// A workspace of a terminal beside a browser, then terminal and web tabs in turn, in herdr: each tab and its pane,
+    /// and the browsers' page titles.
     private func keptTabs(_ kept: Int) async throws -> ([(String, String)], [String: String]) {
-        let (tabs, shell) = try await newWorkspace("kept")
-        let workspace = workspace(of: tabs[0]), folder = "/tmp/oriel-e2e-kept"
+        let (first, shell) = try await createWorkspace("kept")
+        let workspace = workspace(of: first), folder = "/tmp/oriel-e2e-kept"
         try await waitForPrompt(shell)
         // Pages with some text to lay out, a different one per card.
         let html = "{ echo \"<title>Page $i</title><h1>Page $i</h1>\"; for j in $(seq 300); do echo \"<p>Paragraph $j "
@@ -75,7 +80,7 @@ extension OrielUITests {
         try await Self.call(one, "pane.rename", ["pane_id": browser,
                                                  "label": leaf("browser", "file://\(folder)/0.html")["label"] ?? ""])
         // Terminals and web cards in turn.
-        var opened = [(tabs[0], browser)], titles: [String: String] = [:]
+        var opened = [(first, browser)], titles: [String: String] = [:]
         for index in 1 ... 2 * kept {
             let web = index.isMultiple(of: 2), page = (index + 1) / 2
             let root = web ? leaf(page.isMultiple(of: 2) ? "browser" : "markdown",
