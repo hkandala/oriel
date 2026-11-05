@@ -345,7 +345,28 @@ what differs unless a card needs it otherwise, and give the reason in Findings.
     - A pacing test with counts, for example rows laid out or bodies run per switch, and idle updates per second.
     - Before and after numbers in Findings.
 
-## Research, plans only (items 34–38)
+## Track J: agents that are not installed (item 41)
+
+41. **Grey out missing agents in New Pane.** "in new pane we show agents and lists 4 agents right, we should verify
+    if those agents exist on the device, if not that particular agent option should be grayed out like disabled and
+    show like not installed text to the right of it or somewhere yk, also we shouldn't do that check everytime we open
+    the pane, that makes the new pane loading slow". Then: "let's just do it on window launch, and no need to cache
+    every 10s thats bit too redundant, so once user installs the agent they can just clsoe the window and open new one
+    to update it. this also keeps the overall logic very simple, basically cache it within window for a device".
+    - One check per window per machine: when a window opens, and the first time that window uses a remote machine.
+      A single call through the machine's exec runs
+      `$SHELL -ilc 'for c in claude codex pi opencode; do command -v "$c" >/dev/null && echo "$c"; done'`, so the
+      login shell's `PATH` and aliases count. It stops after about 3 s.
+    - The answer lives on the window, by machine, for the window's life. It is not saved and not refreshed. A new
+      window checks again.
+    - Unknown (the check has not answered, timed out or failed) means enabled, so no row flashes grey.
+    - A missing agent's row is dimmed and shows "Not installed" in secondary text at its trailing end, in place of
+      its number key. It takes no click, and the arrow and number keys skip it. Its hover tip gives the install
+      command.
+    - New Pane never waits for the check.
+    - A UI test with a stand-in `PATH` where one agent is missing. A picture of the disabled rows, dark and light.
+
+## Research, plans only (items 34–38, 42)
 
 No code changes. Each report is one self-contained HTML file in `/tmp/oriel-research/`, copied to
 `~/Downloads/oriel-research/`, written in plain English.
@@ -382,6 +403,9 @@ No code changes. Each report is one self-contained HTML file in `/tmp/oriel-rese
     are done. give me 5 ui mockups and different way settings can be grouped etc, plugins should have settings as
     well". Report: `settings-plan.html`, with five groupings and mockups, and settings for plugins. It starts after
     items 34–37 and assumes they are built.
+42. **New Pane redesign.** "can you give me multiple design mockups for the redesign of current new pane, invoke an
+    agent to work on it, its quite simple at the moment, i want it to be simple but may be some improvements to ui
+    overall, give me like 5 alternative ui mockups for it". Report: `new-pane-mockups.html`, five alternatives.
 
 ## Order and estimates
 
@@ -398,6 +422,7 @@ The tracks run in parallel, each in its own worktree. Estimates are in agent hou
 | G, window | 27, 29, 30, 32, 33 | 3.5 h |
 | H, workspace switches | 39 | 3 h |
 | I, the chat view's load | 40 | 3 h |
+| J, missing agents | 41 | 2 h |
 
 - D and E both touch `plugins/explorer`: D owns the tree and its header, and E owns the file cards. Each bumps
   File Explorer's version when it lands, rebasing on the other.
