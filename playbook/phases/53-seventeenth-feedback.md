@@ -801,7 +801,9 @@ CI runs and on-demand) at about 2–3 h.
 - **Cause, on-demand tests.** Three on-demand tests (run 41988021088) still asked for a capsule out of view, which the
   lazy row no longer makes: the kept-cards costs waited for the last tab's capsule, and the stress test checked t1's
   capsule after ⌘T scrolled the row to the new tab. The product was right; they now wait on `tabs.count` and on t1's
-  page being gone.
+  page being gone. Then the stress test's `heap` of the app (37 s at 400 panes on CI) ran past the e2e helper's 60 s
+  on a runner half as fast: that bound is for a hung tool, now 180 s. Runs: 41991682831 (red at heap),
+  41994389862 (the three tests green).
 - **Pictures.** The look does not change: `/tmp/oriel-shots/t53h/before-webs-dark.png` and
   `/tmp/oriel-shots/t53h/after-webs-dark.png` are the same pixels.
 - **For the user.**
