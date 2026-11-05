@@ -380,8 +380,8 @@ export async function show(place: Place): Promise<Reveal> {
   })
   oriel.on("find", () => openFind())
 
-  /** The find bar under row 2 (row 2's Filter, ⌘F, or a letter typed in the tree) takes the keyboard; `text` in place
-   *  of its text. */
+  /** The find bar at the top right (row 2's Filter, ⌘F, or a letter typed in the tree) takes the keyboard; `text` in
+   *  place of its text. */
   function openFind(text?: string) {
     find.hidden = false
     oriel.controls.set("filter", { value: true })

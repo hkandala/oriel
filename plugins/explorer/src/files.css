@@ -33,12 +33,13 @@
   -webkit-mask: var(--symbol) center / contain no-repeat;
 }
 [data-place="files"] :is(#tree, #matches) { flex: 1; min-height: 0; }
-/* The find bar under row 2: the editor's (find.css), across the card, in the flow over nothing to blur or shadow. */
+/* The find bar: the editor's (find.css), floating at the tree's top right as the terminal's; the rows stay put. */
 [data-place="files"] #find {
-  flex: none;
-  width: auto;
-  margin: 0 6px 6px;
-  box-shadow: none;
+  position: absolute;
+  top: 6px;
+  right: 12px;
+  z-index: 5;
+  max-width: calc(100% - 24px);
 }
 /* An icon button, as row 2's: the symbol (footer.ts) as a mask in the dim color. */
 [data-place="files"] footer button {
