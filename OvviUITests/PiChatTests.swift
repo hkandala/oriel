@@ -36,7 +36,7 @@ extension OvviUITests {
         // it.
         app.typeText("/tree\r")
         XCTAssertTrue(element("chat.\(pane).composer").vanishes(within: 3))
-        // The app types it after the composer goes: an Enter before it reached pi first, alone.
+        // The app types /tree in a task after the composer hides: an Enter sent before it reached pi first.
         try await waitFor(pane) { $0.contains("/tree") }
         try await send("\r", to: pane)
         try await waitFor(pane) { $0.contains("Navigated to selected point") }

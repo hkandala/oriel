@@ -1,7 +1,7 @@
 // A file's icon in a small window of its own, for the file drop tests: a drag from Finder now and then started nothing
 // on CI. Shows the icon at x y (screen points, top left) and drags it to tx ty, both points in an Ovvi window, as
 // scripts/drag.swift posts its drags. Exits 0 when a drop took the file, 1 when the drop was refused, 2 when no drag
-// ended within 10 s.
+// began within 5 s or ended within 10 s.
 // Usage: file-drag <path> <x> <y> <tx> <ty>
 import AppKit
 
@@ -9,15 +9,17 @@ let args = CommandLine.arguments.dropFirst(2).compactMap { Double($0) }
 guard args.count == 4 else { fatalError("usage: file-drag <path> <x> <y> <tx> <ty>") }
 let url = URL(filePath: CommandLine.arguments[1])
 let start = CGPoint(x: args[0], y: args[1]), end = CGPoint(x: args[2], y: args[3])
-let ovvi = (CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String: Any]] ?? []).contains {
-    let bounds = ($0[kCGWindowBounds as String] as? NSDictionary)
+func frame(_ window: [String: Any]?) -> CGRect {
+    (window?[kCGWindowBounds as String] as? NSDictionary)
         .flatMap { CGRect(dictionaryRepresentation: $0 as CFDictionary) } ?? .null
-    return $0[kCGWindowLayer as String] as? Int == 0 && $0[kCGWindowOwnerName as String] as? String == "Ovvi"
-        && bounds.contains(start) && bounds.contains(end)
 }
 
-guard ovvi else { fatalError("not both of \(start) and \(end) in an Ovvi window") }
-/// Signaled when the drag session begins.
+/// Only into the Ovvi window in front at the start, as drag.swift: never into another app.
+let front = (CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String: Any]] ?? [])
+    .first { $0[kCGWindowLayer as String] as? Int == 0 && frame($0).contains(start) }
+guard front?[kCGWindowOwnerName as String] as? String == "Ovvi", frame(front).contains(end)
+else { fatalError("not both of \(start) and \(end) in the Ovvi window at \(start)") }
+/// The moves and the release wait for it.
 let began = DispatchSemaphore(value: 0)
 
 final class Source: NSView, NSDraggingSource {
@@ -80,6 +82,7 @@ func drag() {
     Thread.sleep(forTimeInterval: 0.3)
     post(.leftMouseDragged, CGPoint(x: start.x + 8, y: start.y))
     guard began.wait(timeout: .now() + 5) == .success else {
+        // Not left down for every app.
         post(.leftMouseUp, start)
         fputs("no drag began: the press did not start one\n", stderr)
         exit(2)
