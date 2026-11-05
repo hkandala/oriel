@@ -79,3 +79,6 @@ everything end to end, and test and review everything".
   hides, and the test sent Enter once it hid: the Enter reached pi first (the blank line before `/tree` in the
   pane). Not the Settings window. **Fix:** the test waits for `/tree` in the pane before its Enter.
 
+- **Runs.** The four drag and chat tests (both file drops, the spring-load, pi's chat) green in chosen-tests runs
+  42096736451 and 42096746914 on c38ecebe and 42097821135 on 70a780e8 (docs only on top); 42092809564 on 0c542f9f
+  found the second leg's stuck session.
