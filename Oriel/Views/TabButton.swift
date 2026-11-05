@@ -141,9 +141,9 @@ struct TabButton: View {
     private var menu: some View {
         let tabs = workspace.tabs, store = page.store
         Button("Rename Tab") { renaming = true }
-        Button("Move Tab Left") { Task { await store.move(tab: tab.id, by: -1) } }
+        Button("Move Tab Left") { store.move(tab: tab.id, by: -1) }
             .disabled(tabs.first?.id == tab.id)
-        Button("Move Tab Right") { Task { await store.move(tab: tab.id, by: 1) } }
+        Button("Move Tab Right") { store.move(tab: tab.id, by: 1) }
             .disabled(tabs.last?.id == tab.id)
         Divider()
         Button("Close Tab") { page.close(.tab(tab.id)) }

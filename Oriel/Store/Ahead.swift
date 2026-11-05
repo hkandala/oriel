@@ -31,6 +31,9 @@ struct Ahead {
     var replaced: [String: Replacing] = [:]
     /// Replaced panes by new id, while it is there: the page's next render, maybe after more shows, keeps the card.
     var cards: [String: String] = [:]
+    /// A workspace's tabs in the order a drop or a move asked for, until a snapshot has herdr's: the bar shows it
+    /// at once, never the old order between.
+    var order: NewOrder?
 
     struct NewTab {
         let id: String, workspaceID: String
@@ -46,6 +49,13 @@ struct Ahead {
     /// until then).
     struct NewSplit {
         let tabID: String, standIn: String, tree: SplitNode, known: Set<String>
+        var after: Int?
+    }
+
+    /// The snapshots since herdr answered (nil until then): the first with the order, else the second, ends it (a
+    /// snapshot may be read before the answer).
+    struct NewOrder {
+        let workspaceID: String, tabs: [String]
         var after: Int?
     }
 
@@ -124,6 +134,7 @@ struct Ahead {
         var tabs = snapshot.tabs.filter {
             !closing.contains($0.id) && !closing.contains($0.workspaceID) && !emptied.contains($0.id)
         }
+        tabs = ordered(tabs)
         let left = Set(tabs.map(\.workspaceID)), had = Set(snapshot.tabs.map(\.workspaceID))
         let workspaces = snapshot.workspaces.filter {
             !closing.contains($0.id) && (left.contains($0.id) || !had.contains($0.id))
@@ -135,6 +146,24 @@ struct Ahead {
             trees[standIn.id] = .leaf(paneID: standIn.id)
         }
         return Shown(workspaces: workspaces, tabs: tabs, panes: panes, trees: trees)
+    }
+
+    /// The tabs in the asked order, until herdr's matches it or a tab of the workspace came or went.
+    private mutating func ordered(_ tabs: [Tab]) -> [Tab] {
+        guard let order else { return tabs }
+        let mine = tabs.indices.filter { tabs[$0].workspaceID == order.workspaceID }
+        let ids = mine.map { tabs[$0].id }
+        guard ids != order.tabs, Set(ids) == Set(order.tabs), order.after.map({ $0 < 1 }) ?? true else {
+            self.order = nil
+            return tabs
+        }
+        self.order?.after = order.after.map { $0 + 1 }
+        var tabs = tabs
+        let byID = Dictionary(mine.map { (tabs[$0].id, tabs[$0]) }, uniquingKeysWith: { first, _ in first })
+        for (index, id) in zip(mine, order.tabs) {
+            tabs[index] = byID[id] ?? tabs[index]
+        }
+        return tabs
     }
 }
 

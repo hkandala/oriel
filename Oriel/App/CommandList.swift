@@ -268,7 +268,7 @@ extension CommandList {
                                web.handed = event
                                web.keyDown(with: event)
                            } else if let page, let tab = page.selectedTab {
-                               Task { await page.store.move(tab: tab.id, by: offset) }
+                               page.store.move(tab: tab.id, by: offset)
                            }
                        })
     }

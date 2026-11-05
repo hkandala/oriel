@@ -187,16 +187,35 @@ extension HostStore {
     }
 
     /// One place left (-1) or right (1); none past the ends (a snapshot may land after the menu opened).
-    func move(tab tabID: String, by offset: Int) async {
+    func move(tab tabID: String, by offset: Int) {
         guard let tabs = workspace(of: tabID)?.tabs, let index = tabs.firstIndex(where: { $0.id == tabID }),
               tabs.indices.contains(index + offset) else { return }
         // herdr inserts before the tab now at the index, so one place right is two on.
-        await move(tab: tabID, to: index + (offset > 0 ? 2 : -1))
+        move(tab: tabID, to: index + (offset > 0 ? 2 : -1))
     }
 
-    /// Before the tab now at `index` (the count puts it last).
-    func move(tab tabID: String, to index: Int) async {
-        await write { try await $0.move(tab: tabID, to: index) }
+    /// Before the tab now at `index` (the count puts it last). Shown before this returns (`Ahead.order`).
+    func move(tab tabID: String, to index: Int) {
+        if let workspace = workspace(of: tabID) {
+            var ids = workspace.tabs.map(\.id).filter { !Ahead.isStandIn($0) }
+            if let from = ids.firstIndex(of: tabID) {
+                ids.remove(at: from)
+                ids.insert(tabID, at: min(from < index ? index - 1 : index, ids.count))
+                ahead.order = Ahead.NewOrder(workspaceID: workspace.id, tabs: ids)
+                redraw()
+            }
+        }
+        let asked = ahead.order?.tabs
+        Task {
+            let done = await write { try await $0.move(tab: tabID, to: index) }
+            // Not a later move's order.
+            guard ahead.order?.tabs == asked else { return }
+            ahead.order?.after = 0
+            if !done {
+                ahead.order = nil
+                redraw()
+            }
+        }
     }
 
     /// One row group (a workspace and its worktrees) up (-1) or down (1) past the next group; none past the ends.

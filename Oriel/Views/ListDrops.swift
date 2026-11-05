@@ -64,7 +64,10 @@ struct TrackDrop: DropDelegate {
         case let .tab(id):
             // herdr inserts before the tab now at the index; its own place or the next is no move.
             if let from = tabs.firstIndex(where: { $0.id == id }), over != from, over != from + 1 {
-                Task { await page.store.move(tab: id, to: over) }
+                // The new order shows in this same update, as the drag's slide ends: no slide back first.
+                page.store.move(tab: id, to: over)
+                // The drag's dimmed capsule too: the session's end comes a frame or more later.
+                page.dragging = nil
             }
         default:
             return false
