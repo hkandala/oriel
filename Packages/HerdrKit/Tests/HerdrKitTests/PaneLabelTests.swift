@@ -60,12 +60,12 @@ import Testing
     #expect(PaneLabel("ovvi:files#abc123 /x/repo")?.place == "/x/repo/")
 }
 
-@Test func `a card's folder is its place's folder for a path, else home, and none without a place`() {
+@Test func `a card's folder is its place's folder for a path, and none for a URL or no place`() {
     let folder = { (label: String) in PaneLabel(label)?.folder }
     #expect(folder("ovvi:explorer#abc123 /x/My Docs/notes.md") == "/x/My Docs")
     #expect(folder("ovvi:explorer#abc123 /x/repo/") == "/x/repo")
     #expect(folder("ovvi:git#abc123 /x/repo/ abcdef0") == "/x/repo")
     #expect(folder("ovvi:explorer#abc123 /") == "/")
-    #expect(folder("ovvi:browser#abc123 file:///x/a.html") == "~")
+    #expect(folder("ovvi:browser#abc123 file:///x/a.html") == nil)
     #expect(folder("ovvi:notes#abc123") == nil)
 }

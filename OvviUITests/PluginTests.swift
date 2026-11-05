@@ -77,7 +77,8 @@ extension OvviUITests {
         try await show(relabel)
         try await waitForPrompt(shell)
         try await send("exec zsh -f\r", to: shell)
-        try await waitFor(shell) { $0.contains("% ") }
+        // zsh -f's prompt ends in `%`; a read drops the space after it.
+        try await waitFor(shell) { $0.trimmingCharacters(in: .whitespacesAndNewlines).hasSuffix("%") }
         try await send("half typed", to: shell)
         try await waitFor(shell) { $0.contains("% half typed") }
         // The app knows its shell: the card's title leads with it.

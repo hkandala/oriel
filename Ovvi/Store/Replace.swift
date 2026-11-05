@@ -48,7 +48,7 @@ extension HostStore {
                                                   terminal: old.terminalID)
         let done = await write { client in
             var new: HerdrKit.Pane?
-            // A kept label's card is made again because its folder is gone: home, unless its label names one.
+            // A kept label's card is made again because its folder is gone: in its path's folder, else home.
             var label = label, cwd = "~"
             if label == nil, let plugin {
                 // In the chooser's folder, else the pane's live folder, as a split is.
@@ -92,7 +92,8 @@ extension HostStore {
 
 extension HostStore {
     /// herdr brings a card pane back from its saved session without a program when its saved folder is gone: a new
-    /// pane with the same label, so the card keeps its state, takes its place. Once per pane.
+    /// pane with the same label, so the card keeps its state, takes its place. Once per pane per launch, also after a
+    /// failure: no remake on every snapshot.
     func remakeCard(_ pane: Pane, _ new: HerdrKit.Pane) {
         guard new.restoreError != nil, let label = PaneLabel(new.label), !pane.remade else { return }
         pane.remade = true

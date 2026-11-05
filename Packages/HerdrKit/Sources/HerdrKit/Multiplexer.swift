@@ -55,7 +55,8 @@ public protocol Multiplexer: Sendable {
     /// A nil label clears it.
     func rename(pane paneID: String, label: String?) async throws
     /// A new tab of one pane with this label, running `command` (argv, no shell) instead of a shell, in the label's
-    /// folder (it survives a restart better than the folder it was asked from), else in `cwd`; returns its pane id.
+    /// path's folder (it survives a restart better than the folder it was asked from), else in `cwd`; returns its pane
+    /// id.
     func newTab(workspace workspaceID: String, cwd: String, label: PaneLabel, command: [String]) async throws -> String?
     /// Returns the new tab's pane.
     func newTab(workspace workspaceID: String, cwd: String) async throws -> Pane?

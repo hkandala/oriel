@@ -110,11 +110,13 @@ everything end to end, and test and review everything".
   with no shell to type into.
 - **Cause, "Saved directory is unavailable"** (the user's second explorer card; eleven panes of `default` at that restart). Cards were
   made in the folder of the pane they were opened from, here `~/code/oriel`, which the migration moved. herdr saves that
-  folder and, after a restart, keeps a pane whose folder is gone with no program at all. **Fix:** a card with an
-  argument starts in its argument's folder (a file's folder, a root), a URL card in home; a card with no argument (a
-  plugin with no `opens`) still starts in the source folder, which it uses. A card pane that herdr brings back with a
+  folder and, after a restart, keeps a pane whose folder is gone with no program at all. **Fix:** a card whose
+  argument is a path starts in that path's folder (a file's folder, a root). A URL card and one with no argument keep
+  the source folder: ⌘T from the card, its opens, Replace Pane and a plugin with no `opens` use it. A card pane that herdr brings back with a
   `restore_error` is made again in its place under the same label (so it keeps its state), once per pane.
 - **Decisions.** Two Macs that see the restart at once can both make the card again: two cards, one to close by hand.
+  A remake that fails is not tried again until the next launch. Several such cards in one tab hide one by one while
+  they are made again (untested: the old pane no longer hides with the new one, which shares its label).
 - **Left (not fixed here).** 766 `tail -F … /T/oriel-follow-*` and `oriel-unread-*` processes (with their `awk`)
   from older builds run with parent 1, and 40 `ovvi-` ones from today: the chat followers outlive a killed app, as
   `tail -F` never reads its stdin. They depend on removed temporary files and do nothing; `pkill -f 'T/oriel-'` ends

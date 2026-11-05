@@ -66,11 +66,10 @@ Browser and plugin panes are created the same way.
                        command:["sh","-c",<script>,"sh",<title>,<arg>]}}
    ```
    - `cwd` is the folder of the label's argument when it is a path (a file's
-     folder, a root), and home (`~`) for a URL. herdr saves it and brings the
-     pane back after a restart only when that folder is still there, so a
-     card is not tied to the folder it was opened from. A card with no
-     argument (a plugin with no `opens`) starts in the source pane's folder,
-     which it uses.
+     folder, a root): herdr saves it and brings the pane back after a restart
+     only when that folder is still there, so such a card is not tied to the
+     folder it was opened from. A URL card, or one with no argument (a plugin
+     with no `opens`, which uses it), starts in the source pane's folder.
    - The script prints the title, the argument without its scheme and "Shown
      in Ovvi" in the middle of the pane. On `SIGWINCH` it reads the label's
      argument from herdr (`herdr pane get $HERDR_PANE_ID`) and draws again: on

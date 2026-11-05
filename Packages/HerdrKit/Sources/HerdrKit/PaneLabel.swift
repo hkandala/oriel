@@ -64,13 +64,12 @@ public struct PaneLabel: Equatable, Sendable {
         }
     }
 
-    /// The folder its pane starts in: the place's folder for a path (a file's folder, a root), else home (`~`). herdr
-    /// saves it and, after a restart, brings the pane back only if it is still there; the placeholder never uses it.
-    /// Nil without an argument: that card uses its pane's folder (plugins/manifest#what-a-plugin-opens).
+    /// The folder its pane starts in for a path (a file's folder, a root): herdr saves it and, after a restart, brings
+    /// the pane back only if it is still there. Nil for a URL or no argument: the pane keeps the folder it was opened
+    /// from, which ⌘T from the card, its opens and a plugin with no `opens` use.
     public var folder: String? {
         let place = place
-        guard !place.isEmpty else { return nil }
-        guard place.hasPrefix("/"), let slash = place.lastIndex(of: "/") else { return "~" }
+        guard place.hasPrefix("/"), let slash = place.lastIndex(of: "/") else { return nil }
         return slash == place.startIndex ? "/" : String(place[..<slash])
     }
 
