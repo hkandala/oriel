@@ -10,8 +10,8 @@ struct WindowBackground: View {
             Frosted(blending: .behindWindow, material: .hudWindow)
                 .overlay(look.backdrop.blendMode(BlendMode.overlay))
                 .overlay {
-                    // Not the system glass: it drops its tint and its blur in an inactive window, which then looked
-                    // lighter and greyer than the active one.
+                    // Not the system glass: macOS draws it without its tint and wide blur in an inactive window,
+                    // so the window would turn lighter and greyer.
                     if let shade = look.blurShade {
                         Frosted(blending: .withinWindow, material: .fullScreenUI).overlay(shade)
                     }

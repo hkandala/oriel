@@ -172,9 +172,15 @@ everything end to end, and test and review everything".
   0.2, in place of the system glass. Active and inactive now match within 0.3 at every spot measured (sidebar, card,
   title row) in dark and light Glass and Classic, over the wallpaper and over a white page. Light Glass and Classic
   were already equal.
-- **Decisions.** Black 0.2 matches Track G's active window: 27.3 and 35.6 over the wallpaper and a white page in a
-  probe (27.5 and 35.2 before), with the same spread over the text page. The wallpaper's color shows a little more
-  (sidebar 33, 29, 27 against 27, 26, 26): the system glass desaturated it.
-- **For the user.** With Reduce Transparency on, both blurs turn opaque as before (not toggled here: it is a setting
-  of the whole Mac). The selected tab and row capsules are still the system glass: they dim by about 10 levels in an
-  inactive window, as selections in other macOS apps do.
+- **Decisions.** Black 0.2 keeps Track G's active window. In a probe over the same wallpaper image it reads 31, 29,
+  29 against 30, 28, 28 with the system glass, and 35.6 against 35.2 over a white text page, with the same spread. In
+  the app's shots the wallpaper's tint varied from run to run (a saturation trial at 0.5 read warmer than at 0.3 and
+  0.7), so the color is judged on the probe: no saturation layer is needed.
+- **Cost.** WindowServer while a terminal prints at full speed (`top`, alternating): 5.5 and 6.1 % before, 4.9 and
+  8.8 % after; Ovvi 1.6 to 1.9 % in both. No clear difference.
+- **Runs.** `testGlassLooksTheSameInAnInactiveWindow` (new) reads an unselected workspace row with the window key,
+  then with Settings key: red on the old code locally (26, then 40), green on the fix.
+- **For the user.** The selected tab and workspace row are still the system glass, so they still change in an
+  inactive window: about 10 levels darker, and in light Glass over a bright wallpaper the selected row is then about
+  the sidebar's color, with only its outline left. Say if that should stay the same too. With Reduce Transparency on,
+  both blurs turn opaque as before (not toggled here: it is a setting of the whole Mac).

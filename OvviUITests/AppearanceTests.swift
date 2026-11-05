@@ -81,6 +81,24 @@ extension OvviUITests {
         }
     }
 
+    /// A dark Glass window looks the same when another window has the keyboard. macOS draws the system glass lighter
+    /// in an inactive window, so it must not be in the window's background. Read on a workspace row that is not
+    /// selected: the background with a short label, no capsule.
+    func testGlassLooksTheSameInAnInactiveWindow() {
+        XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
+        pick("Interface Style", "Glass")
+        let row = element("workspace.w2")
+        let active = median(row)
+        app.typeKey(",", modifierFlags: .command)
+        XCTAssertTrue(settingsWindow.exists(within: 3), "no Settings window")
+        addTeardownBlock { @MainActor [self] in settingsWindow.typeKey("w", modifierFlags: .command) }
+        // The main window redraws as inactive within a frame or two.
+        Thread.sleep(forTimeInterval: 0.3)
+        let inactive = median(row)
+        keepScreenshot("glass dark, inactive: \(active) / \(inactive)")
+        XCTAssertTrue(active > 0 && abs(active - inactive) <= 2, "active \(active), inactive \(inactive)")
+    }
+
     /// Text selected in a terminal reads well in all four looks: its own color over the selection,
     /// where libghostty's default drew it in the window background, about the selection's own grey. A drag over a
     /// plain shell selects locally (herdr drops mouse events for a program without mouse mode).
