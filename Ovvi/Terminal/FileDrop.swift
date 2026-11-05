@@ -4,9 +4,9 @@ import HerdrKit
 
 /// Drops paste their paths shell-escaped, as Ghostty (herdr's usual terminal) does; an image with no file is saved
 /// as a PNG first, or received from its source (a browser's image may be only a file promise). On a remote machine
-/// the files are copied there first and their copies' paths pasted (`Exec.upload`); on This Mac only a file in a
-/// `TemporaryItems` folder is (`reachable`). A pane drag carries none of these
-/// types, so it goes on to the card's drop zones.
+/// the files are copied there first and their copies' paths pasted (`Exec.upload`). On This Mac, a file in a
+/// `TemporaryItems` folder is copied to a new folder first (`reachable`). A pane drag carries none of these types, so
+/// it goes on to the card's drop zones.
 extension PaneSurfaceView {
     static let dropTypes: [NSPasteboard.PasteboardType] = [.fileURL, .tiff, .png]
         + NSFilePromiseReceiver.readableDraggedTypes.map { .init($0) }

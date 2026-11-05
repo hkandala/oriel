@@ -101,8 +101,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if session not in sessions:
             status, reply = 403, f"refusing session '{session}'".encode()
         elif action not in ("", "control", "takeover", "children", "stop", "start", "open-folder", "open-url",
-                            "file-drag", "temporary-file-drag", "usage", "ssh-drop", "ssh-forget", "ssh-connections", "swipe", "drag",
-                            "stress", "sample", "heap", "press", "release"):
+                            "file-drag", "temporary-file-drag", "usage", "ssh-drop", "ssh-forget", "ssh-connections",
+                            "swipe", "drag", "stress", "sample", "heap", "press", "release"):
             status, reply = 404, f"no action '{action}'".encode()
         elif action in ("control", "takeover") and not re.fullmatch(rb"\w[\w-]*", body):
             status, reply = 400, b"the body must be a terminal id"
@@ -142,7 +142,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 status, reply = 500, f"{action} took over {limit} s".encode()
         elif action == "drag" and not re.fullmatch(rb"-?[\d.]+ -?[\d.]+( -?[\d.]+ -?[\d.]+ [\d.]+)+", body):
             status, reply = 400, b"the body must be x y (x y hold)..."
-        elif action in ("file-drag", "temporary-file-drag", "press") and not re.fullmatch(rb"-?[\d.]+( -?[\d.]+){3}", body):
+        elif action in ("file-drag", "temporary-file-drag", "press") and not re.fullmatch(
+                rb"-?[\d.]+( -?[\d.]+){3}", body):
             status, reply = 400, b"the body must be x y tx ty"
         elif action == "release" and session not in held:
             status, reply = 400, b"no drag held"
