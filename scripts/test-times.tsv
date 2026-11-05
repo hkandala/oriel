@@ -1,6 +1,7 @@
 # Seconds per UI test on CI, for scripts/shard.py: the mean of full runs 41988017252, 42004828681 and 42026081029
 # (passed tries). The on-demand tests (Makefile ON_DEMAND) from on-demand runs 42004833178 and 42026085641.
 # Refresh: playbook/ci.md, Refresh the test times.
+# The Settings tests (phase 55) from full run 42059188736.
 354	testHundredsOfPanesStayQuick
 219	testManyKeptCardsCost
 190	testOverviewOfManyTabsStaysBounded
@@ -11,6 +12,7 @@
 69	testSessionSwipeIntoManyTabsDrawsThemWithTheSidebar
 66	testALongChatShowsEarlierRowsInPlace
 65	testAPluginPackageAsksForTrustBuildsAndReloads
+61	testAPluginsPageAllowsSetsAndForgetsTrust
 57	testMemoryAndCPUOverManyTabs
 50	testACardNeverShowsTheOverviewsSmallSnapshot
 50	testBrowserFromTheChooserLoadsATypedAddressAndKeepsItsPage
@@ -21,6 +23,7 @@
 38	testAPasswordHostAsksAndNeverRetriesByItself
 38	testFileExplorerBrowsesOpensAndGoesBack
 36	testLayoutMotionAnimatesWithoutBlanking
+36	testSettingsPagesSearchAndLook
 35	testACodexChatOnARemoteMachine
 35	testALongChatKeepsItsPlaceAndScrollsToTheBottom
 34	testMenuSwitchesTheLook
@@ -31,6 +34,7 @@
 31	testGoToDirectoryAndInsertPath
 30	testAFinishShowsDoneUntilTheUserLeavesIt
 30	testAgentGroupsFoldAndStayFoldedAfterARelaunch
+30	testSettingsAgentsSwitchArgumentsAndChat
 29	testFloatingWindowsHaveTheirOwnCommandsAndComeBackAfterRelaunch
 29	testHoverCardBlursTheTextBehindIt
 29	testOverviewShowsBrowserAndChatCards
@@ -42,6 +46,7 @@
 27	testAPaneLabeledInHerdrShowsItsPageAfterARestart
 27	testKeysMoveTheKeyboardSwapAndResize
 27	testPanelsAndSwitchesReactAtOnce
+27	testSettingsTerminalFontAndOptionKey
 26	testADroppedBrowserKeepsItsPictureAndComesBack
 26	testAPreviewCardShowsImagesPDFsAndOtherFiles
 26	testFloatingWindowInEachLook
@@ -110,6 +115,7 @@
 16	testOverviewLoadsEveryTileInTurn
 16	testPickingAnAgentStartsItBehindTheLoader
 16	testTheOvviCommandFloatsCopiesAndSaysWhereItIs
+16	testSettingsMachinePageSavesAnEdit
 15	testARemotePageComesBackAfterItsConnectionDies
 15	testAWorkspaceSwitchMakesOnlyTheCapsulesInView
 15	testCloseRightAfterQuickSplitsAndTheActiveBorder
