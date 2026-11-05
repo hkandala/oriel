@@ -7,6 +7,7 @@ Goal: the fixes from the user's seventeenth round:
 - Markdown gets four modes.
 - Git's diff stops flickering and its files get their own boxes.
 - The active pane gets a subtle border, and ⌘W works right after ⌘D.
+- A workspace with many browser or plugin tabs switches as fast as any other.
 - The browser keeps the typed address and takes a click on its empty and error pages.
 - Glass stays readable over a bright window.
 - The `oriel` skill moves into this repo.
@@ -295,6 +296,27 @@ what differs unless a card needs it otherwise, and give the reason in Findings.
     - A remote machine gets the skill the way the docs say: copy or link it. Shipping it with the app waits for the
       herdr-core plan.
 
+## Track H: snappy workspace switches (item 39)
+
+39. **Workspaces with many plugin tabs switch at once.** "when there are too many plugin panes are there specifically
+    browser panes, in some workspace, and clicking on that workspace when switching worksapces, i see a noticeable
+    delay when clicking on the workspace that has many tabs, i noticed this exactly in the current workspace where
+    we have so many reports opened in tabs, let's improve the workspace switching overall and make it snappy".
+    - Measure first, from the click to the first drawn frame of the new workspace. Use real HTML reports (the
+      `~/Downloads/oriel-research/*.html` files).
+      - For a target workspace with 1 tab, with 10 terminal tabs, with 10 browser tabs, and with 10 mixed plugin tabs
+        (browser, File Explorer, Git).
+      - For both directions, and for a workspace seen before versus not seen since launch.
+    - Profile the slow case with Instruments (Time Profiler and SwiftUI). Find what scales with the number of tabs.
+      Suspects: every hidden card of the workspace being made, attached or sized, web views laid out or resized when
+      hidden, the tab bar's pills, snapshot rebuilds, label or state work per pane, and `PaneViewRegistry` trims.
+    - Fix the cause: a switch does work only for the tab that shows. Hidden tabs wait until they are shown, keeping
+      phase 48's rule that hidden terminals of the current workspace stay sized.
+    - Target: under 50 ms to the first frame for any tab count, and the same speed as a terminal-only workspace.
+    - Add a pacing test with counts, not wall-clock bounds (the `wall_clock_bounds` lint rule). For example: the
+      number of web views laid out, or of cards made, on one switch.
+    - Before and after numbers in Findings, also for the phase 48 table's measures.
+
 ## Research, plans only (items 34–38)
 
 No code changes. Each report is one self-contained HTML file in `/tmp/oriel-research/`, copied to
@@ -346,6 +368,7 @@ The tracks run in parallel, each in its own worktree. Estimates are in agent hou
 | E, file cards | 13–15, 18, 19, 26 | 6 h |
 | F, Git | 20–25 | 5 h |
 | G, window | 27, 29, 30, 32, 33 | 3.5 h |
+| H, workspace switches | 39 | 3 h |
 
 - D and E both touch `plugins/explorer`: D owns the tree and its header, and E owns the file cards. Each bumps
   File Explorer's version when it lands, rebasing on the other.
