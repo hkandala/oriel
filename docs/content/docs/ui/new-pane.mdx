@@ -153,7 +153,9 @@ dimmed and takes no pick.
 
 - **The check.** Each window checks its machine one time, when the window
   opens. One command runs on the machine through the window's connection:
-  `$SHELL -ilc 'for c in claude codex pi opencode; do command -v "$c" >/dev/null && echo "$c"; done'`.
+  `$SHELL -ilc 'echo; for c in claude codex pi opencode; do command -v $c >/dev/null && echo $c; done; echo oriel-end'`.
+  The first `echo` puts the agents on their own lines after any text from
+  the startup files. The last line marks a loop that ran.
   The login shell runs the user's startup files, so the shell's `PATH` and
   aliases count. The check stops after 3 s.
 - **Unknown means installed.** Until the check answers, and when it fails,
