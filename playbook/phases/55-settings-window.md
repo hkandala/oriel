@@ -205,7 +205,8 @@ everything end to end, and test and review everything".
 - **Decisions.** The window keeps its width and lets the height change (down to 400 pt), so there is no narrow
   state. The plugin badge is the stock one with `badgeProminence(.increased)`. `testSettingsScenes` (on demand)
   takes about 70 pictures of every page and state, dark and light: run it after any change to the window.
-- **Runs.** Chosen-tests run 42122831854 on 0423e5ec: the seven Settings and plugin-page tests green (Executed 7
-  tests); the pictures are in `/tmp/ovvi-shots/settings-polish/` (before, after).
+- **Runs.** Chosen-tests runs 42122831854 on 0423e5ec (the seven Settings and plugin-page tests, Executed 7) and
+  42124260075 on 3407319d (those and the inactive-glass test that opens Settings, Executed 8), both green; the
+  pictures are in `/tmp/ovvi-shots/settings-polish/` (before, after).
 - **For the user.** Open Settings (⌘,) and push a machine's and a plugin's page: the window keeps its size and the
   traffic lights their place.
