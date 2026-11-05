@@ -1,39 +1,33 @@
-# Phase 7: rename Herdlight to Ovvi
+# Phase 7: the app's name and the research folder
 
-Goal: no reference to "Herdlight", "herdlight" or the `hl` short form anywhere in the repo
-(code, project, scripts, CI, docs, plan, research text), and everything still builds, lints
-and passes e2e. Behavior does not change.
+Goal: one name, Ovvi, in the code, the project, the scripts, CI, the docs, the plan and the research text, and
+everything still builds, lints and passes e2e. Behavior does not change.
 
-Already done by the orchestrator: GitHub repo renamed to `hkandala/ovvi` (old URLs redirect),
-local checkout moved to `~/code/ovvi`.
+## Names (from the user)
 
-## Decisions (from the user)
+| What | Name |
+|---|---|
+| App name, display name | Ovvi |
+| Xcode project, targets, folders | `Ovvi.xcodeproj`, `Ovvi`, `OvviUITests` |
+| Bundle ids | `dev.ovvi.app`, `dev.ovvi.app.uitests` |
+| Swift package | `HerdrKit` (it is the herdr adapter, not the app) |
+| Plugin label prefix | `ovvi:` |
+| Floating-panes tab label | `ovvi:float` |
+| Change-signal metadata token | `ovvi_rev` |
+| Metadata source | `user:ovvi` |
+| Throwaway herdr sessions | `ovvi-e2e-*`, `ovvi-dev-*` |
+| SSH sockets folder | `~/Library/Caches/ovvi/` |
+| State files | `~/.local/state/ovvi/` |
+| Logs | `~/Library/Logs/Ovvi/` |
+| launchd labels | `dev.ovvi.app.*` |
+| Agent GUI lock, derived data | `/tmp/ovvi-gui.lock`, `/tmp/ovvi-dd-*` |
+| Other names of the app's own (e.g. `ovvi-plugin`, `ovvi-git…`) | `ovvi-…` |
+| Docs site | the Vercel project `ovvi`; the repo's homepage points to it |
+| CI herdr version | 0.9.5 (the minimum supported stays 0.9.3) |
 
-| What | Old | New |
-|---|---|---|
-| App name, display name | Herdlight | Ovvi |
-| Xcode project, targets, folders | `Herdlight.xcodeproj`, `Herdlight`, `HerdlightUITests` | `Ovvi.xcodeproj`, `Ovvi`, `OvviUITests` |
-| Bundle ids | `dev.hkandala.herdlight`, `….uitests` | `dev.ovvi.app`, `dev.ovvi.app.uitests` |
-| Swift package | `HerdrKit` | unchanged (it is the herdr adapter, not the app) |
-| Plugin label prefix | `hl:` | `ovvi:` |
-| Floating-panes tab label | `hl:float` | `ovvi:float` |
-| Change-signal metadata token | `hl_rev` | `ovvi_rev` |
-| Metadata source | `user:herdlight` | `user:ovvi` |
-| Throwaway herdr sessions | `hl-e2e-*`, `hl-dev-*` | `ovvi-e2e-*`, `ovvi-dev-*` |
-| SSH sockets folder | `~/Library/Caches/hl/` | `~/Library/Caches/ovvi/` |
-| State files | `~/.local/state/herdlight/` | `~/.local/state/ovvi/` |
-| Logs | `~/Library/Logs/Herdlight/` | `~/Library/Logs/Ovvi/` |
-| launchd labels | `dev.hkandala.herdlight.*` | `dev.ovvi.app.*` |
-| Agent GUI lock, derived data | `/tmp/hl-gui.lock`, `/tmp/hl-dd-*` | `/tmp/ovvi-gui.lock`, `/tmp/ovvi-dd-*` |
-| Other `hl-…` names (e.g. `hl-plugin`, `hl-git…`) | `hl-…` | `ovvi-…` |
-| Docs site | `herdlight.vercel.app` | Vercel project renamed to `ovvi` (`ovvi.vercel.app` if free); repo homepage updated |
-| CI herdr version | 0.9.3 | 0.9.5 (the minimum supported stays 0.9.3) |
-
-- Git history stays as it is. Images stay as they are (text in screenshots is not edited);
-  image file names that contain the old name are renamed.
-- Research and inspiration text in `resources/` is renamed too.
-- Design decisions that name the old app (e.g. D39 "privacy prompts would name Herdlight")
-  just use the new name; numbering does not change.
+- Git history stays as it is. Images stay as they are (text in screenshots is not edited).
+- Research and inspiration text in `resources/` uses the name too.
+- Design decisions keep their numbers.
 
 ## Research folder: group into sub folders
 
@@ -48,6 +42,5 @@ resources/research/
   ui/                         floating-panels.md, floating-panes.md (+ floating-panels-smoke.png)
 ```
 
-- The two new reports come from `/tmp/hl-brainstorm/plugin-panes.md` and
-  `/tmp/hl-brainstorm/remote-plugins.md`, with their text renamed too.
+- The two new reports come from a brainstorm in `/tmp`: `plugin-panes.md` and `remote-plugins.md`.
 - Fix every link to moved files (docs `reference/sources.mdx`, other docs, plan, README).

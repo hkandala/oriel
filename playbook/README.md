@@ -22,7 +22,7 @@ run and test it is in the root `README.md`.
 | 4b | Actions: close, zoom, new tab, workspace and session, palette | [04b-actions.md](phases/04b-actions.md) |
 | 5 | Swipe across tabs, tab pills, chrome polish | [05-strip-and-glass.md](phases/05-strip-and-glass.md) |
 | 6 | Hardening and v0 wrap-up | [06-hardening.md](phases/06-hardening.md) |
-| 7 | Rename Herdlight to Ovvi | [07-rename.md](phases/07-rename.md) |
+| 7 | The app's name and the research folder | [07-rename.md](phases/07-rename.md) |
 | 8 | Design refresh | [08-design-refresh.md](phases/08-design-refresh.md) |
 | 9 | Simplify the design: same features, simpler mechanisms | [09-simplify.md](phases/09-simplify.md) |
 | 10 | Appearance (Auto, Light, Dark) and interface style (Glass, Classic) | [10-appearance.md](phases/10-appearance.md) |
