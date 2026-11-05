@@ -161,3 +161,20 @@ everything end to end, and test and review everything".
   every run's stdin; the `watch` script has no trap, so the first TERM ends it; plugin builds and calls run with
   stdin closed and a timeout, so after a hard kill they run to their own end; herdr's server outlives the app by
   design (D47).
+
+- **Cause, the inactive window** ("its lighter and weird, than the active one … no grayish overaly on inactive ones";
+  phase 53 item 32). macOS draws the system glass in another state when its window is not key: the
+  `glassBackground` filter loses its refraction and wide blur, the tint's color matrix becomes a light grey one, and
+  one tint layer drops to opacity 0. So dark Glass's `glassEffect(.regular.tint(#1e1e1e at 0.5))` lost its tint:
+  from 27 to 42 over the wallpaper and from 35 to 61 over a white page (sidebar, 8-bit sRGB). The blur under it was
+  already pinned (`state = .active`); `.environment(\.appearsActive, true)` and `NSGlassEffectView` change nothing.
+- **Fix:** the second blur is a within-window `NSVisualEffectView` (`fullScreenUI`, `state = .active`) under black
+  0.2, in place of the system glass. Active and inactive now match within 0.3 at every spot measured (sidebar, card,
+  title row) in dark and light Glass and Classic, over the wallpaper and over a white page. Light Glass and Classic
+  were already equal.
+- **Decisions.** Black 0.2 matches Track G's active window: 27.3 and 35.6 over the wallpaper and a white page in a
+  probe (27.5 and 35.2 before), with the same spread over the text page. The wallpaper's color shows a little more
+  (sidebar 33, 29, 27 against 27, 26, 26): the system glass desaturated it.
+- **For the user.** With Reduce Transparency on, both blurs turn opaque as before (not toggled here: it is a setting
+  of the whole Mac). The selected tab and row capsules are still the system glass: they dim by about 10 levels in an
+  inactive window, as selections in other macOS apps do.

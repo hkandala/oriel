@@ -41,11 +41,11 @@ struct Look {
              Color(white: 0x1E / 255), Color(white: 0xF6 / 255))
     }
 
-    /// Glass dark: the tint of the system glass between the blur and `window`, as Rex's Modern window. Its wide blur
+    /// Glass dark: over a second blur of the window's own background, between the blur and `window`. That blur
     /// smooths the text and edges of a bright window behind, which the `overlay` darkening sharpens. Light needs
     /// none: its white tint already hides a dark window behind.
-    var glassTint: Color? {
-        style == .glass && dark ? Color(white: 0x1E / 255).opacity(0.5) : nil
+    var blurShade: Color? {
+        style == .glass && dark ? .black.opacity(0.2) : nil
     }
 
     var cardFill: Color {
