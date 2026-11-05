@@ -252,7 +252,8 @@ extension OrielUITests {
         app.typeText("/usr\r")
         XCTAssertTrue(field.vanishes(within: 3))
         XCTAssertEqual(folder.stringValue, "/usr")
-        app.typeKey(.return, modifierFlags: [])
+        // By its key: the pointer's way to the folder line can cross a row, which then has the selection.
+        app.typeKey("1", modifierFlags: [])
         XCTAssertTrue(folder.vanishes(within: 2))
         try await expect("the shell in /usr") { try await self.pane(pane)["cwd"] as? String == "/usr" }
     }

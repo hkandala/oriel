@@ -940,6 +940,10 @@ CI runs and on-demand) at about 2–3 h.
   folder icon is one view in both looks, so a click on it as the field lets go still lands. Return on the shown folder
   types no `cd`. On a remote machine any user's home reads as `~` (a `ponytail:` note): asking each machine for its home
   costs a call per line.
+- **Runs.** Chosen-tests run 42001994405 (ChooserTests and File Explorer's path bar test): six green, the remote
+  folder test red at its last step. The remote line, the typed `/usr` and its "Opens in /usr on Key Host" worked; the
+  pointer's way to the folder line crossed File Explorer's row, which took the selection, so Return opened File
+  Explorer. The test picks Terminal with 1 now.
 - **Moved.** Relaunch with Chat's part of `Chooser.swift` went to `Store/Relaunch.swift`: the file was at 392 lines.
 - **For the user.** Choose Folder… on This Mac (the panel opens at the folder; the picked one shows); File Explorer
   and Git picked after a typed folder open on its repository.
