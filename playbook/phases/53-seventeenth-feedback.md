@@ -787,7 +787,9 @@ CI runs and on-demand) at about 2–3 h.
   background window, 1.2 s apart, and logged each switch's main-thread CPU time to the end of the turn that drew it,
   with counts of the bodies run. The Mac's load was 100–140, so I compared CPU medians of 6–7 switches, before and after
   in the same hour, and checked each cause with a count. Time Profiler and SwiftUI traces of 14 switches to the chat
-  tab are in `/tmp/oriel-shots/t53i/` (`tp-before`, `tp-lines`, `sui-before`, `sui-after`).
+  tab are in `/tmp/oriel-shots/t53i/` (`tp-before`, `tp-lines`, `sui-before`, `sui-after`). Under the SwiftUI
+  instrument (which slows the app) the 14 switches had 15 hangs of 250–930 ms and 731,000 SwiftUI updates before, 4
+  hangs of 256–304 ms and 235,000 updates after.
 - **Cause.** An idle chat costs nothing (13–50 ms of main thread per 5 s, as a terminal tab). The cost is each show:
   the card's views go with its tab, so every switch to the chat builds and lays out its whole block of rows again, each
   body once. The block was the newest 34 rows: here 31 rows of long replies, 383 Markdown blocks of selectable text
