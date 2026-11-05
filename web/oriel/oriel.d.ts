@@ -66,7 +66,8 @@ export type Off = () => void
 export interface Pages {
   /** Draws the card's places from now on, its place now: resolves once that page shows. A move to a place with a kept
    *  page shows that page at once; to another place, `draw` fills a new page, which shows when its promise ends, and
-   *  the page before stays until then. A page left with unsaved edits is dropped. */
+   *  the page before stays until then. A page left with unsaved edits is dropped. From then on ⌘← and ⌘→ go Back and
+   *  Forward (manifest `history`), before the page's own keys, unless a text field has the keyboard. */
   route(draw: (page: Page) => Promise<void>): Promise<void>
 }
 

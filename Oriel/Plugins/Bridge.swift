@@ -216,6 +216,8 @@ final class Bridge {
         case "card.go":
             guard let arg = args["arg"] as? String else { throw PluginError("failed", "arg is missing") }
             plugin.go(arg, at: args["at"] as? String)
+        // The runtime's ⌘← and ⌘→: Back and Forward, when the card has a place that way.
+        case "card.step": _ = plugin.web.view.step?(args["back"] as? Bool == true)
         case "card.ready":
             plugin.web.ready = true
             // A change between the context and the runtime's start had no one to hear it.
@@ -229,13 +231,7 @@ final class Bridge {
                     .filter { !$0.isEmpty }.joined(separator: "\n"),
             ))
             plugin.web.ready = true
-        case "state.set":
-            let value = args["value"] ?? NSNull()
-            guard let data = try? JSONSerialization.data(withJSONObject: [value]), data.count <= 256 << 10 else {
-                throw PluginError("tooLarge", "The state is over 256 KiB, or not JSON")
-            }
-            state = value is NSNull ? nil : value
-            save()
+        case "state.set": try keep(args["value"] ?? NSNull())
         case "controls.set":
             let id = args["id"] as? String ?? "", change = args["change"] as? [String: Any] ?? [:]
             if plugin.manifest.commands.contains(where: { $0.id == id }) {
@@ -245,6 +241,15 @@ final class Bridge {
             }
         default: throw PluginError("failed", "No call \(name)")
         }
+    }
+
+    /// The page's `state.set`: kept in the state file.
+    private func keep(_ value: Any) throws {
+        guard let data = try? JSONSerialization.data(withJSONObject: [value]), data.count <= 256 << 10 else {
+            throw PluginError("tooLarge", "The state is over 256 KiB, or not JSON")
+        }
+        state = value is NSNull ? nil : value
+        save()
     }
 
     /// A watch from the page, or its end.

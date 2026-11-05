@@ -189,6 +189,7 @@ const oriel: Oriel = {
   pages: {
     async route(fn) {
       draw = fn
+      addEventListener("keydown", backForward, true)
       await fill(context.arg, context.at)
     },
   },
@@ -333,6 +334,19 @@ function present(kept: Kept, again?: { arg: string; at?: string }) {
   for (const page of drawn.slice(0, Math.max(0, drawn.length - 5))) drop(page)
   // A page takes the keyboard on its window's focus, which it had.
   if (document.hasFocus()) dispatchEvent(new Event("focus"))
+}
+
+/** ⌘← and ⌘→ go Back and Forward, as ⌘[ and ⌘] do (the app's), unless a text field has the keyboard: there they move
+ *  its caret. In the capture phase, before a page's own keys (a tree's ← goes to the parent row). */
+function backForward(event: KeyboardEvent) {
+  const back = event.key === "ArrowLeft"
+  if (!back && event.key !== "ArrowRight") return
+  if (!event.metaKey || event.shiftKey || event.altKey || event.ctrlKey) return
+  const target = event.composedPath()[0]
+  if (target instanceof HTMLElement && (target.isContentEditable || target.matches("input, textarea"))) return
+  event.preventDefault()
+  event.stopPropagation()
+  tell("card.step", { back })
 }
 
 /** One watch of the machine per path for all pages: on a remote machine each one polls. */

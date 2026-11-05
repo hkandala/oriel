@@ -48,13 +48,7 @@ extension OrielUITests {
         XCTAssertEqual(after, tabs)
         keepScreenshot("file explorer file")
 
-        // Back (⌘[ over the card), then Forward (⌘] over the tree): the file.
-        file.textViews.firstMatch.click()
-        app.typeKey("[", modifierFlags: .command)
-        try await backToTheKeptTree(card, tree, root)
-        row("out.o", in: tree).click()
-        app.typeKey("]", modifierFlags: .command)
-        XCTAssertTrue(file.textViews.firstMatch.exists(within: 10))
+        try await backAndForward(card, tree, file, root)
         element("pane.\(card).reveal").click()
         XCTAssertTrue(row("main.swift", in: tree).exists(within: 10))
         XCTAssertTrue(element("pane.\(card).go-forward").has(\.isEnabled, false, within: 3))
@@ -65,6 +59,19 @@ extension OrielUITests {
 
         try await moveRoot(card, tree, root)
         try await send("rm -rf \(repo)\r", to: shell)
+    }
+
+    /// Back (⌘[ over the card), then Forward (⌘→ over the tree): the file. ⌘← in its text moves the caret.
+    private func backAndForward(_ card: String, _ tree: XCUIElement, _ file: XCUIElement, _ root: String) async throws {
+        file.textViews.firstMatch.click()
+        app.typeKey("[", modifierFlags: .command)
+        try await backToTheKeptTree(card, tree, root)
+        row("out.o", in: tree).click()
+        app.typeKey(.rightArrow, modifierFlags: .command)
+        XCTAssertTrue(file.textViews.firstMatch.exists(within: 10))
+        file.textViews.firstMatch.click()
+        app.typeKey(.leftArrow, modifierFlags: .command)
+        XCTAssertFalse(until(1) { element("pane.\(card).go-forward").isEnabled }, "⌘← in the text went Back")
     }
 
     /// Back shows the tree as it was left, its filter's text and matches; with the filter cleared, build is still open.
@@ -109,8 +116,9 @@ extension OrielUITests {
         XCTAssertTrue(row("deep", in: tree).vanishes(within: 3))
         row("src", in: tree).doubleClick()
         try await labelEnds(card, " \(root)/src/")
-        // Its first click opened nothing: the root's tree comes back as it left it, src closed.
-        element("pane.\(card).go-back").click()
+        // Its first click opened nothing: ⌘← over the tree (not its parent row) comes back to the root's tree as it
+        // left it, src closed.
+        app.typeKey(.leftArrow, modifierFlags: .command)
         XCTAssertTrue(row("a.txt", in: tree).exists(within: 10))
         XCTAssertFalse(row("deep", in: tree).exists)
         element("pane.\(card).go-forward").click()
