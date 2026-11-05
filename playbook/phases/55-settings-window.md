@@ -165,25 +165,23 @@ everything end to end, and test and review everything".
 - **Cause, the inactive window** ("its lighter and weird, than the active one … no grayish overaly on inactive ones";
   phase 53 item 32). macOS draws the system glass in another state when its window is not key: the
   `glassBackground` filter loses its refraction and wide blur, the tint's color matrix becomes a light grey one, and
-  one tint layer drops to opacity 0. So dark Glass's `glassEffect(.regular.tint(#1e1e1e at 0.5))` lost its tint:
+  one tint layer drops to opacity 0. So Track G's `glassEffect(.regular.tint(#1e1e1e at 0.5))` lost its tint:
   from 27 to 42 over the wallpaper and from 35 to 61 over a white page (sidebar, 8-bit sRGB). The blur under it was
   already pinned (`state = .active`); `.environment(\.appearsActive, true)` and `NSGlassEffectView` change nothing.
-- **Fix:** the second blur is a within-window `NSVisualEffectView` (`fullScreenUI`, `state = .active`) under black
-  0.2, in place of the system glass. Active and inactive now match within 0.3 at every spot measured (sidebar, card,
-  title row) in dark and light Glass and Classic, over the wallpaper and over a white page. Light Glass and Classic
-  were already equal.
-- **Decisions.** Black 0.2 keeps Track G's active window. In a probe over the same wallpaper image it reads 31, 29,
-  29 against 30, 28, 28 with the system glass, and 35.6 against 35.2 over a white text page, with the same spread. In
-  the app's shots the wallpaper's tint varied from run to run (a saturation trial at 0.5 read warmer than at 0.3 and
-  0.7), so the color is judged on the probe: no saturation layer is needed.
-- **Cost.** WindowServer while a terminal prints at full speed (`top`, alternating): 5.5 and 6.1 % before, 4.9 and
-  8.8 % after; Ovvi 1.6 to 1.9 % in both. No clear difference.
-- **Runs.** `testGlassLooksTheSameInAnInactiveWindow` (new) reads an unselected workspace row with the window key,
-  then with Settings key: red on the old code locally (26, then 40), green on the fix.
-- **For the user.** The selected tab and workspace row are still the system glass, so they still change in an
-  inactive window: about 10 levels darker, and in light Glass over a bright wallpaper the selected row is then about
-  the sidebar's color, with only its outline left. Say if that should stay the same too. With Reduce Transparency on,
-  both blurs turn opaque as before (not toggled here: it is a setting of the whole Mac).
+- **Fix:** the glass stays, untinted, and a plain black 0.5 layer over it gives the darkness its tint gave. The active
+  window reads as Track G's to the level (sidebar 30.7 and 35.3, card 33.9 and 42.1 over the wallpaper and a white
+  text page, against 30.6, 35.3, 33.7, 42.1), with the same spread over the text page (35–36). Inactive, the
+  untinted glass still darkens a little: 0.9 to 1.8 levels, at most 3 at one pixel (Track G: 18 to 26 lighter).
+  Light Glass and Classic never changed. Before Track G (no glass) both states matched, but the window was lighter
+  over a white page (47) and the page's text showed through as streaks (spread 13 over the wallpaper against 5).
+- **Decisions.** A first fix (dd929c4f) swapped the glass for a within-window `NSVisualEffectView`: it matched to the
+  pixel, but the user wants the window to stay glass, so this fix reverts that swap and moves only the tint. Black
+  0.5 matched Track G best of 0.4, 0.5 and 0.6 in a probe. The selected tab and row capsules stay the system glass and
+  still dim in an inactive window, as the user chose. The cost is Track G's: the same glass layer.
+- **Runs.** The new test reads an unselected workspace row with the window key, then with Settings key: red on Track
+  G's code locally (26, then 40), green on the fix (26, then 24: the glass's own step; the test allows 4).
+- **For the user.** With Reduce Transparency on, the blur and the glass turn opaque as before (not toggled here: it is
+  a setting of the whole Mac).
 - **The Settings window's look.** The user's words: "very shoddy job on the settings window, it looks like mess so many
   alignment issues, spacing issues, including the ttraffic light button is to fully corner, looks like you haven't done
   any basic ui checks at all by taking screenshots, so invoke an agent let it take screenshots of every setting page and
