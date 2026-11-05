@@ -380,6 +380,32 @@ CI runs and on-demand) at about 2–3 h.
 
 ## Findings
 
+### Track A
+
+- **Cause.** The missing reads, writes and edits were calls made inside codemode scripts. The run's summary counted
+  them as their own ("Ran 13 commands, read 9 files"), but the parser kept only their names, so the open run drew
+  just the codemode row. pi's own read, write and edit calls always had rows. Found by replaying a slice of the
+  orchestrator's real session through the pi stand-in on CI: the run said "read 9 files" and showed only bash and
+  codemode rows.
+- **Fix.** pi's parser keeps each call of a codemode script as a tool row: its tool, target, time taken and error,
+  from the result's `nestedCalls` (whole arguments) or `details.calls` (arguments cut at 200 characters, and the only
+  source when pi leaves a large call's arguments out). A cut call keeps its first path, command or pattern. The rows
+  sit 20 pt in under their codemode row. The summary counts the calls' failures too.
+- **Other agents.** Claude Code and OpenCode already drew every tool call. Codex dropped its subagent items: a
+  subagent's start now shows as an `agent` row and each message sent to it as an `agent_send` row, named by its
+  path; its `wait` tool reads as an MCP tool. A subagent's end is no row: Codex writes it for 20 of 438 subagents.
+- **Decisions.** The calls show once the script ends (pi writes them only in the result), with no result text unless
+  one failed (pi keeps no per-call output). They are rows of their own, not folded under the codemode row, so every
+  tool the summary counts is in view when the run opens.
+- **Runs.** The new UI test on the old code: red with 9 rows of 10 (run 41962205822). On the fix: green
+  on the pushed head.
+- **Pictures.** Before, the real run in dark: `/tmp/oriel-shots/t53a/before-real-run-dark.png`. After:
+  `/tmp/oriel-shots/t53a/after-real-run-dark.png` and the stand-in's run with every tool,
+  `/tmp/oriel-shots/t53a/after-tools-light.png`.
+- **For the user.** In pi's chat, open a run whose summary says "read N files" after codemode scripts: each read sits
+  under its codemode row. Open a run with a large write inside a script: its row shows the file. In a Codex chat
+  that starts subagents, the run lists each start and each message.
+
 ### Track G
 
 - **Cause, item 27.** Each panel padded all four sides of its content, so the scroll view's clip stopped 10 pt (palette)
