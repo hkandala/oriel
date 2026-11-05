@@ -45,7 +45,7 @@ extension OvviUITests {
         let fourth = try await split(third)
         restoreHerdrFocusAfter()
         try await Self.call(one, "pane.zoom", ["pane_id": third, "mode": "on"])
-        drag(second, to: capsule.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)), hold: 1.2)
+        try await drag(second, holdingOver: capsule)
         XCTAssertTrue(capsule.has(\.isSelected, true, within: 2))
         // The failed write's notice: a red symbol and a ✕ that closes it.
         let notice = element("detail.notice")
@@ -59,7 +59,7 @@ extension OvviUITests {
 
         // The same refused move onto a workspace row: only the row's spring-load selects beta.
         XCTAssertTrue(element("pane.\(third)").exists(within: 3))
-        drag(third, to: element("workspace.w2").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)), hold: 1.2)
+        try await drag(third, holdingOver: element("workspace.w2"))
         XCTAssertTrue(element("workspace.w2").has(\.isSelected, true, within: 2))
         XCTAssertTrue(notice.staticTexts["The tab is zoomed in herdr"].exists(within: 3))
         notice.buttons["notice.close"].click()
@@ -353,6 +353,17 @@ extension OvviUITests {
     /// Drags a card by its header's title area.
     func drag(_ pane: String, to target: XCUICoordinate, hold: TimeInterval = 0.6) {
         during(card(pane, 0, 0).withOffset(CGVector(dx: 60, dy: 17)), to: target, hold: hold)
+    }
+
+    /// A drag that holds 1.2 s over `target`'s middle before the drop, past a spring-load's 0.65 s. Posted by
+    /// scripts/drag.swift, which holds after its last move: XCUITest plays a drag on a timetable from its start, and
+    /// on a busy runner its late moves cut a 1.2 s hold to 0.4 s in the app.
+    func drag(_ pane: String, holdingOver target: XCUIElement) async throws {
+        let from = element("pane.\(pane)").frame, over = target.frame
+        try await Self.post(
+            "\(one)/drag",
+            Data("\(from.minX + 60) \(from.minY + 17) \(over.midX) \(over.midY) 1.2".utf8),
+        )
     }
 
     /// A drag that holds at `target` before the drop. XCUITest runs nothing else while it drags (not even the main
