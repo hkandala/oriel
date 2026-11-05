@@ -28,7 +28,7 @@ ssh asks for it again.
 POST /<session>/swipe with "x y step steps [pause [vertical [option]]]" as the body posts a two-finger trackpad swipe there (scripts/swipe.swift).
 POST /<session>/drag with "x y (x y hold)..." as the body drags the mouse from the first point through the others,
 holding at each (scripts/drag.swift).
-POST /<session>/press with "x y tx ty" as the body drags from x y to tx ty and comes back while it holds there;
+POST /<session>/press with "x y tx ty" as the body drags from x y to tx ty and replies once it holds there;
 /<session>/release lets go.
 POST /<session>/stress with "tabs workspaces panes agents" as the body starts the session afresh and fills it with
 scripts/stress.py; its summary comes back. With an empty body it removes the session, so the next tests do not run
@@ -53,7 +53,7 @@ import time
 split = sys.argv.index("--")
 sessions, command = sys.argv[1:split], sys.argv[split + 1:]
 folders = []
-# The session's drag that /press holds.
+# Each session's drag that /press holds down until /release.
 held = {}
 # The tests' config folder (OvviUITests.noConfig): a launch from here installs the default plugins there, never in the
 # user's ~/.config/ovvi.

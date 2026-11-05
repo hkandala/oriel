@@ -46,8 +46,11 @@ extension OvviUITests {
         restoreHerdrFocusAfter()
         try await Self.call(one, "pane.zoom", ["pane_id": third, "mode": "on"])
         try await press(second, over: capsule)
-        XCTAssertTrue(capsule.has(\.isSelected, true, within: 2))
+        // Its page drawn before the drop; released before any assertion stops the test.
+        let sprung = capsule.has(\.isSelected, true, within: 2)
+            && element("pane.\(third)").has(\.isHittable, true, within: 2)
         try await release()
+        XCTAssertTrue(sprung)
         // The failed write's notice: a red symbol and a ✕ that closes it.
         let notice = element("detail.notice")
         XCTAssertTrue(notice.staticTexts["The tab is zoomed in herdr"].exists(within: 3))
@@ -60,9 +63,12 @@ extension OvviUITests {
 
         // The same refused move onto a workspace row: only the row's spring-load selects beta.
         XCTAssertTrue(element("pane.\(third)").exists(within: 3))
+        let betaTab = try await tabIDs().first { workspace(of: $0) == "w2" } ?? "none"
         try await press(third, over: element("workspace.w2"))
-        XCTAssertTrue(element("workspace.w2").has(\.isSelected, true, within: 2))
+        let opened = element("workspace.w2").has(\.isSelected, true, within: 2)
+            && element("tab.\(betaTab)").exists(within: 2)
         try await release()
+        XCTAssertTrue(opened)
         XCTAssertTrue(notice.staticTexts["The tab is zoomed in herdr"].exists(within: 3))
         notice.buttons["notice.close"].click()
         XCTAssertTrue(notice.vanishes(within: 2))
@@ -360,7 +366,7 @@ extension OvviUITests {
     /// Presses on the pane's card and holds over `target`'s middle until `release()` (scripts/drag.swift), so the test
     /// drops once it saw what the hold did. A timed hold failed both ways on CI: XCUITest plays a drag on a timetable
     /// from its start (late moves cut a 1.2 s hold to 0.4 s in the app), and drag.swift's release 0.5 s after a
-    /// spring-load left a drag session that never ended.
+    /// spring-load left a drag session that never ended (likely: it came while the app built the new page).
     func press(_ pane: String, over target: XCUIElement) async throws {
         let from = element("pane.\(pane)").frame, over = target.frame
         try await Self.post("\(one)/press", Data("\(from.minX + 60) \(from.minY + 17) \(over.midX) \(over.midY)".utf8))

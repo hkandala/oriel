@@ -72,8 +72,9 @@ everything end to end, and test and review everything".
   0.4 s in the app, under the 0.65 s spring-load; the highlight showed, then the drop. Neither lazy capsules (the
   capsule was made and highlighted) nor the pinned settings play a part. A first fix held 1.2 s after drag.swift's
   last move: its release, 0.5 s after the workspace row's spring-load, left a drag session that never ended (the image
-  stayed under the pointer, no drop; 42092809564). **Fix:** the helper's `press` holds over the target until the test
-  saw the spring-load and calls `release`: no hold on a clock, and the drop comes once the app has drawn the new page.
+  stayed under the pointer, no drop; 42092809564), likely as the release came while the app built beta's page.
+  **Fix:** the helper's `press` holds over the target until the test saw the spring-load and the new page's card or
+  capsule, then calls `release`: no hold on a clock.
 - **Cause, pi's `/tree`** (42065157131, shard 4). The composer types `/tree` into the terminal in a task after it
   hides, and the test sent Enter once it hid: the Enter reached pi first (the blank line before `/tree` in the
   pane). Not the Settings window. **Fix:** the test waits for `/tree` in the pane before its Enter.

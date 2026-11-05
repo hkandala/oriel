@@ -45,13 +45,9 @@ for index in stride(from: 2, to: args.count, by: 3) {
     if args[index + 2] < 0 {
         print("held")
         fflush(stdout)
-        let line = DispatchSemaphore(value: 0)
-        Thread.detachNewThread {
-            _ = readLine()
-            line.signal()
-        }
-        // Not left down for every app when no line comes.
-        _ = line.wait(timeout: .now() + 30)
+        // At most 30 s: not left down for every app when no line comes.
+        var input = pollfd(fd: 0, events: Int16(POLLIN), revents: 0)
+        _ = poll(&input, 1, 30000)
     } else {
         Thread.sleep(forTimeInterval: args[index + 2])
     }
