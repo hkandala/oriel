@@ -153,6 +153,8 @@ everything end to end, and test and review everything".
   dropped follower only closes its stdin: the old SIGKILL of the wrapper, landing before it forked its watcher, would
   leave the script running. Shell harness at load 110–290: 0 of 600 drops left a process (close, SIGKILL then close,
   and a killed parent; bash and dash), against 9 of 10 before.
+- **Runs.** The new unit test failed on the old code and passes now. The chat tests (Claude Code, Codex and Pi over
+  the relay, two on This Mac) and two observe tests passed: 42113550449 on the first fix, 42120026045 on the final one.
 - **Other helpers the app starts, all bounded:** placeholders live in their herdr pane and end with its terminal;
   the SOCKS front runs inside the app; an ssh master (`ControlPersist=10m`, keepalive 15 s) ends 10 minutes after its
   last client, and the relay's client ends with the app's pipe; the remote relay exits when its stdin ends and closes
