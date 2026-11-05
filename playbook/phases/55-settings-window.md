@@ -93,7 +93,8 @@ everything end to end, and test and review everything".
   Esc (XCUITest drops the last seconds), so what took the keys is unknown; the next failure's message names it.
 - **Runs, the palette fix.** On c8606fc8 (22 tests: the browser test, the palette and Open Session tests, two
   workspace-menu drags) 42106499085 green, 42106508443 red as above; on edd7b80b (same code plus the failure message)
-  42109502283 and 42109512581 (the browser test alone) and 42111067562 and 42111076839 (the 22) green.
+  42109502283 and 42109512581 (the browser test alone) and 42111067562 and 42111076839 (the 22) green; rebased on
+  main as 85e0df0a, 42113780707 and 42113791548 (the 22) green.
 - **Runs.** The four drag and chat tests (both file drops, the spring-load, pi's chat) green in chosen-tests runs
   42096736451 and 42096746914 on c38ecebe and 42097821135 on 70a780e8 (docs only on top); 42092809564 on 0c542f9f
   found the second leg's stuck session.
