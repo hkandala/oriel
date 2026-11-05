@@ -16,7 +16,7 @@ The template is a plugin package with everything a build needs. It is
 `plugins/template` in the repository, and the app carries it in
 `Ovvi.app/Contents/Resources/web/template/`.
 
-- **From the app:** the Plugins panel's **New Plugin…** asks for a name. It
+- **From the app:** **New Plugin…** on Settings ▸ Plugins asks for a name. It
   copies the template to `~/.config/ovvi/plugins/<id>/`, with the id made
   from the name (lower case, letters and digits joined by `-`: "CSV Table"
   is `csv-table`), and puts the name and the id in `package.json`. Then it
@@ -217,7 +217,7 @@ What the code shows:
 ## Open it
 
 1. The plugin is in `~/.config/ovvi/plugins/csv-table/` and built. A new
-   folder needs **Reload Plugins** (the Plugins panel, or ⌘K) before the app
+   folder needs **Reload Plugins** (Reload All on Settings ▸ Plugins, or ⌘K) before the app
    reads it. New Plugin… and an install read it by themselves.
 2. Double-click a `.csv` file in a File Explorer's tree. CSV Table is now its
    default plugin, so the card opens in a new tab. On any other card that
@@ -234,7 +234,7 @@ relay, and the table draws on the Mac.
 
 Nothing watches the plugin's folder. After an edit, press **Reload Plugin**:
 ⌥⌘R over a card of the plugin, the card's menu, View ▸ Pane, ⌘K, or the
-plugin's row in the Plugins panel. **Reload Plugins** (⌘K, the panel) does it
+plugin's page in Settings. **Reload Plugins** (⌘K, Reload All in Settings) does it
 for every plugin with an open card.
 
 1. If a card of the plugin has unsaved edits, the card asks first:

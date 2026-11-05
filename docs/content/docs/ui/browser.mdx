@@ -376,10 +376,18 @@ machine again.
   itself only from an approved origin. This Mac's `localhost` is not safe
   then. A switch approves the address it loads.
 - A link opened in a new tab keeps the card's network.
+- **A new card** starts on the network that Settings ▸ Plugins ▸ Browser
+  names: "Web pages on remote machines load through" **The Machine** (the
+  default) or **This Mac**. The setting is one value for every remote
+  machine, kept in `settings.json` as `"plugins": {"browser": {"network":
+  "mac"}}` ([Plugin settings in settings.json](/docs/plugins/packages#plugin-settings-in-settingsjson)).
+  It changes no open card: the chip switches a card.
 - The choice is kept per card on this Mac, through relaunches: in the app's
   defaults, under `browserViaMac.<machine id>`, a list of
   `<session>/<iid>`, the newest 200. Another Mac has its own choice.
   Removing a machine removes its list.
+- The browser's page in Settings also has Show in New Pane, and **Show in
+  Privacy**, which opens the approved websites of each machine.
 
 ## Commands on a browser card
 

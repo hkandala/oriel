@@ -146,10 +146,10 @@ csv-chart  CSV Chart      files                  ~/.config/ovvi/plugins/csv-char
 - `id`, `name`, `icon`, `opens` and `chooser` are the manifest's fields, as
   written: `opens` has only the keys the manifest gives (`files`, `folders`,
   `git`, `urls`, `priority`). `description` and `version` are the package's.
-- `source` is the Plugins panel's row text: `app` for the browser and the
+- `source` is the Plugins page's row text: `app` for the browser and the
   default plugins (the row says "Comes with Ovvi"), the `npm:` or `git:`
   source, the local path, or the folder
-  ([The Plugins panel](/docs/plugins/packages#the-plugins-panel)).
+  ([The Plugins page](/docs/plugins/packages#the-plugins-page)).
 - `log` is the full path of the plugin's log
   ([Errors and logs](/docs/plugins/errors)). It shows only for a pane on
   This Mac, where the file is, and not for the browser.
@@ -176,9 +176,9 @@ log: /Users/me/Library/Logs/Ovvi/plugins/csv-table.log
 
 New Plugin… with the name as an argument: Ovvi copies the template into the
 plugins folder, installs its dependencies, builds it and trusts it, as the
-Plugins panel does ([Start from the template](/docs/plugins/building#start-from-the-template)).
+Plugins page does ([Start from the template](/docs/plugins/building#start-from-the-template)).
 It answers `id`, `folder` and `log`. A name with no letter or digit, or a
-name that is taken, is `failed` with the panel's words. The panel shows
+name that is taken, is `failed` with the page's words. The Plugins page shows
 Creating… meanwhile.
 
 ### plugins reload
@@ -218,7 +218,7 @@ $ ovvi --timeout 300 plugins install npm:ovvi-csv-table
 csv-table  CSV Table  files  npm:ovvi-csv-table
 ```
 
-Install from the Plugins panel, for an agent
+Install from the Plugins page, for an agent
 ([Install](/docs/plugins/packages#install)). The source is
 `npm:<package>`, `git:<repository>` or a folder (a relative one from the
 command's folder).
@@ -231,10 +231,10 @@ command's folder).
   the list. **Cancel** is `declined`. With no window of the session left to
   show the prompt, the install is `failed`.
 - A source that is not one, or one already listed, is `bad_argument`.
-  Update stays in the Plugins panel: it asks only when the permissions grew.
+  Update stays on the Plugins page: it asks only when the permissions grew.
 - If the command's `--timeout` ends first, the prompt stays, and the install
   goes on after the user's answer.
-- The panel shows Installing… and any failure, as for its own install.
+- The Plugins page shows Installing… and any failure, as for its own install.
 
 `new`, `reload` and `install` from a pane on a remote machine are
 `other_machine`: the plugins are on the Mac.
@@ -414,7 +414,7 @@ $ ovvi notify "Review ready" --pane w2:p1
 - One per asking pane every 10 s, whatever `--pane` names: a second is
   `rate_limited`. A newer one from the same pane replaces the older in
   Notification Center.
-- With Ovvi ▸ Notifications ▸ From Agents off, it posts nothing and answers
+- With Settings ▸ Agents ▸ When an agent sends one off, it posts nothing and answers
   `"notified": false` with exit 0. That does not count toward the limit.
 - If macOS does not let Ovvi post notifications, it is `failed` with
   macOS's words.

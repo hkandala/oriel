@@ -50,8 +50,8 @@ no title and no key hint. While the chooser shows, the card's header says
   folders", "Changes and history") and the row's number key in 11 pt, both
   tertiary. The plugins' rows come in the registry's order: Browser, the
   default plugins, then the user's by id. A plugin whose Show in New Pane
-  switch is off in the Plugins panel has no row
-  ([The Plugins panel](/docs/plugins/packages#the-plugins-panel)). The description
+  switch is off on its page in Settings ▸ Plugins has no row
+  ([The Plugins page](/docs/plugins/packages#the-plugins-page)). The description
   hides on a card narrower than 300 pt.
 - **Agent** has a 9 pt chevron after its name: `chevron.right` when closed,
   `chevron.down` when open, with its symbol in the accent. Open, it shows its
@@ -148,8 +148,11 @@ by the view's alpha), so there is no wait.
 A pick types the agent's launch line and Return into the pane's shell, as Go
 to Directory types its `cd`
 ([Command palette](/docs/ui/window#command-palette)). The line is the
-command with Ovvi's chat flags, so the pane gets a
-[chat view](/docs/ui/chat-view). For Pi and OpenCode, one run on the pane's
+command, the agent's extra arguments from Settings ▸ Agents, then Ovvi's chat
+flags, so the pane gets a [chat view](/docs/ui/chat-view)
+([Settings](/docs/ui/settings#agents)). Agent lists only the agents whose
+switch is on in Settings ▸ Agents; with all four off, the list has no Agent
+row. For Pi and OpenCode, one run on the pane's
 machine first writes the files the line needs
 ([Launch flags](/docs/ui/chat-view#launch-flags)). On a remote machine the
 shell and the agent run on that machine. An agent in a pane starts
@@ -168,13 +171,15 @@ another the same way, loader included, with `ovvi agent <name>`
 - At ready, the app reads the pane's foreground processes once
   (`pane.process_info`), so a pane with a launch marker gets its Chat | TUI
   switch at once. The loader fades out over 0.15 s and the agent's TUI fades
-  in, with the keyboard (the chat after
-  [Relaunch with Chat](/docs/ui/chat-view#relaunch-with-chat)).
+  in, with the keyboard. The card opens on the chat after
+  [Relaunch with Chat](/docs/ui/chat-view#relaunch-with-chat), and when
+  Settings ▸ Agents ▸ Open new agents in is Chat.
 - **The bare-command fallback.** When the shell is the foreground process
   again in two checks in a row, from 1 s after the line
   ([Program icons](/docs/ui/program-icons#when-the-app-asks-herdr)), the app
-  types the bare command (`claude`, `codex`, `pi` or `opencode`) once more.
-  An agent build that refuses Ovvi's flags then starts with no chat.
+  types the bare command (`claude`, `codex`, `pi` or `opencode`) once more,
+  with no extra arguments. An agent build that refuses Ovvi's flags, or a
+  wrong extra argument, then starts with no chat.
 - **Failure.** When the shell is in front again after the bare command too
   (the command failed or ended), or after 10 s with no ready status, the
   terminal shows the same way, with what the command printed (for example

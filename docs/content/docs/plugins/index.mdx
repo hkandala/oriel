@@ -17,8 +17,13 @@ Every plugin is made the same way, as a pi package is:
   esbuild from `src/main.ts` into `dist/main.js`. Ovvi ships no bundler. It
   runs the script with the npm, pnpm or bun on the user's login `PATH`
   ([Build a plugin](/docs/plugins/building)).
-- Ovvi installs packages from npm, from git or from a local path
-  ([Packages and installs](/docs/plugins/packages)).
+- Ovvi installs packages from npm, from git or from a local path. Settings
+  ▸ Plugins lists them, and each plugin has its own page there: its settings,
+  what it can do, and **Allow** or **Forget Trust**
+  ([Packages and installs](/docs/plugins/packages#the-plugins-page)).
+- A plugin can declare settings in its manifest. The app draws them on the
+  plugin's page and gives their values to its cards
+  ([Settings](/docs/plugins/manifest#settings)).
 - Each card is a web view of its own. Its page calls the app through one
   typed object, `ovvi` ([The plugin API](/docs/plugins/api)).
 - The two default plugins, File Explorer and Git, are packages too. The app
@@ -139,10 +144,13 @@ never changes the label, so the card comes back when the plugin does.
   machine.
 - Plugins from a project folder (`<repo>/.ovvi/plugins/`), also on a remote
   machine.
-- Plugin settings drawn by the app from the manifest. A plugin keeps what it
-  needs in its state.
-- Update and Remove from an agent: they stay the user's, in the Plugins
-  panel. An agent on This Mac lists, makes, reloads and installs plugins with
+- A plugin setting with a value per machine. A setting is one value for all
+  machines.
+- Plugin settings from an agent: the `ovvi` command neither reads nor
+  changes them. An agent on This Mac can edit `settings.json`, which applies
+  at Reload Plugins.
+- Update and Remove from an agent: they stay the user's, on the plugin's page
+  in Settings. An agent on This Mac lists, makes, reloads and installs plugins with
   the `ovvi` command ([CLI](/docs/agent-control/cli#plugins)).
 - A plugin store, and plugins outside panes (a sidebar section, a status
   item, a pill).

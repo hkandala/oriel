@@ -520,8 +520,10 @@ A run is one quiet line with no card: its summary and a chevron.
 - Chat | TUI is in the card header, not a swipe. TUI is the agent's own
   terminal interface.
 - A card of a marked pane opens on its TUI; the user switches to Chat. After
-  [Relaunch with Chat](#relaunch-with-chat), and for an agent that an agent
-  started with `ovvi agent`, it opens on the chat. An agent flips it with
+  [Relaunch with Chat](#relaunch-with-chat), for an agent that an agent
+  started with `ovvi agent`, and for every new agent when Settings ▸ Agents ▸
+  Open new agents in is Chat ([Settings](/docs/ui/settings#agents)), it opens
+  on the chat. An agent flips it with
   `ovvi view` ([CLI](/docs/agent-control/cli#agent-chat-and-view)). The
   choice is kept in memory per pane, for every window of the session. The card keeps
   the keyboard across a switch: the reply box or the terminal.

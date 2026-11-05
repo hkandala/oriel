@@ -1,6 +1,6 @@
 ---
 title: "The manifest"
-description: "The ovvi key of a plugin's package.json: who it is, what it opens, how it shows, its header row and what it can do"
+description: "The ovvi key of a plugin's package.json: who it is, what it opens, how it shows, its header row, its settings and what it can do"
 ---
 
 A plugin's manifest is the `ovvi` key of its `package.json`. The app reads
@@ -54,7 +54,7 @@ From the package itself:
 
 | Field | Required | Value |
 |---|---|---|
-| `version` | yes | The plugin's version, shown in the Plugins panel, the trust prompt and the log. The defaults' version decides when an app update replaces them. |
+| `version` | yes | The plugin's version, shown on the Plugins page, the trust prompt and the log. The defaults' version decides when an app update replaces them. |
 | `description` | no | One line: the chooser row's detail, and a line of the trust prompt. |
 | `keywords` | no | More words that ⌘K finds the plugin's Open ‹chooser› Here by. |
 
@@ -63,7 +63,7 @@ In the `ovvi` key:
 | Field | Required | Value |
 |---|---|---|
 | `id` | yes | 1 to 64 of `a-z`, `0-9` and `-`, starting with a letter or digit. The label's plugin id (`ovvi:<id>#…`). It is the plugin's own, because a package name can be scoped (`@ovvi/git`). The first package of an id wins ([Where the registry looks](/docs/plugins/packages#where-the-registry-looks)). |
-| `name` | yes | What the user reads: the tab's first part ("CSV Table data.csv"), the placeholder's title, Open With, ⌘K, the Plugins panel. |
+| `name` | yes | What the user reads: the tab's first part ("CSV Table data.csv"), the placeholder's title, Open With, ⌘K, the Plugins page. |
 | `api` | yes | The API version the plugin is written for, an integer, 1 or more ([Versions](/docs/plugins/api#versions)). |
 | `entry` | yes | The built entry, relative to the package: a `.js` file inside it, for example `dist/main.js`. Its chunks, its CSS (`main.css`) and its assets sit beside it in one flat folder. |
 | `icon` | yes | An SF Symbol name, or one of the app's own symbols: `source.branch` (Material Design Icons' `source-branch`) or `text.wrap` (`wrap`): the card's, the tab's and the chooser's icon, on the neutral tile. A control's or a menu item's `symbol` can name it too. |
@@ -74,6 +74,7 @@ In the `ovvi` key:
 | `commands` | no | Menu bar and ⌘K commands of the card, with keys ([Commands](#commands)). |
 | `handles` | no | The app's own commands that the card takes: `save` (⌘S), `find` (⌘F, ⌘G, ⇧⌘G). |
 | `permissions` | no | What the page can ask the app to do ([Permissions](#permissions)). None: the page can only draw, keep state and open other cards. |
+| `settings` | no | Values the user sets on the plugin's page in Settings, which its cards read ([Settings](#settings)). |
 
 - The app reads the manifest leniently. An unknown field is ignored, so a
   manifest written for a newer app still loads.
@@ -87,8 +88,8 @@ In the `ovvi` key:
   `opens`, known header types with unique ids, a `gap` of 0 or more, `digits`
   only `mono`, a value on every segmented option, commands with ids unique
   among the commands and the header's controls, a
-  `file`, `edit` or `view` menu and a `cmd+` key, known `handles` and known
-  permissions.
+  `file`, `edit` or `view` menu and a `cmd+` key, known `handles`, known
+  permissions, and the settings' rules ([Settings](#settings)).
 
 ## What a plugin opens
 
@@ -142,7 +143,7 @@ wins over it. A path that ends in `/` opens in the first plugin with
 | Open With (an `openWith` control in row 2) | after the Mac's apps, a divider and every other plugin whose patterns match the file, `option` ones too, each with its icon and name; a pick turns this card into that plugin's card | `opens.files` |
 | the card's first row, the tab, the floating window | "‹name› ‹title›", the icon | `name`, `icon`, `opens` |
 | the placeholder in herdr's TUI | the name and the argument | `name` |
-| the Plugins panel | the icon, the name and the version | `icon`, `name`, `version` |
+| Settings ▸ Plugins and the plugin's page | the icon, the name, the version, the description and the settings | `icon`, `name`, `version`, `description`, `settings` |
 
 - Open With lists the Mac's apps only on This Mac. The plugins show on every
   machine.
@@ -227,6 +228,58 @@ swallows no key (D93).
 - `handles: ["save"]` gives the card ⌘S (File ▸ Save). `handles: ["find"]`
   gives it ⌘F, ⌘G and ⇧⌘G. The page hears `save`, `find`, `findNext` and
   `findPrevious`.
+
+## Settings
+
+`settings` lists up to 16 values that the user sets on the plugin's page in
+Settings ▸ Plugins. The app draws them from the manifest, saves them in
+`settings.json` ([Plugin settings in settings.json](/docs/plugins/packages#plugin-settings-in-settingsjson)),
+and gives them to the plugin's cards: `ovvi.settings.get` reads one, and
+the `settings` event brings each change at once
+([Types](/docs/plugins/api#types)). A setting is one value for all machines.
+
+```json
+"settings": [
+  { "id": "first-row", "type": "toggle", "title": "First row is the header", "default": true },
+  { "id": "delimiter", "type": "choice", "title": "Delimiter", "default": "auto",
+    "options": [{ "value": "auto", "title": "Auto" }, { "value": "comma", "title": "Comma" },
+      { "value": "tab", "title": "Tab" }] },
+  { "id": "rows", "type": "number", "title": "Rows to read", "default": 10000,
+    "min": 1000, "max": 100000, "step": 1000, "description": "Larger files open the first rows only." }
+]
+```
+
+Every setting has these fields:
+
+| Field | Required | Value |
+|---|---|---|
+| `id` | yes | 1 to 64 of `a-z`, `0-9` and `-`, starting with a letter or digit, once in the plugin. |
+| `type` | yes | `toggle`, `choice`, `number`, `text` or `path` (the table below). |
+| `title` | yes | 1 to 60 characters: the row's title. |
+| `default` | yes | The value while the user has not set one, of the type. |
+| `description` | no | One line under the title, up to 200 characters. |
+| `section` | no | Up to 60 characters: a heading over this row and the rows after it. The first rows go under "Settings". |
+
+| Type | Value | More fields | Drawn as |
+|---|---|---|---|
+| `toggle` | `true` or `false` | none | a switch |
+| `choice` | one option's `value` | `options`: 2 to 12 of `{ "value", "title" }`, each value once | a segmented control for up to 4 options whose titles have 24 characters in all, else a pop-up menu |
+| `number` | a number | `min`, `max`, `step`, `unit` (all optional; `min` under `max`, `step` over 0) | a field with a stepper, held in the range |
+| `text` | a string of up to 1 KB | `placeholder` (up to 1 KB) | a text field, saved on Return or when it loses the keyboard |
+| `path` | an absolute path (it starts with `/` or `~/`), or empty | `kind`: `file` or `folder`; `placeholder` | a path field, saved as a text field is |
+
+- A setting is a value, not a permission. A path setting gives no access to
+  the path by itself. There is no secret type: no plugin can ask for a
+  password or a token in Settings.
+- A wrong setting leaves the plugin out, as a wrong header does. The log
+  names the field: `ovvi.settings.2.default does not fit the type, options
+  or range`, `ovvi.settings.0.title must be 1 to 60 characters`,
+  `ovvi.settings.1.id is taken`, `ovvi.settings has over 16 settings`,
+  `ovvi.settings.0.description must be 0 to 200 characters`.
+- The page reads them, and never sets them: the user owns them. A card keeps
+  its own choices in `ovvi.state`. The default plugins read
+  `ovvi.state.get()?.layout ?? ovvi.settings.get("diff-layout")`, so a
+  setting starts new cards and a card's own choice in its header wins.
 
 ## Permissions
 

@@ -61,13 +61,14 @@ Each part of the window has its own page under UI design.
   the card, ⌘-click in a new tab, ⌥-click in a pane to the side, both in the
   background. Back and Forward show the last five places at once, as you left
   them. Open With shows each app's icon.
-- Plugins as packages, as pi's: install from npm, git or a local path in the
-  Plugins panel, make a new one from the template (New Plugin…), edit it,
+- Plugins as packages, as pi's: install from npm, git or a local path on the
+  Plugins page in Settings, make a new one from the template (New Plugin…), edit it,
   and press Reload Plugin (⌥⌘R) to build it with its own script and reload
   its cards with their state. A plugin's card says in plain words why it
   does not load (no Node.js, a failed build, not built), with the fix as a
   button and its log one click away. A plugin asks for trust once, showing
-  what it can do. File Explorer and Git are plugins the user can edit too.
+  what it can do. A plugin can declare settings, which its page in Settings
+  draws. File Explorer and Git are plugins the user can edit too.
 - Layout changes animate.
 - Zoom a pane to fill the window, then return.
 - Drag a pane to swap it, place it beside another card, split it into
@@ -123,6 +124,8 @@ Each part of the window has its own page under UI design.
   as translucent cards, the sidebar sits flat, and glass is only on the
   Glass style's tab marker and selected workspace row, and on floating panels.
 - Our own program icons, from open-license sets.
-- A few settings in the menu bar: appearance, interface style, the text size
-  and Focus Follows Mouse. There is no Settings window
-  ([Future work](/docs/future-work)).
+- A Settings window (⌘,) in the style of System Settings: the look, the
+  terminal's font, cursor and Option key, the agents in New Pane with extra
+  arguments, notifications, machines, plugins with their own settings, and
+  approved websites. The menu bar keeps the quick switches
+  ([Settings](/docs/ui/settings)).

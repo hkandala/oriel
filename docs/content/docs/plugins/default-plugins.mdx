@@ -30,7 +30,26 @@ A plugin pane's herdr label is `ovvi:<plugin>#<iid> <arg>`
 the card shows, and it picks the card's page. A relaunch, a cold restart of
 herdr or another device makes the card at that place. The instance state
 file on the pane's machine keeps the rest: Git's commit message, the diff's
-Side by Side, Word Wrap and its file list ([State](/docs/plugins/api#state)).
+Side by Side, Word Wrap and its file list, and File Explorer's Show Hidden
+Files and Markdown mode once the user changed them in the card
+([State](/docs/plugins/api#state)).
+
+## Settings
+
+Each default plugin has settings on its page in Settings ▸ Plugins
+([Settings](/docs/plugins/manifest#settings)). A setting is the starting
+value for new cards. An open card follows a change at once, unless the user
+changed that value in the card's header: the card keeps its own choice.
+
+| Plugin | Setting | Control | Default | What it changes |
+|---|---|---|---|---|
+| File Explorer | Show hidden files (`hidden-files`), "Names that start with a dot." | switch | off | row 2's Show Hidden Files in new trees |
+| File Explorer | Dim files that Git ignores (`ignored`) | switch | on | whether the tree dims the files git ignores, in every tree at once |
+| File Explorer | Markdown opens in (`markdown`): Read, Live Edit, Source, Side by Side | pop-up menu | Read | the mode of a Markdown file in a card with no mode of its own |
+| Git | Diff layout (`diff-layout`): Unified, Side by Side | segmented | Unified | row 2's layout in new diffs |
+| Git | Wrap long lines (`wrap`) | switch | off | row 2's Word Wrap in new diffs |
+| Git | Show the file list when a diff opens (`file-list`) | switch | off | whether a diff opens with its file list |
+| Git | Commits in the history (`commits`) | number, 100 to 5,000, step 100 | 500 | the history's length; Show More adds 500. The home reads again at a change |
 
 | Plugin | Label argument | Page | Title | Tab |
 |---|---|---|---|---|
@@ -314,11 +333,13 @@ selection in the accent at 24 %. A 6 pt gap sits under the header.
 - **The tree** shows the root's listing first and lists a folder only when
   it opens. `.git` is hidden, and links to folders are folders. Files and
   folders whose name starts with `.` show only while Show Hidden Files is on.
-  Its value stays with the card. Git's letters come after the first rows,
+  A new tree starts with the setting; a click on the eye is the card's own
+  choice, and stays with the card. Git's letters come after the first rows,
   from one `git status`, so a folder never opened still shows a dot for a
   change inside. A folder shows the dot only for a change in `git status`
   under it, never for the files git ignores. A listing asks git only which
-  of its own names git ignores (`git check-ignore`), and those are dimmed.
+  of its own names git ignores (`git check-ignore`), and those are dimmed
+  while the setting "Dim files that Git ignores" is on.
   Modified is the needs-you color, added, untracked and renamed the finished
   color, and deleted the error color. A root inside a repository, but not its
   root, shows no letters.
@@ -440,7 +461,8 @@ An editable text view (CodeMirror 6).
   | **Side by Side** | `rectangle.split.2x1` | Source on the left, Read on the right |
 
   The card keeps its mode: another Markdown file in the card, Back and
-  Forward, and a relaunch show the mode last picked.
+  Forward, and a relaunch show the mode last picked. A card where the user
+  never picked one opens Markdown in the setting's mode.
 - **Read and Live Edit are one view.** Both are the same editor (CodeMirror
   with Markdown, GitHub's flavor), drawn as rendered Markdown: a live
   preview. It is a 640 pt column, 28 pt under row 2, in the system font 1 pt
@@ -575,7 +597,7 @@ app's fonts and `Look` colors. From the top:
 - **No changes:** with nothing to commit, the message, Commit and both lists
   give way to one placeholder: `checkmark.circle` and "No changes".
 - **History**, 26 pt under the changes, after a hairline: the last 500
-  commits of every branch, remote branch and tag,
+  commits (the setting "Commits in the history") of every branch, remote branch and tag,
   and HEAD, as a graph, newest first (`git log --branches --remotes --tags
   HEAD --topo-order`, not `--all`, which adds the stash and notes). Each row
   has its lanes and dot, its branch, remote branch (`cloud`) and tag (`tag`)
@@ -585,7 +607,7 @@ app's fonts and `Look` colors. From the top:
   --graph`. Lane colors cycle through the accent, finished, working,
   needs-you and error colors. "No commits yet" before the first commit. A
   full page ends with **Show More**, a plain gray button in the middle,
-  which reads 500 more (`git log -n 1000`, and so on). The page ends 10 pt
+  which reads 500 more (`git log -n 1000` after 500, and so on). The page ends 10 pt
   under the last row.
 - **Selecting a commit** works as in File Explorer. A click selects a
   commit: its row takes the accent at 24 %. A double-click or Return opens
@@ -710,9 +732,9 @@ The changes of one source in one scroll (`@pierre/diffs`).
   place before stays until then, with no blank page between. A kept diff
   shows at once and reads its patch again only if the work tree changed
   while it was hidden.
-- A new diff starts with the card's Side by Side and Word Wrap (the header's
-  values) and its file list (the card's state). The file list starts
-  closed; when the user opens or closes it, the card keeps that choice.
+- A new diff starts with the card's own Side by Side, Word Wrap and file
+  list, else the settings' (unified, no wrap, the file list closed). When
+  the user changes one of them in a diff, the card keeps that choice.
   These are saved in the state file, so they survive a drop, a reload and a
   relaunch. A kept diff keeps its own. Viewed marks last while the page is
   kept.

@@ -1,51 +1,182 @@
 ---
 title: "Settings"
-description: "Every setting, where it is, and the fixed defaults"
+description: "The Settings window: its pages, every setting, its key and its default"
 ---
 
-Ovvi has no Settings window (D62; [Future work](/docs/future-work)). The few
-settings live in the menu bar, each one key in app storage, per device
-([Data](/docs/data#every-piece-of-data)), and everything else uses the defaults
-below. Settings that are not on this page do not exist.
+Ovvi ▸ Settings… (⌘,) opens the Settings window (D106). It looks like macOS
+System Settings: a sidebar of pages on the left, and the page on the right as
+a grouped form. A row in a list (a machine, a plugin) opens a page of its own,
+with a Back button. A change takes effect at once. There is no Save button,
+except on a machine's page.
 
-Each on/off setting in the menu bar is also a command in the palette, with a
-title that says what it does now, for example "Turn On Focus Follows Mouse"
-(D48).
+Each setting is one key in app storage (`UserDefaults`), per device
+([Data](/docs/data#every-piece-of-data)), unless the table says otherwise.
+Settings that are not on this page do not exist.
 
-## In the menu bar
+## The window
 
-| Setting | Where | Choices | Default |
+- **Size.** 715 × 560 pt, as System Settings. The sidebar is 215 pt wide and
+  always shows.
+- **Sidebar.** General, Appearance, Terminal, Agents, Machines, Plugins and
+  Privacy, each with a colored tile. Privacy shows only when it has something
+  in it. Plugins has a red badge with the number of plugins whose cards wait
+  for your answer ([The trust prompt](/docs/plugins/security#the-trust-prompt)).
+- **Search.** The field at the top of the sidebar. While you type, the sidebar
+  lists the settings whose title or other words hold every word you typed,
+  each with its page. A pick opens the page, scrolls to the row and rings it
+  for one second.
+- **Opening at a page.** Ovvi ▸ Plugins… opens the Plugins page.
+
+## General
+
+| Setting | Control | Key | Default |
 |---|---|---|---|
-| Appearance | View ▸ Appearance | Auto, Light, Dark | Dark |
-| Interface Style | View ▸ Interface Style | Glass, Classic | Glass |
-| Text size | View ▸ Increase Font Size (⌘+ or ⌘=), Decrease Font Size (⌘-), Reset Font Size (⌘0) | 8 to 32 pt | 13 |
-| Focus follows mouse | View ▸ Pane ▸ Focus Follows Mouse | on, off | off |
-| Notifications for agents that need you | Ovvi ▸ Notifications ▸ Needs You | on, off | on |
-| Notifications when an agent finished | Ovvi ▸ Notifications ▸ Finished | on, off | on |
-| Notifications that agents send | Ovvi ▸ Notifications ▸ From Agents | on, off | on |
+| Focus follows mouse | switch | `focusFollowsMouse` | off |
+| Keyboard shortcuts | Show Shortcuts, which opens the panel in the front window | | |
+
+Focus follows mouse: a card gets the keyboard when the pointer rests on it for
+0.15 s, only in the key window
+([Moving the keyboard](/docs/layout#moving-the-keyboard)).
+
+## Appearance
+
+| Setting | Control | Key | Default |
+|---|---|---|---|
+| Appearance | picture tiles: Auto, Light, Dark | `appearance` | Dark |
+| Interface style | picture tiles: Glass, Classic | `interfaceStyle` | Glass |
+| Text size | stepper, 8 to 32 pt | `fontSize` | 13 |
 
 - Appearance and interface style: [Theme and accessibility](/docs/ui/theme-and-accessibility#appearance-and-interface-style).
 - The text size is the terminal font size. A change applies to every terminal
-  at once, without opening its stream again; each card's grid changes, so the
+  at once, without opening its stream again. Each card's grid changes, so the
   PTYs resize.
-- Focus follows mouse (key `focusFollowsMouse`): a card gets the keyboard
-  when the pointer rests on it for 0.15 s, only in the key window
-  ([Moving the keyboard](/docs/layout#moving-the-keyboard)).
-- The notification switches (keys `notifyNeedsYou`, `notifyFinished`,
-  `notifyFromAgents`, D105): Needs You and Finished turn off the app's own
-  banners for those changes. From Agents turns off the ones that agents send
-  with `ovvi notify`, which then answers `"notified": false`
-  ([Notifications](/docs/status#notifications)). In the palette,
-  Notifications opens a sub-page with the three switches.
 
-## Fixed defaults
+## Terminal
+
+Every setting here applies to every terminal at once, as the text size does,
+without opening a stream again.
+
+| Setting | Control | Key | Default |
+|---|---|---|---|
+| Font | pop-up of the monospaced families on this Mac | `terminalFont` | empty: the system's monospaced font (SF Mono) |
+| Cursor | Block, Bar, Underline | `cursorStyle` | `block` |
+| Blink the cursor | switch | `cursorBlink` | on |
+| Option key | Types special characters, Acts as Meta, Left acts as Meta | `optionKey` | `characters` |
+| Copy text when you select it | switch | `copyOnSelect` | off |
+
+- Cursor: a program that asks for its own shape gets it, for example vim's bar
+  in insert mode. herdr's frames carry the request.
+- Blink the cursor: on, the cursor blinks unless a program asks for a steady
+  one. Off, the cursor stays still unless a program asks for a blinking one.
+- Option key: with Types special characters, ⌥B types ∫. With Acts as Meta,
+  ⌥B sends Esc B, which shells and editors read as Meta-B. Left acts as Meta
+  does this only for the left Option key. ⌥← and ⌥→ move by word with every
+  choice.
+- Copy text when you select it: a selection goes to the clipboard as you make
+  it.
+- The colors follow the appearance: Alabaster in light, Afterglow in dark.
+
+## Agents
+
+| Setting | Control | Key | Default |
+|---|---|---|---|
+| Open new agents in | pop-up: Terminal, Chat | `agentView` | `terminal` |
+| Extra arguments, per agent | text field | `agentArguments.<command>` | empty |
+| Show in New Pane, per agent | switch | `hideInNewPane` in `settings.json` | on |
+| When an agent needs you | switch | `notifyNeedsYou` | on |
+| When an agent finishes | switch | `notifyFinished` | on |
+| When an agent sends one | switch | `notifyFromAgents` | on |
+
+- Open new agents in: what the card of an agent that New Pane or Start Agent
+  Here starts shows first. The header's Chat | TUI switch changes it later
+  ([Chat view](/docs/ui/chat-view#switching-views)).
+- Agents in New Pane lists Claude Code, Codex, Pi and OpenCode, each with its
+  program tile, its command and two controls:
+  - The extra arguments go into the agent's typed line right after its
+    command, before Ovvi's own flags: `claude --model opus …`. The field
+    refuses a line break, a quote and a backslash, as the hooks do (D76). If
+    the agent does not start, the second try types the command alone
+    ([New pane](/docs/ui/new-pane#agent)). Relaunch with Chat adds them too,
+    and has no second try.
+  - An agent that is off has no row under Agent in New Pane. Its command goes
+    into `hideInNewPane`, the list that hides plugins too, so a plugin whose id
+    is an agent's command goes with it. With all four off, New Pane has no
+    Agent row.
+- The notification switches (D105). Needs you and finishes turn off the
+  app's own banners for those changes. When an agent sends one turns off the
+  banners that agents send with `ovvi notify`, which then answers
+  `"notified": false` ([Notifications](/docs/status#notifications)). In the
+  palette, each has a command that says what it does now, for example "Turn
+  Off Notifications When an Agent Needs You" (D48). Notification Settings…
+  opens Ovvi's page in System Settings, where banners, sounds and the Dock
+  badge are.
+
+## Machines
+
+This Mac, then each remote machine, in the machine menu's order. Each row
+shows the machine's icon, name and SSH target, and for a remote machine
+Connected (a window of it is connected) or Not connected. Add Machine… opens
+an empty machine page.
+
+A machine's page:
+
+- **Name, SSH target and icon**, the fields of Add Remote Host
+  ([Add a machine](/docs/ui/add-a-machine)). Save keeps an edit, as the
+  dialog's Save does. On Add Machine's page, Add saves the machine and opens it
+  in a new window.
+- **Website data: Clear…** removes the logins, storage and cache of the
+  machine's browser cards, and its approved websites, after a confirmation.
+  This Mac's page has only this row.
+- **Remove ‹machine›…** takes the machine off the list after a confirmation,
+  as the dialog's Remove does. Its terminals keep running on the machine.
+
+## Plugins
+
+The install field with Install, New Plugin… and Reload All, then every plugin:
+the browser first, then the plugins that come with Ovvi, then yours. Each row
+shows the plugin's icon, name, version and source, and Needs review while its
+cards wait for your answer. A row opens the plugin's page:
+
+- **The header**: Update, Update to Version ‹x› or Reset to Default when
+  offered, Show Log, Reload and Remove….
+- **Settings** that the plugin declares in its manifest
+  ([Settings](/docs/plugins/manifest#settings)), then Show in New Pane. A
+  plugin's cards read them and hear each change
+  ([The plugin API](/docs/plugins/api)). New cards start with them; a card
+  keeps its own choice once you change it in its header. They are in
+  `settings.json` under `plugins`, one value for every machine.
+- **Permissions**, in the trust prompt's words, and the answer: "Comes with
+  Ovvi, so it never asks.", Allowed with Forget Trust, or Not allowed yet
+  with Allow, and Don't Allow while its cards wait.
+
+The browser's page has its network choice for new cards on a remote machine,
+Show in New Pane, and a link to its approved websites on the Privacy page.
+How it works: [The Plugins page](/docs/plugins/packages#the-plugins-page).
+
+## Privacy
+
+The websites that each machine's browser cards load by themselves, one
+section per machine, each site with Remove, and Clear All per machine
+([When a page loads by itself](/docs/ui/browser#when-a-page-loads-by-itself)).
+The page is in the sidebar only when a machine has an approved website.
+
+## In the menu bar
+
+The menu bar keeps the quick switches. Each also is a command in the palette,
+with a title that says what it does now (D48).
+
+| Setting | Where |
+|---|---|
+| Appearance | View ▸ Appearance |
+| Interface style | View ▸ Interface Style |
+| Text size | View ▸ Increase Font Size (⌘+ or ⌘=), Decrease Font Size (⌘-), Reset Font Size (⌘0) |
+| Focus follows mouse | View ▸ Pane ▸ Focus Follows Mouse |
+
+## Fixed values
 
 | What | Value |
 |---|---|
-| Terminal font | the system monospaced font (SF Mono) |
-| Cursor | a blinking block. A program that asks for its own shape (vim's bar in insert mode) gets it: herdr's frames carry the request |
-| Option key | types the macOS characters (⌥B is ∫). ⌥← and ⌥→ move by word |
-| Copy on select | off |
+| Terminal colors | Alabaster in light, Afterglow in dark |
 | Dock badge | counts the panes that need you |
 | Sounds | none |
 

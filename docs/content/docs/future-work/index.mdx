@@ -24,11 +24,6 @@ never calls herdr's focus methods. A design gets decision numbers on the
 
 ## Smaller items
 
-- **A Settings window** (⌘,), designed with mock-ups first. It holds the
-  settings that have no menu item today: the terminal font, the cursor style
-  and blink, Option as Alt and copy on select, and the notification
-  switches of the menu bar ([Settings](/docs/ui/settings)). It must meet the design bar; a stock tabbed
-  form is too plain (D62).
 - **herdr's machines in Add Remote Host.** When herdr is on the Mac, the
   dialog lists the targets of the enabled entries of
   `herdr machine list --json` (`{id, label, target, session, enabled}`) that
@@ -81,8 +76,8 @@ never calls herdr's focus methods. A design gets decision numbers on the
     Zoom's Restore) while the inspector shows.
   - An "Open :‹port›" chip on a terminal card whose screen shows a
     `localhost` address.
-  - **Refresh**, and the approvals and the safe list in the Settings window,
-    where the user can edit them.
+  - **Refresh**, and the safe list in the Settings window, where the user can
+    edit it.
   - "‹machine› does not allow port forwarding": an `ssh -W` probe after a
     refusal tells it from a closed port.
 - **The rest of the default plugins** ([Not built](/docs/plugins/default-plugins#not-built)):
@@ -90,9 +85,9 @@ never calls herdr's focus methods. A design gets decision numbers on the
   Quick Look for more file types, expandable unmodified lines in a diff, and
   Back and Forward kept over a relaunch.
 - **The rest of the plugin system** ([Not built](/docs/plugins#not-built)):
-  network from a plugin page, plugins from a project folder, settings drawn
-  from the manifest, install and reload from an agent,
-  and ⌘K Forget Plugin Trust.
+  network from a plugin page, plugins from a project folder, install and
+  reload from an agent, and a plugin setting with a value per machine (the
+  browser's network is one value for new cards on every machine).
 - **The rest of the chat view** ([Chat view](/docs/ui/chat-view)):
   - A host for the pill card: the chat at 360 pt, built
     when the [floating pills](/docs/future-work/pills) land.

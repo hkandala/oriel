@@ -55,6 +55,8 @@ export interface Ovvi {
   readonly theme: Theme
   /** @since 2 */
   readonly pages: Pages
+  /** @since 3 */
+  readonly settings: Settings
   /** Needs `clipboard`. */
   readonly clipboard: { write(text: string): Promise<void> }
   /** The native context menu at the pointer. Resolves with the picked item's value, or undefined. */
@@ -95,6 +97,21 @@ export interface Ovvi {
   on(event: "save" | "find" | "findNext" | "findPrevious", fn: () => void): Off
   on(event: "visible" | "keyboard", fn: (yes: boolean) => void): Off
   on(event: "theme", fn: (theme: Theme) => void): Off
+  /** @since 3. The user changed settings of this plugin on its page in Settings: the new values by id. Every open card
+   *  of the plugin hears it, hidden ones too. */
+  on(event: "settings", fn: (changed: Record<string, SettingValue>) => void): Off
+}
+
+/** A toggle's value is a boolean, a number's a number, a choice's, a text's and a path's a string. */
+export type SettingValue = boolean | number | string
+
+/** @since 3. The values of the manifest's `settings`, which the user sets on the plugin's page in Settings. Read only:
+ *  a card keeps its own choices in `state`. */
+export interface Settings {
+  /** The value the user set, else the manifest's default. There at the page's first load, with no wait. */
+  get<T extends SettingValue>(id: string): T
+  /** Opens Settings at this plugin's page. */
+  open(): void
 }
 
 /** Stops the handler or the watch. Every one ends with the page. */
@@ -105,7 +122,8 @@ export type Off = () => void
 export interface Pages {
   /** Draws the card's places from now on, its place now: resolves once that page shows. A move to a place with a kept
    *  page shows that page at once; to another place, `draw` fills a new page, which shows when its promise ends, and
-   *  the page before stays until then. A page left with unsaved edits is dropped. */
+   *  the page before stays until then. A page left with unsaved edits is dropped. From then on ⌘← and ⌘→ go Back and
+   *  Forward (manifest `history`), before the page's own keys, unless a text field has the keyboard. */
   route(draw: (page: Page) => Promise<void>): Promise<void>
 }
 
@@ -313,6 +331,7 @@ export interface OvviError extends Error {
 | `state` | the card's state for drops, reloads and relaunches | [State](#state) |
 | `controls` | the header row and the card's commands | the native header (`Header`, `HeaderView`) |
 | `theme` | colors, light or dark, glass or classic, the text size | the `Look` tokens |
+| `settings` | the values the user set on the plugin's page in Settings, else the manifest's defaults; `open` shows that page | `PluginSettings`, `settings.json` ([Settings](/docs/plugins/manifest#settings)) |
 | `open` | an open in this card, a new tab at the end of this card's workspace (the default) or a pane to its side, in front or in the background | `Page.open(_:arg:at:from:how:)` |
 | `toast` | the card's toast | `Toast` and its view |
 | `menu.show` | the native context menu at the pointer | `NSMenu` |
@@ -426,7 +445,8 @@ every device must see belongs in files on the machine.
 ## Versions
 
 - The manifest's `api` is the version the plugin was written for, an
-  integer. This page is version 2, and the app gives version 2.
+  integer. This page is version 3, and the app gives version 3. Version 3
+  added `ovvi.settings` and the `settings` event.
 - Each change of the API raises the number, an addition too. `ovvi.d.ts`
   marks each member added after version 1 with `@since <api>`.
 - The app runs a plugin whose `api` is at most its own. A change that breaks
@@ -452,7 +472,8 @@ every device must see belongs in files on the machine.
 | `PluginInstalls`, `PluginPackages` (HerdrKit) | sources, install, update, remove and `settings.json` ([Packages and installs](/docs/plugins/packages)) |
 | `PluginBuilds` | runs a package's build script; the "not built" check; the types package; the log |
 | `DefaultPlugins` | the defaults' first-launch install, update and reset |
-| `PluginTrust` | `trust.json` and the trust prompt |
+| `PluginTrust` | `trust.json` and the trust prompt; the plugins whose cards wait |
+| `PluginSettings` | the plugins' values in `settings.json`, and the `settings` event to every open card of the plugin |
 
 - The bridge is one script message handler with replies
   (`WKScriptMessageHandlerWithReply`), named `ovvi`, behind a weak relay. A
@@ -464,8 +485,8 @@ every device must see belongs in files on the machine.
 - Calls that wait for the user (a toast) answer through an event, so no Swift
   task hangs on a page that never hears back.
 
-## Not in version 2
+## Not in version 3
 
 Network from the page (`fetch` reaches only the plugin's own files), streams
-from `run`, clipboard read, plugin settings, and the herdr snapshot as an
-event.
+from `run`, clipboard read, a setting per machine, a page that sets a
+setting, and the herdr snapshot as an event.

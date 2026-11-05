@@ -146,7 +146,7 @@ Ovvi answers the rest.
 | `dirty` | 1 | `open --replace` of a card with unsaved edits; `plugins reload` while a card of the plugin has them (the message names the pane) |
 | `declined` | 1 | the user pressed Cancel in the trust prompt of `plugins install` |
 | `build_failed` | 1 | `plugins reload`: the build failed; the message ends with the build's last 20 lines |
-| `failed` | 1 | anything else: a herdr call or a run failed, no window shows the session, the Plugins panel's own refusal; the message is herdr's, the shell's or the panel's |
+| `failed` | 1 | anything else: a herdr call or a run failed, no window shows the session, the Plugins page's own refusal; the message is herdr's, the shell's or the page's |
 | `no_ovvi` | 3 | no Ovvi took the request within 3 s |
 | `timeout` | 4 | an Ovvi took it but did not answer within the timeout |
 | `no_herdr` | 5 | no pane to ring, herdr has no such pane or refused the ring, or the mailbox could not be written |
@@ -222,7 +222,7 @@ The rules guard the Mac and the user's attention:
    opens its window without activating the app. Only a click on an agent's
    notification brings Ovvi to the front, because the user asked.
 6. **Notifications** are limited to one per asking pane every 10 s, and
-   follow the user's From Agents switch.
+   follow the user's When an agent sends one switch.
 7. **Paths built by Ovvi.** The mailbox path comes from the id that matched
    the pattern. The request's size is checked before it is decoded.
 8. **No secrets in tokens or labels.** A token holds only the id. Every

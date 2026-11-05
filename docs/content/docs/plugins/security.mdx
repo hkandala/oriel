@@ -69,8 +69,8 @@ grow.
 | Where it comes from | When it asks | Where |
 |---|---|---|
 | An install from npm or git | always, for a new source, before its dependencies install. An update asks only when the permissions grew | a dialog over the window, with **Install** and **Cancel** |
-| A local path from the Plugins panel | when it is added | the same dialog |
-| An agent's `ovvi plugins install` | as for the panel's install | the same dialog, on the window of the agent's session ([An agent's install](#an-agents-install)) |
+| A local path from the Plugins page | when it is added | the same dialog |
+| An agent's `ovvi plugins install` | as for the page's install | the same dialog, on the window of the agent's session ([An agent's install](#an-agents-install)) |
 | New Plugin…, or an agent's `ovvi plugins new` on This Mac | never: you or your agent made it | |
 | A folder put in the plugins folder by hand, or a path written in `settings.json` | in its first card | the card's middle |
 | Any plugin whose manifest gained a permission | in its next card, and on Reload Plugin | the card's middle |
@@ -91,8 +91,8 @@ The prompt in the card sits under the plugin's icon:
 - The id and the folder head the prompt, because a plugin picks its own
   name. The install dialog shows the source in place of the folder.
 - A plugin with a `chooser` row also gets a **Show in New Pane** checkbox,
-  on by default: the Plugins panel's switch
-  ([The Plugins panel](/docs/plugins/packages#the-plugins-panel)).
+  on by default: the switch on the plugin's page in Settings
+  ([The Plugins page](/docs/plugins/packages#the-plugins-page)).
 - One sentence per permission, in the manifest's order
   ([Permissions](/docs/plugins/manifest#permissions)). With none: "Its page
   can only draw in its card." When the package has a `build` script, the
@@ -102,7 +102,13 @@ The prompt in the card sits under the plugin's icon:
   pane.
 - Text from the manifest shows with control and direction-override
   characters removed.
-- **Remove** in the Plugins panel forgets a plugin's trust.
+- **The plugin's page** in Settings ▸ Plugins lists the same sentences and
+  the answer. **Allow** there does what Allow in the card does. **Don't
+  Allow** there closes the plugin's waiting cards. **Forget Trust** takes the
+  plugin out of `trust.json`, and its open cards show the prompt again. The
+  sidebar's Plugins row shows the number of plugins whose cards wait
+  ([A plugin's page](/docs/plugins/packages#a-plugins-page)).
+- **Remove** on the plugin's page forgets its trust.
 - `trust.json` is a file that anything able to write the plugins folder can
   also write. That fits the model above.
 
@@ -130,7 +136,7 @@ another machine. `ovvi open` writes the same label, so it gives nothing more
 
 ## Not built
 
-- ⌘K Forget Plugin Trust: Remove forgets it.
+- ⌘K Forget Plugin Trust: the plugin's page in Settings has Forget Trust.
 - A card that says "‹name› is not responding" for a hung page.
 
 ## Choices

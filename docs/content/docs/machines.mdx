@@ -20,7 +20,8 @@ description: "What a machine is, its sessions, the SSH connection, the health ch
 ## The machine list
 
 - **The app keeps its own list of remote machines** (D54): name, SSH target,
-  icon and id, in `UserDefaults`. The machine menu lists This Mac first, then the list.
+  icon and id, in `UserDefaults`. The machine menu lists This Mac first, then the list. Settings ▸
+  Machines lists them too ([Settings](/docs/ui/settings#machines)).
   - The list is JSON under the `machines` key. A run launched with
     `-session` (the e2e tests, a run against a throwaway session) never reads
     or writes it: it takes `-machines <json>` or no machines, so a test never

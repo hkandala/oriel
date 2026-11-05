@@ -1,6 +1,6 @@
 ---
 title: "Packages and installs"
-description: "Where plugins come from: npm, git or a local path, the Plugins panel, and the default plugins as packages"
+description: "Where plugins come from: npm, git or a local path, the Plugins page, and the default plugins as packages"
 ---
 
 A plugin is a package, as a pi package is. Ovvi installs it,
@@ -37,7 +37,8 @@ entry is a source string, or an object with a `source` (pi's form):
   hand also loads. It is not in `settings.json`.
 - `hideInNewPane` lists the ids of the plugins that the
   [New pane](/docs/ui/new-pane) chooser leaves out, for example
-  `"hideInNewPane": ["git"]`. The Plugins panel and the trust prompt write it.
+  `"hideInNewPane": ["git"]`. A plugin's page in Settings and the trust
+  prompt write it.
 
 ## Install
 
@@ -74,44 +75,81 @@ The install commands:
 - An id that another package already has is refused: "The id ‹id› is taken
   by ‹folder›". So is a folder name that is already in the plugins folder.
 
-## The Plugins panel
+## The Plugins page
 
-**Ovvi ▸ Plugins…** and ⌘K **Plugins…** open the Plugins panel: a glass
-panel over the window, like Open Session. Esc or a click outside closes it.
+**Ovvi ▸ Plugins…** and ⌘K **Plugins…** open Settings at its Plugins page
+([Settings](/docs/ui/settings)).
 
 - **The field** takes a source (`npm:package`, `git:repository` or a
   folder's path). Return or **Install** installs it. The spinner and
   "Installing…" take the Install button's place while it runs. A failure
   shows on a red notice, with **Retry** when running it again can help.
-- **A row per plugin:** its icon, its name and version, and its source under
-  it: "Comes with Ovvi", the `npm:` or `git:` source, the local path, or the
-  folder. A source in `settings.json` whose folder is missing shows "Not
-  installed" with an install button.
-- **Show in New Pane:** a switch on the row of each plugin whose manifest
-  has a `chooser` row. It is on until the user turns it off. Off, the New
-  pane chooser leaves the plugin out, and `settings.json` keeps its id in
-  `hideInNewPane`. ⌘K's Open ‹chooser› Here stays.
-- **The row's buttons:**
+- **New Plugin…** asks for a name, then makes a plugin from the template
+  ([Build a plugin](/docs/plugins/building#start-from-the-template)).
+- **Reload All** reads every package again and reloads every plugin with an
+  open card. ⌘K's **Reload Plugins** does the same.
+- **A row per plugin**, the browser first: its icon, its name and version,
+  and its source under it: "Comes with Ovvi", the `npm:` or `git:` source,
+  the local path, or the folder. A source in `settings.json` whose folder is
+  missing shows "Not installed". "Needs review" shows while a card of the
+  plugin waits for the trust prompt's answer, and the sidebar's Plugins row
+  shows the number of such plugins. A row opens the plugin's page.
+- **An agent's work** shows on the page too: an agent on This Mac makes,
+  reloads and installs plugins with the `ovvi` command
+  ([CLI](/docs/agent-control/cli#plugins)), and the page shows Creating…,
+  Installing… and any failure, as for its own.
+
+### A plugin's page
+
+- **The header:** the icon, the name, the version, the description and the
+  source, and the buttons that apply:
 
   | Button | On | Does |
   |---|---|---|
-  | Update (`arrow.down.circle`) | npm and git installs | fetches the source again. It asks only when the permissions grew |
-  | Show Log (`doc.text.magnifyingglass`) | every plugin | opens `<id>.log` in the app for `.log` files (Console) |
-  | Reload Plugin (`arrow.clockwise`) | every plugin | runs its build script and loads its cards again ([Reload](/docs/plugins/building#reload)) |
-  | Remove (`trash`) | every plugin but the defaults | asks, then takes it off the list, forgets its trust and moves its folder to the Trash. A local path's folder stays where it is |
+  | Update | npm and git installs ("Install" while its folder is missing) | fetches the source again. It asks only when the permissions grew |
   | Update to Version ‹x.y.z›, Reset to Default | the defaults, when the app offers it | [The default plugins](#the-default-plugins) |
+  | Show Log | every plugin but the browser | opens `<id>.log` in the app for `.log` files (Console) |
+  | Reload | every plugin but the browser | runs its build script and loads its cards again ([Reload](/docs/plugins/building#reload)) |
+  | Remove… | every plugin but the defaults | asks, then takes it off the list, forgets its trust and its settings, and moves its folder to the Trash. A local path's folder stays where it is |
 
-- **New Plugin…** asks for a name, then makes a plugin from the template
-  ([Build a plugin](/docs/plugins/building#start-from-the-template)).
-- **An agent's work** shows in the panel too: an agent on This Mac makes,
-  reloads and installs plugins with the `ovvi` command
-  ([CLI](/docs/agent-control/cli#plugins)), and the panel shows Creating…,
-  Installing… and any failure, as for its own.
-- **Reload Plugins** reads every package again and reloads every plugin
-  with an open card. ⌘K has it too.
+- **Its settings**, drawn from the manifest's `settings`
+  ([Settings](/docs/plugins/manifest#settings)). A change is saved at once
+  and reaches the plugin's open cards.
+- **Show in New Pane:** a switch for each plugin whose manifest has a
+  `chooser` row. It is on until the user turns it off. Off, the New pane
+  chooser leaves the plugin out, and `settings.json` keeps its id in
+  `hideInNewPane`. ⌘K's Open ‹chooser› Here stays.
+- **Permissions:** a row for each sentence of the trust prompt, then the
+  answer ([Security and trust](/docs/plugins/security#the-trust-prompt)). A
+  default plugin says "Comes with Ovvi, so it never asks." A trusted plugin
+  says "Allowed" and has **Forget Trust**. A plugin that is not trusted says
+  "Not allowed yet" and has **Allow**, and **Don't Allow** while a card of
+  it waits.
+- The browser's page has its setting and Show in New Pane, and
+  **Show in Privacy** for its approved websites
+  ([The browser](/docs/ui/browser#this-macs-network)).
 
-There is no Settings window (D62), so the panel is the one place for
-plugins.
+## Plugin settings in settings.json
+
+`settings.json` keeps the values that the user set on the plugins' pages,
+under `plugins`, by plugin id and setting id. Only a value that differs from
+the setting's default is written, so a new default reaches a user who never
+changed it:
+
+```json
+{
+  "packages": ["npm:@acme/ovvi-csv@1.2.0"],
+  "plugins": {
+    "explorer": { "hidden-files": true },
+    "git": { "commits": 1000 }
+  }
+}
+```
+
+- A value that does not fit its setting (a wrong type, an option that is not
+  there, a number out of range) reads as the default.
+- Remove takes the plugin's values out. A hand edit, or an agent's edit,
+  takes effect at Reload Plugins.
 
 ## Where the registry looks
 
@@ -149,7 +187,7 @@ app's own build.
   unedited copy at launch. An older app never replaces a copy, so a Debug and
   a Release build can share the folder.
 - **An edited copy**, or a copy whose source differs from the app's at the
-  same version, stays. The panel's row offers **Update to Version ‹x.y.z›**
+  same version, stays. Its page offers **Update to Version ‹x.y.z›**
   (a newer version) or **Reset to Default**. For an edited copy it asks
   first: "Replace your edited ‹name›?". The edited copy goes to the Trash.
 - `.defaults.json` in the plugins folder keeps each default's version, the
