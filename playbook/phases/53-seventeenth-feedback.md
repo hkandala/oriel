@@ -443,8 +443,14 @@ CI runs and on-demand) at about 2–3 h.
 - **Left.** While an error shows, the hidden old page takes the keyboard, as it did before after a tab switch. Back to
   a same-document entry after an error (`#a`) still leaves the error up: such a load has no commit.
 - **Runs.** On the old code (run 41960236424), the new test failed at the click on the empty card, and the remote test
-  failed at the chip's label, which a plain `Text` leaves empty.
-- **Pictures** in `/tmp/oriel-shots/t53c/`: `before-remote-chip.png` and `before-empty-click.png` (old code, CI, dark).
+  failed at the chip's label, which a plain `Text` leaves empty. With only item 4's fix taken out (run 41962790361), it
+  failed at the field, which showed the page before. Green: 41961436471 (with the browser tests that use the empty card,
+  the error page and "Open this page?") and 41962785281.
+- **The error click's check.** A web view reports no keyboard focus of its own in XCUITest, so the test checks that
+  the terminal lost the keyboard and that ⌘L then acts on this card.
+- **Pictures** in `/tmp/oriel-shots/t53c/`: before (old code, CI, dark): `before-remote-chip.png`,
+  `before-empty-click.png`. After: `after-failed-address-dark.png`, `after-chip-machine-dark.png`,
+  `after-chip-this-mac-dark.png`, `after-chip-machine-light.png`, `after-chip-this-mac-light.png`.
 - **For the user.**
   1. In a browser card, open a page, then type `localhost:4999` (nothing listening). The field keeps
      `http://localhost:4999/`. Start a server on 4999 and click Reload: that page loads.
