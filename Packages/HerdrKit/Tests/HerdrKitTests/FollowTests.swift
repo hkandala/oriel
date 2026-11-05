@@ -117,11 +117,13 @@ private func lineByLine(_ path: String, from mark: FileMark,
     #expect(after < 10000)
 }
 
-/// A follow dropped just as its backlog ends, as a chat card scrolled past or the app quit, leaves no process: the
-/// wrapper's one kill reached the shell while its trap was pending and it went on to `exec tail`, which lived on.
-@Test(.timeLimit(.minutes(1)), arguments: ["0", "/^skip/"])
-func `a dropped follow leaves no process`(skip: String) async throws {
+/// A follow dropped just as its backlog ends, as a chat card scrolled past or the app quit, leaves no process: macOS's
+/// sh lost the wrapper's one kill (pending in its trap as it went on to `exec tail`), and `tail` lived on. awk's
+/// pattern holds the file's name, so a left awk shows too.
+@Test(.timeLimit(.minutes(3)), arguments: [false, true])
+func `a dropped follow leaves no process`(awk: Bool) async throws {
     let file = FileManager.default.temporaryDirectory.appending(path: "ovvi-left-\(UUID().uuidString).jsonl")
+    let skip = awk ? "/^\(file.lastPathComponent)/" : "0"
     defer { try? FileManager.default.removeItem(at: file) }
     try Data(("first\n" + String(repeating: "x", count: 300_000) + "\nlast\n").utf8).write(to: file)
     for _ in 0 ..< 3 {
@@ -130,7 +132,8 @@ func `a dropped follow leaves no process`(skip: String) async throws {
                 break
             }
         }
-        let end = ContinuousClock.now + .seconds(20)
+        // A left process lives forever; the wait covers a starved Mac, where a retry's `sleep` takes seconds to start.
+        let end = ContinuousClock.now + .seconds(45)
         while try await !localExec.output(["pgrep", "-f", file.lastPathComponent]).isEmpty {
             guard ContinuousClock.now < end else {
                 _ = try? await localExec.output(["pkill", "-f", file.lastPathComponent])

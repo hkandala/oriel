@@ -52,12 +52,16 @@ and watch files and run git the same way
 - `observe` and `tail -F` (the chat's followers) ignore a closed stdin, so
   they always run in this wrapper, on This Mac too:
   ```sh
-  sh -c '<cmd> & c=$!; cat >/dev/null; kill $c'
+  sh -c '<cmd> & c=$!; cat >/dev/null; while kill $c; do sleep 1; done'
   ```
+  The wrapper sends its kill again each second until `<cmd>` is gone:
+  macOS's `sh` can lose one, and a `tail -F` that missed it ran forever.
 - One fallback: a channel the app ends by closing its stdin is killed by its
   pid (SIGKILL) if it is still alive about 1 s later. A one-shot command whose
   stdin is closed only so it reads end of input is not killed. A dropped
-  stream or a timeout kills at once. The app signals a child only by its pid,
+  stream or a timeout kills at once, except a follower's: a kill before the
+  wrapper started its watcher would leave `<cmd>` running, so a dropped
+  follower only closes its stdin. The app signals a child only by its pid,
   never by process group.
 
 ## herdr on each machine
