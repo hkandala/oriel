@@ -1,7 +1,7 @@
 // The Markdown place: one CodeMirror view of the file in both modes, drawn as rendered Markdown (a live preview,
 // live.ts). Read is the view not editable with every line drawn; Edit puts back the marks of the caret's lines. So a
 // switch moves nothing on screen but the caret's line. The outline lists the headings; row 2 picks the mode and the
-// outline (off with no headings), and the page sets them when it changes them itself.
+// outline (its toggle shows only while the file has a heading), and the page sets them when it changes them itself.
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown"
 import { yamlFrontmatter } from "@codemirror/lang-yaml"
 import { ensureSyntaxTree, syntaxTree, syntaxTreeAvailable } from "@codemirror/language"
@@ -72,7 +72,7 @@ export async function show(place: Place): Promise<Reveal> {
   root.append(outline, pane)
   let edit = false
   let outlined = false
-  /** The file has a heading: the outline's toggle works only then. */
+  /** The file has a heading: the outline's toggle shows only then. */
   let titled = false
   const editable = new Compartment()
 
@@ -101,12 +101,12 @@ export async function show(place: Place): Promise<Reveal> {
     else view.scrollDOM.focus({ preventScroll: true })
   }
 
-  /** The outline's toggle on while the file has headings; with none, the outline closes. */
+  /** The outline's toggle shows while the file has headings; with none, the outline closes. */
   function titles(view: EditorView, found: ReturnType<typeof headings>) {
     const now = found.length > 0
     if (now !== titled) {
       titled = now
-      oriel.controls.set("outline", { enabled: titled })
+      oriel.controls.set("outline", { hidden: !titled })
       if (!titled && outlined) present(view, edit, false)
     }
     if (outlined) list(view, found)
@@ -163,7 +163,7 @@ export async function show(place: Place): Promise<Reveal> {
 
   // Read with the outline closed until the file shows.
   oriel.controls.set("mode", { value: "read" })
-  oriel.controls.set("outline", { value: false, enabled: false })
+  oriel.controls.set("outline", { value: false })
   oriel.controls.set("edit-mode", { enabled: true, checked: false })
   let shown: Editor
   /** The saves of Read's ticks, one after the other: a save under way skips a second one. */

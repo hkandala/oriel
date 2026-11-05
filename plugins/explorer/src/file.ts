@@ -1,4 +1,4 @@
-// File: the card's file in CodeMirror with its language's colors, and the jump bar `folder › file › {} symbol`.
+// File: the card's file in CodeMirror with its language's colors, and the breadcrumbs `repo › … › file › {} symbol`.
 import { HighlightStyle, StreamLanguage, type StreamParser, syntaxHighlighting, syntaxTree } from "@codemirror/language"
 import { type EditorState, type Extension, RangeSetBuilder } from "@codemirror/state"
 import {
@@ -153,12 +153,10 @@ const hanging = ViewPlugin.fromClass(
 )
 
 export async function show(place: Place): Promise<Reveal> {
-  const { oriel, arg } = place
-  /** The jump bar: the file's folder and name, then the scopes around the caret after `{}`. */
-  const folder = name(arg.slice(0, arg.lastIndexOf("/")) || "/")
+  const { oriel, arg, trail } = place
+  /** The breadcrumbs, then the scopes around the caret after `{}`. */
   const jump = (scope: string) =>
-    oriel.controls.set("jump", { value: [folder, name(arg), ...(scope ? [scope] : [])], symbol: scope ? "curlybraces" : "" })
-  jump("")
+    oriel.controls.set("jump", { value: [...trail, ...(scope ? [scope] : [])], symbol: scope ? "curlybraces" : "" })
   let last = ""
   const shown = await editor(place, [
     lineNumbers(),

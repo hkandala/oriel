@@ -117,8 +117,8 @@ nav button:hover {
 .cm-md-bullet input {
   appearance: none;
   box-sizing: border-box;
-  width: 0.95em;
-  height: 0.95em;
+  width: 1.1em;
+  height: 1.1em;
   margin: 0;
   vertical-align: middle;
   position: relative;

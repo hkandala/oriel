@@ -64,14 +64,14 @@ extension OrielUITests {
         follow(card, page: page)
     }
 
-    /// A relative link shows its file in the card: with no heading, the outline's toggle is off; Back turns it on.
+    /// A relative link shows its file in the card: with no heading, the outline's toggle hides; Back shows it.
     private func follow(_ card: String, page: XCUIElement) {
         page.links["Other"].click()
         XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, "other.md", within: 5))
-        XCTAssertTrue(element("pane.\(card).outline").has(\.isEnabled, false, within: 3))
+        XCTAssertTrue(element("pane.\(card).outline").vanishes(within: 3))
         element("pane.\(card).go-back").click()
         XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, "notes.md", within: 5))
-        XCTAssertTrue(element("pane.\(card).outline").has(\.isEnabled, true, within: 3))
+        XCTAssertTrue(element("pane.\(card).outline").exists(within: 3))
     }
 
     /// Read renders what Markdown means, not what it says: `1. 1.` counts up, an item's second paragraph hangs at its

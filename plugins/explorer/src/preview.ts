@@ -1,5 +1,5 @@
 // Preview: an image, a PDF (pdf.js), audio or video (WebKit's player) from the card's file, or the info view. Row 2:
-// the path, a PDF's page, and zoom for images and PDFs.
+// a PDF's page, and zoom for images and PDFs.
 import type { OrielError } from "@oriel/plugin-api"
 import { failed, info } from "./info"
 import { drawn, extension, type Place, type Reveal } from "./place"
@@ -16,7 +16,6 @@ export async function show(place: Place): Promise<Reveal> {
   /** What the file shown holds: an image's resize observer, a PDF's worker, a blob's address. */
   let release = () => {}
   keep(() => release())
-  oriel.controls.set("path", { value: path })
   for (const step of ZOOM) oriel.controls.set(`zoom.${step}`, { hidden: group !== "image" && group !== "pdf" })
   oriel.on("control", ({ id }) => {
     const step = ZOOM.find((step) => id === `zoom.${step}`)

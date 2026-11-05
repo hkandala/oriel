@@ -21,6 +21,8 @@ export type Place = {
   shown(): boolean
   /** File's and Markdown's file, read already. */
   read?: ReturnType<Oriel["files"]["read"]>
+  /** A file's breadcrumbs (`trail`); none for a folder. */
+  trail: string[]
 }
 
 /** A file's extension, lowercased; "" for none, also for a dotfile's name (as `NSString.pathExtension`). */
@@ -68,3 +70,16 @@ export async function menu(oriel: Oriel, event: MouseEvent, arg: string) {
 
 /** The last part of a path; `/` is its own. */
 export const name = (path: string) => (path === "/" ? "/" : path.replace(/\/$/, "").split("/").pop() ?? "")
+
+/** A file's breadcrumbs, the same for every kind of file: its path from its repository's root (the repository's name
+ *  first), else from the home folder (`~` first), else from `/`. */
+export async function trail(oriel: Oriel, path: string) {
+  const root = await oriel.git.root(path.slice(0, path.lastIndexOf("/")) || "/").catch(() => null)
+  // git names the root with its links resolved: `/tmp` is `/private/tmp`.
+  const repo = root && [root, root.replace(/^\/private(?=\/)/, "")].find((each) => path.startsWith(`${each}/`))
+  // ponytail: the home folder where macOS and Linux put it; ask the machine if one lives elsewhere.
+  const home = /^\/(?:Users\/(?!Shared\/)|home\/)[^/]+(?=\/)|^\/root(?=\/)/.exec(path)?.[0]
+  // A home folder kept in git (dotfiles) reads from `~`.
+  const base = (repo !== home && repo) || home || ""
+  return [base === home ? "~" : base ? name(base) : "/", ...path.slice(base.length).split("/").filter(Boolean)]
+}

@@ -112,7 +112,7 @@ apply:
 |---|---|---|
 | the tree: a file | double-click or Return | the file, with its page |
 | the tree: a folder | double-click, ⌘-click, ⌥-click, or Open as Root | the tree rooted there |
-| a file's **Show in File Explorer** | click | the tree, with the file revealed |
+| a file's **Show in File Explorer** | click | the tree of the file's folder, with the file selected |
 | the Git home: a change | click | the Working Tree diff, scrolled to that file |
 | the Git home: **Working Tree** | click | the Working Tree diff |
 | a commit's page: a parent | click (⌘: a new tab, ⌥: to the side) | that parent's diff |
@@ -261,9 +261,26 @@ its icon (`NSWorkspace`), then the other plugins that open the file. A pick
 of a plugin turns the card into that plugin's card. A file with no default
 app shows a plain "Open With" menu. The Mac's apps show on This Mac only: on
 a remote machine, Open With shows only when another plugin opens the file.
-Left of it, **Show in File Explorer** (`list.bullet.indent`) shows the tree
-with the file revealed: the tree the card came from, else the root of the
-file's repository, else its folder. Back returns to the file.
+Before it (and before Markdown's mode), **Show in File Explorer**
+(`list.bullet.indent`) shows the tree with the file's folder as its root, the
+file selected and scrolled into view.
+Back returns to the file.
+
+## A file's row 2
+
+File, Preview and Markdown share one row 2, with the same order, spacing and
+22 pt buttons:
+
+- **On the left:** Back and Forward, the outline toggle (Markdown only, and
+  only while the file has a heading), then the breadcrumbs.
+- **On the right:** Preview's page and zoom, Show in File Explorer, the mode
+  (Markdown only), then Open With.
+- **The breadcrumbs** are the file's path, its parts with `›` between them
+  and the first part in secondary text. Inside a Git repository the path
+  starts at the repository's root, with the root's name first
+  (`oriel › Oriel › App › OrielApp.swift`). Outside one, it starts at the home
+  folder (`~ › Downloads › photo.png`), else at `/`. The breadcrumbs are cut
+  in the middle when the row is narrow.
 
 ## File Explorer
 
@@ -326,10 +343,9 @@ selection in the accent at 24 %. A 6 pt gap sits under the header.
 ### File
 
 An editable text view (CodeMirror 6).
-- **Row 2:** Back and Forward, the jump bar `folder › file › {} symbol`: the
-  file's folder in secondary, the file name, and the scopes around the
-  caret, outermost first, after a `curlybraces` glyph. Then Show in File
-  Explorer and Open With.
+- **Row 2** ([A file's row 2](#a-files-row-2)): the breadcrumbs end with the
+  scopes around the caret, outermost first, after a `curlybraces` glyph
+  (`oriel › Oriel › App › OrielApp.swift › {} OrielApp`).
 - **Text:** line numbers, the current line lit, bracket matching, the other
   matches of the selection marked, undo and redo, and Tab to indent. Lines
   wrap, because cards are often narrow. A wrapped line goes on at its own
@@ -348,10 +364,9 @@ An editable text view (CodeMirror 6).
 
 ### Preview
 
-- **Row 2:** Back and Forward, the path in secondary text (cut in the
-  middle), the page as "3 of 12" for a PDF, then zoom for images and PDFs
-  (Zoom to Fit, Actual Size, Zoom Out, Zoom In), then Show in File Explorer
-  and Open With.
+- **Row 2** ([A file's row 2](#a-files-row-2)): before Show in File
+  Explorer, the page as "3 of 12" for a PDF, and zoom for images and PDFs
+  (Zoom to Fit, Actual Size, Zoom Out, Zoom In).
 - **Images** (PNG, JPEG, GIF, WebP, HEIC, TIFF, BMP and SVG), centered and
   scrollable. Fit shrinks a large image to the card and never enlarges a
   small one. Zoom In and Zoom Out step by a factor of 1.25, from 5 % to
@@ -364,9 +379,9 @@ An editable text view (CodeMirror 6).
 
 ### Markdown
 
-- **Row 2:** Back and Forward, `Read | Edit`, the outline toggle
-  (`sidebar.left`, in the accent while the outline shows), then Show in File
-  Explorer and Open With.
+- **Row 2** ([A file's row 2](#a-files-row-2)): the outline toggle
+  (`sidebar.left`, in the accent while the outline shows) after Back and
+  Forward, and `Read | Edit` before Open With.
 - **One view for both modes.** Read and Edit are the same editor (CodeMirror
   with Markdown, GitHub's flavor), drawn as rendered Markdown: a live
   preview. It is a 640 pt column, 28 pt under row 2, in the system font 1 pt
@@ -389,8 +404,8 @@ An editable text view (CodeMirror 6).
     1.5 em, and the bullet sits at the end of its indent. So the text, its
     wrapped lines and its later paragraphs start at one x.
   - **Task boxes** take the bullet's place: a top-level box starts at the
-    text's left edge. A box is drawn by the page: a thin rounded border,
-    centered on the line's lowercase letters. Ticked, it fills with the
+    text's left edge. A box is drawn by the page: 1.1 em square with a thin
+    rounded border, centered on the line's lowercase letters. Ticked, it fills with the
     accent and shows a white check.
   - **Links.** Inline links, reference links (`[text][ref]`, `[ref][]`,
     `[ref]`), autolinks and bare addresses are links in the accent. A
@@ -434,8 +449,8 @@ An editable text view (CodeMirror 6).
   Edit. ⌘F, ⌘G and ⇧⌘G in Read switch to Edit, where the search panel is.
   Read closes the search panel.
 - **The outline** is a 190 pt column at the left with the document's
-  headings, indented by level. A file with no heading has the toggle disabled
-  and the outline closed. The outline closes when the last heading goes. It slides in and out (0.25 s). A click
+  headings, indented by level. A file with no heading hides the toggle
+  and closes the outline. The outline closes when the last heading goes. It slides in and out (0.25 s). A click
   scrolls to the heading and in Edit puts the caret on it. `#section` links
   scroll to the heading with GitHub's id. A second heading of the same name is
   `#section-1`.

@@ -3,7 +3,7 @@ import XCTest
 /// File Explorer's File and Preview places: a pane labeled `oriel:explorer#<iid> <path>` (or an old `oriel:file#…`,
 /// `oriel:preview#…`) shows the explorer's page, which reads the file with the plugin API.
 extension OrielUITests {
-    /// The file in CodeMirror; the jump bar follows the caret; an edit shows the dirty dot and ⌘Z clears it; ⌘S
+    /// The file in CodeMirror; the breadcrumbs follow the caret; an edit shows the dirty dot and ⌘Z clears it; ⌘S
     /// saves; a change on disk reloads a clean file, and a dirty one gets the toast (Keep Mine, then Reload); ⌘F opens
     /// the editor's search, as do ⌘G and ⇧⌘G; the overview's tile shows it. ⇧⌘← selects in the editor, not Move Tab
     /// Left; ⌘[ reaches the app before CodeMirror. Closing it with edits asks, and Discard closes it.
@@ -11,9 +11,11 @@ extension OrielUITests {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, left) = try await newTab("file")
         try await waitForPrompt(left)
-        let folder = "/tmp/oriel-e2e-file", file = "\(folder)/main.swift"
-        try await send("rm -rf \(folder) && mkdir \(folder) && printf 'struct Box {\\n    func open() {\\n        "
-            + "let x = 1\\n    }\\n}\\n' >\(file) && clear\r", to: left)
+        let folder = "/tmp/oriel-e2e-file", file = "\(folder)/src/main.swift"
+        // A repository: the breadcrumbs start at its root, which git names `/private/tmp/…`.
+        try await send("rm -rf \(folder) && mkdir -p \(folder)/src && git -C \(folder) init -q "
+            + "&& printf 'struct Box {\\n    func open() {\\n        let x = 1\\n    }\\n}\\n' >\(file) && clear\r",
+            to: left)
         try await waitFor(left) { !$0.contains("printf") }
         addTeardownBlock { [one] in _ = try? await Self.call(
             one,
@@ -26,12 +28,13 @@ extension OrielUITests {
         let editor = element("file.\(card).page").textViews.firstMatch
         XCTAssertTrue(until(10) { editor.exists && editor.stringValue.contains("let x = 1") })
         let jump = element("pane.\(card).jump"), dirty = element("pane.\(card).dirty")
-        XCTAssertTrue(jump.stringValue.hasPrefix("oriel-e2e-file › main.swift"), jump.stringValue)
+        // The caret's scope may follow already (`Box` on line 1).
+        XCTAssertTrue(until(3) { jump.stringValue.hasPrefix("oriel-e2e-file › src › main.swift") }, jump.stringValue)
         editor.click()
         app.typeKey(.upArrow, modifierFlags: .command)
         app.typeKey(.downArrow, modifierFlags: [])
         app.typeKey(.downArrow, modifierFlags: [])
-        XCTAssertTrue(jump.has(\.stringValue, "oriel-e2e-file › main.swift › Box › open", within: 3))
+        XCTAssertTrue(jump.has(\.stringValue, "oriel-e2e-file › src › main.swift › Box › open", within: 3))
         keepScreenshot("file card")
 
         app.typeText("!")
@@ -79,6 +82,11 @@ extension OrielUITests {
             app.typeKey(.escape, modifierFlags: [])
             XCTAssertTrue(search.vanishes(within: 2))
         }
+    }
+
+    /// The card's breadcrumbs read `value` within 3 s.
+    private func crumbs(_ card: String, _ value: String) -> Bool {
+        element("pane.\(card).jump").has(\.stringValue, value, within: 3)
     }
 
     /// A new label, and the metadata report that makes the app read the snapshot (herdr sends no event for a rename),
@@ -197,7 +205,8 @@ extension OrielUITests {
         let label = "oriel:preview#e2eprv \(folder)/"
         try await relabel(card, label + "icon.png")
         let page = element("preview.\(card).page"), image = page.images["icon.png"]
-        XCTAssertTrue(image.exists(within: 10))
+        // Outside a repository and the home folder: the breadcrumbs start at `/`.
+        XCTAssertTrue(image.exists(within: 10) && crumbs(card, "/ › tmp › oriel-e2e-preview › icon.png"))
         // Fit: as wide as the card at most.
         XCTAssertTrue(until(3) { image.frame.width > 100 && image.frame.width <= page.frame.width + 1 })
         element("pane.\(card).zoom.actual").click()

@@ -1,6 +1,6 @@
 {
   "name": "@oriel/explorer",
-  "version": "1.6.1",
+  "version": "1.7.0",
   "private": true,
   "description": "Files and folders",
   "keywords": ["files", "tree", "folder", "finder"],
@@ -61,12 +61,9 @@
         "hidden": true },
       { "type": "toggle", "id": "hidden-files", "symbol": "eye", "title": "Show Hidden Files", "value": false,
         "hidden": true },
-      { "type": "text", "id": "jump", "style": "path", "hidden": true },
-      { "type": "text", "id": "path", "style": "dim", "hidden": true },
-      { "type": "segmented", "id": "mode", "value": "read", "hidden": true,
-        "options": [{ "value": "read", "title": "Read" }, { "value": "edit", "title": "Edit" }] },
       { "type": "toggle", "id": "outline", "symbol": "sidebar.left", "title": "Outline", "value": false,
         "hidden": true },
+      { "type": "text", "id": "jump", "style": "path", "hidden": true },
       { "type": "spacer", "id": "spacer", "hidden": true },
       { "type": "text", "id": "page", "style": "dim", "digits": "mono", "hidden": true },
       { "type": "button", "id": "zoom.fit", "symbol": "arrow.down.right.and.arrow.up.left", "title": "Zoom to Fit",
@@ -79,6 +76,8 @@
         "hidden": true },
       { "type": "button", "id": "reveal", "symbol": "list.bullet.indent", "title": "Show in File Explorer",
         "hidden": true },
+      { "type": "segmented", "id": "mode", "value": "read", "hidden": true,
+        "options": [{ "value": "read", "title": "Read" }, { "value": "edit", "title": "Edit" }] },
       { "type": "openWith", "id": "open-with", "hidden": true }
     ],
     "commands": [

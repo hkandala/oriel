@@ -7,18 +7,22 @@ import "./explorer.css"
 import "./files.css"
 import "./markdown.css"
 import "./preview.css"
-import { kind, type Place, type Reveal } from "./place"
+import { kind, type Place, type Reveal, trail } from "./place"
 
 type Kind = ReturnType<typeof kind>
 
-/** Each place's controls in row 2; the rest hide. Preview shows its page and zoom itself. */
+/** Each place's controls in row 2; the rest hide. A file's row is one row for every kind: its breadcrumbs at the
+ *  left, Show in File Explorer and Open With at the right. Preview shows its page and zoom itself, Markdown its
+ *  outline's toggle. */
 const CONTROLS: Record<Kind, string[]> = {
   files: ["root", "filter", "collapse", "hidden-files"],
   file: ["jump", "spacer", "reveal", "open-with"],
-  preview: ["path", "spacer", "reveal", "open-with"],
-  markdown: ["mode", "outline", "spacer", "reveal", "open-with"],
+  preview: ["jump", "spacer", "reveal", "open-with"],
+  markdown: ["jump", "spacer", "reveal", "mode", "open-with"],
 }
-const ALL = [...new Set([...Object.values(CONTROLS).flat(), "page", "zoom.fit", "zoom.actual", "zoom.out", "zoom.in"])]
+const ALL = [
+  ...new Set([...Object.values(CONTROLS).flat(), "outline", "page", "zoom.fit", "zoom.actual", "zoom.out", "zoom.in"]),
+]
 
 const load = (kind: Kind): Promise<{ show(place: Place): Promise<Reveal> }> =>
   kind === "files" ? import("./files")
@@ -27,22 +31,15 @@ const load = (kind: Kind): Promise<{ show(place: Place): Promise<Reveal> }> =>
     : import("./preview")
 
 export default async function main(oriel: Oriel) {
-  /** The trees the card showed, last last: Show in File Explorer goes back to the one a file came from. */
-  const trees: string[] = []
-
-  // Show in File Explorer: the tree the file came from, else its repository's root, else its folder.
-  oriel.on("control", async ({ id }) => {
+  // Show in File Explorer: the tree of the file's folder, the file selected.
+  oriel.on("control", ({ id }) => {
     if (id !== "reveal") return
-    const file = oriel.card.arg, folder = file.slice(0, file.lastIndexOf("/")) || "/"
-    let root = trees.findLast((tree) => file.startsWith(tree))
-    root ??= (await oriel.git.root(folder).catch(() => null)) ?? folder
-    if (oriel.card.arg === file) oriel.card.go(root.endsWith("/") ? root : `${root}/`, { at: file })
+    const file = oriel.card.arg
+    oriel.card.go(file.slice(0, file.lastIndexOf("/") + 1), { at: file })
   })
   // Each place in a page of its own, which the card keeps: Back and Forward show it as it was.
   await oriel.pages.route(async (page) => {
     const { arg, element: root } = page, place = kind(arg), scoped = page.oriel
-    // Once each, last last.
-    if (place === "files") trees.splice(0, trees.length, ...trees.filter((tree) => tree !== arg), arg)
     // A new tree starts with no filter; a kept one keeps its own.
     for (const id of ALL) {
       const hidden = !CONTROLS[place].includes(id)
@@ -54,8 +51,10 @@ export default async function main(oriel: Oriel) {
     // A text file's read starts while its place's code loads.
     const read = place === "file" || place === "markdown" ? oriel.files.read(arg) : undefined
     read?.catch(() => undefined)
-    const reveal = await (await load(place)).show({
-      oriel: scoped, arg, at: page.at, root, read,
+    const [code, crumbs] = await Promise.all([load(place), place === "files" ? [] : trail(scoped, arg)])
+    if (place !== "files") scoped.controls.set("jump", { value: crumbs, symbol: "" })
+    const reveal = await code.show({
+      oriel: scoped, arg, at: page.at, root, read, trail: crumbs,
       keep: page.keep,
       again: page.redraw,
       live: () => !page.dropped,

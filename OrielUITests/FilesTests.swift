@@ -6,8 +6,8 @@ extension OrielUITests {
     /// The tree lists the root and a folder as it opens (a click on its name only selects it; → opens it); a new file
     /// shows by itself; the filter finds a file in a folder never opened; a double-click shows it in the card, whose
     /// label follows; Back comes back to the kept tree as it was (the filter's text and matches, build still open
-    /// under them), Forward to the file; Show in File Explorer reveals it; Open as Root and the root's menu move the
-    /// root.
+    /// under them), Forward to the file; Show in File Explorer roots the tree at its folder and reveals it; Open as
+    /// Root and the root's menu move the root.
     func testFileExplorerBrowsesOpensAndGoesBack() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (_, shell) = try await newTab("files")
@@ -26,7 +26,8 @@ extension OrielUITests {
         app.typeKey(.downArrow, modifierFlags: [])
         XCTAssertTrue(hasKeyboard(row("Parent Folder", in: tree)))
         openAndCollapse(card, tree)
-        try await send("touch new.md\r", to: shell)
+        // a.swift sorts before main.swift: the reveal below must select main.swift, not the first row.
+        try await send("touch new.md src/deep/a.swift\r", to: shell)
         XCTAssertTrue(row("new.md", in: tree).exists(within: 5))
         keepScreenshot("file explorer home")
         // The overview draws the card live in its tile.
@@ -49,13 +50,16 @@ extension OrielUITests {
         keepScreenshot("file explorer file")
 
         try await backAndForward(card, tree, file, root)
+        // Show in File Explorer: the file's own folder as the root.
         element("pane.\(card).reveal").click()
+        try await labelEnds(card, " \(root)/src/deep/")
         XCTAssertTrue(row("main.swift", in: tree).exists(within: 10))
+        XCTAssertTrue(until(3) { hasKeyboard(row("main.swift", in: tree)) })
         XCTAssertTrue(element("pane.\(card).go-forward").has(\.isEnabled, false, within: 3))
         element("pane.\(card).go-back").click()
         XCTAssertTrue(file.textViews.firstMatch.exists(within: 10))
         element("pane.\(card).go-back").click()
-        XCTAssertTrue(row("main.swift", in: tree).exists(within: 10))
+        try await labelEnds(card, " \(root)/")
 
         try await moveRoot(card, tree, root)
         try await send("rm -rf \(repo)\r", to: shell)
