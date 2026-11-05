@@ -150,10 +150,11 @@ and no backslash.
     every entry), with no awk: macOS's awk passes about 30 MB a second. A
     796 KB Claude Code session sends 208 KB.
   - awk reads a FIFO that only `head`, then `tail` write to. The wrapper's
-    kill (sent again until it lands) ends `tail`, or ends `head` through a
-    trap, so a dropped follow sends no more of its backlog, and awk ends
-    too. mawk (Debian's and Ubuntu's awk) runs with `-W interactive`, or it holds lines until 8 KiB
-    come. The filter runs on This Mac too.
+    kill, sent again each second until it lands, ends `tail`, or ends
+    `head` through a trap, so a dropped follow sends no more of its backlog,
+    and awk ends too. mawk (Debian's and Ubuntu's awk) runs with
+    `-W interactive`, or it holds lines until 8 KiB come. The filter runs on
+    This Mac too.
   - **Shown once loaded.** The chat reads the file up to the end of its
     whole lines at the open into a backlog, off screen, then shows it at
     once. Lines after that show as they come. A read that is cut short keeps

@@ -143,3 +143,19 @@ everything end to end, and test and review everything".
   2-run cap; the spike shows the old line failing in zsh and bash 5.3.
 - **For the user.** In pane `w4:pHQ` (File Explorer, `mira-features-since-oct-9.md`), close the card and open the file
   again, or, once this build is installed, relaunch Ovvi: it sends ⌃U and the line again into that pane's zsh.
+- **Cause, leaked chat followers** (808 `tail -F` under launchd on this Mac, most following HerdrKit's test files). A
+  follower runs in a wrapper that ends it on stdin's close with one SIGTERM to the follow script's shell. macOS's `sh`
+  (bash 3.2) loses that one TERM: one that came while its trap was pending was dropped by the `exec tail` that
+  followed (10 of 10 drops just after the backlog, on dash too), and on a loaded Mac one also went missing in `wait`.
+  `tail -F` never reads stdin and never writes once its file stops growing, so it never learned its reader was gone.
+  A hard kill of the app took the same path: the kernel closes stdin, the one TERM is lost.
+- **Fix:** the wrapper's watcher sends its kill each second until the run is gone, for every shell and window. A
+  dropped follower only closes its stdin: the old SIGKILL of the wrapper, landing before it forked its watcher, would
+  leave the script running. Shell harness at load 110–290: 0 of 600 drops left a process (close, SIGKILL then close,
+  and a killed parent; bash and dash), against 9 of 10 before.
+- **Other helpers the app starts, all bounded:** placeholders live in their herdr pane and end with its terminal;
+  the SOCKS front runs inside the app; an ssh master (`ControlPersist=10m`, keepalive 15 s) ends 10 minutes after its
+  last client, and the relay's client ends with the app's pipe; the remote relay exits when its stdin ends and closes
+  every run's stdin; the `watch` script has no trap, so the first TERM ends it; plugin builds and calls run with
+  stdin closed and a timeout, so after a hard kill they run to their own end; herdr's server outlives the app by
+  design (D47).

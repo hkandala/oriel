@@ -148,8 +148,8 @@ extension TerminalStream {
     /// reason; fd 3 because a background job's stdin is /dev/null. The watcher kills until the run is gone: macOS's sh
     /// (bash 3.2) can lose one TERM, in `wait` or in an `exec` while a trap is pending, and the chat's `tail -F` then
     /// ran forever. Once the run ends the watcher goes too, so it never kills a reused pid.
-    /// ponytail: a wrapper killed by SIGKILL (the relay's `k`) leaves its watcher, which may signal a pid reused within
-    /// the second after the run ended; a pidfd where the shell has one.
+    /// ponytail: an observe wrapper killed by SIGKILL (the relay's `k`, the 1 s fallback) leaves its watcher, which may
+    /// signal a pid reused within the second after the run ended; a pidfd where the shell has one.
     static let observeWrapper = #"exec 3<&0; "$@" & c=$!; { cat <&3 >/dev/null; while kill $c; do sleep 1; done; }"#
         + #" >/dev/null 2>&1 & w=$!; "#
         + "wait $c 2>/dev/null; s=$?; kill $w 2>/dev/null; exit $s"
