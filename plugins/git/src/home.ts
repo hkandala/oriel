@@ -1,8 +1,8 @@
-// The Git card's home, a page of its own (`oriel.pages`): the commit message and Commit, the staged and the unstaged
+// The Git card's home, a page of its own (`ovvi.pages`): the commit message and Commit, the staged and the unstaged
 // changes with Revert, Stage and Unstage (or "No changes"), then the history of every branch as a graph. Row 2 has the
 // branch, Working Tree, Fetch, Pull and Push. A folder that is no repository shows Initialize Repository instead.
-import type { Change, Commit, Page } from "@oriel/plugin-api"
-import { element, failed, fileIcon, home, how, keep, menu, nameAndFolder, open, oriel, symbol } from "./lib"
+import type { Change, Commit, Page } from "@ovvi/plugin-api"
+import { element, failed, fileIcon, home, how, keep, menu, nameAndFolder, open, ovvi, symbol } from "./lib"
 
 const WORDS: Record<string, string> = {
   M: "Modified", T: "Type changed", A: "Added", D: "Deleted", R: "Renamed", U: "Untracked", C: "Conflict",
@@ -22,9 +22,9 @@ function when(ms: number) {
 }
 
 /** The home of a root in its page, drawn once read, at a change or a commit (`at`) when it lands on one. Its header
- *  controls, handlers and watch are the page's own (`place.oriel`). */
+ *  controls, handlers and watch are the page's own (`place.ovvi`). */
 export async function make(place: Page, root: string) {
-  const api = place.oriel
+  const api = place.ovvi
   const page = element("div")
   page.id = "home"
   page.innerHTML = `
@@ -99,12 +99,12 @@ export async function make(place: Page, root: string) {
   async function read() {
     const asked = limit
     const [changes, head, list, commits] = await Promise.allSettled([
-      oriel.git.changes(root), oriel.git.head(root), oriel.git.branches(root), oriel.git.log(root, { limit: asked }),
+      ovvi.git.changes(root), ovvi.git.head(root), ovvi.git.branches(root), ovvi.git.log(root, { limit: asked }),
     ])
     // git's message when git cannot read a repository; none when the folder is no repository: it can become one.
     // ponytail: any failure of `git.root` (a folder gone, a repository git refuses) reads as none; match git's message
     // if those must show it.
-    const bare = changes.status === "rejected" && (await oriel.git.root(root).catch(() => "")) === null
+    const bare = changes.status === "rejected" && (await ovvi.git.root(root).catch(() => "")) === null
     failure = changes.status === "rejected" ? (changes.reason as Error).message : undefined
     branches = list.status === "fulfilled" ? list.value : []
     const branch = head.status === "fulfilled" ? head.value : null
@@ -196,7 +196,7 @@ export async function make(place: Page, root: string) {
     revertAll.ariaLabel = `Revert All ${title}`
     const all = element("button", "all", staged ? "Unstage All" : "Stage All")
     revertAll.onclick = () => void revert(changes)
-    all.onclick = () => void write(staged ? oriel.git.unstage(root) : oriel.git.stage(root))
+    all.onclick = () => void write(staged ? ovvi.git.unstage(root) : ovvi.git.stage(root))
     header.append(revertAll, all)
     const rows = element("div", "rows")
     rows.append(...changes.map((change) => changeRow(change, staged)))
@@ -257,7 +257,7 @@ export async function make(place: Page, root: string) {
     node.append(
       button("arrow.uturn.backward", `Revert ${name}`, () => void revert([change])),
       button(staged ? "minus" : "plus", `${toggle} ${name}`, () =>
-        write(staged ? oriel.git.unstage(root, paths(change)) : oriel.git.stage(root, paths(change)))),
+        write(staged ? ovvi.git.unstage(root, paths(change)) : ovvi.git.stage(root, paths(change)))),
       letter,
     )
     return node
@@ -277,9 +277,9 @@ export async function make(place: Page, root: string) {
     const deletes = fresh.length ? ` This deletes the new ${fresh.length > 1 ? "files" : "file"} ${named}.` : ""
     const question = changes.length > 1 ? `Revert all ${changes.length} files?${deletes}`
       : fresh.length ? `Delete the new file ${base}?` : `Revert changes to ${base}?`
-    const picked = await oriel.toast(`${question} This cannot be undone.`, ["Cancel", "Revert"], { destructive: true })
+    const picked = await ovvi.toast(`${question} This cannot be undone.`, ["Cancel", "Revert"], { destructive: true })
     if (picked !== "Revert") return
-    await write(oriel.git.revert(root, changes.flatMap(paths)))
+    await write(ovvi.git.revert(root, changes.flatMap(paths)))
   }
 
   /** The history: one graph width for every row, so the subjects line up. */
@@ -377,19 +377,19 @@ export async function make(place: Page, root: string) {
 
   // The header's picks on the home: a branch, Working Tree, Fetch, Pull, Push.
   api.on("control", ({ id, value }) => {
-    if (id === "git.working") oriel.card.go(`${home(root)} uncommitted`)
+    if (id === "git.working") ovvi.card.go(`${home(root)} uncommitted`)
     else if (id === "git.branch") {
       const branch = branches.find((branch) => branch.name === value)
-      if (branch && !branch.current) void write(oriel.git.switch(root, branch.name), "switch")
-    } else if (id === "git.fetch") void write(oriel.git.fetch(root), "fetch")
-    else if (id === "git.pull") void write(oriel.git.pull(root), "pull")
-    else if (id === "git.push") void write(oriel.git.push(root), "push")
+      if (branch && !branch.current) void write(ovvi.git.switch(root, branch.name), "switch")
+    } else if (id === "git.fetch") void write(ovvi.git.fetch(root), "fetch")
+    else if (id === "git.pull") void write(ovvi.git.pull(root), "pull")
+    else if (id === "git.push") void write(ovvi.git.push(root), "push")
   })
 
   initialize.onclick = () => {
     // Once at a time.
     initialize.disabled = true
-    void write(oriel.git.init(root)).then(() => (initialize.disabled = false))
+    void write(ovvi.git.init(root)).then(() => (initialize.disabled = false))
   }
 
   // The message grows to five lines, then scrolls; the card keeps it (`state`). Commit is on the accent when it can
@@ -420,7 +420,7 @@ export async function make(place: Page, root: string) {
     const text = message.value
     committing = true
     enable()
-    const done = await write((staged.length ? Promise.resolve() : oriel.git.stage(root)).then(() => oriel.git.commit(root, text)),
+    const done = await write((staged.length ? Promise.resolve() : ovvi.git.stage(root)).then(() => ovvi.git.commit(root, text)),
       "commit")
     committing = false
     // Not a message typed meanwhile.
@@ -434,7 +434,7 @@ export async function make(place: Page, root: string) {
 
   // While the page shows, a read after each change under the root; when it shows again, one for the changes meanwhile.
   api.files.watch(root, () => void load())
-  message.value = oriel.state.get<{ draft?: string }>()?.draft ?? ""
+  message.value = ovvi.state.get<{ draft?: string }>()?.draft ?? ""
   await load()
   document.title = ""
   // Once its form shows: hidden, it has no height.

@@ -68,7 +68,7 @@ struct RelayExec: Exec {
 /// A dropped file's copy over the relay (here without ssh): the same bytes under the same name, in a folder of its own.
 @Test func `upload copies a file whole`() async throws {
     let exec = try await RelayExec.start()
-    let folder = URL.temporaryDirectory.appending(path: "oriel-upload-\(UUID().uuidString)")
+    let folder = URL.temporaryDirectory.appending(path: "ovvi-upload-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: folder) }
     let file = folder.appending(path: "it's a\nfile.bin")
@@ -76,7 +76,7 @@ struct RelayExec: Exec {
     try bytes.write(to: file)
     let copy = try await URL(filePath: exec.upload(file))
     #expect(copy.lastPathComponent == file.lastPathComponent)
-    #expect(copy.deletingLastPathComponent().deletingLastPathComponent().lastPathComponent == "oriel-drops-\(getuid())")
+    #expect(copy.deletingLastPathComponent().deletingLastPathComponent().lastPathComponent == "ovvi-drops-\(getuid())")
     #expect(try Data(contentsOf: copy) == bytes)
     try FileManager.default.removeItem(at: copy.deletingLastPathComponent())
     await #expect(throws: HerdrError.failed("\(folder.lastPathComponent) is not a file")) {

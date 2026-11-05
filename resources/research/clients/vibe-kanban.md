@@ -71,12 +71,12 @@ One executor per agent in `crates/executors/src/executors/`, each with its own p
 Executors (spawn, protocols, normalizers) 26k lines of Rust; `claude.rs` alone 3.3k, Codex normalizer 2.9k. The
 chat UI (`packages/web-core/src/features/workspace-chat/` plus `packages/ui/src/components/Chat*.tsx`) 9.5k lines.
 
-## For Oriel
+## For Ovvi
 
 - Copy: the `NormalizedEntry` shape (user, assistant, thinking, tool with `ActionType` and status, error) as a
-  model for Oriel's chat items. It covers ten agents with one renderer.
+  model for Ovvi's chat items. It covers ten agents with one renderer.
 - Copy: a deny message in the agent's own words, and "pending approval" as an explicit item state, not a guess.
 - Avoid: one headless process per turn. It drops the TUI, and `initialize` hooks override the user's hooks
-  (#3327). Oriel's TUI-first frame is the opposite design.
+  (#3327). Ovvi's TUI-first frame is the opposite design.
 - Avoid: replaying a whole raw log through the normalizer on open (#3218). Page or cap history.
 - Note: Codex follow-ups fork, so the thread id (and file) changes every turn.

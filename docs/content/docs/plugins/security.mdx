@@ -3,7 +3,7 @@ title: "Security and trust"
 description: "Permissions in the manifest, one trust prompt, a locked page and a bridge bound to its card"
 ---
 
-Oriel is a single-user app on one Mac. A plugin is code that you or an agent
+Ovvi is a single-user app on one Mac. A plugin is code that you or an agent
 of yours installed or put in the plugins folder. Anything that can write that
 folder can already run code as you. So the rules below do not sandbox a
 plugin from you. They keep a page from doing more than its manifest says,
@@ -22,17 +22,17 @@ text from files and machines from taking over a page.
   permissions when the card is made. No message names a machine, a pane or
   another card, so a page reaches only its own card's machine. Cards share
   no memory: WebKit gives each one its own process. Web storage is per
-  plugin (`oriel-plugin://<id>`), so one plugin never reads another's.
+  plugin (`ovvi-plugin://<id>`), so one plugin never reads another's.
 - **The page loads only its own files.** The scheme handler serves
-  `oriel-plugin://<id>/` from the folder of that plugin's entry alone, plus
-  the app's `oriel.js` and `card.css`: one folder, no subfolders, no hidden
+  `ovvi-plugin://<id>/` from the folder of that plugin's entry alone, plus
+  the app's `ovvi.js` and `card.css`: one folder, no subfolders, no hidden
   files, and `Cache-Control: no-store`, so a rebuild is never served from a
   cache. It sends this Content Security Policy with every answer:
 
   ```text
-  default-src 'none'; script-src oriel-plugin://<id> 'wasm-unsafe-eval';
-  style-src oriel-plugin://<id> 'unsafe-inline'; img-src oriel-plugin://<id> data: blob:;
-  media-src blob:; font-src oriel-plugin://<id> data:; connect-src oriel-plugin://<id>;
+  default-src 'none'; script-src ovvi-plugin://<id> 'wasm-unsafe-eval';
+  style-src ovvi-plugin://<id> 'unsafe-inline'; img-src ovvi-plugin://<id> data: blob:;
+  media-src blob:; font-src ovvi-plugin://<id> data:; connect-src ovvi-plugin://<id>;
   frame-src 'none'; form-action 'none'; base-uri 'none'
   ```
 
@@ -41,9 +41,9 @@ text from files and machines from taking over a page.
   decoder (pdf.js's). `fetch` reaches only the plugin's own files: no
   network.
 - **The navigation lock.** The card allows only its own page,
-  `oriel-plugin://<id>/main`. A link, a `<meta>` refresh or a form in shown
+  `ovvi-plugin://<id>/main`. A link, a `<meta>` refresh or a form in shown
   content cannot take the page, and the bridge with it, to another site or
-  another page. A plugin opens links with `oriel.open`, which makes a browser
+  another page. A plugin opens links with `ovvi.open`, which makes a browser
   card under the browser's load rule
   ([When a page loads by itself](/docs/ui/browser#when-a-page-loads-by-itself)).
 - **Text is text.** A plugin must insert file and command text with
@@ -70,8 +70,8 @@ grow.
 |---|---|---|
 | An install from npm or git | always, for a new source, before its dependencies install. An update asks only when the permissions grew | a dialog over the window, with **Install** and **Cancel** |
 | A local path from the Plugins panel | when it is added | the same dialog |
-| An agent's `oriel plugins install` | as for the panel's install | the same dialog, on the window of the agent's session ([An agent's install](#an-agents-install)) |
-| New Plugin…, or an agent's `oriel plugins new` on This Mac | never: you or your agent made it | |
+| An agent's `ovvi plugins install` | as for the panel's install | the same dialog, on the window of the agent's session ([An agent's install](#an-agents-install)) |
+| New Plugin…, or an agent's `ovvi plugins new` on This Mac | never: you or your agent made it | |
 | A folder put in the plugins folder by hand, or a path written in `settings.json` | in its first card | the card's middle |
 | Any plugin whose manifest gained a permission | in its next card, and on Reload Plugin | the card's middle |
 
@@ -81,10 +81,10 @@ program that can edit the code can already run as you.
 The prompt in the card sits under the plugin's icon:
 
 > Trust “CSV Table”?
-> `csv-table 0.1.0 in ~/.config/oriel/plugins/csv-table`
+> `csv-table 0.1.0 in ~/.config/ovvi/plugins/csv-table`
 > A CSV or TSV file as a table you can sort.
 > It can read files and folders on the machine of each card you open. Its
-> build script runs as you on this Mac when Oriel builds it.
+> build script runs as you on this Mac when Ovvi builds it.
 >
 > Don't Allow · **Allow**
 
@@ -108,11 +108,11 @@ The prompt in the card sits under the plugin's icon:
 
 ### An agent's install
 
-`oriel plugins install` ([CLI](/docs/agent-control/cli#plugins-install))
+`ovvi plugins install` ([CLI](/docs/agent-control/cli#plugins-install))
 shows the same dialog, with one more line first: "‹agent› in pane ‹pane›
 asks to install it." ‹agent› is the asking pane's agent name, else its
 program, else its card's title.
-- The dialog goes on the window that shows the agent's session. Oriel does
+- The dialog goes on the window that shows the agent's session. Ovvi does
   not come to the front: it asks for attention in the Dock.
 - Return does not press **Install**, so keys typed for another window cannot
   consent. The user clicks it.
@@ -125,7 +125,7 @@ program, else its card's title.
 A machine writes labels. So any process on a machine (a script, an agent)
 can open a card of any trusted plugin on that machine. That gives it only
 what the plugin does there, on its own files. It cannot open a card on
-another machine. `oriel open` writes the same label, so it gives nothing more
+another machine. `ovvi open` writes the same label, so it gives nothing more
 ([Agent control](/docs/agent-control#security)).
 
 ## Not built

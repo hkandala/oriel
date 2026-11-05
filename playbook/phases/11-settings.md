@@ -41,7 +41,7 @@ mock-ups, once phases 10–21 are done (D62, future work).
   (`.AppleSystemUIFontMonospaced`), which CoreText (and so libghostty) resolves to SF Mono. Every grid got
   a little narrower than before phase 11.
 - **⌘= is an `NSEvent` local key monitor, not the phase's invisible button.** The button's shortcut kept its
-  first action ([lessons.md](../lessons.md), SwiftUI lifecycle traps); the monitor (in `OrielApp.init`) takes
+  first action ([lessons.md](../lessons.md), SwiftUI lifecycle traps); the monitor (in `OvviApp.init`) takes
   ⌘ (Shift allowed) plus "=" below 32 and calls `stepFontSize(1)` before any view sees the key; at 32 the key
   goes on and beeps like the disabled Bigger. **⌘= is not tested on CI; checked by hand** (this Mac, and the round 3 E2E reviewer: key 24 steps,
   Caps Lock and keypad too). On CI, `testFontSizeKeys` failed at the ⌘= step in every run: CI's display is 1x,
@@ -64,7 +64,7 @@ mock-ups, once phases 10–21 are done (D62, future work).
 - **Menu: View ▸ Bigger (⌘+), Smaller (⌘-), Actual Size (⌘0)** after the appearance pickers, each disabled
   at its end of 8–32 (Actual Size at 13). Bigger and Smaller go through `PaneTerminal.stepFontSize`, which
   reads the stored value and clamps (SwiftUI keeps a shortcut's first action).
-- **`Commands.swift`.** `OrielApp.swift` passed SwiftLint's 400-line limit during the phase, so the menu
+- **`Commands.swift`.** `OvviApp.swift` passed SwiftLint's 400-line limit during the phase, so the menu
   commands and their focused values moved to their own file (a pure move, its own commit).
 - **The test writes the user's defaults and puts them back.** The UI tests share the app's defaults (same
   bundle id; the sandboxed runner cannot delete keys). A teardown block puts the size back with ⌘0; only a

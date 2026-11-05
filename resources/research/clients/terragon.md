@@ -67,9 +67,9 @@ So there is no chat|term switch over one agent process.
 - All remote by design: the web UI never talks to a sandbox; the server and the broadcast service do.
 - Daemon and parsers 5.4k lines; web chat components 8.2k (`apps/www/src/components/chat`); sandbox terminal 1k.
 
-## For Oriel
+## For Ovvi
 
-- Copy: before resuming Claude, check the JSONL exists and patch dangling `tool_use` entries. Oriel never resumes,
+- Copy: before resuming Claude, check the JSONL exists and patch dangling `tool_use` entries. Ovvi never resumes,
   but the same dangling state shows up when a turn is interrupted. The chat parser must accept a `tool_use` with no
   result as "interrupted", not "running forever".
 - Copy: one normalized message shape for all agents, decoded per agent at the edge.

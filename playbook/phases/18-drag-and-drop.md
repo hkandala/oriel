@@ -105,7 +105,7 @@ phase builds exactly those, with Rex's look and timings.
   drop, tab reorder) and `RowsDrop` (rows: pane spring-load and drop, the ghost row, workspace reorder) as
   `DropDelegate`s, in `Drag.swift` and `ListDrops.swift`. `Page.drop` runs the writes; `HostStore.place` is the
   re-place and the move into a tab.
-- **The pasteboard type `dev.hkandala.oriel.drag`** is declared in `Oriel/Info.plist` (merged into the generated
+- **The pasteboard type `dev.ovvi.app.drag`** is declared in `Ovvi/Info.plist` (merged into the generated
   one, excluded from the synchronized group's resources): undeclared, XCTest reported a runtime issue. The page,
   not the pasteboard, says what is dragged.
 - **Zones:** the nearest edge within the outer quarter wins (corners go to the nearer side). A target's

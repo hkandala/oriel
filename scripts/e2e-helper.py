@@ -13,12 +13,12 @@ terminal.
 POST /<session>/open-folder with the built app's path as the body makes a folder in /tmp and opens it with the
 app (`open -a`), as a drop on the Dock icon does; a launch gets `-session <session>` and the tests' config folder
 (a running app ignores `--args`). The folder's path comes back.
-POST /<session>/open-url with the built app's path, a newline and an oriel:// URL opens the URL with that app (`open -g -a`;
+POST /<session>/open-url with the built app's path, a newline and an ovvi:// URL opens the URL with that app (`open -g -a`;
 a launch gets the tests' config folder).
 POST /<session>/file-drag with "x y tx ty" (screen points) as the body makes a file whose name needs shell escaping in
-a new folder in /tmp (its one line: oriel-e2e-dropped), shows its icon at x y in a window of scripts/file-drag.swift
-and drags it to tx ty (scripts/drag.swift: both points in an Oriel window). The file's path comes back once a drop took it.
-POST /<session>/usage with a number of seconds as the body measures the app (the one process named Oriel, on CI) over
+a new folder in /tmp (its one line: ovvi-e2e-dropped), shows its icon at x y in a window of scripts/file-drag.swift
+and drags it to tx ty (scripts/drag.swift: both points in an Ovvi window). The file's path comes back once a drop took it.
+POST /<session>/usage with a number of seconds as the body measures the app (the one process named Ovvi, on CI) over
 that time: its footprint (`footprint`'s summary), its CPU and the session's `terminal session` runs, count and memory;
 and the app's, WebKit's and all its processes' count, footprint, CPU, threads and interrupt wake-ups (scripts/usage.swift).
 POST /<session>/ssh-drop with an SSH target as the body kills the app's ControlMaster to it (SIGKILL, as a crash
@@ -51,9 +51,9 @@ import time
 split = sys.argv.index("--")
 sessions, command = sys.argv[1:split], sys.argv[split + 1:]
 folders = []
-# The tests' config folder (OrielUITests.noConfig): a launch from here installs the default plugins there, never in the
-# user's ~/.config/oriel.
-NO_CONFIG = "/tmp/oriel-e2e-no-config"
+# The tests' config folder (OvviUITests.noConfig): a launch from here installs the default plugins there, never in the
+# user's ~/.config/ovvi.
+NO_CONFIG = "/tmp/ovvi-e2e-no-config"
 # Compiled once, beside the app's build: `swift` interpreting the script again took up to 10 s a swipe on CI.
 tools = tempfile.mkdtemp()
 folders.append(tools)
@@ -72,7 +72,7 @@ def cpu_seconds(pids):
 
 def usage(session, seconds):
     builds["usage"].wait()
-    pid = subprocess.run(["pgrep", "-nx", "Oriel"], capture_output=True, text=True).stdout.strip()
+    pid = subprocess.run(["pgrep", "-nx", "Ovvi"], capture_output=True, text=True).stdout.strip()
     pattern = f"^[^ ]*herdr --session {session} terminal session"
     helpers = subprocess.run(["pgrep", "-f", pattern], capture_output=True, text=True).stdout.split()
     start, app_start, helpers_start = time.time(), cpu_seconds([pid]), cpu_seconds(helpers)
@@ -124,7 +124,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         elif action == "sample" and not re.fullmatch(rb"\d+", body):
             status, reply = 400, b"the body must be seconds"
         elif action in ("sample", "heap"):
-            pid = subprocess.run(["pgrep", "-nx", "Oriel"], capture_output=True, text=True).stdout.strip()
+            pid = subprocess.run(["pgrep", "-nx", "Ovvi"], capture_output=True, text=True).stdout.strip()
             argv = ["sample", pid, body.decode()] if action == "sample" else ["heap", "-s", "-H", "-q", pid]
             # A bound for a hung tool, not a measure: `heap` walks every malloc node, 37 s at the stress test's 400
             # panes on CI, and over 60 s on a runner half as fast.
@@ -155,22 +155,22 @@ class Handler(http.server.BaseHTTPRequestHandler):
             status, reply = (200, b"") if run.returncode == 0 else (500, run.stderr)
         elif action == "ssh-connections":
             try:
-                with open("/tmp/oriel-sshd/sshd.log") as log:
+                with open("/tmp/ovvi-sshd/sshd.log") as log:
                     status, reply = 200, str(log.read().count("Connection from")).encode()
             except OSError as error:
                 status, reply = 500, str(error).encode()
         elif action == "open-folder" and not body.endswith(b".app"):
             status, reply = 400, b"the body must be an app's path"
         elif action == "open-folder":
-            folder = tempfile.mkdtemp(prefix="oriel-e2e-drop-", dir="/tmp")
+            folder = tempfile.mkdtemp(prefix="ovvi-e2e-drop-", dir="/tmp")
             folders.append(folder)
             run = subprocess.run(["open", "--env", "npm_config_offline=true", "-a", body.decode(), folder, "--args",
                                   "-session", session,
                                   "-ApplePersistenceIgnoreState", "YES", "-configFolder", NO_CONFIG],
                                  capture_output=True, timeout=10)
             status, reply = (200, folder.encode()) if run.returncode == 0 else (500, run.stderr)
-        elif action == "open-url" and not re.fullmatch(rb"[^\n]+\.app\noriel://\S+", body):
-            status, reply = 400, b"the body must be an app's path, a newline and an oriel:// URL"
+        elif action == "open-url" and not re.fullmatch(rb"[^\n]+\.app\novvi://\S+", body):
+            status, reply = 400, b"the body must be an app's path, a newline and an ovvi:// URL"
         elif action == "open-url":
             # As pi-herd opens it, to that app: LaunchServices may know other builds of the app.
             app, url = body.decode().split("\n")
@@ -179,11 +179,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
                                  capture_output=True, timeout=10)
             status, reply = (200, b"") if run.returncode == 0 else (500, run.stderr)
         elif action == "file-drag":
-            folder = tempfile.mkdtemp(prefix="oriel-e2e-file-", dir="/tmp")
+            folder = tempfile.mkdtemp(prefix="ovvi-e2e-file-", dir="/tmp")
             folders.append(folder)
             path = os.path.join(folder, "drop me's (1).txt")
             with open(path, "w") as file:
-                file.write("oriel-e2e-dropped\n")
+                file.write("ovvi-e2e-dropped\n")
             x, y, tx, ty = body.decode().split()
             source = subprocess.Popen([f"{tools}/file-drag", path, x, y], stdout=subprocess.PIPE,
                                       stderr=subprocess.PIPE)
@@ -236,9 +236,9 @@ server.daemon_threads = True
 threading.Thread(target=server.serve_forever, daemon=True).start()
 # xcodebuild passes TEST_RUNNER_* to the tests without the prefix.
 # herdr's path: the agent test's stand-in login shell has no profile to find it.
-env = {**os.environ, "TEST_RUNNER_ORIEL_HELPER": f"http://127.0.0.1:{server.server_address[1]}",
-       "TEST_RUNNER_ORIEL_HERDR": shutil.which("herdr") or "",
-       **{f"TEST_RUNNER_ORIEL_SESSION{n if n > 1 else ''}": name for n, name in enumerate(sessions, 1)}}
+env = {**os.environ, "TEST_RUNNER_OVVI_HELPER": f"http://127.0.0.1:{server.server_address[1]}",
+       "TEST_RUNNER_OVVI_HERDR": shutil.which("herdr") or "",
+       **{f"TEST_RUNNER_OVVI_SESSION{n if n > 1 else ''}": name for n, name in enumerate(sessions, 1)}}
 status = subprocess.run(command, env=env).returncode
 for folder in folders:
     shutil.rmtree(folder, ignore_errors=True)

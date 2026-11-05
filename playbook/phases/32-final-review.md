@@ -38,7 +38,7 @@ full suite at the end.
   the same id; the tab bar is made per page. Hover panels keep the window they opened in.
 - **r-store.** A refused split's stand-in waited for snapshots an idle session may never send; a closing key
   window cleared another window's looked-at tab.
-- **r-app.** Any `oriel://x/` URL opened a workspace at `/` (now file URLs only); the Dock menu's New Tab did
+- **r-app.** Any `ovvi://x/` URL opened a workspace at `/` (now file URLs only); the Dock menu's New Tab did
   nothing with no window.
 - **f-e2e.** A card's VoiceOver value still read "content 100%" from the dropped fade; a teardown that hovered a
   closing floating window failed a test after its body passed (it now warps the pointer). Two full runs in a
@@ -48,8 +48,8 @@ full suite at the end.
 
 - **For the user.** Three store files sit at the 400-line limit (split when the next change needs room);
   Close Other Tabs within a round trip of ⌘T can leave the new tab open.
-- **r-remote.** The sockets folder and askpass under `~/Library/Caches/oriel` are made once per launch
-  (`static let`): a cache cleaner that deletes them while Oriel runs breaks remote connects until a relaunch
+- **r-remote.** The sockets folder and askpass under `~/Library/Caches/ovvi` are made once per launch
+  (`static let`): a cache cleaner that deletes them while Ovvi runs breaks remote connects until a relaunch
   (about 5 lines to make both per start). While a `dialog()` shows, the window's menu keys (⌘W, ⌘T, ⌘K)
   still act on the page under it, and Tab can leave the dialog.
 - **r-herdrkit.** `TerminalStream.init` sets `onTermination` after its reader starts, so a stream that

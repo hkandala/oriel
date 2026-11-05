@@ -1,6 +1,6 @@
 # Plugins: what a future plugin system could use
 
-Oriel has no plugins (see `docs/content/docs/future-work/index.mdx`). These are the facts and options found for
+Ovvi has no plugins (see `docs/content/docs/future-work/index.mdx`). These are the facts and options found for
 one, so a later design starts from evidence.
 
 ## What herdr offers
@@ -130,7 +130,7 @@ herdr already keeps the terminals alive, and `sshd` already reads files, runs gi
 
 - **A server agent, if ever needed:** generic `exec`, `spawn`, `fs.watch`, `tcp.open`, `ports.list` and
   `hello` as JSON lines over one stdio channel. Binaries for linux-x64/arm64 and darwin-x64/arm64, uploaded to
-  `~/.local/share/oriel/agent/<ver>/` and SHA-256 checked, falling back to `$XDG_RUNTIME_DIR` or `/tmp` when the
+  `~/.local/share/ovvi/agent/<ver>/` and SHA-256 checked, falling back to `$XDG_RUNTIME_DIR` or `/tmp` when the
   home is `noexec`. About 800–1,500 lines plus ~500 lines of Swift client. Shipping it as a herdr plugin was
   rejected: that install is interactive and global per user, so two app versions would fight over it.
 - **SOCKS in WebKit:** `WKWebsiteDataStore.proxyConfigurations` (macOS 14, iOS 17) never carries `localhost`,
@@ -139,7 +139,7 @@ herdr already keeps the terminals alive, and `sshd` already reads files, runs gi
 - **Finding ports:** `pane.process_info`'s tty can tell which pane owns a port; `ports.list` in herdr would be a
   friendly upstream ask.
 - **Checked:** `ssh -W`, `-O forward -L` and `-O forward -D` work on a ControlMaster started with
-  `ClearAllForwardings=yes`, as Oriel's is (OpenSSH 10.3; [browser.md](browser.md#remote-pages)). Open: Citadel's
+  `ClearAllForwardings=yes`, as Ovvi's is (OpenSSH 10.3; [browser.md](browser.md#remote-pages)). Open: Citadel's
   `DirectTCPIP` API and its throughput.
 
 ## Sources

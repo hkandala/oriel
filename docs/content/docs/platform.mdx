@@ -75,15 +75,15 @@ Each library has its entry, with its license, in the app's `Acknowledgements.txt
 
 - Drag and drop: the page holds the dragged item (`Dragged`: a pane, tab or
   workspace id). The pasteboard carries only the type
-  `dev.hkandala.oriel.drag`, declared in the Info.plist, to route the drag to
+  `dev.ovvi.app.drag`, declared in the Info.plist, to route the drag to
   the app's drop targets. Tab capsules spring-load. During a drag, drop
   zones sit above each card's surface. Drops on another session or machine
   are refused.
 
 ## Tests
 
-- **End to end first.** `OrielUITests` drives the app with XCUITest against
-  a real herdr in throwaway sessions (`oriel-e2e-*`), and checks the result
+- **End to end first.** `OvviUITests` drives the app with XCUITest against
+  a real herdr in throwaway sessions (`ovvi-e2e-*`), and checks the result
   through accessibility identifiers and through herdr itself
   (`session.snapshot`, `pane.read`). Remote tests go through a local `sshd`
   on CI. Trackpad swipes and drags are posted as CGEvents by

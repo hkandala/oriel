@@ -6,7 +6,7 @@ on:
     paths-ignore: &docs-only [playbook/**, docs/**, resources/**, '**/*.md']
   pull_request:
     paths-ignore: *docs-only
-  # Ad-hoc UI tests: gh workflow run ci.yml --ref main -f only_testing=OrielUITests/OrielUITests/testA,...
+  # Ad-hoc UI tests: gh workflow run ci.yml --ref main -f only_testing=OvviUITests/OvviUITests/testA,...
   # The on-demand tests (Makefile's ON_DEMAND): gh workflow run ci.yml --ref main -f on_demand=true
   workflow_dispatch:
     inputs:
@@ -75,7 +75,7 @@ jobs:
       # CI has no coding agents: stand-ins on the login shell's PATH (This Mac's and the remote machine's), so New Pane
       # finds all four.
       - run: |
-          agents="$PWD/OrielUITests/Fixtures/agents"
+          agents="$PWD/OvviUITests/Fixtures/agents"
           echo "export PATH=\"\$PATH:$agents:$agents/codex\"" | tee -a ~/.zshrc >> ~/.bash_profile
       - if: ${{ inputs.only_testing }}
         run: make e2e
@@ -85,7 +85,7 @@ jobs:
         run: make e2e SHARD=${{ matrix.shard }}/${{ strategy.job-total }} ${{ inputs.on_demand && 'ON_DEMAND_ONLY=1' || '' }}
       # What the remote-host tests' sshd saw, and the SSH runs left.
       - if: failure()
-        run: tail -60 /tmp/oriel-sshd/sshd.log; pgrep -lf 'ssh ' || true
+        run: tail -60 /tmp/ovvi-sshd/sshd.log; pgrep -lf 'ssh ' || true
       # Green runs too: their screen recordings are the phases' screenshots.
       - if: always()
         uses: actions/upload-artifact@v7

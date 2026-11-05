@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://oriel-docs.vercel.app'),
+  metadataBase: new URL('https://ovvi.dev'),
   title: { template: `%s | ${appName}`, default: appName },
   icons: { icon: 'data:,' },
 };

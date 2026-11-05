@@ -15,7 +15,7 @@ protocol Exec {
 
 The app reaches each machine through `run` (D2). Nothing of ours is
 installed on the machine: `sshd`, POSIX tools and herdr do the work. The chat
-view writes small helper files under `~/.cache/oriel` before an agent launch
+view writes small helper files under `~/.cache/ovvi` before an agent launch
 ([Side files](/docs/ui/chat-view#side-files)). Plugin cards read, save, list
 and watch files and run git the same way
 ([File Explorer and Git](/docs/plugins/default-plugins#remote-machines),
@@ -131,7 +131,7 @@ and watch files and run git the same way
   a browser pane by hand follows it with a `pane.report_metadata` token,
   whose `pane.updated` makes the app read the snapshot
   ([Agents open browser panes](/docs/ui/browser#agents-open-browser-panes)).
-  `oriel open` needs none: the app makes the change and reads the snapshot
+  `ovvi open` needs none: the app makes the change and reads the snapshot
   itself.
 - **Any event line means "read `session.snapshot` again".** Event payloads
   are never decoded, except an [agent request](#agent-requests), and the
@@ -154,88 +154,88 @@ and watch files and run git the same way
 
 ## Agent requests
 
-An agent in a pane asks Oriel for something with the `oriel` command, on any
-machine Oriel follows (D104,
+An agent in a pane asks Ovvi for something with the `ovvi` command, on any
+machine Ovvi follows (D104,
 [Agent control](/docs/agent-control)). The command writes its arguments to a
-file in `~/.cache/oriel/rpc/` on its machine and rings: the pane token
-`oriel-req` = the request id, source `oriel-cli`, `ttl_ms` 3000. On the
+file in `~/.cache/ovvi/rpc/` on its machine and rings: the pane token
+`ovvi-req` = the request id, source `ovvi-cli`, `ttl_ms` 3000. On the
 `pane.updated` event or the snapshot that carries a new id (the snapshot
-covers a ring while the event stream opens again), Oriel takes the file with one
+covers a ring while the event stream opens again), Ovvi takes the file with one
 run, does the work, and writes the answer back as files with one more run
 ([Protocol](/docs/agent-control/protocol)).
 
-Oriel writes two presence tokens, so a process in the session knows what
-Oriel does with no call to Oriel (`oriel status`):
+Ovvi writes two presence tokens, so a process in the session knows what
+Ovvi does with no call to Ovvi (`ovvi status`):
 
 | Token | What |
 |---|---|
-| `oriel-shown` on a pane | `pane.report_metadata` on each pane in view of a visible window (the shown tab of the page in view, only its zoomed card when one is, and the floated panes): source `oriel`, `1` on This Mac, `remote` on another machine (for pi's copy), `ttl_ms` 30000. Written when a pane comes into view, again every 10 s while it stays, and cleared (`null`) when it leaves view, its page closes, its window hides or closes, or the app quits (which waits up to 1 s for it). Over the relay for a remote machine |
-| `oriel-open` on a workspace | `workspace.report_metadata` on each workspace of a session that a window has open (a float-only page too): source `oriel`, `1` (the protocol version), `ttl_ms` 30000. Written on a snapshot with a new workspace and every 10 s, in the same burst as `oriel-shown` and before it; cleared when the last window lets the session go and on quit |
+| `ovvi-shown` on a pane | `pane.report_metadata` on each pane in view of a visible window (the shown tab of the page in view, only its zoomed card when one is, and the floated panes): source `ovvi`, `1` on This Mac, `remote` on another machine (for pi's copy), `ttl_ms` 30000. Written when a pane comes into view, again every 10 s while it stays, and cleared (`null`) when it leaves view, its page closes, its window hides or closes, or the app quits (which waits up to 1 s for it). Over the relay for a remote machine |
+| `ovvi-open` on a workspace | `workspace.report_metadata` on each workspace of a session that a window has open (a float-only page too): source `ovvi`, `1` (the protocol version), `ttl_ms` 30000. Written on a snapshot with a new workspace and every 10 s, in the same burst as `ovvi-shown` and before it; cleared when the last window lets the session go and on quit |
 
 - herdr sends `pane.updated` with the whole pane, `tokens` included, on each
   report and again when a token expires. `pane.get` and `session.snapshot`
   list a pane's tokens, and `workspace.get` a workspace's.
-- Oriel decodes `oriel-req` only when it is a lowercase UUID version 4, and
+- Ovvi decodes `ovvi-req` only when it is a lowercase UUID version 4, and
   acts once per id: it keeps the last 256 ids per session.
 - When the app first connects to a session on a machine, it writes the
-  command to `~/.cache/oriel/bin/oriel` there when the file is missing or
+  command to `~/.cache/ovvi/bin/ovvi` there when the file is missing or
   older, and removes mailbox files older than 60 minutes
   ([How the command gets there](/docs/agent-control/remote#how-the-command-gets-there)).
 
 ## Float requests
 
-Kept for older callers: a pi-hkandala checkout from before the `oriel`
-command. New callers run `oriel float`. A tool in a pane (pi-herd) asks
-Oriel to float a pane through herdr's pane metadata tokens, so it works for
-an agent on any machine Oriel follows (D50). Nothing waits for an answer:
+Kept for older callers: a pi-hkandala checkout from before the `ovvi`
+command. New callers run `ovvi float`. A tool in a pane (pi-herd) asks
+Ovvi to float a pane through herdr's pane metadata tokens, so it works for
+an agent on any machine Ovvi follows (D50). Nothing waits for an answer:
 
 | Step | Who | What |
 |---|---|---|
-| Ask | the tool, at a click | `pane.get` of its own pane on its own herdr socket (a few ms, on the agent's machine). With `oriel-shown`: `pane.report_metadata` on its pane, source `pi-herd`, tokens `oriel-float` = `‹session›/‹pane id›` (a session on the same machine) and `oriel-float-id` = a nonce (a UUID), `ttl_ms` 1000; no popup. Without it: herdr's popup at once |
-| Float | Oriel | on the `pane.updated` event carrying `oriel-float` with a nonce it has not seen: floats the pane over the window where the user last typed or clicked in a card of the asking session ([`oriel://float`](/docs/ui/window#floating-pane)'s path, a float-only page when the session has none) |
+| Ask | the tool, at a click | `pane.get` of its own pane on its own herdr socket (a few ms, on the agent's machine). With `ovvi-shown`: `pane.report_metadata` on its pane, source `pi-herd`, tokens `ovvi-float` = `‹session›/‹pane id›` (a session on the same machine) and `ovvi-float-id` = a nonce (a UUID), `ttl_ms` 1000; no popup. Without it: herdr's popup at once |
+| Float | Ovvi | on the `pane.updated` event carrying `ovvi-float` with a nonce it has not seen: floats the pane over the window where the user last typed or clicked in a card of the asking session ([`ovvi://float`](/docs/ui/window#floating-pane)'s path, a float-only page when the session has none) |
 
 - herdr sends `pane.updated` with the whole pane, `tokens` included, on
   each report and again when a token expires. `pane.get` and
   `session.snapshot` list the tokens as well.
 - The tokens are one map per pane, by name, whatever the source: a report
-  changes only the tokens it names. Oriel's never touch pi's own metadata
+  changes only the tokens it names. Ovvi's never touch pi's own metadata
   (agent, title, state labels, its tokens). Two Macs showing one pane share
-  `oriel-shown`: one's clear drops the other's mark until its next refresh,
+  `ovvi-shown`: one's clear drops the other's mark until its next refresh,
   and both float a request.
 - Each token's `ttl_ms` is its own. An app that crashed stops claiming its
   panes within 30 s. A pane herdr moves keeps its mark until then too (the
   clear goes to its old pane id).
-- Every change of the asking pane (Oriel's own mark too) sends the request
-  again until it expires, so Oriel floats once per nonce. It acts only on
+- Every change of the asking pane (Ovvi's own mark too) sends the request
+  again until it expires, so Ovvi floats once per nonce. It acts only on
   events: a request from before its stream opened, or while it reopens
   (the agent panes changed), is lost, and the click does nothing.
-- A click in herdr's own TUI on a pane that Oriel also shows floats it in
-  Oriel, not in herdr's popup: the mark says only that Oriel shows the pane.
+- A click in herdr's own TUI on a pane that Ovvi also shows floats it in
+  Ovvi, not in herdr's popup: the mark says only that Ovvi shows the pane.
 - herdr 0.9.5: names match `^[A-Za-z0-9_-]{1,32}$` (no dots), 16 tokens per
   report and 32 per pane at most, values cut at 80 characters.
 
 ## Copy requests
 
-Kept for older callers: a pi-hkandala checkout from before the `oriel`
-command. New callers run `oriel copy`. pi's extensions in such a checkout
-ask Oriel to put text on the Mac's clipboard the same way, so a copy from pi
+Kept for older callers: a pi-hkandala checkout from before the `ovvi`
+command. New callers run `ovvi copy`. pi's extensions in such a checkout
+ask Ovvi to put text on the Mac's clipboard the same way, so a copy from pi
 on another machine lands on this Mac. herdr
 gives a pane's own clipboard write (OSC 52) only to its TUI, never to the
 app's streams ([Scrolling, queries and links](#scrolling-queries-and-links)).
 
 | Step | Who | What |
 |---|---|---|
-| Ask | the extension, at a copy | when its pane carries `oriel-shown` = `remote` (`pane.get` on its own herdr socket), so pi is not on Oriel's Mac: writes the text to `/tmp/oriel-copy-‹id›` on its machine (mode 0600, `‹id›` a new UUID), then `pane.report_metadata` on its pane, source `pi-copy`, token `oriel-copy` = `‹id›`, `ttl_ms` 1000. Otherwise pi's own copy (`pbcopy` on Oriel's Mac) |
-| Copy | Oriel | on the `pane.updated` event carrying an `oriel-copy` it has not seen, in any open session: one run on that machine (over the relay for a remote one), `sh -c 'f=/tmp/oriel-copy-$1; base64 <"$f" && rm -f "$f"' sh ‹id›`, and the text goes on `NSPasteboard` |
+| Ask | the extension, at a copy | when its pane carries `ovvi-shown` = `remote` (`pane.get` on its own herdr socket), so pi is not on Ovvi's Mac: writes the text to `/tmp/ovvi-copy-‹id›` on its machine (mode 0600, `‹id›` a new UUID), then `pane.report_metadata` on its pane, source `pi-copy`, token `ovvi-copy` = `‹id›`, `ttl_ms` 1000. Otherwise pi's own copy (`pbcopy` on Ovvi's Mac) |
+| Copy | Ovvi | on the `pane.updated` event carrying an `ovvi-copy` it has not seen, in any open session: one run on that machine (over the relay for a remote one), `sh -c 'f=/tmp/ovvi-copy-$1; base64 <"$f" && rm -f "$f"' sh ‹id›`, and the text goes on `NSPasteboard` |
 
 - A token value holds at most 80 characters (herdr cuts it, and drops
   control characters), 16 tokens per report and 32 per pane: a long prompt
   does not fit, so the token carries only the id and the text goes in a
-  file. Oriel builds the path itself and takes only a UUID's characters,
+  file. Ovvi builds the path itself and takes only a UUID's characters,
   so a token can never name another file.
 - Once per id, as for a float. The app never reads the Mac's clipboard.
-- A request is lost when no Oriel stream sees it within its 1 s (the stream
-  reopening, Oriel gone). While pi runs, it deletes a file Oriel missed
+- A request is lost when no Ovvi stream sees it within its 1 s (the stream
+  reopening, Ovvi gone). While pi runs, it deletes a file Ovvi missed
   after 30 s.
 - Two Macs showing the pane both try; the first one's run deletes the file,
   and the second copies nothing. They also share the mark: the last one to
@@ -256,7 +256,7 @@ below. Everything else goes to the agent's own files, on its machine.
   and [Relaunch with Chat](/docs/ui/chat-view#relaunch-with-chat).
 - **Send** is `agent.prompt {target, text}`. herdr refuses it ("no longer the
   pane foreground process") unless a foreground process has the agent's
-  name, and while herdr reports the agent blocked (pi-oriel reports pi's
+  name, and while herdr reports the agent blocked (pi-ovvi reports pi's
   dialogs to herdr's pi integration).
 - **Stop** is `pane.send_keys`, and text that starts with `/` is
   `pane.send_input`. Codex's screen check is `pane.read {source:"recent"}`.
@@ -264,7 +264,7 @@ below. Everything else goes to the agent's own files, on its machine.
   own ([Ready, working, waiting](/docs/ui/chat-view#ready-working-waiting)).
 - **The followers** are runs like any other: one per followed file, in the
   wrapper above, over the relay on a remote machine. The relay takes one line
-  per write, so pi-oriel goes to the machine as one base64 line.
+  per write, so pi-ovvi goes to the machine as one base64 line.
 
 ## Reconcile
 
@@ -457,7 +457,7 @@ handshake fails, it exits 1 with the reason on stderr.
   prints no event for it. Most programs on this Mac copy with `pbcopy`, so
   this mostly hits programs on another machine, also through `ssh` in a
   local card. Select the text in the card and press ⌘C instead.
-  pi-hkandala's extensions copy through `oriel copy`
+  pi-hkandala's extensions copy through `ovvi copy`
   ([CLI](/docs/agent-control/cli#copy)). herdr
   sends the app no clipboard read either; if one came, the app would refuse
   it.
@@ -550,13 +550,13 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 | Stop in a chat | `pane.send_keys {pane_id, keys: ["escape"]}` (OpenCode: twice), only while the agent works |
 | Chat text that starts with `/` | `pane.send_input` of the text, with no Return; the card shows its terminal |
 | Relaunch with Chat | while the agent works or waits, `pane.send_keys` of its Stop keys; `pane.send_keys {keys: ["ctrl+c"]}`; `pane.send_input` of its quit command and Return; `pane.process_info` and `pane.get` until only the shell runs and herdr reports no agent (10 s at most); then `pane.send_input` of the launch line with the resume arguments, and the loader's calls ([Relaunch with Chat](/docs/ui/chat-view#relaunch-with-chat)) |
-| Browser in the chooser, Open Browser Here | `layout.apply {workspace_id, focus:false, root:{type:"pane", cwd, label:"oriel:browser#<iid>", command}}` (a new tab with the labeled placeholder pane, never a `tab_id`), then `pane.move` beside the old pane and `pane.close` of the old one; a failed move closes the new pane ([Create](/docs/ui/browser#create)) |
-| An address typed in a browser card | `pane.rename {pane_id, label:"oriel:browser#<iid> <url>"}` |
-| A link opened in a new tab (⌘-click, `target=_blank`, Open Link in New Tab) | `layout.apply {workspace_id, focus:false, root:{type:"pane", cwd, label:"oriel:browser#<iid> <url>", command}}`: a new tab after the workspace's others, with the link in the label ([Popups, links and dialogs](/docs/ui/browser#popups-links-and-dialogs)) |
-| File Explorer or Git in the chooser, Open File Explorer Here, Open Git Here | `git rev-parse --show-toplevel` on the machine for the root (none when git cannot run), then the browser's calls with the label `oriel:explorer#<iid> <root>/` or `oriel:git#<iid> <root>` |
+| Browser in the chooser, Open Browser Here | `layout.apply {workspace_id, focus:false, root:{type:"pane", cwd, label:"ovvi:browser#<iid>", command}}` (a new tab with the labeled placeholder pane, never a `tab_id`), then `pane.move` beside the old pane and `pane.close` of the old one; a failed move closes the new pane ([Create](/docs/ui/browser#create)) |
+| An address typed in a browser card | `pane.rename {pane_id, label:"ovvi:browser#<iid> <url>"}` |
+| A link opened in a new tab (⌘-click, `target=_blank`, Open Link in New Tab) | `layout.apply {workspace_id, focus:false, root:{type:"pane", cwd, label:"ovvi:browser#<iid> <url>", command}}`: a new tab after the workspace's others, with the link in the label ([Popups, links and dialogs](/docs/ui/browser#popups-links-and-dialogs)) |
+| File Explorer or Git in the chooser, Open File Explorer Here, Open Git Here | `git rev-parse --show-toplevel` on the machine for the root (none when git cannot run), then the browser's calls with the label `ovvi:explorer#<iid> <root>/` or `ovvi:git#<iid> <root>` |
 | An open from a plugin card in a new tab (⌘-click, Git's Open File) | `layout.apply {workspace_id, focus:false, root:{type:"pane", cwd, label, command}}` (a new tab at the end of the workspace, in its card's folder), then `pane.get` of the new pane; the snapshot after it selects the tab, unless the open is in the background (a ⌘-click) ([Opening](/docs/plugins/default-plugins#opening)) |
 | An open from a plugin card to the side (⌥-click) | the same `layout.apply` and `pane.get`, then `pane.move` of the new pane beside the card; a failed move closes the new pane |
-| A move inside a plugin card (a click, Back, Forward) | `pane.rename {pane_id, label:"oriel:<plugin>#<iid> <place>"}`, also to a label the last snapshot already has |
+| A move inside a plugin card (a click, Back, Forward) | `pane.rename {pane_id, label:"ovvi:<plugin>#<iid> <place>"}`, also to a label the last snapshot already has |
 | Close a tab | `tab.close`; asks first only when a pane of it runs more than its shell (`pane.process_info` of each pane, at once), naming what runs, with the pane count |
 | Close a workspace | `workspace.close {workspace_id, close_group}`; asks as for a tab, with the tab and pane count. `close_group: true` for a repository's workspace with linked worktree workspaces: herdr refuses the close without it (`workspace_group_close_required`), and with it closes all of them, also ones not next to it. The git worktrees stay on disk. A worktree's own workspace closes alone |
 | Close Other Tabs, Close Tabs to the Right | one `tab.close` per tab, all at once; asks once as for a tab, with the total pane count |
@@ -567,9 +567,9 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 | Find next or previous (⌘F) | `pane.scroll {pane_id, offset_from_bottom}` to the match; offset 0 when the bar closes |
 | Resize Pane (View ▸ Pane, the palette; no key) | `pane.resize {pane_id, direction, amount: 0.05}` on the keyboard card; herdr moves the nearest divider that way, or returns `changed:false` when there is none |
 | Move the keyboard (⌥⌘ + arrow; not a write) | no herdr call: the app picks the card from the split tree ([Moving the keyboard](/docs/layout#moving-the-keyboard)) |
-| A pane comes into view or leaves it | `pane.report_metadata {pane_id, source:"oriel", tokens:{"oriel-shown": "1", "remote" or null}, ttl_ms:30000}` ([Agent requests](#agent-requests)) |
-| A window opens a session, or lets it go; a new workspace | `workspace.report_metadata {workspace_id, source:"oriel", tokens:{"oriel-open": "1" or null}, ttl_ms:30000}` ([Agent requests](#agent-requests)) |
-| An agent's `oriel open` | as an open from a plugin card: `layout.apply` with the label and the placeholder in a new tab at the end of the workspace, then `pane.move` beside a pane unless `--tab`; `--replace` is `pane.rename` of the card's label ([CLI](/docs/agent-control/cli#open)) |
+| A pane comes into view or leaves it | `pane.report_metadata {pane_id, source:"ovvi", tokens:{"ovvi-shown": "1", "remote" or null}, ttl_ms:30000}` ([Agent requests](#agent-requests)) |
+| A window opens a session, or lets it go; a new workspace | `workspace.report_metadata {workspace_id, source:"ovvi", tokens:{"ovvi-open": "1" or null}, ttl_ms:30000}` ([Agent requests](#agent-requests)) |
+| An agent's `ovvi open` | as an open from a plugin card: `layout.apply` with the label and the placeholder in a new tab at the end of the workspace, then `pane.move` beside a pane unless `--tab`; `--replace` is `pane.rename` of the card's label ([CLI](/docs/agent-control/cli#open)) |
 | Git state of the workspace rows (not a write) | no herdr call: `git status` on the machine ([Git status](#git-status)) |
 | Plugin cards' files and git (not herdr writes) | no herdr call: commands on the machine through `Exec.run` ([Commands](/docs/reference/herdr-calls#commands)) |
 

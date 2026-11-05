@@ -13,7 +13,7 @@ Tools that drive agent TUIs: [controlling-agent-tuis.md](controlling-agent-tuis.
 1. **The agent keeps running in its herdr pane.** The chat reads the transcript the agent writes anyway and follows
    it with `tail -F` (opencode: its own server's history and event stream, because it writes no transcript file).
    There is no live text: each message shows when it is on disk, 0.1–2 s after the TUI draws it.
-2. **Only agents that Oriel starts get the chat.** The new pane chooser adds Oriel's flags to the launch line. Each
+2. **Only agents that Ovvi starts get the chat.** The new pane chooser adds Ovvi's flags to the launch line. Each
    line carries a marker that `pane.process_info` shows. Panes without it show only the terminal.
 3. **A small core, the TUI for the rest.** Every adapter recognizes its pane, follows the transcript, tells ready,
    busy and waiting apart, sends with `agent.prompt` only when ready (confirmed by the user entry in the
@@ -30,9 +30,9 @@ Tools that drive agent TUIs: [controlling-agent-tuis.md](controlling-agent-tuis.
 
 | | Claude Code | Codex | pi | opencode |
 |---|---|---|---|---|
-| Launch flags | `--session-id T --settings '<inline hooks>'` | `-c hooks.SessionStart=…` and `-c hooks.state={…trusted hash…}` | `-e ~/.cache/oriel/pi-<sha8>.ts --oriel <state>` | `--port 0 --hostname 127.0.0.1`, a password from a 0600 file, `OPENCODE_TUI_CONFIG` with a 20-line plugin |
+| Launch flags | `--session-id T --settings '<inline hooks>'` | `-c hooks.SessionStart=…` and `-c hooks.state={…trusted hash…}` | `-e ~/.cache/ovvi/pi-<sha8>.ts --ovvi <state>` | `--port 0 --hostname 127.0.0.1`, a password from a 0600 file, `OPENCODE_TUI_CONFIG` with a 20-line plugin |
 | Written first | nothing | nothing | the 31-line extension | the plugin, `tui.json`, the password file |
-| Marker | `--session-id T` in the argv | `/tmp/oriel-T` in the argv | `--oriel` in the argv | the state line's `pid` |
+| Marker | `--session-id T` in the argv | `/tmp/ovvi-T` in the argv | `--ovvi` in the argv | the state line's `pid` |
 | Transcript | SessionStart hook writes the path | SessionStart hook writes the path | the extension's `session` and `tree` lines | the plugin's `session`; `GET /session/:id/message`, then `curl -N /event` |
 | Ready / waiting | `~/.claude/sessions/<pid>.json` status (fragile, undocumented; sees pickers); herdr as fallback | herdr state and a screen check for pickers (fragile) | `blocked` lines from `ui_prompt_*` | plugin `dialog`, herdr `blocked` |
 | Stop | Esc | Esc | Esc | Esc Esc |
@@ -43,7 +43,7 @@ Model, mode, slash commands and images go to the TUI. The model shows read only,
 
 ## Fallback rules
 
-- No marker: no chat switch. This includes herdr's own restore (`claude --resume` without Oriel's flags) and an agent
+- No marker: no chat switch. This includes herdr's own restore (`claude --resume` without Ovvi's flags) and an agent
   the user starts by hand.
 - Waiting with no request the chat knows: the live terminal at the bottom of the card.
 - Not confirmed within 5 s: "Not sent", with Show Terminal.
@@ -52,14 +52,14 @@ Model, mode, slash commands and images go to the TUI. The model shows read only,
 
 ## Why
 
-- **No other app puts a chat over the live TUI the way Oriel needs.** cmux, Nimbalyst (opt-in, Claude only),
+- **No other app puts a chat over the live TUI the way Ovvi needs.** cmux, Nimbalyst (opt-in, Claude only),
   pi-agent-dashboard, Orca and herdr-gpui (opt-in, Linux hosts) do. Superset/Paradev, Emdash, super.engineering, Agentastic,
   happy, claudecodeui, Sculptor and Paseo run a second, headless process or hand the session over (two writers; a
   switch only while idle). T3 Code, Conductor, vibe-kanban, Crystal, opcode and Terragon have no TUI. cmux is the
-  pattern Oriel follows: hooks give the path, a tail gives the messages, "Answer in terminal" for the rest.
+  pattern Ovvi follows: hooks give the path, a tail gives the messages, "Answer in terminal" for the rest.
 - **Screen reading fails.** AgentAPI built messages from screen diffs and is deprecated after Claude Code redraws broke
   it. Agent-published state works: transcripts, hooks, Claude Code's session record, opencode's server.
-- **Why not in-chat tool approvals.** Claude Code: company PermissionRequest hooks return allow and beat Oriel's deny,
+- **Why not in-chat tool approvals.** Claude Code: company PermissionRequest hooks return allow and beat Ovvi's deny,
   and a waiting hook keeps open prompts that would close by themselves. Codex: a waiting hook runs before the
   launcher's reviewer and hides the TUI's prompt. pi: no built-in prompts, and an extension dialog's options are not
   known.
@@ -76,7 +76,7 @@ Model, mode, slash commands and images go to the TUI. The model shows read only,
 - Typing the launch line through nested shell quoting corrupted it, and a stray line reached the TUI as a prompt. The
   line goes to herdr as one argv string.
 - Writes to user config seen in the spikes: Claude Code `/model <name>` and Return in its picker; Codex Return in
-  `/model` and Esc on its startup promo; pi `/reload` (`trust.json`). Oriel's flags write none. The company launchers
+  `/model` and Esc on its startup promo; pi `/reload` (`trust.json`). Ovvi's flags write none. The company launchers
   write their own state on every start (Codex reinstalls a plugin into `~/.codex`, opencode rewrites caches).
 - The company `opencode` (MetaCode 1.18) ignores the plugin and password: no chat there.
 

@@ -4,10 +4,10 @@ Goal: the five plugins of [phase 42's spec](42-plugins-base.md#the-spec-both-var
 views and at most one library each, on branch `plugins-native` (from `plugins-base`). Same features as
 [phase 44](44-plugins-web.md); only the look of the content may differ. Picks and measurements:
 `resources/research/plugins/default-plugins.md`; layouts: the recommended mockups in
-`~/Downloads/oriel-research/plugins.html`.
+`~/Downloads/ovvi-research/plugins.html`.
 
 Tracks start when phase 42's tracks A and B are on `plugins-base`. Each track owns its kind's content files
-(`Oriel/Plugins/<Kind>/`) and its tests; the plumbing and the data are phase 42's (changes there go to their owner).
+(`Ovvi/Plugins/<Kind>/`) and its tests; the plumbing and the data are phase 42's (changes there go to their owner).
 
 ## Track A: File and Preview (spec items 1, 2, 6)
 1. `NSTextView` on TextKit 2 with SwiftTreeSitter colors for the visible range only (about 15 grammars as packages),

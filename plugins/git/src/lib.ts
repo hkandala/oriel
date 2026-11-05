@@ -1,11 +1,11 @@
-// What the home and the diff share: the card's `oriel`, its places, opens and elements.
-import type { Oriel } from "@oriel/plugin-api"
+// What the home and the diff share: the card's `ovvi`, its places, opens and elements.
+import type { Ovvi } from "@ovvi/plugin-api"
 import { createFileTreeIconResolver, getBuiltInSpriteSheet } from "@pierre/trees"
 import { ensureFileTreeStyles } from "@pierre/trees/web-components"
 
-export let oriel: Oriel
-export const bind = (api: Oriel) => {
-  oriel = api
+export let ovvi: Ovvi
+export const bind = (api: Ovvi) => {
+  ovvi = api
 }
 
 /** A place: the home is the root with the `/` of a folder, a diff `<home> <source>` (`PaneLabel.diffSource`). The root
@@ -26,12 +26,12 @@ export const how = (event: MouseEvent | KeyboardEvent): How => (event.metaKey ? 
 /** A place of this card (a diff), or with no plugin a file in its default plugin; a new tab or a pane to the side opens
  *  behind, the keyboard kept here. A file's open in the card is a new tab in front. */
 export const open = (arg: string, options: { how: How; at?: string; plugin?: string }) =>
-  void oriel.open(arg, { ...options, background: options.how !== "card" }).catch((error) => console.error(error))
+  void ovvi.open(arg, { ...options, background: options.how !== "card" }).catch((error) => console.error(error))
 
 /** A row's menu at the pointer: Open, Open in New Tab, Open to the Side. */
 export async function menu(event: MouseEvent, arg: string, at?: string) {
   event.preventDefault()
-  const picked = await oriel.menu.show([
+  const picked = await ovvi.menu.show([
     { value: "card", title: "Open" }, { value: "tab", title: "Open in New Tab" }, { value: "side", title: "Open to the Side" },
   ])
   if (picked) open(arg, { how: picked as How, at, plugin: "git" })
@@ -76,10 +76,10 @@ export function fileIcon(path: string) {
 
 /** The card's state: the commit message typed, and the diff's file list shown. */
 export const keep = (change: { draft?: string; list?: boolean }) =>
-  oriel.state.set({ ...oriel.state.get<object>(), ...change })
+  ovvi.state.set({ ...ovvi.state.get<object>(), ...change })
 
 /** git's message in the card's toast, on one line, with Copy for the whole of it. */
 export async function failed(error: Error) {
   const text = error.message.split("\n").map((line) => line.trim()).join(" ")
-  if ((await oriel.toast(text, ["Copy", "OK"])) === "Copy") oriel.clipboard.write(error.message).catch(console.error)
+  if ((await ovvi.toast(text, ["Copy", "OK"])) === "Copy") ovvi.clipboard.write(error.message).catch(console.error)
 }

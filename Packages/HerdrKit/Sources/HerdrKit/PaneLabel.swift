@@ -1,6 +1,6 @@
 import Foundation
 
-/// A plugin pane's herdr label (plugins/labels): `oriel:<plugin>[/<pane>]#<iid>[ <arg>]`. The label marks
+/// A plugin pane's herdr label (plugins/labels): `ovvi:<plugin>[/<pane>]#<iid>[ <arg>]`. The label marks
 /// the pane: it survives moves and herdr restarts, and every device sees it.
 public struct PaneLabel: Equatable, Sendable {
     public let plugin: String
@@ -18,7 +18,7 @@ public struct PaneLabel: Equatable, Sendable {
     /// By hand, not a `Regex`: matching one took about 0.1 ms, and every card asks at every render (a fifth of the main
     /// thread's time in a swipe across tabs).
     public init?(_ label: String?) {
-        guard let label, label.hasPrefix("oriel:") else { return nil }
+        guard let label, label.hasPrefix("ovvi:") else { return nil }
         let body = label.dropFirst(6), head = body.prefix { $0 != " " }
         guard let hash = head.firstIndex(of: "#") else { return nil }
         let name = head[..<hash], iid = head[head.index(after: hash)...]
@@ -36,7 +36,7 @@ public struct PaneLabel: Equatable, Sendable {
     }
 
     public var text: String {
-        "oriel:\(plugin)#\(iid)" + (arg.isEmpty ? "" : " \(arg)")
+        "ovvi:\(plugin)#\(iid)" + (arg.isEmpty ? "" : " \(arg)")
     }
 
     /// 6 random `[a-z0-9]`, not one of `taken` (the session's labels' iids).
@@ -74,7 +74,7 @@ public struct PaneLabel: Equatable, Sendable {
 
     /// The instance state file, relative to the home folder (plugins/api#state).
     public func statePath(session: String) -> String {
-        ".local/state/oriel/\(session)/\(plugin)/\(iid).json"
+        ".local/state/ovvi/\(session)/\(plugin)/\(iid).json"
     }
 }
 
@@ -97,7 +97,7 @@ public extension Exec {
         _ = try? await output([
             "sh",
             "-c",
-            #"find "$HOME/.local/state/oriel/$1" -type f -mtime +30 -delete 2>/dev/null"#,
+            #"find "$HOME/.local/state/ovvi/$1" -type f -mtime +30 -delete 2>/dev/null"#,
             "sh",
             session,
         ])

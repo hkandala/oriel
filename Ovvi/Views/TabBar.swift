@@ -1,0 +1,188 @@
+import HerdrKit
+import SwiftUI
+
+/// The selected workspace's tabs in the title row (D42): one width on a track, one marker on the selected tab,
+/// dividers, hover and close. Tabs never shrink: the row scrolls sideways when they do not fit.
+struct TabBar: View {
+    /// Every tab's: the user wants tabs that keep their width and a row that scrolls.
+    static let width: CGFloat = 220
+    /// The track's height; Rex's capsules sit 2 pt inside it, 30 pt tall and fully round.
+    static let height: CGFloat = 34
+    static let inset: CGFloat = 2
+    static let radius: CGFloat = 17
+
+    let workspace: HostStore.Workspace
+    let page: Page
+    /// A pane dragged over the `+`; with one over the track's end, a ghost capsule at the end, when it fits.
+    let plus: Bool
+    @State private var end = false
+    /// A drag over the track: the capsule a pane is over, or the place a dragged tab goes.
+    @State private var over: Int?
+    @State private var spring: Task<Void, Never>?
+    /// The capsule that just spring-loaded, scaled up for a moment.
+    @State private var pulsing: String?
+    /// The row's free space.
+    @State private var space: CGFloat = 0
+    @State private var hovered: String?
+    /// The tab a click or a spring-load selects: it is under the pointer, so the row does not scroll to it.
+    @State private var clicked: String?
+    /// The row's visible part, in the tabs' space: its edges fade where tabs are out of view. No fade until the
+    /// row has laid out.
+    @State private var visible: ClosedRange<CGFloat> = 0 ... .infinity
+    /// ⌘ held for 0.7 s: keycaps on the first nine tabs.
+    @State private var hints = false
+    /// e2e (`-recordMotion YES`): the capsules made so far.
+    @State private var made = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.look) private var look
+
+    var body: some View {
+        let tabs = workspace.tabs, count = CGFloat(tabs.count), width = Self.width
+        let content = count * width + count - 1
+        let hidden = (leading: visible.lowerBound > 0.5, trailing: visible.upperBound < content - 0.5)
+        let selected = page.selectedIndex(in: workspace)
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal) {
+                // Lazy: a workspace switch makes only the capsules in and near the row's view (SwiftUI makes about a
+                // view's width ahead), so many tabs cost no more than a full row: each costs about 3 ms of the switch.
+                LazyHStack(spacing: 0) {
+                    ForEach(Array(tabs.enumerated()), id: \.element.id) { index, tab in
+                        // One view per tab, so a scroll to its id shows the tab, not the divider before it.
+                        HStack(spacing: 0) {
+                            if index > 0 {
+                                // Hidden next to the selected tab and the pointer.
+                                let quiet = [index, index - 1].contains(selected)
+                                    || [tab.id, tabs[index - 1].id].contains(hovered)
+                                Rectangle().fill(look.divider).frame(width: 1, height: Self.height - 16)
+                                    .opacity(quiet ? 0 : 1)
+                            }
+                            TabButton(tab: tab, workspace: workspace, page: page,
+                                      hovering: hovered == tab.id, keycap: hints && index < 9 ? index + 1 : nil,
+                                      clicked: { clicked = tab.id })
+                                .onHover { hovered = $0 ? tab.id : hovered == tab.id ? nil : hovered }
+                                .overlay {
+                                    if page.dragging?.paneID != nil, over == index {
+                                        DropIndicator(radius: Self.radius)
+                                    }
+                                }
+                                .scaleEffect(pulsing == tab.id ? 1.04 : 1)
+                                .opacity(page.dragging == .tab(tab.id) ? 0.4 : 1)
+                                .offset(x: shift(index))
+                        }
+                        .onAppear {
+                            if SettlingHost.record {
+                                made += 1
+                            }
+                        }
+                    }
+                }
+                // A container of its own: without it, a row of one tab that grew to two kept the first capsule's
+                // accessibility element with the whole row's frame (a click there landed between the capsules).
+                .accessibilityElement(children: .contain)
+                // In the content's space: the capsule under the pointer, wherever the track scrolled.
+                .onDrop(of: [.ovviDrag], delegate: TrackDrop(tabs: tabs, page: page, slot: width + 1,
+                                                             over: $over, spring: $spring, springLoad: springLoad))
+                .clearsDrop(page) {
+                    spring?.cancel() // a late update after the drop may have started one
+                    over = nil
+                    end = false
+                }
+                .background {
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(look.track).opacity(tabs.count > 1 ? 1 : 0)
+                        marker(selected)
+                    }
+                }
+                // Room for the Classic pill's shadow (radius 3.5, y 1.5): the scroll view clips.
+                .padding(.vertical, 5)
+            }
+            .scrollIndicators(.never)
+            // No rubber band while every tab fits: it cut the end tab off at the edge.
+            .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+            .onScrollGeometryChange(for: ClosedRange<CGFloat>.self) { geometry in
+                geometry.contentOffset.x ... geometry.contentOffset.x + geometry.containerSize.width
+            } action: {
+                visible = $1
+            }
+            .fadeEdges(.horizontal, start: hidden.leading ? 24 : 0, end: hidden.trailing ? 24 : 0)
+            .frame(width: max(min(content, space), 0))
+            // minWidth 0: the row's free space, not the tabs' width; else the bar never shrinks (a workspace
+            // button that appears pushed ⌘ and + out of the window).
+            .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+            // The track's empty end, after the tabs (not behind them: a `.forbidden` over the pane's own capsule
+            // would fall through to it): a new tab in the workspace, shown as a ghost capsule.
+            .overlay(alignment: .leading) {
+                // It takes the clicks of the row's empty space, so it moves the window as that space does.
+                Color.clear.contentShape(.rect).gesture(WindowDragGesture())
+                    .overlay(alignment: .leading) {
+                        if end || plus, page.dragging != nil, content + 1 + width <= space {
+                            DropIndicator(radius: Self.radius).frame(width: width, height: Self.height)
+                                .padding(.leading, 1)
+                        }
+                    }
+                    .onDrop(of: [.ovviDrag], delegate: PaneDrop(page: page,
+                                                                target: .move(.newTab(workspaceID: workspace.id)),
+                                                                over: $end))
+                    .padding(.leading, min(content, space))
+            }
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { space = $0 }
+            // Into view, without motion, when keys, the palette or a new tab select it; not after a click: a scroll
+            // then moved the tab away from the pointer.
+            .onChange(of: page.selectedTabIDs[workspace.id], initial: true) { _, new in
+                if let new, new != clicked {
+                    withTransaction(\.animation, nil) { proxy.scrollTo(new) }
+                    // A new tab's capsule lays out in this same update, and a scroll to it can miss: again
+                    // once it has.
+                    Task { proxy.scrollTo(new) }
+                }
+                clicked = nil
+            }
+        }
+        .frame(height: Self.height + 10)
+        .testValue("tabs.fades", "Tab Fades", [hidden.leading ? "leading" : nil, hidden.trailing ? "trailing" : nil]
+            .compactMap(\.self).joined(separator: ", "))
+        // The tests' count: the lazy row has no element for a tab out of view.
+        .testValue("tabs.count", "Tab Count", "\(tabs.count)")
+        .testValue("tabs.made", "Tabs Made", "\(made)", shown: SettlingHost.record)
+        .keycapHints(.command, shown: $hints)
+        .onDisappear { spring?.cancel() }
+    }
+
+    /// A tab dragged along the track: it and the tabs it passes trade places as it goes (the others slide apart).
+    private func shift(_ index: Int) -> CGFloat {
+        guard case let .tab(id) = page.dragging, let slot = over,
+              let from = workspace.tabs.firstIndex(where: { $0.id == id }) else { return 0 }
+        let place = slot > from ? slot - 1 : slot
+        return (Self.width + 1) * CGFloat(index == from ? place - from
+            : from < index && index <= place ? -1 : place <= index && index < from ? 1 : 0)
+    }
+
+    /// Holding a pane over a capsule selects its tab, which pulses once.
+    private func springLoad(_ tabID: String) {
+        clicked = tabID
+        page.select(workspace, tab: tabID)
+        guard !reduceMotion else { return }
+        withAnimation(.easeOut(duration: 0.1)) { pulsing = tabID }
+        Task {
+            try? await Task.sleep(for: .milliseconds(100))
+            withAnimation(.easeOut(duration: 0.1)) { pulsing = nil }
+        }
+    }
+
+    /// The look's pill on the selected tab.
+    private func marker(_ selected: Int) -> some View {
+        Pill(shape: RoundedRectangle(cornerRadius: Self.radius - Self.inset, style: .continuous))
+            .frame(width: Self.width, height: Self.height - 2 * Self.inset)
+            .offset(x: CGFloat(selected) * (Self.width + 1))
+            // It jumps, also in another change's animation (a tab drag's slide).
+            .animation(nil, value: selected)
+            .allowsHitTesting(false)
+    }
+}
+
+extension Page {
+    /// The workspace's selected tab's index, 0 when none.
+    func selectedIndex(in workspace: HostStore.Workspace) -> Int {
+        workspace.tabs.firstIndex { $0.id == selectedTabIDs[workspace.id] } ?? 0
+    }
+}

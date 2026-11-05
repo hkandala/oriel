@@ -3,13 +3,13 @@ title: "Rex as a second multiplexer"
 description: "How a Rex backend fits behind the Multiplexer interface"
 ---
 
-Not built, and not scheduled. This page records how Oriel can talk to Rex
+Not built, and not scheduled. This page records how Ovvi can talk to Rex
 through the same [`Multiplexer` interface](/docs/architecture#the-multiplexer-interface)
 that herdr uses, so the work is ready when it is picked up. The protocol
 research is in
-[`multiplexers/rex.md`](https://github.com/hkandala/oriel/blob/main/resources/research/multiplexers/rex.md).
+[`multiplexers/rex.md`](https://github.com/hkandala/ovvi/blob/main/resources/research/multiplexers/rex.md).
 The Rex app's UI is in
-[`clients/rex.md`](https://github.com/hkandala/oriel/blob/main/resources/research/clients/rex.md).
+[`clients/rex.md`](https://github.com/hkandala/ovvi/blob/main/resources/research/clients/rex.md).
 
 ## What Rex is
 
@@ -34,15 +34,15 @@ Revision 5 adds only `server.apple.privacy_status`, so a `hello` with
 
 ## How the models map
 
-| Rex | Oriel | Notes |
+| Rex | Ovvi | Notes |
 |---|---|---|
 | server (host) | machine, and its one `Session` | one server per account and machine; `sessions()` returns one entry |
 | session | workspace | ordered; generated label such as `crisp-forest` |
 | window | tab | ordered; each session has an `active_window_id` |
 | layer `tiled` | the tab's split tree | `split.direction` `horizontal` is `.right`, `vertical` is `.down`; `ratio` is the first child's share |
-| layer `floating` | none yet | a block that a Rex.app user floats would vanish from Oriel if skipped; show it as a floating pane ([Floating pane](/docs/ui/window#floating-pane)) or as a card at the end of its tab. Detached blocks, blocks from other hosts (`host_id`) and blocks no terminal made need the same choice |
+| layer `floating` | none yet | a block that a Rex.app user floats would vanish from Ovvi if skipped; show it as a floating pane ([Floating pane](/docs/ui/window#floating-pane)) or as a card at the end of its tab. Detached blocks, blocks from other hosts (`host_id`) and blocks no terminal made need the same choice |
 | block | pane and terminal | one stable id, `block:<uuidv7>`, so `Pane.id == Pane.terminalID` |
-| client | one Oriel app on one machine | survives a dropped connection for 60 s |
+| client | one Ovvi app on one machine | survives a dropped connection for 60 s |
 
 A block keeps its id when it moves between windows. Rex has no separate
 terminal id, and none is needed. A block never leaves its Rex session, so
@@ -54,10 +54,10 @@ from the pane's cwd.
 ## Transport
 
 Rex has no SSH transport. Its client endpoints are the Unix socket, HTTP(S)
-and Tailscale. Oriel does not need any of them: a raw WebSocket works over the
+and Tailscale. Ovvi does not need any of them: a raw WebSocket works over the
 socket through `nc -U`, which the research tested.
 
-- Oriel runs `nc -U <socket>` through `Exec.run`. On This Mac this is a local
+- Ovvi runs `nc -U <socket>` through `Exec.run`. On This Mac this is a local
   `Process`. On a remote machine it is the same argv inside the
   [remote command envelope](/docs/talking-to-herdr#running-commands), over
   the relay. The relay carries only lines today, and the WebSocket frames are
@@ -65,7 +65,7 @@ socket through `nc -U`, which the research tested.
   already sends them). The other way: a stream-local forward on the
   ControlMaster (`ssh -S <ctl> -O forward -L <local.sock>:<socket>`), with no
   `nc`.
-- The channel carries plain bytes. Oriel speaks WebSocket (RFC 6455) on it with
+- The channel carries plain bytes. Ovvi speaks WebSocket (RFC 6455) on it with
   a small client of its own: about 150 lines, client masking, text and binary
   frames, ping and pong. `URLSessionWebSocketTask` cannot open a Unix socket.
 - `rex server status --json` gives the socket path (`endpoint`) on each
@@ -80,12 +80,12 @@ Each machine has two kinds of WebSocket:
 | data | `/api/data`, `rex.data.terminal.v1` | at most one per block per client | binary: handshake, snapshot, then raw PTY bytes |
 
 The control socket opens with a `hello` (`api_revision: 4`,
-`client.kind: "app"`, `client.name: "Oriel"`). The `welcome` returns a
+`client.kind: "app"`, `client.name: "Ovvi"`). The `welcome` returns a
 `client.id` and a `reconnect_token`. A request is about 0.3 ms on the server,
-so Oriel needs no pacing beyond the event rules below.
+so Ovvi needs no pacing beyond the event rules below.
 
 One client cannot open two data streams for one block: a second HELLO gets
-REJECT (`82 02`) and then a close with 1008. Two Oriel windows on one session
+REJECT (`82 02`) and then a close with 1008. Two Ovvi windows on one session
 ([Control between windows](/docs/talking-to-herdr#control-between-windows))
 share one stream per block, fanned out to both windows, or open one Rex
 client per window.
@@ -114,14 +114,14 @@ events to one reader.
   does not attach).
 
 Every `Multiplexer` member, with its Rex call, is in the research's
-[method-by-method table](https://github.com/hkandala/oriel/blob/main/resources/research/multiplexers/rex.md#multiplexerswift-method-by-method):
+[method-by-method table](https://github.com/hkandala/ovvi/blob/main/resources/research/multiplexers/rex.md#multiplexerswift-method-by-method):
 24 of its 34 rows (32 members; a move has three rows) map directly. 6 need
 adapter code: one session per server, visible text cut from `format`,
 divider drags and ratios found in the tree, a move to a new tab built from
 several calls, and key names turned into key objects. 4 cannot work:
 `deleteSession`, `mark`, `scroll` and a move to a new workspace.
 The adapter's own work is listed there too
-([Verdict](https://github.com/hkandala/oriel/blob/main/resources/research/multiplexers/rex.md#5-verdict)).
+([Verdict](https://github.com/hkandala/ovvi/blob/main/resources/research/multiplexers/rex.md#5-verdict)).
 Stream fan-out is in [Transport](#transport), stale owners in
 [Ownership](#ownership).
 
@@ -136,10 +136,10 @@ The flavor for a new shell is `com.superlogical.terminal.shell`.
 
 One control socket carries all events. Each event has a `seq` that starts at 1
 and has no gaps. A response carries the `seq` of the last event before it.
-So Oriel applies the response, then only events with a higher `seq`.
+So Ovvi applies the response, then only events with a higher `seq`.
 
 - `session_view_changed {revision}`: read `session.view` again for that
-  session, but only if the revision is higher than the one Oriel holds. These
+  session, but only if the revision is higher than the one Ovvi holds. These
   events can arrive out of order.
 - `session_created`: attach the new session, then read its view.
   `session_destroyed`, `session_moved` and `session_label_changed` change the
@@ -152,12 +152,12 @@ So Oriel applies the response, then only events with a higher `seq`.
   again, send `reconnect_token`, bootstrap and read every view again. Events
   in the gap are lost.
 
-herdr's events carry no state, so Oriel reads a snapshot after each one (D5).
-Rex's revisions let Oriel skip a read when the view did not change.
+herdr's events carry no state, so Ovvi reads a snapshot after each one (D5).
+Rex's revisions let Ovvi skip a read when the view did not change.
 
 ## RexTerminalStream
 
-Rex streams raw PTY bytes, not a redrawn screen. Oriel's libghostty surface
+Rex streams raw PTY bytes, not a redrawn screen. Ovvi's libghostty surface
 is then the second copy of the terminal: the server keeps the first.
 
 ### Open a stream
@@ -177,7 +177,7 @@ format, with the screen, the modes and the scrollback. It has a 10-byte header
 (`"GHOSTSNP"` and a u16 version), then records of
 `[u16 tag][u32 len][u32 crc32c][payload]`. The FINISH record (tag 6) ends it.
 
-libghostty-spm, the library Oriel uses, has no snapshot decoder. So:
+libghostty-spm, the library Ovvi uses, has no snapshot decoder. So:
 
 - **First version:** walk the record framing to the FINISH record (about 20
   lines) and drop the snapshot. Seed the screen with
@@ -213,7 +213,7 @@ right after the snapshot.
   "desired".
 - A watcher gets bytes for the owner's grid. Its surface grid must stay at the
   APC size, and the card clips or scales it.
-- The scrollback is Oriel's own: the snapshot's history plus live output. The
+- The scrollback is Ovvi's own: the snapshot's history plus live output. The
   surface keeps a real scrollback limit, and the wheel scrolls it locally.
 - The server answers terminal queries (DA, OSC 10 and 11), so the surface
   must not answer them again. Under herdr this never comes up: herdr's
@@ -238,7 +238,7 @@ WELCOME is ignored.
 - Mouse and wheel: `block.event {type: "mouse"}` and `{type: "wheel"}`, only
   while the program has mouse reporting on. Otherwise the local surface
   scrolls and selects. Outside mouse mode, the server scrolls and selects on
-  its own shared copy, which Oriel does not use.
+  its own shared copy, which Ovvi does not use.
 - Focus: `block.event {type: "focus"}`, only with mode 1004 on.
 
 ### End and resume
@@ -257,7 +257,7 @@ designed. The server parses it and keeps records per block: `state` (`idle`,
 `working`, `done`, `blocked`, `error`), `kind` (`permission`, `question`,
 `auth`), `progress`, `app`, `title` and `msg`.
 
-Oriel reads these records through the API, with
+Ovvi reads these records through the API, with
 `com.superlogical.terminal.program_status` and the `program_status_changed`
 and `program_status_removed` events. It never parses OSC 7501 in its own
 surfaces. This keeps D55: status comes only from the multiplexer's API, and
@@ -267,23 +267,23 @@ every device agrees.
   `done` or `error`, then `idle`. `error` shows as done with the word
   "failed".
 - Workspace and tab status fold their blocks, as herdr's do.
-- Rex has no `completion_seq`. Oriel uses a `done` record's `updated_at` as
+- Rex has no `completion_seq`. Ovvi uses a `done` record's `updated_at` as
   the finish marker. "Seen" stays in the app, keyed by block, record id and
   `updated_at`.
 - Codex sends OSC 7501 itself. An agent that does not (Claude Code, for
-  example) has no record. Oriel then knows the agent only by
+  example) has no record. Ovvi then knows the agent only by
   `process.foreground.name`, with no status.
 
 ## Ownership
 
 A Rex block has at most one owner client. The owner sets the PTY size and
 theme. Anyone attached can stream it, type into it and close it. This is close
-to herdr's control and observe, and Oriel's control rule (D8) maps onto it:
+to herdr's control and observe, and Ovvi's control rule (D8) maps onto it:
 
-| Oriel's control rule (D8) | Rex |
+| Ovvi's control rule (D8) | Rex |
 |---|---|
 | open without takeover | `session.own_block {block_ids, mode: "request"}`; if the owner is not in `client.list`, `mode: "take"` |
-| refused: watch, show Take Back | the result's `owner` is not Oriel's client id |
+| refused: watch, show Take Back | the result's `owner` is not Ovvi's client id |
 | first key, paste or click, or Take Back | `session.own_block {mode: "take"}` |
 | "taken over" | `block_owner_changed {previous: <me>, reason: "take"}` |
 | iPhone and iPad, if built: watch only ([iPhone and iPad](/docs/future-work/iphone-and-ipad#watching-and-control)) | no `own_block` call; stream only |
@@ -296,14 +296,14 @@ not a live client.
 
 Two differences matter:
 
-- A watcher can still type in Rex. Oriel keeps its own rule: a key press in a
+- A watcher can still type in Rex. Ovvi keeps its own rule: a key press in a
   watching card takes control first, so the PTY size follows the device that
   types.
 - When the owner leaves, Rex hands the block to the next claimant in line and
-  resizes it to that client's last desired size. herdr does not. Oriel shows the new state from the `block_owner_changed`
+  resizes it to that client's last desired size. herdr does not. Ovvi shows the new state from the `block_owner_changed`
   event and does not take back by itself.
 
-Rex.app claims the blocks that it shows. If Rex.app and Oriel show the same
+Rex.app claims the blocks that it shows. If Rex.app and Ovvi show the same
 block, ownership moves between them on each claim. This is accepted.
 
 ## Focus
@@ -313,12 +313,12 @@ each window has a `focused_block_id`. The rules of D13 apply:
 
 - Every create call sends `focus: false`. `session.new_window` defaults to
   `focus: true`.
-- Oriel never calls `session.focus_*`.
+- Ovvi never calls `session.focus_*`.
 - `session.zoom_block` moves focus to its block unless the call names the
   `window_id`. Zoom stays the app's own ([Zoom](/docs/layout#zoom-is-the-apps-own)).
 - `session.swap_blocks` and `session.move_block` can move focus with the
-  block. Oriel calls them only after a drag, as with `pane.swap`.
-- Oriel reads `focused_block_id` once, for the first selection, as it does
+  block. Ovvi calls them only after a drag, as with `pane.swap`.
+- Ovvi reads `focused_block_id` once, for the first selection, as it does
   with herdr.
 
 ## Changes to HerdrKit
@@ -356,16 +356,16 @@ server on its own socket, with its own state folder and an empty config
 file (an empty `init.lua`), and the app connects to that socket:
 
 ```sh
-rex server run --listen unix:///tmp/oriel-e2e.sock \
-  --state-dir /tmp/oriel-e2e-rex --config /tmp/oriel-e2e-rex/init.lua
+rex server run --listen unix:///tmp/ovvi-e2e.sock \
+  --state-dir /tmp/ovvi-e2e-rex --config /tmp/ovvi-e2e-rex/init.lua
 ```
 
 Every other `rex` command in the tests passes `--autostart=false`, or the CLI
 can start the user's server.
 
-The run creates sessions named `oriel-e2e-*` and stops the server at the end.
+The run creates sessions named `ovvi-e2e-*` and stops the server at the end.
 The same rules as for herdr apply: existing sessions are read only, and
-Oriel never calls focus methods.
+Ovvi never calls focus methods.
 
 ## Risks
 
@@ -374,8 +374,8 @@ Oriel never calls focus methods.
 | GHOSTSNP is "v1, work in progress" | a decoder breaks after a Rex update | first version skips the snapshot and seeds with `format vt` |
 | The resize APC races the card size | wrapped or broken lines | resize the surface only at the APC |
 | A watcher gets the owner's grid | clipped or scaled cards on small screens | pin the surface grid to the APC size |
-| Rex.app and Oriel claim the same block | the PTY size changes hands | accepted; Take Back as with herdr |
+| Rex.app and Ovvi claim the same block | the PTY size changes hands | accepted; Take Back as with herdr |
 | Agents without OSC 7501 | no status for those agents | show the agent by process name only |
 | `nc` missing on a machine | no connection | `socat` or `python3`; a clear message |
 | `format` over 1 MiB | no seeded history | `trim`, or start with no history |
-| Oriel shows in `rex client ls` and Rex.app | other users see the client | accepted; the hello names it "Oriel" |
+| Ovvi shows in `rex client ls` and Rex.app | other users see the client | accepted; the hello names it "Ovvi" |

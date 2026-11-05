@@ -1,12 +1,12 @@
 ---
 title: "Remote machines"
-description: "How an agent on a remote machine reaches the Oriel on a Mac, how the command gets there, how long a call takes, and what differs"
+description: "How an agent on a remote machine reaches the Ovvi on a Mac, how the command gets there, how long a call takes, and what differs"
 ---
 
-An agent on a remote machine runs the same `oriel` command, with the same
+An agent on a remote machine runs the same `ovvi` command, with the same
 answers, as an agent on This Mac ([Agent control](/docs/agent-control)).
 Everything the agent touches is on its own machine: the script, the mailbox
-and herdr. Oriel already holds the link to that machine: one SSH session
+and herdr. Ovvi already holds the link to that machine: one SSH session
 through the relay, which carries the event stream and every run
 ([The SSH connection](/docs/machines#the-ssh-connection)).
 
@@ -16,17 +16,17 @@ through the relay, which carries the event stream and every run
 remote machine (devbox)                                   the Mac
 ──────────────────────────────────────────────            ─────────────────────────────
 agent in pane w1:p2
-  │ 1. ~/.cache/oriel/bin/oriel open git /srv/app uncommitted
-  │ 2. writes ~/.cache/oriel/rpc/<id>.req
-  │ 3. herdr pane report-metadata w1:p2 oriel-req=<id>
+  │ 1. ~/.cache/ovvi/bin/ovvi open git /srv/app uncommitted
+  │ 2. writes ~/.cache/ovvi/rpc/<id>.req
+  │ 3. herdr pane report-metadata w1:p2 ovvi-req=<id>
   ▼
-herdr server ── pane.updated (tokens) ── events stream ── relay ──► Oriel (HostStore of devbox/default)
+herdr server ── pane.updated (tokens) ── events stream ── relay ──► Ovvi (HostStore of devbox/default)
                                                                      │ 4. run: mv <id>.req <id>.run; base64
-~/.cache/oriel/rpc/<id>.run  ◄──────────────────────────── relay ────┘
+~/.cache/ovvi/rpc/<id>.run   ◄──────────────────────────── relay ────┘
                                                                      │ 5. herdr calls (layout.apply, pane.move…)
 herdr server  ◄──────────────────────── remote-api-bridge ── relay ──┤    the card shows in the window
                                                                      │ 6. run: write <id>.out, <id>.exit
-~/.cache/oriel/rpc/<id>.exit ◄──────────────────────────── relay ────┘
+~/.cache/ovvi/rpc/<id>.exit  ◄──────────────────────────── relay ────┘
   │ 7. the script prints <id>.out, exits with the code
   ▼
 agent reads the answer
@@ -42,13 +42,13 @@ remote machine) makes the folders, removes mailbox files older than 60
 minutes and reads the script's version:
 
 ```sh
-d=$HOME/.cache/oriel; mkdir -p "$d/bin" "$d/rpc" && chmod 700 "$d/rpc" &&
-find "$d/rpc" -type f -mmin +60 -exec rm -f {} + ; sed -n 2p "$d/bin/oriel" 2>/dev/null
+d=$HOME/.cache/ovvi; mkdir -p "$d/bin" "$d/rpc" && chmod 700 "$d/rpc" &&
+find "$d/rpc" -type f -mmin +60 -exec rm -f {} + ; sed -n 2p "$d/bin/ovvi" 2>/dev/null
 ```
 
-- If that line is missing, or its `# oriel-cli ‹protocol›.‹revision›` is
-  lower than Oriel's own script's, a second run writes the script: base64 on
-  standard input, to a temporary name, mode 0755, then `mv`. Oriel never
+- If that line is missing, or its `# ovvi-cli ‹protocol›.‹revision›` is
+  lower than Ovvi's own script's, a second run writes the script: base64 on
+  standard input, to a temporary name, mode 0755, then `mv`. Ovvi never
   writes over a script of the same or a higher version
   ([Versions](/docs/agent-control/protocol#versions)).
 - Nothing else is installed. The script needs `sh` and POSIX tools. The relay
@@ -58,7 +58,7 @@ find "$d/rpc" -type f -mmin +60 -exec rm -f {} + ; sed -n 2p "$d/bin/oriel" 2>/d
 
 ## Timing
 
-`oriel info`, typed in a pane, to its exit:
+`ovvi info`, typed in a pane, to its exit:
 
 | Where | Best | Median | Worst |
 |---|---|---|---|
@@ -72,49 +72,49 @@ find "$d/rpc" -type f -mmin +60 -exec rm -f {} + ; sed -n 2p "$d/bin/oriel" 2>/d
   answer adds one round trip, and the event adds half of one.
 - The script's own processes (the ring, and `date` and `sleep` in each 50 ms
   look) cost the rest.
-- `oriel status` takes about 0.18 s: two herdr calls on the machine.
-- With no Oriel, the command exits 3 after 2.4 to 3.0 s.
+- `ovvi status` takes about 0.18 s: two herdr calls on the machine.
+- With no Ovvi, the command exits 3 after 2.4 to 3.0 s.
 
 The take wait is 3 s and the answer wait 10 s, enough for a slow link. A
-caller that wants a fast "no" reads `oriel status` first, which never leaves
+caller that wants a fast "no" reads `ovvi status` first, which never leaves
 the machine.
 
 ## What differs on a remote machine
 
-- **Paths** are the machine's. `oriel open ./notes.md` opens the remote
+- **Paths** are the machine's. `ovvi open ./notes.md` opens the remote
   file, through the card's `Exec`, as every plugin card on that machine does.
 - **`localhost`** in a browser card is the machine's, through the SOCKS proxy
   ([Remote localhost](/docs/ui/browser#remote-localhost)). A path for the
   browser, or a `file://` URL for any kind, opens only on This Mac: from a
   remote pane it is `bad_argument`.
-- **Plugins** live on the Mac. `oriel plugins` lists them, without `log`.
+- **Plugins** live on the Mac. `ovvi plugins` lists them, without `log`.
   `plugins new`, `reload` and `install` are `other_machine`.
-- **`remote`** in `oriel status` is true, so the agent knows its own `pbcopy`
-  does not reach the Mac. `oriel copy` does.
+- **`remote`** in `ovvi status` is true, so the agent knows its own `pbcopy`
+  does not reach the Mac. `ovvi copy` does.
 - **The link drops** (sleep, a network change): the event stream ends, and
-  Oriel opens it again as it does for every session. The snapshot read then
+  Ovvi opens it again as it does for every session. The snapshot read then
   takes a ring whose token still lives (3 s). A request after that is not
   replayed: the command exited 3.
-- **Another session on the machine** (`oriel float pi-herd/w1:p1`) works
-  while herdr runs it there. Oriel opens the other session for the float, on
-  a float-only page, as `oriel://float` does with `&machine=`.
+- **Another session on the machine** (`ovvi float pi-herd/w1:p1`) works
+  while herdr runs it there. Ovvi opens the other session for the float, on
+  a float-only page, as `ovvi://float` does with `&machine=`.
 - **Two Macs on one machine:** each has its own SSH link and stream. Both hear
   the ring, and the `mv` on the machine picks one
-  ([Two Oriels](/docs/agent-control/protocol#two-oriels)).
-- **A machine no Oriel connects to** keeps the script it has, or none. An old
-  script still works: the protocol is the same, and Oriel parses the
+  ([Two Ovvis](/docs/agent-control/protocol#two-ovvis)).
+- **A machine no Ovvi connects to** keeps the script it has, or none. An old
+  script still works: the protocol is the same, and Ovvi parses the
   commands.
 
 ## Why not a forwarded socket
 
-A socket of Oriel's own on the Mac, reached from the machine by
-`ssh -R /path/oriel.sock:…`, would give a plain request and reply. Oriel does
+A socket of Ovvi's own on the Mac, reached from the machine by
+`ssh -R /path/ovvi.sock:…`, would give a plain request and reply. Ovvi does
 not use one:
-- Oriel's SSH link runs with `ClearAllForwardings=yes` and no agent
+- Ovvi's SSH link runs with `ClearAllForwardings=yes` and no agent
   forwarding, so that a machine cannot reach the Mac through the app's
   long-lived link. A reverse forward opens exactly that door, to every
   process of the user on the machine.
 - Two Macs on one machine need two socket paths, and the command must pick
-  one. herdr's tokens reach every Oriel that follows the session, and the
+  one. herdr's tokens reach every Ovvi that follows the session, and the
   `mv` picks one.
 - The relay and the event stream already carry everything the bus needs.

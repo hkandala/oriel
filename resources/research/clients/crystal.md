@@ -47,7 +47,7 @@ About 14k lines of chat code without tests: main `panels/{claude,codex,cli,ai}` 
   `--permission-prompt-tool` is ignored, so approvals go through a `PreToolUse` hook.
 - It follows transcripts of CLI sessions started outside the app (`~/.claude/projects`, Codex rollouts).
 
-## For Oriel
+## For Ovvi
 
 - Copy: nothing structural. The per-turn headless model is the opposite of "the TUI keeps running".
 - Avoid: `--permission-prompt-tool` for interactive sessions: it only works with `-p` (Nimbalyst confirmed this).

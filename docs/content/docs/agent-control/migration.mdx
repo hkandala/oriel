@@ -1,33 +1,33 @@
 ---
 title: "Migration"
-description: "How pi-herd's float, pi's copy and the oriel-panes skill moved to the oriel command, and the older tokens Oriel still reads"
+description: "How pi-herd's float, pi's copy and the ovvi-panes skill moved to the ovvi command, and the older tokens Ovvi still reads"
 ---
 
-Three callers used token tricks before the `oriel` command
+Three callers used token tricks before the `ovvi` command
 ([Agent control](/docs/agent-control)). Each now runs the command:
-- pi-herd's float (in pi-hkandala) runs `oriel float`.
-- pi's copy (in pi-hkandala) runs `oriel copy`.
-- The `oriel` skill replaces the `oriel-panes` skill.
+- pi-herd's float (in pi-hkandala) runs `ovvi float`.
+- pi's copy (in pi-hkandala) runs `ovvi copy`.
+- The `ovvi` skill replaces the `ovvi-panes` skill.
 
-Oriel still reads the older float and copy tokens for one release, for a
+Ovvi still reads the older float and copy tokens for one release, for a
 machine with an older pi-hkandala checkout
 ([Float requests](/docs/talking-to-herdr#float-requests),
 [Copy requests](/docs/talking-to-herdr#copy-requests)). Then it removes them.
 
 ## pi-herd's float
 
-At a click on an agent, pi-herd reads `oriel-shown` on its own pane (a few
-milliseconds on its own herdr socket). When Oriel shows the pane, pi-herd
+At a click on an agent, pi-herd reads `ovvi-shown` on its own pane (a few
+milliseconds on its own herdr socket). When Ovvi shows the pane, pi-herd
 runs the command:
 
 ```ts
 // extensions/pi-herd/herdr.ts
-const ORIEL = join(homedir(), ".cache", "oriel", "bin", "oriel");
+const OVVI = join(homedir(), ".cache", "ovvi", "bin", "ovvi");
 
-export const orielFloat = (pane: string, target: { socket: string; pane: string }) =>
+export const ovviFloat = (pane: string, target: { socket: string; pane: string }) =>
   new Promise<boolean>((ok) =>
     execFile(
-      ORIEL,
+      OVVI,
       ["--pane", pane, "float", `${sessionOf(target.socket)}/${target.pane}`],
       { timeout: 15_000 },
       (e) => ok(!e),
@@ -37,43 +37,43 @@ export const orielFloat = (pane: string, target: { socket: string; pane: string 
 
 ```ts
 // extensions/pi-herd/index.ts, in attach
-if ((await orielShows(socket, pane)) && (await orielFloat(pane, a.herdr))) return;
+if ((await ovviShows(socket, pane)) && (await ovviFloat(pane, a.herdr))) return;
 // Not shown, or it did not float: herdr focuses the pane, or the popup opens.
 ```
 
-- Any exit but 0 (no command on the machine, no Oriel took it, an error)
+- Any exit but 0 (no command on the machine, no Ovvi took it, an error)
   falls back to herdr's popup, so the click is never lost.
-- `orielShows` stays, so a click in herdr's own TUI opens the popup at once.
+- `ovviShows` stays, so a click in herdr's own TUI opens the popup at once.
 
 ## pi's copy
 
-`herdr/oriel-copy.ts` copies through Oriel only when its pane carries
-`oriel-shown` = `remote`, so pi is not on Oriel's Mac. Then it pipes the text
-into `oriel copy`:
+`herdr/ovvi-copy.ts` copies through Ovvi only when its pane carries
+`ovvi-shown` = `remote`, so pi is not on Ovvi's Mac. Then it pipes the text
+into `ovvi copy`:
 
 ```ts
-// herdr/oriel-copy.ts
+// herdr/ovvi-copy.ts
 const got = await rpc(socket, "pane.get", { pane_id: pane }).catch(() => undefined);
-if (got?.pane?.tokens?.["oriel-shown"] !== "remote") return false;
+if (got?.pane?.tokens?.["ovvi-shown"] !== "remote") return false;
 return new Promise((ok) => {
-  const child = execFile(ORIEL, ["copy"], { timeout: 15_000 }, (e) => ok(!e));
+  const child = execFile(OVVI, ["copy"], { timeout: 15_000 }, (e) => ok(!e));
   child.stdin?.on("error", () => {});
   child.stdin?.end(text);
 });
 ```
 
-- False means pi copies as before (`pbcopy` on Oriel's Mac).
-- The command removes its own files, and Oriel cleans the mailbox on
+- False means pi copies as before (`pbcopy` on Ovvi's Mac).
+- The command removes its own files, and Ovvi cleans the mailbox on
   connect, so pi has no cleanup of its own.
 - Its test runs a fake script in place of the command, which records its
   standard input.
 
-## The oriel skill
+## The ovvi skill
 
-The `oriel` skill (`skills/oriel/` in the Oriel repo,
-[The oriel skill](/docs/agent-control#the-oriel-skill)) replaces `oriel-panes`
-and its `placeholder.sh`. Its `SKILL.md` says what Oriel is, how to tell that
-it shows the pane (`oriel status`), the commands an agent uses most and the
+The `ovvi` skill (`skills/ovvi/` in the Ovvi repo,
+[The ovvi skill](/docs/agent-control#the-ovvi-skill)) replaces `ovvi-panes`
+and its `placeholder.sh`. Its `SKILL.md` says what Ovvi is, how to tell that
+it shows the pane (`ovvi status`), the commands an agent uses most and the
 rules (with `notify` and `copy`). One file per topic loads only when the agent needs it:
 
 | File | Holds |
@@ -85,22 +85,22 @@ rules (with `notify` and `copy`). One file per topic loads only when the agent n
 
 Every herdr detail points to the herdr skill (`herdr --skill`).
 
-- The label table, the iid loop, `pane rename` and the `oriel-label` nudge
-  left the skill. The label grammar stays the truth in Oriel, so a pane
+- The label table, the iid loop, `pane rename` and the `ovvi-label` nudge
+  left the skill. The label grammar stays the truth in Ovvi, so a pane
   labeled by hand still works
   ([Labels and instance ids](/docs/plugins/labels)).
-- Oriel starts its own placeholder, so the skill ships none.
+- Ovvi starts its own placeholder, so the skill ships none.
 - The rules that stay: no secrets in an argument (every device sees the
   label), a file in the browser only on This Mac, `localhost` is the pane's
   machine.
 
-## In Oriel
+## In Ovvi
 
 | Kept | Why |
 |---|---|
-| `Update.float` and `Update.copy`, and their decode of `oriel-float` and `oriel-copy` | older pi-hkandala checkouts, for one release ([Float requests](/docs/talking-to-herdr#float-requests), [Copy requests](/docs/talking-to-herdr#copy-requests)) |
-| `oriel-shown` with its values `1` and `remote` | pi-herd and pi's copy read it |
-| `oriel://float` | Mac tools (Raycast, Alfred, scripts on This Mac) |
+| `Update.float` and `Update.copy`, and their decode of `ovvi-float` and `ovvi-copy` | older pi-hkandala checkouts, for one release ([Float requests](/docs/talking-to-herdr#float-requests), [Copy requests](/docs/talking-to-herdr#copy-requests)) |
+| `ovvi-shown` with its values `1` and `remote` | pi-herd and pi's copy read it |
+| `ovvi://float` | Mac tools (Raycast, Alfred, scripts on This Mac) |
 
 When the older tokens go, `Update.float`, `Update.copy`, `FloatRequest` and
-their sets leave HerdrKit, and the event loop decodes only `oriel-req`.
+their sets leave HerdrKit, and the event loop decodes only `ovvi-req`.

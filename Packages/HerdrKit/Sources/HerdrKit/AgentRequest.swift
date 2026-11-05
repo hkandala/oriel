@@ -1,10 +1,10 @@
 import Foundation
 
-/// One request of the `oriel` command (agent-control/protocol): `‹id›.req` in the machine's mailbox
-/// `~/.cache/oriel/rpc`, NUL-separated fields: `oriel-req`, the protocol version, the command's working folder, then
+/// One request of the `ovvi` command (agent-control/protocol): `‹id›.req` in the machine's mailbox
+/// `~/.cache/ovvi/rpc`, NUL-separated fields: `ovvi-req`, the protocol version, the command's working folder, then
 /// the arguments as typed.
 public struct AgentRequest: Equatable, Sendable {
-    /// The protocol this kit speaks: in each request, in `oriel-open` and on the script's second line.
+    /// The protocol this kit speaks: in each request, in `ovvi-open` and on the script's second line.
     public static let version = 1
     /// The most a request (64 KiB) and a copy's standard input (1 MiB) may hold.
     public static let limit = 64 << 10, inputLimit = 1 << 20
@@ -30,7 +30,7 @@ public struct AgentRequest: Equatable, Sendable {
         // Each field ends with a NUL, so the last split is empty.
         guard fields.popLast() == "" else { throw .unreadable }
         guard fields.count <= 64 else { throw .tooLarge }
-        guard fields.count >= 3, fields[0] == "oriel-req", let version = Int(fields[1]) else { throw .unreadable }
+        guard fields.count >= 3, fields[0] == "ovvi-req", let version = Int(fields[1]) else { throw .unreadable }
         guard version <= Self.version else { throw .newer(version) }
         cwd = fields[2]
         argv = Array(fields[3...])
@@ -47,26 +47,26 @@ public struct AgentRequest: Equatable, Sendable {
 public extension Exec {
     /// When a session opens on the machine: makes the folders, removes mailbox files older than 60 minutes and reads
     /// the script's version; a second run writes `script` when the machine's is missing or older, never over a newer
-    /// one (agent-control/remote). The version is the second line's `# oriel-cli ‹protocol›.‹revision›`: a fixed
+    /// one (agent-control/remote). The version is the second line's `# ovvi-cli ‹protocol›.‹revision›`: a fixed
     /// script gets a new revision and replaces the old one without a new protocol.
     func prepareAgent(script: Data) async {
         let line = try? await output(["sh", "-c", #"""
-        d=$HOME/.cache/oriel; mkdir -p "$d/bin" "$d/rpc" && chmod 700 "$d/rpc" &&
-        find "$d/rpc" -type f -mmin +60 -exec rm -f {} + ; sed -n 2p "$d/bin/oriel" 2>/dev/null
+        d=$HOME/.cache/ovvi; mkdir -p "$d/bin" "$d/rpc" && chmod 700 "$d/rpc" &&
+        find "$d/rpc" -type f -mmin +60 -exec rm -f {} + ; sed -n 2p "$d/bin/ovvi" 2>/dev/null
         """#])
         let ours = String(decoding: script, as: UTF8.self).split(separator: "\n").dropFirst().first.map(String.init)
         guard let line, scriptVersion(line).lexicographicallyPrecedes(scriptVersion(ours ?? "")) else { return }
         await succeeds(#"""
-        f=$HOME/.cache/oriel/bin/oriel; base64 -d >"$f.$$" && chmod 755 "$f.$$" && mv "$f.$$" "$f" || rm -f "$f.$$"
+        f=$HOME/.cache/ovvi/bin/ovvi; base64 -d >"$f.$$" && chmod 755 "$f.$$" && mv "$f.$$" "$f" || rm -f "$f.$$"
         """#, [], input: base64Lines(script))
     }
 
     /// Takes the request: renames `‹id›.req` to `‹id›.run` and reads it, at most one byte over the limit. Nil when
-    /// another Oriel took it first, or the command gave up.
+    /// another Ovvi took it first, or the command gave up.
     func take(request id: String) async throws -> Data? {
         guard AgentRequest.isID(id) else { return nil }
         let text = try await output(["sh", "-c", #"""
-        cd "$HOME/.cache/oriel/rpc" && mv -- "$1.req" "$1.run" && head -c "$2" "$1.run" | base64
+        cd "$HOME/.cache/ovvi/rpc" && mv -- "$1.req" "$1.run" && head -c "$2" "$1.run" | base64
         """#, "sh", id, "\(AgentRequest.limit + 1)"])
         return text.isEmpty ? nil : Data(base64Encoded: text, options: .ignoreUnknownCharacters)
     }
@@ -75,7 +75,7 @@ public extension Exec {
     func input(request id: String) async throws -> Data {
         guard AgentRequest.isID(id) else { return Data() }
         let text = try await output(
-            ["sh", "-c", #"f=$HOME/.cache/oriel/rpc/$1.in; [ ! -f "$f" ] || head -c "$2" "$f" | base64"#,
+            ["sh", "-c", #"f=$HOME/.cache/ovvi/rpc/$1.in; [ ! -f "$f" ] || head -c "$2" "$f" | base64"#,
              "sh", id, "\(AgentRequest.inputLimit + 1)"],
             timeout: .seconds(30),
         )
@@ -87,14 +87,14 @@ public extension Exec {
     func answer(request id: String, code: Int32, out: Data, err: String) async throws {
         guard AgentRequest.isID(id) else { return }
         _ = try await checkedOutput(["sh", "-c", #"""
-        cd "$HOME/.cache/oriel/rpc" && base64 -d >"$1.o" && mv "$1.o" "$1.out" &&
+        cd "$HOME/.cache/ovvi/rpc" && base64 -d >"$1.o" && mv "$1.o" "$1.out" &&
         printf '%s\n%s' "$2" "$3" >"$1.e" && mv "$1.e" "$1.exit"; s=$?; rm -f "$1.run" "$1.in"; exit $s
         """#, "sh", id, "\(code)", err], input: base64Lines(out), timeout: .seconds(30))
     }
 }
 
-/// `# oriel-cli 1.1` as [1, 1]; none for another line.
+/// `# ovvi-cli 1.1` as [1, 1]; none for another line.
 private func scriptVersion(_ line: String) -> [Int] {
-    guard line.hasPrefix("# oriel-cli ") else { return [] }
+    guard line.hasPrefix("# ovvi-cli ") else { return [] }
     return line.dropFirst(12).split(separator: ".").map { Int($0) ?? 0 }
 }

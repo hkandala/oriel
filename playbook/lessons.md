@@ -40,9 +40,9 @@ Problems that came back across phases, and the rule that stops each. How we work
   with no phases; a ⌘ key whose menu item is disabled is never delivered. Real trackpad gestures go
   through the e2e helper as HID events. It cannot read a menu checkmark (`isSelected` is false), hear an
   announcement or drive the Dock menu: check those by hand (`AXMenuItemMarkChar`, a screenshot).
-- **Tests share defaults and saved windows with the user's Oriel (same bundle id).** Pin settings with
+- **Tests share defaults and saved windows with the user's Ovvi (same bundle id).** Pin settings with
   launch arguments, reset them in teardown, launch with `-ApplePersistenceIgnoreState`. Saved windows live in
-  `$TMPDIR/dev.hkandala.oriel.savedState` (not `~/Library/Saved Application State`): a restore check starts
+  `$TMPDIR/dev.ovvi.app.savedState` (not `~/Library/Saved Application State`): a restore check starts
   the app with `open`, attaches with `XCUIApplication(bundleIdentifier:)`, and deletes that folder after.
 - **Each test restores what it changes** (defaults, herdr focus, the pointer, leftover sessions) and reads
   fixture ids from herdr instead of assuming them; otherwise it passes alone and fails in its shard.
@@ -76,7 +76,7 @@ Problems that came back across phases, and the rule that stops each. How we work
   `report-agent`: a stand-in agent runs under that name.
 - **herdr ids repeat:** tab ids (`w1:t1`) across sessions, session names across machines. Key state by
   (machine, session, id).
-- **Validate outside input before it reaches argv or a shell:** `oriel://` URLs, herdr metadata, dropped
+- **Validate outside input before it reaches argv or a shell:** `ovvi://` URLs, herdr metadata, dropped
   file names. Reject names that start with `-`.
 - **Machine-wide resources have a budget too:** ptys (`kern.tty.ptmx_max`), herdr sessions. Make a stress
   session inside a GUI-lock hold and delete it in the same command.

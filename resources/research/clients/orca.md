@@ -2,7 +2,7 @@
 
 Repo: https://github.com/stablyai/orca (v1.4.214, MIT). Electron 43, React 19, TypeScript, xterm.js, node-pty,
 SQLite. Not a herdr client: it runs its own PTYs in a daemon. Read for its chat view, which is experimental and off
-by default (`docs/site/content/docs/agents/native-chat.mdx`). The options for Oriel are in
+by default (`docs/site/content/docs/agents/native-chat.mdx`). The options for Ovvi are in
 [../ui/chat-view.md](../ui/chat-view.md).
 
 ## Two chat modes
@@ -54,7 +54,7 @@ by default (`docs/site/content/docs/agents/native-chat.mdx`). The options for Or
 About 150–170k lines of chat code without tests: `src/main/native-chat/` 57k, the renderer's `native-chat/` 51k,
 ACP 11.5k, Codex structured 11k, Claude structured 7.5k, pi RPC 3.8k. Tests are 1.5–2 times that.
 
-## For Oriel
+## For Ovvi
 
 - Copy: the terminal-backed mode is the cheap 80 %: same process, toggle in place, transcript found from the
   agent's own report, sends as a paste then a late Enter.

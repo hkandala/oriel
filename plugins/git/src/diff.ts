@@ -1,7 +1,7 @@
-// A Git card's diff, a page of its own (`oriel.pages`): a source's patch in one scroll, each file a box with a sticky
+// A Git card's diff, a page of its own (`ovvi.pages`): a source's patch in one scroll, each file a box with a sticky
 // header and its lines in @pierre/diffs' VirtualizedFileDiff, and the file list beside it; a commit's subject, body and
 // facts above its files. Row 2 has Git Home, the layout, the wrap, the list and previous / next change.
-import type { Page } from "@oriel/plugin-api"
+import type { Page } from "@ovvi/plugin-api"
 import {
   type FileDiffMetadata,
   type FileDiffOptions,
@@ -10,7 +10,7 @@ import {
   VirtualizedFileDiff,
   Virtualizer,
 } from "@pierre/diffs"
-import { element, failed as toast, fileIcon, home, type How, how, keep, nameAndFolder, open, oriel } from "./lib"
+import { element, failed as toast, fileIcon, home, type How, how, keep, nameAndFolder, open, ovvi } from "./lib"
 
 /** How near the view a file's box makes its view. */
 const MARGIN = 1500
@@ -94,13 +94,13 @@ function text(file: FileDiffMetadata) {
 
 /** The diff of a source of a root in its page, drawn once read, at a file (`at`) when it has it. A first read that fails
  *  (a folder not yet a repository, a machine away) shows git's error and reads again at the next change in the work
- *  tree. Its header controls, handlers and watch are the page's own (`place.oriel`). */
+ *  tree. Its header controls, handlers and watch are the page's own (`place.ovvi`). */
 export async function make(place: Page, root: string, source: string) {
-  const api = place.oriel
+  const api = place.ovvi
   const page = element("div")
   page.id = "diff"
   // The file list slides in and out as every plugin's sidebar (card.css).
-  const nav = element("nav", "list oriel-sidebar")
+  const nav = element("nav", "list ovvi-sidebar")
   const main = element("main", "diff")
   /** What scrolls: a commit's facts, then a box per file. */
   const content = element("div", "content")
@@ -132,7 +132,7 @@ export async function make(place: Page, root: string, source: string) {
   // until the user opens it.
   let split = api.controls.get("diff.layout") === "split"
   let wrap = api.controls.get("diff.wrap") === true
-  let list = oriel.state.get<{ list?: boolean }>()?.list ?? false
+  let list = ovvi.state.get<{ list?: boolean }>()?.list ?? false
   nav.toggleAttribute("data-closed", !list)
 
   // Each file's lines draw only near the view; its box keeps the whole file's height, so its header is sticky in CSS
@@ -158,7 +158,7 @@ export async function make(place: Page, root: string, source: string) {
 
   const options: FileDiffOptions<undefined, undefined> = {
     theme: { dark: "pierre-dark", light: "pierre-light" },
-    themeType: oriel.theme.dark ? "dark" : "light",
+    themeType: ovvi.theme.dark ? "dark" : "light",
     diffStyle: split ? "split" : "unified",
     overflow: overflow(),
     lineDiffType: "word",
@@ -277,7 +277,7 @@ export async function make(place: Page, root: string, source: string) {
 
   /** A commit's subject (also the card's title), its body, and its author, date, hash and parents; none for the working
    *  tree. */
-  function describe(facts: Awaited<ReturnType<typeof oriel.git.show>> | undefined) {
+  function describe(facts: Awaited<ReturnType<typeof ovvi.git.show>> | undefined) {
     about.replaceChildren()
     document.title = facts?.subject ?? ""
     if (!facts) return
@@ -292,7 +292,7 @@ export async function make(place: Page, root: string, source: string) {
     const copy = element("button", "hash", facts.hash.slice(0, 10))
     copy.title = "Copy"
     copy.ariaLabel = `Copy ${facts.hash}`
-    copy.onclick = () => oriel.clipboard.write(facts.hash).then(() => {
+    copy.onclick = () => ovvi.clipboard.write(facts.hash).then(() => {
       copy.textContent = "Copied"
       setTimeout(() => (copy.textContent = facts.hash.slice(0, 10)), 1200)
     }, toast)
@@ -490,7 +490,7 @@ export async function make(place: Page, root: string, source: string) {
     return asking
   }
 
-  const read = () => oriel.git.diff(root, source).catch((error: Error) => error)
+  const read = () => ovvi.git.diff(root, source).catch((error: Error) => error)
 
   /** A patch drawn when its text changed. A diff drawn keeps its patch on a failed read; a first read shows why. */
   function apply(next: string | Error) {
@@ -541,7 +541,7 @@ export async function make(place: Page, root: string, source: string) {
   }
 
   api.on("control", ({ id, value }) => {
-    if (id === "diff.home") oriel.card.go(home(root))
+    if (id === "diff.home") ovvi.card.go(home(root))
     else if (id === "diff.layout") layout({ split: value === "split" })
     else if (id === "diff.wrap") layout({ wrap: value === true })
     else if (id === "diff.file-list") toggleList()
@@ -559,7 +559,7 @@ export async function make(place: Page, root: string, source: string) {
   // they are in (its words colored once its language is).
   const [next, facts] = await Promise.all([read(), source === "uncommitted"
     ? undefined
-    : oriel.git.show(root, source).catch(() => undefined),
+    : ovvi.git.show(root, source).catch(() => undefined),
   preloadHighlighter({ themes: [...new Set(Object.values(options.theme!))], langs: [] }).catch(console.error)])
   describe(facts)
   apply(next)

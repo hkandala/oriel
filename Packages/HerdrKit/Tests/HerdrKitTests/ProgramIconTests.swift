@@ -16,7 +16,7 @@ private func icon(agent: String? = nil, _ program: Program? = nil, title: String
     #expect(catalog.count > 100)
     let hex = /#[0-9a-f]{6}/
     for icon in catalog {
-        let set = repoRoot.appending(path: "Oriel/Assets.xcassets/program.\(icon.id).imageset/\(icon.id).svg")
+        let set = repoRoot.appending(path: "Ovvi/Assets.xcassets/program.\(icon.id).imageset/\(icon.id).svg")
         #expect(FileManager.default.fileExists(atPath: set.path), "\(icon.id)")
         #expect(
             try hex.wholeMatch(in: icon.tile.background) != nil && hex.wholeMatch(in: icon.tile.glyph) != nil,
@@ -47,7 +47,7 @@ private func icon(agent: String? = nil, _ program: Program? = nil, title: String
 }
 
 @Test func `the title's first word matches when nothing else does`() {
-    #expect(icon(title: "π - oriel") == "pi")
+    #expect(icon(title: "π - ovvi") == "pi")
     #expect(icon(title: "Claude Code") == "claude")
     #expect(icon(title: "πr squared") == "terminal")
 }

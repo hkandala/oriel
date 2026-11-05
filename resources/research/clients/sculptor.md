@@ -3,7 +3,7 @@
 Repo: https://github.com/imbue-ai/sculptor (backend 0.50.0.dev0, MIT, active: commits daily, about 240 stars, few public
 issues). Electron and React frontend (`sculptor/frontend/`), Python FastAPI backend (`sculptor/sculptor/`), SQLite.
 Not a herdr client. Each agent is **either** a chat agent **or** a terminal agent. There is no chat|term switch on one
-process. The terminal agent path is the part most like Oriel.
+process. The terminal agent path is the part most like Ovvi.
 
 ## Two agent kinds
 
@@ -40,7 +40,7 @@ process. The terminal agent path is the part most like Oriel.
 - A registration is a TOML file in `~/.sculptor/terminal_agents/`: `launch_command`, `resume_command_template`,
   `accepts_automated_prompts` (`samples/terminal_agents/claude-code/claude-code.toml`).
 - The backend opens a login shell in a PTY, waits for its first output byte, then types the launch command
-  (`sculptor/tasks/handlers/run_terminal_agent/terminal_session.py:207`). Like Oriel's new pane chooser.
+  (`sculptor/tasks/handlers/run_terminal_agent/terminal_session.py:207`). Like Ovvi's new pane chooser.
 - Claude gets `--settings <hooks json>` per run, so the user's config is untouched. Hooks
   (`claude-code-hooks.json`): `SessionStart` → idle; `UserPromptSubmit` → busy and the session id (pulled from the
   stdin JSON with `sed`, no python needed); `Stop` → idle; `PreToolUse AskUserQuestion|ExitPlanMode` → waiting,
@@ -69,11 +69,11 @@ process. The terminal agent path is the part most like Oriel.
 Claude chat backend 6.6k lines, pi 5.9k, message conversion and streams 2.5k, frontend chat 17.5k (no tests).
 The terminal agent path is about 1.2k lines in total, plus a 39-line panel.
 
-## For Oriel
+## For Ovvi
 
 - Copy: hooks through a per-run `--settings` file, every hook fail-open; status only from signals of the current run.
 - Copy: write into the TUI only when the last signal is idle or waiting; no signal means "show the terminal".
 - Copy: bracketed paste, then Enter as a separate write after a delay (0.75 s); same finding as Orca.
 - Copy: take the Claude session id at `UserPromptSubmit`, and check the transcript file before `--resume`.
-- Avoid: the split into two agent kinds. Sculptor's terminal agents get no chat at all; Oriel wants the transcript
+- Avoid: the split into two agent kinds. Sculptor's terminal agents get no chat at all; Ovvi wants the transcript
   chat over the same TUI.

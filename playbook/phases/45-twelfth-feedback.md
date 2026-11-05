@@ -3,7 +3,7 @@
 Goal: the fixes from the user's twelfth round, all on main. A turn reads as one block: what the agent did on top,
 "Working" or "Worked" with the time at the bottom. The chat has room between messages, an empty state, Markdown in
 the user's own messages and a scroll-to-bottom button. Long chats open at once, scroll smoothly and keep their place
-when the pane resizes. The oriel-panes skill opens any kind of pane.
+when the pane resizes. The ovvi-panes skill opens any kind of pane.
 
 Design: [Chat view](../../docs/content/docs/ui/chat-view.mdx). The user's words are quoted; the decisions under them
 are the orchestrator's.
@@ -45,8 +45,8 @@ are the orchestrator's.
     the same messages it showed before (at the bottom if it was at the bottom).
 
 ## Track C: the panes skill (item 11)
-11. **Any pane.** "make oriel panes skill generic and any pane should be opened by agent not just browser panes".
-    The `oriel-panes` skill in pi-hkandala tells an agent how to open every kind Oriel shows: a terminal, an agent,
+11. **Any pane.** "make ovvi panes skill generic and any pane should be opened by agent not just browser panes".
+    The `ovvi-panes` skill in pi-hkandala tells an agent how to open every kind Ovvi shows: a terminal, an agent,
     a browser page, and the plugin cards where the build has them.
 
 ## Findings

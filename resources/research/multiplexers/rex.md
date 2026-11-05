@@ -1,7 +1,7 @@
-# Rex as a backend for Oriel
+# Rex as a backend for Ovvi
 
 Rex is a terminal multiplexer for macOS and Linux servers by Superlogical. This report asks one question:
-can Oriel's UI (machine > session > workspace > tab > pane) run on Rex, and at what cost? The second half
+can Ovvi's UI (machine > session > workspace > tab > pane) run on Rex, and at what cost? The second half
 is Rex Server's protocol, as a reference for an adapter. The Rex app itself is in `../clients/rex.md`.
 
 Verdict in one line: Rex fits with an adapter. Moving a pane to another workspace or a new one, deleting a
@@ -29,43 +29,43 @@ Rex.app's sidebar shows host > session > tab rows (`../clients/rex.md`).
 Rex's agent guide maps the user's words the same way: "Session, workspace" = session, "Tab" = window,
 "Pane, terminal" = block (`rex __internal skill`, "Use Rex terminology").
 
-## 2. How Rex's levels map to Oriel's
+## 2. How Rex's levels map to Ovvi's
 
-| Oriel | Rex | Fit |
+| Ovvi | Rex | Fit |
 |---|---|---|
-| machine | host (one machine and account) | Good. Rex's host list even has a label and an icon. Oriel can keep its own machine list and ignore Rex's. |
+| machine | host (one machine and account) | Good. Rex's host list even has a label and an icon. Ovvi can keep its own machine list and ignore Rex's. |
 | session (a herdr server: `default`, `work`) | the server | Weak. Rex runs one server per account. A second server needs its own `--listen` socket and `--state-dir`, and Rex.app does not see it. So `sessions()` returns one entry. The Open Session panel has nothing to list. |
 | workspace | session | Good: ordered, labeled, created and destroyed by the API. No git or worktree data. |
 | tab | window | Good: ordered, labeled, active window per session. |
 | pane | block | Good: a stable id that survives moves between windows. `Pane.id == Pane.terminalID`. |
 | split tree with ratios | the tiled layer's `layout` | Very good. Binary splits, ratios, stable split ids, precomputed rects. `horizontal` = `.right`, `vertical` = `.down`. |
 
-What Rex has that Oriel does not:
+What Rex has that Ovvi does not:
 
-- Floating layers. A block that a Rex.app user floats leaves the tiled layout. If Oriel draws only the
-  tiled layout, that pane disappears from Oriel's strip. A window can even have an empty tiled layout
+- Floating layers. A block that a Rex.app user floats leaves the tiled layout. If Ovvi draws only the
+  tiled layout, that pane disappears from Ovvi's strip. A window can even have an empty tiled layout
   (`layout: null`) and only floating blocks (`session.float_block` notes).
 - Detached blocks. They run but are in no window. `session.view` leaves them out; only
   `session.list_blocks` shows them (`placement: "detached"`).
-- Server-side zoom (`zoomed_block_id`). Oriel keeps zoom its own, which still works: Oriel ignores the flag
+- Server-side zoom (`zoomed_block_id`). Ovvi keeps zoom its own, which still works: Ovvi ignores the flag
   and draws the full layout, as it does for herdr.
 - Blocks from other hosts. Each block and creator has a `host_id`. The manual says: "If it equals your
   local server's host_id, the block sees the same files you do. Otherwise treat the block as remote."
-  Guess: Rex plans sessions that mix blocks from several machines. Oriel's model has one machine per
+  Guess: Rex plans sessions that mix blocks from several machines. Ovvi's model has one machine per
   session.
-- Non-terminal blocks. Only terminals exist today, but `--block-dir` plugins can add creators. Oriel
+- Non-terminal blocks. Only terminals exist today, but `--block-dir` plugins can add creators. Ovvi
   needs a rule for a block whose `creator_name` is not `com.superlogical.terminal`: show a card with no
   terminal.
 
-What Oriel has that Rex does not:
+What Ovvi has that Rex does not:
 
-- No level between machine and workspace. Oriel's "session" page becomes "the one server".
+- No level between machine and workspace. Ovvi's "session" page becomes "the one server".
 - No git or worktree data, and no linked-worktree groups.
 - No cross-session move. A block can move only inside its session (tested, see §3).
 - No agent detection. Status comes only from programs that report OSC 7501.
 - No absolute scroll position on a shared viewport (herdr's `pane.scroll`).
 
-Oriel's strip of cards mirrors a split tree with 8 pt gaps (`docs/content/docs/layout.mdx`, "Drawing and
+Ovvi's strip of cards mirrors a split tree with 8 pt gaps (`docs/content/docs/layout.mdx`, "Drawing and
 resizing"). Rex's tiled layout is the same kind of tree, so the strip draws it with no change.
 
 ## 3. Create, split, move, swap, resize, rename, close
@@ -87,18 +87,18 @@ resizing"). Rex's tiled layout is the same kind of tree, so the strip draws it w
 | zoom | `session.zoom_block {window_id, zoom}` | with `window_id`, focus does not move. Tested |
 
 Labels: a block always has a label. A new block is `shell` (the flavor's short name). A block label set
-with no `label` goes back to `Block fba33045`, not to "no label" (tested). Oriel's "a nil label clears it"
+with no `label` goes back to `Block fba33045`, not to "no label" (tested). Ovvi's "a nil label clears it"
 (`Multiplexer.swift:52`) needs the adapter to treat both default forms as "no label".
 
 Focus side effects (manual notes, not all tested): `swap_blocks` and `move_block` move the session's focus
-and active window when the block had focus. Rex.app follows that shared focus. Oriel cannot avoid it for
+and active window when the block had focus. Rex.app follows that shared focus. Ovvi cannot avoid it for
 those two calls, the same as herdr's `pane.swap`.
 
 ## 5. Verdict
 
 Rex fits with an adapter. The adapter does these things on its own:
 
-1. It shows one Oriel session per machine (the server) and names it, for example "Rex".
+1. It shows one Ovvi session per machine (the server) and names it, for example "Rex".
 2. It treats the block labels `shell` and `Block xxxxxxxx` as "no label".
 3. It needs no neighbor call: the app finds a pane's neighbor in the split tree it builds from the view
    (Rex's `session.focus_direction` would move focus).
@@ -114,7 +114,7 @@ Rex fits with an adapter. The adapter does these things on its own:
    The CLI does this in `rex send-key`, but the API takes only key objects.
 10. It handles stale owners: it compares `owner` with `client.list`, and uses `mode: "take"` when the
    owner is not a live client.
-11. It fans one data stream out to every Oriel window that shows the block, or it opens one Rex client per
+11. It fans one data stream out to every Ovvi window that shows the block, or it opens one Rex client per
    window. One client cannot open two streams for one block.
 
 ### Multiplexer.swift, method by method
@@ -129,7 +129,7 @@ Rex fits with an adapter. The adapter does these things on its own:
 | `refresh()` | `session.view` | Yes |
 | `startServer(within:)` | `rex server start`, then wait for `server.status` | Yes |
 | `pane(_:)` | `describe_block`, `process`, `title` | Yes. `scroll` stays nil |
-| `mark(_:shown:)` | none found | No. Float requests (Oriel's D50) need another signal under Rex |
+| `mark(_:shown:)` | none found | No. Float requests (Ovvi's D50) need another signal under Rex |
 | `program(_:)` | `process.foreground` | Yes. `script` given; no argv |
 | `terminal(_:cols:rows:observe:takeover:)` | `data.connect`, `own_block`, `terminal.resize` | Yes, but `TerminalStream` is herdr NDJSON frames today. It needs a new shape |
 | `screen(_:)` | `format text`, last `rows` lines | Adapter: no visible-only option |
@@ -164,7 +164,7 @@ workspace.
 
 ### 1. Object model
 
-| Rex | Meaning | Oriel / herdr analogue |
+| Rex | Meaning | Ovvi / herdr analogue |
 |---|---|---|
 | server (host) | one Rex server per user account and machine (`host_id` = machine+account; `instance_id` = process) | herdr *session* (one server) |
 | session | a group of work, for example a project, ordered (`session.move`) | herdr workspace |
@@ -172,7 +172,7 @@ workspace.
 | layer | `tiled` (the layout, always first) or `floating` (`bounds` `[x,y,w,h]` fractions) | none (herdr has no floating panes) |
 | block | one app instance. Today only terminals (`com.superlogical.terminal`, flavor `.shell`). It can be detached (running, in no window) | herdr pane *and* terminal |
 | split | binary node: `direction` `horizontal` (before = left) / `vertical` (before = top), `ratio` = the share of before, stable `split_id` | `SplitNode` (`right` = horizontal, `down` = vertical) |
-| client | one connection identity (Rex.app, CLI, script). It survives a reconnect for 60 s | the Oriel app instance |
+| client | one connection identity (Rex.app, CLI, script). It survives a reconnect for 60 s | the Ovvi app instance |
 | creator / flavor | a block plugin and its variants (`block_creator.list`); `--block-dir` loads executable plugins | none |
 
 - IDs have the form `<kind>:<uuidv7>`, for example `block:01a16002-2d9d-74ba-b2ea-bfaa10fd61d8`. The kinds
@@ -180,7 +180,7 @@ workspace.
   reused.
   - Because they are UUIDv7, the creation time is in the first 48 bits.
   - The short ID is the last 6 hex digits (`9f203e`). `target.resolve` accepts 4–32 trailing hex digits.
-  - A block keeps its ID when it moves between windows. So `block_id` is Oriel's `terminal_id`, and it is
+  - A block keeps its ID when it moves between windows. So `block_id` is Ovvi's `terminal_id`, and it is
     also its `pane_id`.
 - Labels: at most 128 characters, no control characters, whitespace trimmed, not unique. The defaults are:
   - session: a generated two-word name (`crisp-forest`, `quiet-meadow`)
@@ -196,7 +196,7 @@ workspace.
 
 `session.view` output (observed, trimmed):
 ```json
-{"revision":1,"session_id":"session:01a16002-…","label":"oriel-dev-a","active_window_id":"window:…",
+{"revision":1,"session_id":"session:01a16002-…","label":"ovvi-dev-a","active_window_id":"window:…",
  "windows":[{"window_id":"window:…","label":"Window d984af59","focused_block_id":"block:…",
    "layers":[{"layer_id":"layer:…","kind":"tiled","bounds":[0,0,1,1],
      "layout":{"rect":[0,0,1,1],"block_id":"block:…"},   // or {"rect":…, "split":{split_id,direction,ratio,before,after}}
@@ -269,7 +269,7 @@ The full view shape is the render tree that a client draws:
   `ssh://`, `tcp://` and `ws://` are rejected: "unsupported server endpoint scheme". There is no SSH
   transport. The docs say that SSH-key auth is planned.
 - Auth depends only on how a caller connects. Each client has a `principal`:
-  - `peer`: uid, gid and pid from Unix socket credentials. Oriel uses this kind locally. Live example:
+  - `peer`: uid, gid and pid from Unix socket credentials. Ovvi uses this kind locally. Live example:
     `{"kind":"peer","transport":"unix","display":"uid 501","uid":501,"gid":20,"pid":82374}`.
   - `tailscale`: `user_id`, `login_name`, `node`, `tags`.
   - `windows_peer`: a Windows SID.
@@ -304,7 +304,7 @@ Observed handshake (our client, and a raw WebSocket test through `nc -U`):
 ```
 → GET /api/control  Upgrade: websocket  Sec-WebSocket-Protocol: rex.control.v1
 ← 101  Sec-Websocket-Protocol: rex.control.v1
-→ {"type":"hello","api_revision":4,"client":{"kind":"other","platform":"macos","name":"oriel","version":"0","label":"…"}}
+→ {"type":"hello","api_revision":4,"client":{"kind":"other","platform":"macos","name":"ovvi","version":"0","label":"…"}}
 ← {"type":"welcome","protocol":"rex.control.v1","limits":{"max_message_bytes":1048576},
    "client":{"id":"client:01a16003-…","reconnect_token":"KWBblu1fkBCz_gHqy31bMA"},
    "api_revision":4,"api_server_revision":4}
@@ -508,10 +508,10 @@ Example sequence for `rex window new … -- sh -c 'sleep 1; exit 0'`: `block_cre
 CLI exits → `block_owner_changed` (disconnect) → `session_view_changed` 12 → `process_changed` →
 `child_exited {exit_code:0}` → `block_closed` → `window_closed` → `session_view_changed` 13.
 
-A second live sequence (`oriel-dev-web`): printing
+A second live sequence (`ovvi-dev-web`): printing
 `OSC 7501;state=working:app=demo:progress=40:msg=<b64>` produced `program_status_changed` with
 `{state:"working",progress:40,app:"demo",effective_app:"demo",msg:"Building the thing",owner:{pid:955,name:"zsh"}}`.
-Then came `title_changed{"oriel title"}`, `bell{}` and `process_changed` (cwd `/private/tmp`). A later
+Then came `title_changed{"ovvi title"}`, `bell{}` and `process_changed` (cwd `/private/tmp`). A later
 `blocked/kind=permission` report replaced the root record. `exit` produced
 `program_status_removed{ids:[""],reason:"child_exited"}`, then `child_exited{0}`, then `block_closed`,
 `window_closed` and `session_view_changed`.
@@ -640,7 +640,7 @@ Rendering model: the server runs one emulator per block, and the client runs a s
 
 The server answers terminal queries. With no client streaming, `printf '\e[c'` got `ESC[?62;22c` and
 `OSC 11 ?` got `rgb:1010/1010/1010`, which is the background set by `set_theme`. So a client emulator must
-not answer queries. Oriel still needs its `suppressesTerminalResponses` patch.
+not answer queries. Ovvi still needs its `suppressesTerminalResponses` patch.
 
 ### 6. Input, mouse, scrollback, focus, multiple clients
 
@@ -705,7 +705,7 @@ not answer queries. Oriel still needs its `suppressesTerminalResponses` patch.
     visible `take`. Inference: the app claims the blocks it shows with `request`.
   - A new block starts at 80×24, or at `options.size`, until an owner resizes it.
   - Owning a block gives no other rights. Any attached client can type, stream or close.
-  - This is herdr's takeover concept. Map Oriel's `takeover:` flag to `mode:"take"`, and `observe:` to not
+  - This is herdr's takeover concept. Map Ovvi's `takeover:` flag to `mode:"take"`, and `observe:` to not
     owning.
 - Multiple clients: any number of clients can stream one block, but each client can open only one stream
   per block (REJECT 02). All of them see the owner's size, so a smaller watcher must clip or scale.
@@ -918,8 +918,8 @@ The full spec is in the public docs (Program Status Protocol, spec revision 0.4,
 
 ### Open questions
 
-- Mapping choice: server = Oriel session, Rex session = workspace. The other choice (Rex session = Oriel
-  session page) removes the workspace level, which Oriel's sidebar needs. Both lose cross-workspace moves,
+- Mapping choice: server = Ovvi session, Rex session = workspace. The other choice (Rex session = Ovvi
+  session page) removes the workspace level, which Ovvi's sidebar needs. Both lose cross-workspace moves,
   because blocks never leave a Rex session.
 - Rex sessions do not survive a package upgrade, and likely no server restart. The Linux docs say "A package upgrade restarts the
   service, which automatically ends every session on it" (`linux/server-modes.md`). herdr keeps its layout

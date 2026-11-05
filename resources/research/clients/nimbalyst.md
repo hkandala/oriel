@@ -3,7 +3,7 @@
 Repo: https://github.com/nimbalyst/nimbalyst (desktop v0.82.4, MIT). Electron 43, React, Lexical, TypeScript,
 node-pty, ghostty-web for terminals, PGLite/SQLite, `@anthropic-ai/claude-agent-sdk`, `@openai/codex-sdk`. iOS and
 Android companions. Very active (long changelog, many open issues). Successor of Crystal
-([crystal.md](crystal.md)). Not a herdr client. Its `claude-code-cli` mode is the closest thing to Oriel's plan
+([crystal.md](crystal.md)). Not a herdr client. Its `claude-code-cli` mode is the closest thing to Ovvi's plan
 found so far: the genuine `claude` TUI keeps running and a chat view sits on top.
 
 ## Three ways to get a chat
@@ -75,7 +75,7 @@ leaves the `claude` tree running. Changelog: stuck "Processing…" after turns, 
 `claude-code-cli` about 6.7k lines. The structured stack about 120k (runtime `ai/server` 55k, Electron `services/ai`
 26k, transcript UI 28k, `UnifiedAI` 11k). Tests not counted.
 
-## For Oriel
+## For Ovvi
 
 - Copy: the PID file `~/.claude/sessions/<pid>.json` as Claude's busy/idle/waiting signal; cheap, no flags, works
   over the relay with `cat` (find it by pid, or scan the folder for the `sessionId`).
@@ -87,4 +87,4 @@ leaves the `claude` tree running. Changelog: stuck "Processing…" after turns, 
 - Avoid: the API proxy. It fights the company launcher's own `ANTHROPIC_BASE_URL` and does not reach remote
   machines. Tail the jsonl instead.
 - Avoid: typing `/model` to switch models (it writes the user's Claude settings). Avoid disallowing
-  `AskUserQuestion` unless Oriel ships its own question tool; show the TUI for it instead.
+  `AskUserQuestion` unless Ovvi ships its own question tool; show the TUI for it instead.

@@ -150,5 +150,5 @@ keys.
 - **A drag's release computes its ratio from the gesture**, not the held value: a snapshot during the drag can drop
   it.
 - **Rename** ends on Enter or Esc with the keyboard back on the card; a click elsewhere only closes the field.
-- **Files:** `PaneCard` moved to `Oriel/Views/PaneCard.swift` and the pane writes to `Oriel/Store/PaneWrites.swift`
+- **Files:** `PaneCard` moved to `Ovvi/Views/PaneCard.swift` and the pane writes to `Ovvi/Store/PaneWrites.swift`
   (SwiftLint's file length).

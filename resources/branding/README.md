@@ -1,13 +1,13 @@
-# Oriel app icon
+# Ovvi app icon
 
 The **Flat Graphite Stack**: three front-facing, overlapping rounded
 rectangles, stepping down to the right from charcoal to gray to pearl white.
 
 | File | Purpose |
 | --- | --- |
-| `oriel-flat-stack-original.png` | The original artwork, 1254 × 1254, opaque RGB |
-| `oriel-macos-1024.png` | Flattened macOS master, 1024 × 1024 RGBA, rounded tile and transparent margin |
-| `../../Oriel/Assets.xcassets/AppIcon.appiconset/` | The app's shipping icon PNGs and catalog manifest |
+| `ovvi-flat-stack-original.png` | The original artwork, 1254 × 1254, opaque RGB |
+| `ovvi-macos-1024.png` | Flattened macOS master, 1024 × 1024 RGBA, rounded tile and transparent margin |
+| `../../Ovvi/Assets.xcassets/AppIcon.appiconset/` | The app's shipping icon PNGs and catalog manifest |
 
 ## Regenerate
 
@@ -43,8 +43,8 @@ and [Icon Composer](https://developer.apple.com/icon-composer/).
 Google Lens found no exact match for the original artwork. A keyword image search found related motifs:
 
 - [FeedSquad](https://feedsquad.com/brand-kit): three rounded square cards offset down to the left, with
-  blue accents. Oriel's panes are wider, offset down to the right, in neutral tones with dark gutters.
-- [Interleave](https://interleave.app/): three blue upright panes in perspective. Oriel's panes face front,
+  blue accents. Ovvi's panes are wider, offset down to the right, in neutral tones with dark gutters.
+- [Interleave](https://interleave.app/): three blue upright panes in perspective. Ovvi's panes face front,
   with other proportions, spacing, direction and colors.
 
 This is a limited visual screen, not a trademark clearance.

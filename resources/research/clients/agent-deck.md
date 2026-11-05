@@ -38,9 +38,9 @@ gives no delivery receipt."
 - Writes `{"type":"auth",…}` (if a key is readable) and the `user` frame in one write, then closes after 150 ms.
 - Only for Claude; every other agent stays on tmux.
 
-## For Oriel
+## For Ovvi
 
-- Take: the "no foreign Enter" rule. Never press Enter unless the composer holds exactly what Oriel typed (or is
+- Take: the "no foreign Enter" rule. Never press Enter unless the composer holds exactly what Ovvi typed (or is
   empty). Fall back to the TUI instead.
 - Take: vet a pid record (`procStart`, uid, pane tree) before trusting `~/.claude/sessions/<pid>.json`.
 - Avoid: growing a screen-verify layer. 7.6k lines and a long issue trail for one action is the cost of keys

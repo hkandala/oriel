@@ -1,10 +1,10 @@
 # Rex.app (Superlogical): the macOS client
 
-This document describes the user interface of Superlogical's Rex Beta app for macOS, build 1327 (bundle `com.superlogical.rex` 0.1.0, minimum macOS 15.0). It is for implementers who copy parts of the Rex UI into Oriel. It covers geometry, colors, timings, behaviors, settings, menus and strings.
+This document describes the user interface of Superlogical's Rex Beta app for macOS, build 1327 (bundle `com.superlogical.rex` 0.1.0, minimum macOS 15.0). It is for implementers who copy parts of the Rex UI into Ovvi. It covers geometry, colors, timings, behaviors, settings, menus and strings.
 
 Rex uses other names for the herdr concepts:
 
-| Rex term | herdr / Oriel term |
+| Rex term | herdr / Ovvi term |
 |---|---|
 | session | workspace |
 | window (shown as a tab) | tab |

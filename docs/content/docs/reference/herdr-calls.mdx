@@ -23,18 +23,18 @@ description: "Every herdr call and command the app uses, and the ones it never u
 | `pane.process_info` | close and Replace Pane check, Go to Directory's shell check, program icons, the agent loader's failure check, a chat agent's launch marker in the foreground argv, Relaunch with Chat's wait for the shell | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls), [Program icons](/docs/ui/program-icons#when-the-app-asks-herdr) |
 | `pane.get` | the keyboard card's fresh folder for New Tab, Go to Directory and Insert Path, and for a browser or plugin pane's create; the new pane of a plugin card's open; the viewport's offset after a find scroll; the agent loader's ready check, every 250 ms ([New pane](/docs/ui/new-pane#agent)); Relaunch with Chat's check that herdr let go of the agent | [Writes](/docs/talking-to-herdr#writes-are-herdr-calls) |
 | `agent.prompt` | a chat's Send: `{target, text}`; herdr pastes it with bracketed paste and presses Enter | [Sending and stopping](/docs/ui/chat-view#sending-and-stopping) |
-| `pane.report_metadata` | the `oriel-shown` mark on each pane in view, for `oriel status`, pi-herd and pi's copy | [Agent requests](/docs/talking-to-herdr#agent-requests) |
-| `workspace.report_metadata` | the `oriel-open` mark on each workspace of a session a window has open, for `oriel status` | [Agent requests](/docs/talking-to-herdr#agent-requests) |
+| `pane.report_metadata` | the `ovvi-shown` mark on each pane in view, for `ovvi status`, pi-herd and pi's copy | [Agent requests](/docs/talking-to-herdr#agent-requests) |
+| `workspace.report_metadata` | the `ovvi-open` mark on each workspace of a session a window has open, for `ovvi status` | [Agent requests](/docs/talking-to-herdr#agent-requests) |
 | `pane.scroll` | find in a pane: scroll herdr's viewport to a match, and back to the bottom | [Find bar](/docs/ui/window#find-bar) |
 | `layout.set_split_ratio` | divider drag, double-click, balance (⌥⌘=), equal splits after a split or move, divider accessibility | [Layout](/docs/layout) |
 | `layout.export` | fallback when the leaf count is wrong | [Rebuilding the tree](/docs/layout#rebuilding-the-tree) |
 
-Two `pane.report_metadata` calls are not the app's: the `oriel` command's
-ring (`oriel-req`, [Protocol](/docs/agent-control/protocol)), and the token
-`oriel-label` after a process renames a browser pane by hand, which only
+Two `pane.report_metadata` calls are not the app's: the `ovvi` command's
+ring (`ovvi-req`, [Protocol](/docs/agent-control/protocol)), and the token
+`ovvi-label` after a process renames a browser pane by hand, which only
 makes herdr send the event that the rename does not
 ([Agents open browser panes](/docs/ui/browser#agents-open-browser-panes)).
-An agent's `oriel open` uses the app's own `layout.apply`,
+An agent's `ovvi open` uses the app's own `layout.apply`,
 `pane.move` and `pane.rename`, as a plugin card's open does
 ([CLI](/docs/agent-control/cli#open)).
 
@@ -64,27 +64,27 @@ launchctl bootstrap gui/<uid> <plist>
 sh -c 'command -v git'                              # once at launch: is git usable
 xcode-select -p                                     # only when git is the /usr/bin/git stub
 git --no-optional-locks -C <root> status --porcelain=v2 --branch --untracked-files=no   # git state of a workspace row (D67)
-sh -c 'f=/tmp/oriel-copy-$1; base64 <"$f" && rm -f "$f"' sh <id>   # each machine: an older copy request (talking-to-herdr#copy-requests)
+sh -c 'f=/tmp/ovvi-copy-$1; base64 <"$f" && rm -f "$f"' sh <id>    # each machine: an older copy request (talking-to-herdr#copy-requests)
 ```
 
-The `oriel` command's mailbox, on each machine
+The `ovvi` command's mailbox, on each machine
 ([Protocol](/docs/agent-control/protocol)):
 
 ```sh
-sh -c 'd=$HOME/.cache/oriel; mkdir -p "$d/bin" "$d/rpc" && chmod 700 "$d/rpc" && find "$d/rpc" -type f -mmin +60 -exec rm -f {} + ; sed -n 2p "$d/bin/oriel"'   # once on connect
-sh -c 'f=$HOME/.cache/oriel/bin/oriel; base64 -d >"$f.$$" && chmod 755 "$f.$$" && mv "$f.$$" "$f"'   # the script, when missing or older
-sh -c 'cd "$HOME/.cache/oriel/rpc" && mv -- "$1.req" "$1.run" && head -c "$2" "$1.run" | base64' sh <id> 65537   # take a request
-sh -c 'f=$HOME/.cache/oriel/rpc/$1.in; [ ! -f "$f" ] || head -c "$2" "$f" | base64' sh <id> 1048577   # oriel copy's input
-sh -c 'cd "$HOME/.cache/oriel/rpc" && base64 -d >"$1.o" && mv "$1.o" "$1.out" && printf "%s\n%s" "$2" "$3" >"$1.e" && mv "$1.e" "$1.exit"; s=$?; rm -f "$1.run" "$1.in"; exit $s' sh <id> <code> <err>   # the answer
+sh -c 'd=$HOME/.cache/ovvi; mkdir -p "$d/bin" "$d/rpc" && chmod 700 "$d/rpc" && find "$d/rpc" -type f -mmin +60 -exec rm -f {} + ; sed -n 2p "$d/bin/ovvi"'     # once on connect
+sh -c 'f=$HOME/.cache/ovvi/bin/ovvi; base64 -d >"$f.$$" && chmod 755 "$f.$$" && mv "$f.$$" "$f"'     # the script, when missing or older
+sh -c 'cd "$HOME/.cache/ovvi/rpc" && mv -- "$1.req" "$1.run" && head -c "$2" "$1.run" | base64' sh <id> 65537    # take a request
+sh -c 'f=$HOME/.cache/ovvi/rpc/$1.in; [ ! -f "$f" ] || head -c "$2" "$f" | base64' sh <id> 1048577    # ovvi copy's input
+sh -c 'cd "$HOME/.cache/ovvi/rpc" && base64 -d >"$1.o" && mv "$1.o" "$1.out" && printf "%s\n%s" "$2" "$3" >"$1.e" && mv "$1.e" "$1.exit"; s=$?; rm -f "$1.run" "$1.in"; exit $s' sh <id> <code> <err>    # the answer
 ```
 
 A browser or plugin card's ([Browser](/docs/ui/browser), [State](/docs/plugins/api#state)):
 
 ```sh
-sh -c 'cat "$HOME/$1"' sh .local/state/oriel/<S>/<browser or plugin id>/<iid>.json   # each machine: read the state file when the card is built
+sh -c 'cat "$HOME/$1"' sh .local/state/ovvi/<S>/<browser or plugin id>/<iid>.json    # each machine: read the state file when the card is built
 sh -c 'umask 077; f="$HOME/$1"; mkdir -p "${f%/*}" && cat >"$f.$$" && mv "$f.$$" "$f"' sh <path>   # write it, 500 ms after a navigation or a plugin's last change
 sh -c 'rm -f "$HOME/$1"' sh <path>                  # a typed address, a close
-find "$HOME/.local/state/oriel/<S>" -type f -mtime +30 -delete      # once on connect
+find "$HOME/.local/state/ovvi/<S>" -type f -mtime +30 -delete       # once on connect
 ssh -F /dev/null -S <ctl> -O forward -D 127.0.0.1:<P> <target>   # a remote machine: its first browser card's proxy
 ssh -F /dev/null -S <ctl> -O cancel -D 127.0.0.1:<P> <target>    # its last card went
 ```
@@ -98,7 +98,7 @@ sh -c 'cd "$1"; if [ "$2" ]; then git ls-files -z -co --exclude-standard; else f
 sh -c '[ -f "$1" ] …; wc -c <"$1"; cksum <"$1" && base64 <"$1"' sh <path> 16777216   # read a file (size, hash, bytes)
 sh -c 'cksum <"$1"' sh <path>                       # has it changed (a reload check)
 sh -c 'wc -c <"$1"' sh <path>                       # the info view's size
-sh -c 't=$(mktemp …/.oriel-save.XXXXXX); cp -p "$1" "$t"; base64 -d >"$t"; …; mv -f "$t" "$1"' sh <path> <hash> <size>   # save: the bytes in base64 on stdin, checked by hash and size
+sh -c 't=$(mktemp …/.ovvi-save.XXXXXX); cp -p "$1" "$t"; base64 -d >"$t"; …; mv -f "$t" "$1"' sh <path> <hash> <size>    # save: the bytes in base64 on stdin, checked by hash and size
 sh -c 'ls -1Ap "$1"; git status …; git ls-files -z -m -o … | xargs -0 cat; … | cksum' sh <path>   # a remote machine: the 2 s check while a card shows
 git -C <folder> rev-parse --show-toplevel           # the root for File Explorer and Git
 git --no-optional-locks -C <root> status --porcelain=v1 -z --untracked-files=all   # the tree's letters; the Git home's staged and unstaged changes
@@ -112,7 +112,7 @@ git -C <root> show -s --no-show-signature --format=%H%x1f%P%x1f%an%x1f%ae%x1f%at
 git -C <root> show -s --no-show-signature --format=%H%x1f%P%x1f%an%x1f%ae%x1f%at%x1f%s%x1f%b <hash> --   # a commit's page: its message, author, date and parents
 ```
 
-A plugin's `oriel.run` runs its argv on the card's machine, inside the envelope.
+A plugin's `ovvi.run` runs its argv on the card's machine, inside the envelope.
 This Mac watches files and folders with FSEvents, with no command.
 
 Plugin packages, on This Mac only ([Packages and installs](/docs/plugins/packages)):
@@ -133,8 +133,8 @@ A chat's, on the pane's machine ([Chat view](/docs/ui/chat-view)):
 sh -c '<prepare>' sh <token or file>                # before a Pi or OpenCode launch: write the extension or plugin, the password, the 30-day sweep
 sh -c 'f=…; while [ ! -f "$f" ]; do sleep 0.5; done; …; awk "$4"… <fifo & exec tail -c +N -F "$f" >fifo' sh <path> <offset> <inode> <skip>   # follow a side file or a transcript, dropping the lines its parser skips
 sh -c 'while :; do …; sleep 0.3; done' sh .claude/sessions/<pid>.json   # watch Claude Code's session record
-sh -c 'test -f "$HOME/$1/ask"' sh .cache/oriel/chat/T   # Claude Code: does the question's hook still wait
-sh -c 'rm -f "$HOME/$1/ask"' sh .cache/oriel/chat/T     # the question was answered in the terminal: its hook ends
+sh -c 'test -f "$HOME/$1/ask"' sh .cache/ovvi/chat/T    # Claude Code: does the question's hook still wait
+sh -c 'rm -f "$HOME/$1/ask"' sh .cache/ovvi/chat/T      # the question was answered in the terminal: its hook ends
 sh -c 'd="$HOME/$1"; [ -f "$d/ask" ] && cat >"$d/answer.tmp" && mv "$d/answer.tmp" "$d/answer"' sh <folder>   # its answer
 curl -sN -K - http://127.0.0.1:<port>/event           # OpenCode's events; the password from a here-document
 curl -s -K - http://127.0.0.1:<port>/session/<id>/message   # its history; also GET /permission, /question, POST /…/<id>/reply

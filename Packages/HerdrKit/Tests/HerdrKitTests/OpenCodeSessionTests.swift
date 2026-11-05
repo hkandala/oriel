@@ -26,16 +26,16 @@ private func tools(_ history: ChatHistory) -> [ChatTool] {
     let loaded = try session.load(fixture("opencode-messages", "json"))
     #expect(loaded)
     let history = session.history
-    #expect(history.entries.first?.kind == .user("Run the shell command: echo hi-oriel. Then reply with one word."))
+    #expect(history.entries.first?.kind == .user("Run the shell command: echo hi-ovvi. Then reply with one word."))
     #expect(history.model == "claude-haiku-4-5")
     let tools = tools(history)
     #expect(tools.map(\.name) == ["bash", "question", "read", "edit", "bash"])
-    #expect(tools[0].target == "echo hi-oriel" && tools[0].result == "hi-oriel" && tools[0].category == .command)
-    #expect(tools[0].input.hasPrefix("command: echo hi-oriel") && tools[0].output == "hi-oriel", "\(tools[0].input)")
+    #expect(tools[0].target == "echo hi-ovvi" && tools[0].result == "hi-ovvi" && tools[0].category == .command)
+    #expect(tools[0].input.hasPrefix("command: echo hi-ovvi") && tools[0].output == "hi-ovvi", "\(tools[0].input)")
     #expect(tools[1].target == "Which color do you like?")
     #expect(tools[2].target == "a.txt" && tools[2].result == "1 line")
     #expect(tools[3].target == "a.txt" && tools[3].result == "+1 -1")
-    #expect(tools[3].diff.map { "\($0.mark)\($0.number) \($0.text)" } == ["-1 hello", "+1 oriel was here"])
+    #expect(tools[3].diff.map { "\($0.mark)\($0.number) \($0.text)" } == ["-1 hello", "+1 ovvi was here"])
     #expect(history.entries.contains { $0.kind == .note("Interrupted", failed: false) })
     // A turn of two steps ends once, after its last reply.
     #expect(history.entries.count {

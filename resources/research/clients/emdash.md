@@ -60,10 +60,10 @@ ACP call crashed the shared ACP worker and every conversation in it. #3166: stre
 
 ACP runtime 10.4k, chat UI package 20.8k, desktop conversation feature 10.4k, TUI runtime 2.3k (no tests).
 
-## For Oriel
+## For Ovvi
 
 - Copy: the hook-to-state mapping (`UserPromptSubmit` working, `Stop` done, `Notification` waiting) and keeping the
   hook's `session_id` current. Pass hooks with `--settings` per launch, not by editing `~/.claude/settings.json`.
 - Copy: a per-agent "Enter means working" fallback that clears on the next real signal.
-- Avoid: making the user pick chat or TUI up front; Oriel's switch stays live on one process.
+- Avoid: making the user pick chat or TUI up front; Ovvi's switch stays live on one process.
 - Avoid: one shared ACP worker whose crash takes every chat down.

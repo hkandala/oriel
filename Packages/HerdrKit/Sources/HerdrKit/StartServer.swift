@@ -53,10 +53,10 @@ public extension HerdrClient {
                 environment[pair[0]] = pair[1]
             }
         }
-        let label = "dev.hkandala.oriel.herdr.\(session)"
+        let label = "dev.ovvi.app.herdr.\(session)"
         let domain = "gui/\(getuid())"
         let plist = FileManager.default.temporaryDirectory.appending(path: "\(label).plist")
-        let logs = URL.libraryDirectory.appending(path: "Logs/Oriel")
+        let logs = URL.libraryDirectory.appending(path: "Logs/Ovvi")
         try FileManager.default.createDirectory(at: logs, withIntermediateDirectories: true)
         let log = logs.appending(path: "\(session).log").path
         // Interactive: launchd's default throttles the CPU and I/O of the server and every agent in it.

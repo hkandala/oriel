@@ -113,7 +113,7 @@ public enum Files {
     /// `cp -p` gives the new file the old one's mode. The size check: a run whose stdin closed early (the connection
     /// dropped, the app quit) decodes what came and exits 0.
     static let saveScript = #"""
-    t=$(mktemp "$(dirname "$1")/.oriel-save.XXXXXX") || exit
+    t=$(mktemp "$(dirname "$1")/.ovvi-save.XXXXXX") || exit
     trap 'rm -f "$t"' EXIT
     cp -p "$1" "$t" 2>/dev/null; base64 -d >"$t" || exit
     [ "$(wc -c <"$t")" -eq "$3" ] || { echo "The save was cut short" >&2; exit 1; }
@@ -166,7 +166,7 @@ public enum Files {
 /// replaced, or one that comes back, is still seen. The stream is on the nearest folder that exists: one made later
 /// sends nothing.
 private final class Events: Sendable {
-    private static let queue = DispatchQueue(label: "oriel.files.watch")
+    private static let queue = DispatchQueue(label: "ovvi.files.watch")
     private let changed: AsyncStream<Void>.Continuation
     /// Canonical, as the events name paths (`/private/tmp`).
     private let target: String

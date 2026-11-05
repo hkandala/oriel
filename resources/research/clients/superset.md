@@ -30,10 +30,10 @@ paradev.md skips.
   path and removed on teardown (`packages/agent-setup/src/agent-wrappers-claude-codex-opencode.ts:143-160`). Other
   agents get binary wrappers on `PATH` (`agent-wrappers-*.ts`).
 
-## For Oriel
+## For Ovvi
 
 - Copy: trust a hook-reported transcript path only after checking it (absolute, `.jsonl`, under home, and the session
   id near the head of the file: `harness-sessions/transcript.ts:33-36`).
 - Copy: tell "agent exited on its own" from "PTY died under it"; only the second is a resume candidate.
-- Avoid: merging hooks into `~/.claude/settings.json`; Oriel's rule forbids it, and `--settings` per launch does the
+- Avoid: merging hooks into `~/.claude/settings.json`; Ovvi's rule forbids it, and `--settings` per launch does the
   same job.

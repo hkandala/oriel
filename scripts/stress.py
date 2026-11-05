@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fills a throwaway herdr session with many workspaces, tabs and panes, some working like agents.
 
-Usage: scripts/stress.py <oriel-dev-*|oriel-e2e-*> [tabs=300] [workspaces=30] [--panes N] [--agents N]
+Usage: scripts/stress.py <ovvi-dev-*|ovvi-e2e-*> [tabs=300] [workspaces=30] [--panes N] [--agents N]
 Start the session first (scripts/herdr-session.sh up <name>); remove it after (… down <name>): hundreds of shells.
 Makes `tabs` tabs (herdr's own labels, so their titles come from their programs, as most tabs' do) over `workspaces`
 workspaces and `--panes` panes (default 400): the first tabs of each workspace split in two until the count is reached.
@@ -9,7 +9,7 @@ macOS gives at most `kern.tty.ptmx_max` (511) terminals to all its programs toge
 Every other pane prints a line a second. The first `--agents` panes (default 100, spread over the tabs) work like
 agents instead: a line every 0.2 s, a new terminal title every second (its first word stays, as an agent's does), and a
 new agent state (`pane report-agent`) every 5 s, mostly working, sometimes blocked or idle.
-Then open Oriel on the session (`-session <name>`).
+Then open Ovvi on the session (`-session <name>`).
 """
 
 import argparse
@@ -27,8 +27,8 @@ parser.add_argument("workspaces", nargs="?", type=int, default=30)
 parser.add_argument("--panes", type=int, default=400)
 parser.add_argument("--agents", type=int, default=100)
 args = parser.parse_args()
-if not args.session.startswith(("oriel-dev-", "oriel-e2e-")):
-    parser.error(f"refusing '{args.session}': only oriel-e2e-* and oriel-dev-* sessions are throwaway")
+if not args.session.startswith(("ovvi-dev-", "ovvi-e2e-")):
+    parser.error(f"refusing '{args.session}': only ovvi-e2e-* and ovvi-dev-* sessions are throwaway")
 # Inside a herdr pane these point at the user's own session.
 env = {key: value for key, value in os.environ.items() if not key.startswith("HERDR_")}
 listed = json.loads(subprocess.run(["herdr", "session", "list", "--json"], env=env, capture_output=True, text=True,
@@ -82,7 +82,7 @@ agent = ("i=$((RANDOM % 25)); s=working; while :; do i=$((i + 1)); echo \"$s $i 
          "[ $((i % 5)) = 0 ] && printf '\\033]2;task %s %d\\007' $s $i; "
          "[ $((i % 25)) = 0 ] && s=$(echo working working blocked idle | cut -d' ' -f$((RANDOM % 4 + 1))) && "
          f"herdr --session {args.session} pane report-agent \"$HERDR_PANE_ID\" "
-         "--source oriel-stress --agent claude --state $s --seq $i "
+         "--source ovvi-stress --agent claude --state $s --seq $i "
          ">/dev/null; sleep 0.2; done\r")
 printing = "while :; do echo output $RANDOM $RANDOM $RANDOM; sleep 1; done\r"
 for index, pane in enumerate(panes):

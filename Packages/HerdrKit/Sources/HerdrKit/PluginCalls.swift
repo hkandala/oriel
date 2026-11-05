@@ -1,7 +1,7 @@
 import Foundation
 import UniformTypeIdentifiers
 
-/// A failed plugin call: the `OrielError` code the page's promise rejects with, and the text.
+/// A failed plugin call: the `OvviError` code the page's promise rejects with, and the text.
 public struct PluginError: Error, Equatable {
     public let code: String
     public let text: String

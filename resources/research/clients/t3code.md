@@ -58,9 +58,9 @@ Most open bugs are the same kind: the app's copy of "pending" drifts from the ag
 Huge. Server orchestration 71k lines, server providers 20k, provider packages (ACP, app-server, OpenCode, pi, …)
 147k, web app 278k. The Claude adapter alone is 11k lines, the Codex adapter 7.7k. Tests are extra.
 
-## For Oriel
+## For Ovvi
 
 - Copy: nothing structural. It answers a different question (no TUI).
-- Note: even with exact protocol state, its open bugs are stale "pending" and "running" flags. Oriel's "show the TUI
+- Note: even with exact protocol state, its open bugs are stale "pending" and "running" flags. Ovvi's "show the TUI
   when unsure" fallback avoids that class.
 - Avoid: one adapter per agent at 7-11k lines each; Full access as the default.

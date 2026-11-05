@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Codex's stand-in for the chat view's UI tests (CI has no Codex).
 
-Started by the chooser with Oriel's flags (`-c hooks.SessionStart=… -c hooks.state=…`), it checks the hook's trust
+Started by the chooser with Ovvi's flags (`-c hooks.SessionStart=… -c hooks.state=…`), it checks the hook's trust
 hash as Codex does (else it shows Codex's "Hooks need review" picker and runs no hook), runs the hook at the first
 prompt, writes a rollout in Codex's format, reports its state to herdr and draws Codex's input box above its status
 row. Prompts: "wait" shows an approval until 1 is typed, "model" opens a picker (herdr still says idle) until Esc,
@@ -22,12 +22,12 @@ import time
 import tty
 import uuid
 
-folder = os.path.join(os.environ.get("TMPDIR", "/tmp"), "oriel-stand-in")
+folder = os.path.join(os.environ.get("TMPDIR", "/tmp"), "ovvi-stand-in")
 os.makedirs(folder, exist_ok=True)
 # herdr prompts an agent only while a process of its name runs in the foreground: run again as `codex`.
 # A framework build's `python3` runs its Python.app, which would drop the name: link to that one.
-if os.environ.get("ORIEL_STAND_IN") != "1":
-    os.environ["ORIEL_STAND_IN"] = "1"
+if os.environ.get("OVVI_STAND_IN") != "1":
+    os.environ["OVVI_STAND_IN"] = "1"
     app = os.path.join(sys.base_prefix, "Resources/Python.app/Contents/MacOS/Python")
     link = os.path.join(folder, "codex")
     if os.path.islink(link):
@@ -42,13 +42,13 @@ identity = {"event_name": "session_start",
             "hooks": [{"async": False, "command": hook, "timeout": 600, "type": "command"}]}
 trusts = trusted == "sha256:" + hashlib.sha256(json.dumps(identity, sort_keys=True, separators=(",", ":"))
                                                .encode()).hexdigest()
-token = re.search(r"/\.cache/oriel/chat/([0-9a-f-]{36})/", hook).group(1)
+token = re.search(r"/\.cache/ovvi/chat/([0-9a-f-]{36})/", hook).group(1)
 rollouts = []
 
 
 def report(state):
     subprocess.run([os.environ["HERDR_BIN_PATH"], "--session", os.environ["HERDR_SESSION"], "pane", "report-agent",
-                    "--source", "oriel-e2e", "--agent", "codex", "--state", state, os.environ["HERDR_PANE_ID"]],
+                    "--source", "ovvi-e2e", "--agent", "codex", "--state", state, os.environ["HERDR_PANE_ID"]],
                    capture_output=True)
 
 
@@ -161,7 +161,7 @@ def main():
         signal.signal(signal.SIGHUP, signal.SIG_IGN)
         for rollout in rollouts:
             os.remove(rollout)
-        shutil.rmtree(os.path.expanduser("~/.cache/oriel/chat/" + token), ignore_errors=True)
+        shutil.rmtree(os.path.expanduser("~/.cache/ovvi/chat/" + token), ignore_errors=True)
         termios.tcsetattr(0, termios.TCSADRAIN, attributes)
 
 

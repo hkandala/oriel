@@ -1,23 +1,23 @@
 ---
 title: "The plugin API"
-description: "The typed oriel object a plugin's page calls, its events, its state, its versions, and the Swift side behind it"
+description: "The typed ovvi object a plugin's page calls, its events, its state, its versions, and the Swift side behind it"
 ---
 
-A plugin's entry exports one function. The app calls it with the `oriel`
+A plugin's entry exports one function. The app calls it with the `ovvi`
 object when the page loads. Everything the page asks of the app goes through
 that object. File Explorer and Git use exactly this API.
 
 ```ts
-import type { Oriel } from "@oriel/plugin-api"
+import type { Ovvi } from "@ovvi/plugin-api"
 
-export default async function main(oriel: Oriel) {
-  const { text } = await oriel.files.read(oriel.card.arg)
+export default async function main(ovvi: Ovvi) {
+  const { text } = await ovvi.files.read(ovvi.card.arg)
   document.body.textContent = text
 }
 ```
 
 - The card is ready when `main` returns, or when the page calls
-  `oriel.card.ready()` first. Until then the card shows its loader, or its
+  `ovvi.card.ready()` first. Until then the card shows its loader, or its
   still picture after a drop.
 - An error thrown from `main` stops the card: "‹name› stopped", the message
   and its first stack line, with **Reload**
@@ -28,23 +28,23 @@ export default async function main(oriel: Oriel) {
 ## Types
 
 The API is host-provided, as pi's is for its packages. The app gives the
-`oriel` object to the page at run time, so a plugin never bundles it:
-- A plugin lists `@oriel/plugin-api` in `peerDependencies` as `"*"`, and
+`ovvi` object to the page at run time, so a plugin never bundles it:
+- A plugin lists `@ovvi/plugin-api` in `peerDependencies` as `"*"`, and
   marks it `optional` in `peerDependenciesMeta`. The name is not on the npm
   registry, and npm 7 or later installs a peer that is not
   optional.
 - At launch the app writes the types package (`package.json` and
-  `oriel.d.ts`) to `~/.config/oriel/plugins/node_modules/@oriel/plugin-api/`
+  `ovvi.d.ts`) to `~/.config/ovvi/plugins/node_modules/@ovvi/plugin-api/`
   when its copy differs. `tsc` finds it from any package in the plugins
   folder, so `npm run check` works there. A package elsewhere (a local path)
   needs its own copy or link.
 - `import type` goes away in the build, so nothing of the package is
   bundled.
 
-The types, from `web/oriel/oriel.d.ts` in the repository:
+The types, from `web/ovvi/ovvi.d.ts` in the repository:
 
 ```ts
-export interface Oriel {
+export interface Ovvi {
   /** The API version the app gives this page: the manifest's `api`. */
   readonly api: number
   readonly card: Card
@@ -114,13 +114,13 @@ export interface Page {
   readonly arg: string
   /** The landing of the move that drew it. */
   readonly at?: string
-  /** Over the whole card (`.oriel-page`); hidden pages are `inert`. */
+  /** Over the whole card (`.ovvi-page`); hidden pages are `inert`. */
   readonly element: HTMLElement
-  /** The page's own `oriel`: its `on` handlers run only while it shows (`theme` and `visible` always), its watches call
+  /** The page's own `ovvi`: its `on` handlers run only while it shows (`theme` and `visible` always), its watches call
    *  back while it shows (a change while hidden calls once when it shows again), its header controls apply while it
    *  shows and come back when it shows again; all end when it drops. Its `place` fires when the card moves to this
    *  page again (Back, Forward, the same place with a landing). */
-  readonly oriel: Oriel
+  readonly ovvi: Ovvi
   readonly shown: boolean
   /** Gone: work that ends after does nothing. */
   readonly dropped: boolean
@@ -297,7 +297,7 @@ export interface Theme {
 }
 
 /** What every failed call rejects with. */
-export interface OrielError extends Error {
+export interface OvviError extends Error {
   code: "denied" | "notFound" | "notText" | "tooLarge" | "changed" | "timeout" | "closed" | "failed"
 }
 ```
@@ -324,7 +324,7 @@ export interface OrielError extends Error {
 - **Events** go from the app to the page. `on` returns a function that stops
   the handler. Every handler and watch ends with the page, so a reload needs
   no cleanup code.
-- **Errors.** A failed call rejects with an `OrielError` whose `code` says
+- **Errors.** A failed call rejects with an `OvviError` whose `code` says
   why: `denied` (a missing permission), `notFound`, `notText` (not UTF-8),
   `tooLarge` (over 16 MB), `changed` (the hash given to `write` differs),
   `timeout`, `closed` (the card went), `failed` (anything else, with git's
@@ -345,7 +345,7 @@ export interface OrielError extends Error {
   change and then sends `theme`. The app's `card.css` loads before the
   plugin's CSS: system fonts at 13 px (`--font-size`), no margin, a clear
   background, so the card's fill draws behind the page. It also has the
-  class `oriel-sidebar` for a sidebar that slides in and out as the system's
+  class `ovvi-sidebar` for a sidebar that slides in and out as the system's
   do (0.25 s, CSS `ease`, none with Reduce Motion): put it on a flex
   child with `--sidebar-width`, and set the attribute `data-closed` to slide
   it out of its row (its parent clips with `overflow: hidden`). The content
@@ -359,7 +359,7 @@ export interface OrielError extends Error {
 
 One card can show several places: File Explorer's tree, File, Preview and
 Markdown, or Git's home and a diff. The plugin draws every place itself:
-- `oriel.card.go(arg, { at })` moves the card to a new place. The label
+- `ovvi.card.go(arg, { at })` moves the card to a new place. The label
   follows, so a reload or a card made again comes back there. The page is not
   loaded again. With unsaved edits, the app asks first ("‹name› has unsaved
   edits.", Discard and **Keep Editing**).
@@ -376,13 +376,13 @@ Markdown, or Git's home and a diff. The plugin draws every place itself:
 - The page's `document.title`, when it is not empty, is the card's and the
   tab's title in place of the one from the label (Git's commit subject). A
   place that has no title of its own sets it back to "".
-- `oriel.pages.route(draw)` draws each place in a page of its own, and the
+- `ovvi.pages.route(draw)` draws each place in a page of its own, and the
   card keeps the last five pages it showed. A page is an element over the
   whole card. A hidden page stays in the document, `inert` and invisible, so
   it keeps its scroll, its open rows and its selection. Back and Forward show
   a kept page at once. A new place draws in a new page, and the page before
   stays on screen until the new one has drawn.
-- Each page has its own `oriel` (`page.oriel`). Its `on` handlers run only
+- Each page has its own `ovvi` (`page.ovvi`). Its `on` handlers run only
   while the page shows, except `theme` and `visible`. Its watches call back
   only while it shows: a change while it is hidden calls back once when it
   shows again. Its header controls apply while it shows. When it shows
@@ -407,7 +407,7 @@ every device must see belongs in files on the machine.
   values. A reload or a move gives the page the same value in `get`.
 - **On the machine:** 500 ms after the last change of the state or of a
   header value, the app writes both to the instance state file, as the
-  browser does: `$HOME/.local/state/oriel/<session>/<plugin-id>/<iid>.json`.
+  browser does: `$HOME/.local/state/ovvi/<session>/<plugin-id>/<iid>.json`.
   The app reads it once, before the card's first load. So a relaunch,
   another device, a card made again after a drop, or a cold restart of herdr
   starts where it was. A missing file means no state.
@@ -427,23 +427,23 @@ every device must see belongs in files on the machine.
 
 - The manifest's `api` is the version the plugin was written for, an
   integer. This page is version 2, and the app gives version 2.
-- Each change of the API raises the number, an addition too. `oriel.d.ts`
+- Each change of the API raises the number, an addition too. `ovvi.d.ts`
   marks each member added after version 1 with `@since <api>`.
 - The app runs a plugin whose `api` is at most its own. A change that breaks
   an older plugin keeps the old behavior for plugins with the older `api`. So
   a plugin never breaks on an app update.
 - A plugin whose `api` is newer than the app's shows "‹name› needs a newer
-  Oriel" in its card.
+  Ovvi" in its card.
 - The bridge messages are the app's own and are not part of the API. Only
-  the `oriel` object is.
+  the `ovvi` object is.
 
 ## The Swift side
 
 | Piece | Job |
 |---|---|
-| `PluginManifest` (HerdrKit) | the `oriel` key, decoded leniently, with its rules and the file-pattern rank; unit tested |
+| `PluginManifest` (HerdrKit) | the `ovvi` key, decoded leniently, with its rules and the file-pattern rank; unit tested |
 | `Registry` | every manifest: the browser's and each package's; the chooser, ⌘K, Open With and opens read it ([Where the registry looks](/docs/plugins/packages#where-the-registry-looks)) |
-| `PluginScheme` | serves `oriel-plugin://<id>/` from the entry's folder, with the CSP |
+| `PluginScheme` | serves `ovvi-plugin://<id>/` from the entry's folder, with the CSP |
 | `Plugin` | one per card, made from its label and kept by terminal id: the label, the place, Back and Forward, the header and the web card. A dropped card loses it and reads its state file again |
 | `WebCard` | the card's `WKWebView`, the navigation lock, the context script at document start, the theme |
 | `Bridge` | one per card: the page's calls, the events, the state and its file, watches, two `run`s at a time, git writes one at a time |
@@ -455,9 +455,9 @@ every device must see belongs in files on the machine.
 | `PluginTrust` | `trust.json` and the trust prompt |
 
 - The bridge is one script message handler with replies
-  (`WKScriptMessageHandlerWithReply`), named `oriel`, behind a weak relay. A
+  (`WKScriptMessageHandlerWithReply`), named `ovvi`, behind a weak relay. A
   message is `{ call, args }`, answered with a JSON string or rejected with
-  `<code>: <text>`. The app calls `window.oriel_receive(name, data)` for an
+  `<code>: <text>`. The app calls `window.ovvi_receive(name, data)` for an
   event.
 - The card is bound to its machine, session, plugin and permissions when it
   is made. No message carries a machine or a card.

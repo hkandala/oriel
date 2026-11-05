@@ -1,10 +1,10 @@
 # Phase 47: The plugin system
 
-Goal: every plugin is a package (a `package.json` with an `oriel` key, TypeScript and its own `node_modules`), as pi's
-packages are, that Oriel installs, builds with the esbuild it ships,
-loads in a web view and connects to the card's machine through one typed `oriel` object. File Explorer and Git move
+Goal: every plugin is a package (a `package.json` with an `ovvi` key, TypeScript and its own `node_modules`), as pi's
+packages are, that Ovvi installs, builds with the esbuild it ships,
+loads in a web view and connects to the card's machine through one typed `ovvi` object. File Explorer and Git move
 onto it and behave exactly as they do on main after phase 46. Every plugin, the two default ones too, is installed in
-`~/.config/oriel/plugins/` (or loaded from a local path), and a user or an agent can edit it, then reload.
+`~/.config/ovvi/plugins/` (or loaded from a local path), and a user or an agent can edit it, then reload.
 
 Design: [Pane kinds and plugins](../../docs/content/docs/future-work/plugins/index.mdx) and its pages (manifest,
 api, building, security, browser-and-native, labels), approved by the user with the decisions below. The built
@@ -20,14 +20,14 @@ suite passed on the branch.
 ## Decisions (the design's open questions, settled)
 
 1. **One plugin, many places.** A plugin draws every place of its card itself: File Explorer's tree, File, Preview
-   and Markdown; Git's home and diff. `oriel.card.go(arg)` moves the card to a new place (the label follows, as
+   and Markdown; Git's home and diff. `ovvi.card.go(arg)` moves the card to a new place (the label follows, as
    today); the app keeps Back and Forward per card and draws them when the manifest says `"history": true`;
    `on("place")` tells the page where it is after Back, Forward or a rename from elsewhere. Heavy views load with
    dynamic `import()` (esbuild splitting), so a tree card does not load CodeMirror or pdf.js.
 2. **Header controls** are declared in the manifest and drawn natively: button, toggle (in the accent while on),
    segmented (the app's pill segments), menu (items set by the page), field, text, spacer, plus two the app fills:
    `openWith` (the default app's icon, a menu of apps with icons, for a path the page sets) and the Back/Forward pair
-   from decision 1. `oriel.controls.set(id, …)` changes a control's value, title, badge, items, enabled or hidden
+   from decision 1. `ovvi.controls.set(id, …)` changes a control's value, title, badge, items, enabled or hidden
    state, so one header serves every place of the card.
 3. **API additions** the two plugins need, beyond the api page: `card.go`, `card.ready()` (ends the loader),
    `card.setDirty(bool)` (the Edited dot; the app asks Discard / Keep Editing on a move or close), `menu.show(items)`
@@ -39,32 +39,32 @@ suite passed on the branch.
 5. **Plugins work like pi packages** ([pi's packages](/usr/local/bin/pi_cli/docs/packages.md) and extensions, the
    user's model). Only the browser is native; every other plugin, File Explorer and Git too, is a package the user
    or an agent can install, edit and reload.
-   - **A plugin is a package:** a folder with a `package.json` whose `oriel` key is the manifest (the manifest page's
+   - **A plugin is a package:** a folder with a `package.json` whose `ovvi` key is the manifest (the manifest page's
      fields: entry, opens, chooser, header, commands, permissions, `api`), its TypeScript, and its own
      `node_modules`. Its `version` is the package's. No separate `manifest.json`.
    - **Install, update, remove, list,** as `pi install`: sources `npm:@scope/name@1.2.0`, `git:github.com/x/y@v1`,
-     or a local path. npm and git sources install into `~/.config/oriel/plugins/` with their `dependencies`, using
+     or a local path. npm and git sources install into `~/.config/ovvi/plugins/` with their `dependencies`, using
      the npm, pnpm or bun on the user's login `PATH` (the app ships no package manager and no packages). A local path
      loads in place and is never installed or changed: its dependencies are its author's (`npm install` in the
-     folder). The list lives in `~/.config/oriel/settings.json` (`packages`). Versioned specs are pinned; **Update**
+     folder). The list lives in `~/.config/ovvi/settings.json` (`packages`). Versioned specs are pinned; **Update**
      reinstalls the newest version a spec allows. From the app: Settings › Plugins (each plugin's name, version,
      source, Update, Reload, Remove) and ⌘K; agents get the same through the agent-control CLI later.
    - **The default plugins are packages too,** each with its `package.json`, lockfile and `node_modules`; nothing of
      theirs is bundled into the app's build. The app carries their source (no `node_modules`) and installs each one
-     on first launch as a local-copy install: copied to `~/.config/oriel/plugins/<id>/`, then `npm ci` from its
+     on first launch as a local-copy install: copied to `~/.config/ovvi/plugins/<id>/`, then `npm ci` from its
      lockfile. They are then ordinary plugins the user can edit. An app update with a newer default version updates an
      unedited copy and offers **Update to Version x.y.z** / **Reset to Default** for an edited one. With no package
      manager on `PATH` (or offline at first launch), a default plugin's card says what failed, with **Retry**.
-   - **The `oriel` API is host-provided,** as pi's packages are: a plugin lists `@oriel/plugin-api` in
+   - **The `ovvi` API is host-provided,** as pi's packages are: a plugin lists `@ovvi/plugin-api` in
      `peerDependencies` as `"*"` for its types and never bundles it; the app writes the types package into the plugins
-     folder for `tsc`, and the runtime passes the `oriel` object to the entry's default export.
+     folder for `tsc`, and the runtime passes the `ovvi` object to the entry's default export.
    - **Build:** the app ships esbuild as its loader (as pi ships jiti), never packages. It bundles a plugin's entry
      with the plugin's own `node_modules` only: no fallback to anything else. A build is cached by its inputs' hash.
    - **Reload, not a watcher,** as pi's `/reload`: **Reload Plugin** (the card's menu, ⌘K, ⌥⌘R over a plugin card)
      and **Reload Plugins** (⌘K, Settings) rebuild and reload the open cards, keeping each card's state. Nothing
      watches the folders. A failed build keeps the old page and shows the errors in the card.
    - **Testing:** open a card on a sample file and press Reload; the Web Inspector (the card's menu) for the console,
-     the DOM and breakpoints; `~/Library/Logs/Oriel/plugins/<id>.log` for build errors and console lines, which agents
+     the DOM and breakpoints; `~/Library/Logs/Ovvi/plugins/<id>.log` for build errors and console lines, which agents
      read; `tsc --noEmit` against the host types; the plugin's own tests with any runner in its `node_modules`.
    - **Trust,** as pi: installing a package asks once, showing its source and permissions; it asks again only when an
      update grows the permissions. The default plugins need no prompt.
@@ -76,22 +76,22 @@ suite passed on the branch.
 
 ## Track A: the registry (goes first, merges early)
 
-Files: a new `Oriel/Plugins/Registry*.swift`, `PluginKind` and its uses, the scheme handler, the chooser, ⌘K and Open
-With lists, `plugins/<id>/package.json` (the `oriel` key) for explorer and git, `make web`'s output layout.
-1. Read the `oriel` key of every package in `~/.config/oriel/settings.json`'s list and in `~/.config/oriel/plugins/`
+Files: a new `Ovvi/Plugins/Registry*.swift`, `PluginKind` and its uses, the scheme handler, the chooser, ⌘K and Open
+With lists, `plugins/<id>/package.json` (the `ovvi` key) for explorer and git, `make web`'s output layout.
+1. Read the `ovvi` key of every package in `~/.config/ovvi/settings.json`'s list and in `~/.config/ovvi/plugins/`
    (decision 5; until track F lands, the repository's default plugins are read in place); validate (the manifest page's fields and rules); a bad
    manifest is skipped with its error in the log.
 2. `PluginKind` goes; the registry's entries replace it everywhere (browser from Swift). Old label words still map.
-3. The scheme serves `oriel-plugin://<id>/` per plugin with the CSP per plugin and the navigation lock.
+3. The scheme serves `ovvi-plugin://<id>/` per plugin with the CSP per plugin and the navigation lock.
 4. Chooser rows, ⌘K commands and Open With come from `chooser`, `commands` and `opens`.
 5. A label naming a missing plugin shows the missing card (id, argument, Show Placeholder, Close Pane).
 
 ## Track B: the runtime and the API
 
-Files: `web/oriel/` (the runtime and `oriel.d.ts`), a new Swift bridge (`Oriel/Plugins/Bridge*.swift`), state files.
+Files: `web/ovvi/` (the runtime and `ovvi.d.ts`), a new Swift bridge (`Ovvi/Plugins/Bridge*.swift`), state files.
 Owner of the bridge messages; agrees the controls messages with track C.
-1. The runtime makes `oriel` before the page runs and calls the entry's default export with it; types in
-   `oriel.d.ts`, versioned by the integer `api` (1).
+1. The runtime makes `ovvi` before the page runs and calls the entry's default export with it; types in
+   `ovvi.d.ts`, versioned by the integer `api` (1).
 2. The Swift bridge checks each call against the manifest's permissions and runs it with the card's `Exec`
    (HerdrKit `Files`, `Git`, `Exec.run` with the envelope).
 3. Every part of the api page plus decision 3's additions. State: in the app at once, written to the instance state
@@ -101,7 +101,7 @@ Owner of the bridge messages; agrees the controls messages with track C.
 
 ## Track C: the header
 
-Files: a new `Oriel/Plugins/Header*.swift`, `PluginCard`'s header row, floating plugin windows' row 2. Uses track
+Files: a new `Ovvi/Plugins/Header*.swift`, `PluginCard`'s header row, floating plugin windows' row 2. Uses track
 B's controls messages.
 1. Draw decision 2's controls from the manifest before the page loads, update them from `controls.set`, send their
    events.
@@ -110,7 +110,7 @@ B's controls messages.
 
 ## Track D: File Explorer on the API (after A, B, C merge)
 
-Files: `plugins/explorer/**` (a package: `package.json` with the `oriel` key, lockfile, its own deps) (from `web/src/{files,file,preview,markdown}*` and `web/src/lib/{editor,info}*`),
+Files: `plugins/explorer/**` (a package: `package.json` with the `ovvi` key, lockfile, its own deps) (from `web/src/{files,file,preview,markdown}*` and `web/src/lib/{editor,info}*`),
 deletions of `FileBars`, `MarkdownBar`, `FilesCard`'s bar, `Document.swift`'s logic (moves to TypeScript), the old
 bridge's explorer paths.
 1. One manifest, one `main.ts` that routes the four places; same looks, keys, saves by hash, conflict toasts, watches,
@@ -128,9 +128,9 @@ Files: `plugins/git/**` (a package, as track D) (from `web/src/{git,diff}*`, `we
 ## Track F: packages (after A and B merge; beside D and E)
 
 Files: esbuild in `Contents/Helpers` (from the locked npm package's darwin binary; `make app` signs it), install,
-update, remove and list (decision 5) with `~/.config/oriel/settings.json`, Settings › Plugins, the default plugins'
+update, remove and list (decision 5) with `~/.config/ovvi/settings.json`, Settings › Plugins, the default plugins'
 first-launch install and their update and reset rules, the build cache, Reload Plugin and Reload Plugins, the trust
-prompt, the Web Inspector toggle, the logs, the host types package `@oriel/plugin-api`. Tracks D and E keep `make web`
+prompt, the Web Inspector toggle, the logs, the host types package `@ovvi/plugin-api`. Tracks D and E keep `make web`
 working until this track switches the default plugins to installed packages.
 1. Install from npm, git and a local path with the npm, pnpm or bun on the login `PATH`; a clear card when none is
    there or the install fails, with Retry.
@@ -170,30 +170,30 @@ well for easier debugging".
 
 ### Track A
 
-- **Decisions:** the `oriel` key holds the manifest page's fields with `entry` for `main` and an `id` of its own (a
+- **Decisions:** the `ovvi` key holds the manifest page's fields with `entry` for `main` and an `id` of its own (a
   package name can be scoped); `version`, `description` and `keywords` are the package's. The description is the
   chooser row's detail line and the keywords are ⌘K's extra words, so the three rows read as before. `opens` may
   hold `files` and `folders` together: File Explorer opens both (`*` and folders), Git `{ "git": true }`.
 - **Decisions:** the registry reads, first id wins: the browser (Swift), the app's default plugins (`make web` now
   writes `.build/web/<id>/` with each one's pages, `card.css` and `package.json`; read in place until track F),
-  `settings.json`'s local paths (`/`, `~` or `.`; relative to its folder), then `~/.config/oriel/plugins/*/`. A bad
+  `settings.json`'s local paths (`/`, `~` or `.`; relative to its folder), then `~/.config/ovvi/plugins/*/`. A bad
   manifest or a taken id is skipped and logged to the unified log (`log show --predicate 'subsystem ==
-  "dev.hkandala.oriel"'`) until track F's log files. `-configFolder` points it elsewhere; UI tests pass a folder
+  "dev.ovvi.app"'`) until track F's log files. `-configFolder` points it elsewhere; UI tests pass a folder
   that does not exist unless a test writes one.
 - **Decisions:** the manifest model and its rules live in HerdrKit (`PluginManifest`, unit tested), with the
   file-pattern rank of the manifest page. Header controls and commands are decoded and checked (types, unique ids,
   ⌘ chords) but not drawn or put in ⌘K yet: their picks need the control event (tracks B and C).
-- **Fix:** the scheme serves `oriel-plugin://<id>/<page>` from that plugin's folder only, with the security page's
-  CSP for `oriel-plugin://<id>` (`default-src 'none'`, own scripts, styles, fonts and fetches); the navigation
+- **Fix:** the scheme serves `ovvi-plugin://<id>/<page>` from that plugin's folder only, with the security page's
+  CSP for `ovvi-plugin://<id>` (`default-src 'none'`, own scripts, styles, fonts and fetches); the navigation
   lock allows only the card's own URL.
 - **Decisions:** a user plugin's card shows its loader (it has no page until tracks B and F); File Explorer and
   Git keep `PluginPage` for their pages until tracks D and E. A missing plugin's card (any well-formed
-  `oriel:` label the registry lacks) shows the id, the argument, Show Placeholder and Close Pane; Show Placeholder
+  `ovvi:` label the registry lacks) shows the id, the argument, Show Placeholder and Close Pane; Show Placeholder
   is kept on the pane model, not saved. Open With lists the other plugins whose patterns match after the apps
   (none today, so it looks as before; on a remote machine it shows only when one matches); a pick renames the
   pane to that plugin with the same iid. The tree's row-menu Open With and URL patterns for links wait for a
   plugin that needs them (tracks D, B).
-- **For the user:** nothing changes on screen with no packages of your own. A label `oriel:<unknown>#abc123 x`
+- **For the user:** nothing changes on screen with no packages of your own. A label `ovvi:<unknown>#abc123 x`
   shows the missing card.
 
 ### Track C (the header)
@@ -225,18 +225,18 @@ well for easier debugging".
   row. The manifest page's Header section gets `gap`, `digits`, `label`, `badge`, `busy`, `history`, `openWith`, a
   text's `symbol` and menu headings (docs pass).
 - **For the user:** a plugin's row 2 in a pane and floating, light and dark: the fixture in
-  `OrielUITests/HeaderTests.swift` shows every control type.
+  `OvviUITests/HeaderTests.swift` shows every control type.
 
 ### Track B (the runtime and the API)
 
-- **Decisions:** the runtime (`web/oriel/runtime.ts`, built by `make web` into `oriel.js` beside `card.css`) is the
-  page of a plugin's entry: `oriel-plugin://<id>/main` loads `card.css`, the entry's CSS and `oriel.js`, which reads the
-  card's context (`window.oriel_card`, a user script at document start) and imports the entry's built `.js`. The
-  types are `web/oriel/oriel.d.ts` with its `package.json` (`@oriel/plugin-api`); `make web` checks the runtime
+- **Decisions:** the runtime (`web/ovvi/runtime.ts`, built by `make web` into `ovvi.js` beside `card.css`) is the
+  page of a plugin's entry: `ovvi-plugin://<id>/main` loads `card.css`, the entry's CSS and `ovvi.js`, which reads the
+  card's context (`window.ovvi_card`, a user script at document start) and imports the entry's built `.js`. The
+  types are `web/ovvi/ovvi.d.ts` with its `package.json` (`@ovvi/plugin-api`); `make web` checks the runtime
   against them with `tsc` (TypeScript 7, a dev dependency of `web/`). Until track F builds packages, a user plugin's
   folder is served as it is, so its entry must be JavaScript in the package's root (the scheme serves no subfolders).
 - **Decisions:** the bridge messages are `{ call, args }` to the app, answered with a JSON string or rejected with
-  `<code>: <text>` (the runtime makes the `OrielError`), and `oriel_receive(name, data)` to the page. Calls that wait
+  `<code>: <text>` (the runtime makes the `OvviError`), and `ovvi_receive(name, data)` to the page. Calls that wait
   for the user (toast) answer through an event, so no Swift task hangs on a page that never hears back. A plugin page
   gets only these; File Explorer's and Git's pages keep their old messages until tracks D and E.
 - **Decisions:** the calls on the card's machine (files, git, run) and the permission table live in HerdrKit
@@ -259,19 +259,19 @@ well for easier debugging".
   last line break added to stdin. `visible` follows the cards in view (the shown tab's and the floating ones, as the
   web card budget counts them), not the card view's `.task`, which a tab switch does not end. `files.watch` runs only
   while the card is in view and calls each watch once when it comes into view again, changed or not. An entry whose `main` throws shows "‹name› stopped", the message, its first stack line and
-  Reload; an `api` above 1 shows "‹name› needs a newer Oriel".
+  Reload; an `api` above 1 shows "‹name› needs a newer Ovvi".
 - **For the docs pass:** the trust prompt's words for `git` must say it can commit, pull and push.
 - **For the user:** nothing changes for File Explorer and Git. A plugin package with a `.js` entry in
-  `~/.config/oriel/plugins/` now loads in its card and can call the whole API.
+  `~/.config/ovvi/plugins/` now loads in its card and can call the whole API.
 
 ### Track D (File Explorer on the API)
 
 - **Decisions:** `plugins/explorer` is a package with its own `node_modules` (CodeMirror, `@pierre/trees`,
   markdown-it, pdf.js) and lockfile; `make web` runs `npm ci` there, checks it with `tsc` against
-  `@oriel/plugin-api` (a link `plugins/node_modules/@oriel/plugin-api` to `web/oriel`, as track E) and bundles
+  `@ovvi/plugin-api` (a link `plugins/node_modules/@ovvi/plugin-api` to `web/ovvi`, as track E) and bundles
   `main.ts` with esbuild into `.build/web/explorer`. The manifest's `assets` (pdf.js's files, places.json) is
   track F's key for its build; `make web` copies the same files until then. `card.css` is the app's base for every plugin page
-  (`web/oriel/card.css`); the explorer's own CSS is imported by `main.ts` (a dynamic import's CSS gets no link),
+  (`web/ovvi/card.css`); the explorer's own CSS is imported by `main.ts` (a dynamic import's CSS gets no link),
   scoped by `data-place`.
 - **Decisions:** `main.ts` routes the four places, each a module loaded with `import()`. A move draws the new place
   in a hidden root over the old one and swaps them once it drew, so the old frame stays until then; the same place
@@ -289,7 +289,7 @@ well for easier debugging".
   were cut at half the row. A card's move drops the old place's toast, as a page load did.
 - **Fix:** a PDF changed on disk redraws: the old page called `PDFDocumentProxy.destroy`, which pdf.js 6 lacks, and
   stopped there; the loading task's `destroy` ends the document and its worker.
-- **Approved changes** (parity screenshots in `/tmp/oriel-shots/47d`, everything else pixel-equal): a Markdown
+- **Approved changes** (parity screenshots in `/tmp/ovvi-shots/47d`, everything else pixel-equal): a Markdown
   card no longer takes the keyboard as it loads (main's `article.focus()` made it the keyboard card); Collapse All is
   in the card buttons' color, as the design says (main drew it in the text color); Edit Mode is in the View menu only
   while a File Explorer card has the keyboard, disabled outside Markdown; the filter of a root inside a repository
@@ -304,10 +304,10 @@ well for easier debugging".
 ### Track E (Git on the API)
 
 - **Decisions:** Git is the package `plugins/git` (its own `package.json`, lockfile and `node_modules` with
-  `@pierre/diffs`; `@oriel/plugin-api` an optional peer, as npm would fetch it otherwise). `main.ts` routes the two
+  `@pierre/diffs`; `@ovvi/plugin-api` an optional peer, as npm would fetch it otherwise). `main.ts` routes the two
   places in one page; the diff and `@pierre/diffs` load with `import()` on the first diff. `make web` builds it with
   web's esbuild and checks it with `tsc` against the host types, found through a gitignored
-  `plugins/node_modules/@oriel/plugin-api` link to `web/oriel`, the layout the app's plugins folder has.
+  `plugins/node_modules/@ovvi/plugin-api` link to `web/ovvi`, the layout the app's plugins folder has.
 - **Decisions:** one document holds both places, so each place's CSS is nested under its container (`#home`,
   `#diff`) and the shared rows stay global; all CSS is imported by `main.ts`, as esbuild links no CSS of a
   dynamic chunk. The diff lets go of its patch while the home shows, as each move loaded a new page before.
@@ -338,20 +338,20 @@ well for easier debugging".
 ### Track F (packages)
 
 - **Decisions:** the app builds every package with `Contents/Helpers/esbuild` (the locked npm binary, arm64 only, as
-  the app now says with `ARCHS = arm64`; signed on copy) into `~/Library/Caches/dev.hkandala.oriel/plugins/<id>/<hash>`,
+  the app now says with `ARCHS = arm64`; signed on copy) into `~/Library/Caches/dev.ovvi.app/plugins/<id>/<hash>`,
   the hash over the package's files outside `node_modules` plus the package manager's record of it. Minified with a
   linked source map; asset imports become flat files; one build per plugin at a time; the build before stays for a page
   that kept running. A build reads only the package (esbuild's metafile, every input under the package's real path):
   esbuild otherwise resolves from parent folders and `../`, which would let a plugin with no permissions bundle any file.
 - **Decisions:** the manifest grew `assets` (files a page loads by name, copied beside the build: pdf.js's worker,
-  fonts, cmaps). The host types package goes to `<plugins>/node_modules/@oriel/plugin-api` at launch. A package marks
-  `@oriel/plugin-api` `optional` in `peerDependenciesMeta`: npm 7+ installs peers by itself and the name is not on the
+  fonts, cmaps). The host types package goes to `<plugins>/node_modules/@ovvi/plugin-api` at launch. A package marks
+  `@ovvi/plugin-api` `optional` in `peerDependenciesMeta`: npm 7+ installs peers by itself and the name is not on the
   registry (E404); the app's own installs also pass `--legacy-peer-deps` (pnpm, bun: their flags) and `--ignore-scripts`.
 - **Decisions:** sources as pi's: `npm:` is `npm pack` then the tarball unpacked (so npm sources need npm), `git:` a
   clone at the ref, both into `plugins/<package or repository name>` after the trust prompt, then dependencies from the
   lockfile with its manager, else the first of npm, pnpm, bun. Update fetches the same source again. Install, Update,
   Remove (to the Trash; a local path only leaves the list) live in the Plugins panel: a glass panel like Open Session,
-  Oriel ▸ Plugins… and ⌘K Plugins… (no Settings window, D62). ⌘K also has Reload Plugins.
+  Ovvi ▸ Plugins… and ⌘K Plugins… (no Settings window, D62). ⌘K also has Reload Plugins.
 - **Decisions:** trust lives in `trust.json` in the config folder (per `-configFolder`, so tests never touch the
   user's); anything that can write the plugins folder can write it, as the security page's model already allows.
   Installing a new source always asks; an update or a card asks only when permissions grew. A local path or a hand-made
@@ -362,7 +362,7 @@ well for easier debugging".
   Unsaved edits ask on the first dirty card; Discard covers every card of the plugin. A failed build keeps the page and
   shows a toast with Try Again. Show/Hide Web Inspector is in the card's menu without ⌥⌘I: the browser's disabled
   command holds that key in the menu bar.
-- **Decisions:** `~/Library/Logs/Oriel/plugins/<id>.log` gets build times and errors, console lines and uncaught
+- **Decisions:** `~/Library/Logs/Ovvi/plugins/<id>.log` gets build times and errors, console lines and uncaught
   errors (the runtime forwards them), stopped pages, denied calls, failed updates, and manifests the registry left out
   (under the folder's name). esbuild warnings stay out (`--log-level=error`).
 - **Decisions:** the app carries the default plugins' source (`make web` copies `plugins/<id>` without `node_modules`)
@@ -376,8 +376,8 @@ well for easier debugging".
   `make web` fills); `scripts/e2e.sh` removes it first, so each run installs its build's defaults.
 - **Runs:** File Explorer and Git, built by the app from installed copies, match main: Git's parity shots 0 px over
   8 levels but a caret blink; File Explorer's only the approved Collapse All once the hover state of the card under the
-  pointer is masked (`/tmp/oriel-shots/47f-*`).
-- **For the docs pass:** building.mdx's watcher, inline source map, `manifest.json`, `oriel-plugin://app/<id>` and the
+  pointer is masked (`/tmp/ovvi-shots/47f-*`).
+- **For the docs pass:** building.mdx's watcher, inline source map, `manifest.json`, `ovvi-plugin://app/<id>` and the
   shared default build go; Reload Plugin, the panel, `assets`, `optional` peer, the metafile rule and the log lines come in.
 
 ### Track F2 (own build scripts)
@@ -389,11 +389,11 @@ well for easier debugging".
   card's Build. stdout and stderr go together to the log; a failure shows its last 20 lines.
 - **Decisions:** the card says why a page cannot load, with Show Log and the fix: "‹name› needs Node.js" (no package
   manager; Try Again), "could not install" (Try Again), "did not build" (Try Again builds), "is not built" (`dist/main.js`
-  is missing; Build, or no button when there is no build script), "stopped", "needs a newer Oriel". A bad manifest whose
-  `oriel.id` reads shows "‹id› did not load" and the field in the missing card; trust stays the prompt. Each goes to the
+  is missing; Build, or no button when there is no build script), "stopped", "needs a newer Ovvi". A bad manifest whose
+  `ovvi.id` reads shows "‹id› did not load" and the field in the missing card; trust stays the prompt. Each goes to the
   log. Show Log opens `<id>.log` in the app for `.log` files (Console), from the card's menu, the failure card and the
   panel's rows.
-- **Decisions:** `plugins/template` is the boilerplate: `package.json` (the `oriel` key, scripts `build`, `dev` (watch),
+- **Decisions:** `plugins/template` is the boilerplate: `package.json` (the `ovvi` key, scripts `build`, `dev` (watch),
   `check` (tsc), devDependencies esbuild and typescript, the optional peer), `tsconfig.json`, `src/main.ts`, a README.
   The app carries it; the Plugins panel's New Plugin… copies it under a name into the plugins folder, installs, builds,
   trusts it and shows it in Finder. File Explorer and Git moved to `src/` → `dist/` with the same scripts (Explorer's
@@ -401,7 +401,7 @@ well for easier debugging".
   the defaults' and the template's source (no `node_modules`, no `dist`). A first launch builds the defaults after
   `npm ci` (about 1 s each).
 - **Decisions:** builds and Reload run only for a trusted plugin, and the trust words add "Its build script runs as
-  you on this Mac when Oriel builds it." when there is one. An install that built (or ships `dist`) reloads its cards
+  you on this Mac when Ovvi builds it." when there is one. An install that built (or ships `dist`) reloads its cards
   without building again. File Explorer and Git are 1.1.0, so a track-F copy (entry `main.ts`) is replaced.
 - **For the docs pass:** building.mdx (own scripts, the template, New Plugin…, Show Log, the error cards), the manifest
   page (`entry` is built `.js`, no `assets`), security.mdx (a build script runs as the user, after trust; no metafile
@@ -451,7 +451,7 @@ well for easier debugging".
   each start takes seconds. **Fix:** both time first line to last (still red with a `tail`-read backlog).
 - **Fix, cleanup:** `PluginPage`, the old pages' card and bridge leftovers, the patch parser (dead since phase 46) and
   `PaneLabel.diff`'s root are gone; `Document.swift` is `EditorCommands.swift`; comments point at
-  `docs/content/docs/plugins/`. `files:write`'s trust words say "change files". `opens.urls` works: an `oriel.open`
+  `docs/content/docs/plugins/`. `files:write`'s trust words say "change files". `opens.urls` works: an `ovvi.open`
   of a web address takes a `default` plugin whose `urls` match (a user's first), else the browser. Closing a card with
   unsaved edits (a pane, a tab, other tabs, a workspace) shows its tab and Discard / Keep Editing first.
 - **For the user:** an outside rename of a pane (an agent labeling it a card) shows in the app only at its next
@@ -497,7 +497,7 @@ well for easier debugging".
 - **22, 24, 25 (E):** `lib.ts` cites `PaneLabel.diffSource`; a failed move or clipboard write goes to the console; a
   root changed from elsewhere hides the old repository's rows until the new read draws.
 - **2 (F):** with `-configFolder` set, plugin logs go to `<config>/logs/plugins`, so the UI tests never write the
-  user's `~/Library/Logs/Oriel/plugins`; PackageTests reads its log there.
+  user's `~/Library/Logs/Ovvi/plugins`; PackageTests reads its log there.
 - **11 (F):** a card's first page waits for a build under way; after a failed one it shows the failure's toast, so a
   card a failed Reload Plugin made again from a changed manifest says so (PackageTests bumps the version too). Such a
   card never loaded before: its `WebCardContent` kept the old card's view identity, so the old web view stayed and

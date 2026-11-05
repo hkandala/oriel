@@ -11,7 +11,7 @@ description: "The words these docs use"
 | This Mac | the Mac the app runs on |
 | session | one herdr server on a machine (`default`, `pi-herd`, …) |
 | page | one session's page in the sidebar. A window shows only the sessions the user opened in it; pages swipe sideways. Its title is the session's name, or the machine's name for `default` |
-| window | an Oriel window. It shows one machine and keeps its own selection; the user can open several |
+| window | an Ovvi window. It shows one machine and keeps its own selection; the user can open several |
 | `HostStore` | the app's live model of one open session, shared by every window that has its page |
 | machine button / workspace button | the title-row button with the machine's icon / the title-row button "‹page title› \| ‹workspace›", shown while the sidebar is collapsed |
 | Open Session | the panel that adds a session to the window as a page: it creates a session, starts a stopped one or opens a running one (⌥⌘T) |
@@ -19,18 +19,18 @@ description: "The words these docs use"
 | tab capsule | one tab in the tab bar |
 | pane card | how the app draws one herdr pane: a header plus content. A browser's, a plugin's or an agent's header has a second row for its kind's controls |
 | chooser | the list a new pane shows first: Terminal, Agent, Browser, File Explorer, Git and every other plugin with a chooser row |
-| browser pane | a herdr pane labeled `oriel:browser#<iid> <url>`, which the app draws as a web page |
-| plugin pane / default plugins | a herdr pane labeled `oriel:<id>#<iid> <arg>` that the app draws with a plugin's page / the two plugins that come with the app: File Explorer and Git |
-| plugin (package) | a folder with a `package.json` whose `oriel` key is the manifest, its source and its own `node_modules`, built by its own `build` script ([Plugins](/docs/plugins)) |
-| manifest | the `oriel` key of a plugin's `package.json`: its id, name, entry, icon, what it opens, its header, commands and permissions |
+| browser pane | a herdr pane labeled `ovvi:browser#<iid> <url>`, which the app draws as a web page |
+| plugin pane / default plugins | a herdr pane labeled `ovvi:<id>#<iid> <arg>` that the app draws with a plugin's page / the two plugins that come with the app: File Explorer and Git |
+| plugin (package) | a folder with a `package.json` whose `ovvi` key is the manifest, its source and its own `node_modules`, built by its own `build` script ([Plugins](/docs/plugins)) |
+| manifest | the `ovvi` key of a plugin's `package.json`: its id, name, entry, icon, what it opens, its header, commands and permissions |
 | registry | the app's list of every pane kind it draws over a placeholder: the browser and each plugin package |
-| plugins folder | `~/.config/oriel/plugins/`, where Oriel installs plugin packages |
+| plugins folder | `~/.config/ovvi/plugins/`, where Ovvi installs plugin packages |
 | trust prompt | the question a plugin asks once before its code or build script first runs, showing what it can do |
 | web card | a browser or plugin card, whose content is a web view of its own; a plugin's page comes from its package's build |
 | picture (card) | a card's last image at 1x, shown in place of a dropped web card until the card made again has loaded, and in its overview tile |
-| plugin API / `oriel` | the typed object a plugin's page calls: files, git, run, state, the header, opens, toasts; behind it, the bridge's messages to the app |
+| plugin API / `ovvi` | the typed object a plugin's page calls: files, git, run, state, the header, opens, toasts; behind it, the bridge's messages to the app |
 | linked open | an open from a plugin card in a new herdr tab at the end of its card's workspace (⌘-click), or in a pane to its side (⌥-click) |
-| kept page | one of the last five places a plugin card showed, kept hidden in its page so Back and Forward show it at once, as the user left it (`oriel.pages`) |
+| kept page | one of the last five places a plugin card showed, kept hidden in its page so Back and Forward show it at once, as the user left it (`ovvi.pages`) |
 | in the background | an open in a new tab or a side pane that leaves the selected tab and the keyboard where they are (a ⌘- or ⌥-click in a plugin card) |
 | landing | the line, diff file or row an open scrolls to, once, on the page's first load |
 | Back and Forward (plugin) | a plugin card's own list of the places it showed, walked from row 2 or with ⌘[ ⌘] |
@@ -39,24 +39,24 @@ description: "The words these docs use"
 | toast | a one-line glass capsule at the top of a plugin card with two buttons, for example Reload or Keep Mine |
 | info view | a plugin card's view of a file it does not show: the type's icon, the name, the kind and the size |
 | breadcrumbs | A file card's path in row 2, from its repository's root, else `~`, else `/`; File adds the symbol at the caret: `repo › … › file › {} symbol` |
-| chat view | an agent pane drawn as messages with a reply box, for agents Oriel started with its flags. The card's Chat \| TUI switch flips between it and the agent's TUI (its own terminal interface) |
-| Relaunch with Chat | the button that starts an agent running without Oriel's flags again with them, in the same session |
+| chat view | an agent pane drawn as messages with a reply box, for agents Ovvi started with its flags. The card's Chat \| TUI switch flips between it and the agent's TUI (its own terminal interface) |
+| Relaunch with Chat | the button that starts an agent running without Ovvi's flags again with them, in the same session |
 | session title | the name an agent keeps for its session (Claude Code, Codex and OpenCode make one; pi's `/name` sets one), shown as the agent pane's name unless the pane has a herdr label |
 | launch line / marker | the command and flags the chooser types to start an agent with a chat / the part of it (a UUID in an argument) by which the app knows the pane again |
 | adapter | one agent's side of the chat view: its launch line, marker, followers, Stop keys and answers (`ChatAdapter`) |
-| side files | the hooks' and plugins' small files under `~/.cache/oriel/` on the pane's machine |
-| pi-oriel | the small pi extension that ships inside Oriel and reports pi's session, tree moves, dialogs and phase |
+| side files | the hooks' and plugins' small files under `~/.cache/ovvi/` on the pane's machine |
+| pi-ovvi | the small pi extension that ships inside Ovvi and reports pi's session, tree moves, dialogs and phase |
 | live terminal (drawer) | the pane's terminal at the bottom of a chat card while the agent asks something the chat cannot answer |
 | iid | a browser or plugin pane's instance id: 6 characters of `[a-z0-9]` in its label, which names its state file |
 | placeholder | the small script a browser or plugin pane runs in herdr, so herdr's TUI shows what the pane is |
 | keyboard card | the card that gets typed keys, one per tab; the app's own choice, never herdr's focus |
-| program icon | the icon of the program that runs in a pane, from Oriel's own catalog; a tab shows a stack of them |
+| program icon | the icon of the program that runs in a pane, from Ovvi's own catalog; a tab shows a stack of them |
 | hover card | the panel that shows a tab's panes when the pointer rests on a title-bar tab or an Agents row |
 | overview | every tab of the session as a miniature of its page, drawn from pictures, grouped by workspace (⌃⌘O) |
 | floating pane | a pane shown in a small window of its own; herdr keeps it in its tab |
-| float request | the older way a tool in a pane asks Oriel to float a pane, through herdr's pane metadata tokens; kept for older callers |
-| `oriel` command | the script at `~/.cache/oriel/bin/oriel` on each machine, through which an agent asks Oriel for cards, floats and plugins |
-| agent request | one run of the `oriel` command: a file in the machine's mailbox and the `oriel-req` token on the asking pane |
+| float request | the older way a tool in a pane asks Ovvi to float a pane, through herdr's pane metadata tokens; kept for older callers |
+| `ovvi` command | the script at `~/.cache/ovvi/bin/ovvi` on each machine, through which an agent asks Ovvi for cards, floats and plugins |
+| agent request | one run of the `ovvi` command: a file in the machine's mailbox and the `ovvi-req` token on the asking pane |
 | notice | the short capsule at the bottom of the tab page after a failed action |
 | Glass / Classic | the two interface styles: a window with a behind-window blur / an opaque window |
 | Appearance | Auto, Light or Dark |

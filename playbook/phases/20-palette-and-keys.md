@@ -1,6 +1,6 @@
 # Phase 20: command palette and the key map
 
-Goal: the ⌘K palette becomes Oriel's command center, like Rex's: every command with its shortcut,
+Goal: the ⌘K palette becomes Ovvi's command center, like Rex's: every command with its shortcut,
 sub-pages for choices and names, settings as commands. The menu bar gets Rex's structure and the
 shortcuts in one table.
 
@@ -40,7 +40,7 @@ shortcuts in one table.
 5. **Settings as commands.** Each toggle in the menu bar (Fade Inactive Panes, Focus Follows Mouse) is
    one command whose title says what it does now:
    "Turn On Focus Follows Mouse" / "Turn Off Focus Follows Mouse".
-6. **Menu bar** (Rex's structure, Oriel's commands):
+6. **Menu bar** (Rex's structure, Ovvi's commands):
    - File: New Window ⌘N, New Tab ⌘T, New Workspace, Open Session… ⇧⌘N, Go to Directory… ⇧⌘G, Close
      Pane ⌘W, Close Tab ⌥⌘W, Close Workspace, Close Page, Close Window ⇧⌘W.
    - Edit: (system items), Insert Path… ⌃⌘I, Find… ⌘F (phase 21).
@@ -53,11 +53,11 @@ shortcuts in one table.
      ⌃⇧PgUp, Move Tab Right ⌃⇧PgDn, Previous Page, Next Page (the sidebar's session pages), the tabs on
      ⌘1…⌘9, then the open windows.
    A command with two shortcuts (⌘K and ⇧⌘P; ⇧⌘[ and ⌃⇧⇥; ⇧⌘] and ⌃⇥): the menu shows the first; the
-   second goes through phase 11's `NSEvent` key monitor in `OrielApp.init` (an invisible SwiftUI button's
+   second goes through phase 11's `NSEvent` key monitor in `OvviApp.init` (an invisible SwiftUI button's
    shortcut kept its first action, phase 11 findings); its action reads current state (the store,
    `UserDefaults`), not a value a view captured.
 7. **Rex shortcuts not taken, and why** (record in the keyboard table): ⌘K stays the palette (D48), so
-   switching sessions has no shortcut of its own (Rex's Change Session is ⌘K; Oriel uses Open
+   switching sessions has no shortcut of its own (Rex's Change Session is ⌘K; Ovvi uses Open
    Session… ⇧⌘N and the sidebar's pages); ⇧⌘P also opens it (Rex's key); ⌘N is New Window
    on the same machine, as in Rex; ⌘/ (sidebar) is not used, ⌃⌘S is the macOS sidebar key;
    ⌘R (refresh) is not needed, the snapshot is live; ⇧⌘← and ⇧⌘↑ (Split Left, Split Up)
@@ -93,7 +93,7 @@ shortcuts in one table.
 
 ### Decisions
 
-- **One list:** `CommandList` (`Oriel/App/CommandList.swift`) builds every command from the window's pages, its
+- **One list:** `CommandList` (`Ovvi/App/CommandList.swift`) builds every command from the window's pages, its
   panel bindings, `openWindow` and `AppSettings` (a `DynamicProperty` of the five `@AppStorage` settings; not
   `Settings`, SwiftUI's scene). The window
   publishes it as one focused value (`\.commands`, replacing five); `AppCommands` draws the menu bar from it, or from a
@@ -103,7 +103,7 @@ shortcuts in one table.
   with a `menu` is a submenu in the menu bar and a sub-page in the palette; a command with a `name` is a name page in
   the palette (its menu action, for Rename Pane…, still opens the header's field). Section `.palette` is palette-only.
 - **Second shortcuts** (`KeyboardShortcut.seconds`: ⇧⌘P → ⌘K, ⌃⇧⇥ → ⇧⌘[, ⌃⇥ → ⇧⌘], ⌘= → ⌘+): the local key
-  monitor in `OrielApp.init` finds the main menu's item with the first shortcut and runs it when enabled, so the
+  monitor in `OvviApp.init` finds the main menu's item with the first shortcut and runs it when enabled, so the
   second always does what the menu item does, with its current state. A disabled item lets the key go on.
   `performKeyEquivalent` with a made-up event was tried (ponytail review): ⇧⌘P worked, but AppKit did not match
   "]" with ⇧⌘ to Show Next Tab, so the walk stays. ⌘= is tested through View ▸ Actual Size turning on (read with

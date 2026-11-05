@@ -2,7 +2,7 @@
 // every path, and the Git status bar. A file opens in the card, a new tab or a pane to the side.
 import { FileTree, type FileTreeBatchOperation, type FileTreeDirectoryHandle, type FileTreeRenameEvent,
   type GitStatus } from "@pierre/trees"
-import type { Change } from "@oriel/plugin-api"
+import type { Change } from "@ovvi/plugin-api"
 import { footer } from "./footer"
 import { how, menu, open, type Place, type Reveal, symbols } from "./place"
 
@@ -19,7 +19,7 @@ const UP = "../"
 /** As Finder's list and Xcode's navigator draw them: a thin disclosure chevron (the tree turns it), `folder.fill` in
  *  the Finder's folder blue (files.css); files take the tree's own icons by type. */
 const sprite = `<svg data-icon-sprite aria-hidden="true" width="0" height="0">
-  <symbol id="oriel-chevron" viewBox="0 0 16 16"><path d="M4.5 6.25 8 9.75l3.5-3.5" fill="none" stroke="currentColor"
+  <symbol id="ovvi-chevron" viewBox="0 0 16 16"><path d="M4.5 6.25 8 9.75l3.5-3.5" fill="none" stroke="currentColor"
     stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
 </svg>`
 
@@ -33,7 +33,7 @@ const look = {
   icons: {
     set: "complete" as const,
     spriteSheet: sprite,
-    remap: { "file-tree-icon-chevron": "oriel-chevron" },
+    remap: { "file-tree-icon-chevron": "ovvi-chevron" },
   },
   unsafeCSS: `:host {
     --trees-bg-override: transparent; --trees-fg-override: var(--text); --trees-fg-muted-override: var(--dim);
@@ -70,25 +70,25 @@ const dotted = (path: string) => /(^|\/)\.[^/]/.test(path)
 
 /** The root's tree in `place.root`, its rows listed; git's letters and a landing's row come after. */
 export async function show(place: Place): Promise<Reveal> {
-  const { oriel, root, keep } = place
+  const { ovvi, root, keep } = place
   /** The argument is a folder's, with its `/`. Paths in the tree are from the root; `/` as the root gives no `//`. */
   const base = place.arg.replace(/\/$/, "")
   const top = base || "/"
   const folder = (path: string) => tree.getItem(path) as FileTreeDirectoryHandle | null
   const above = top === "/" ? "" : top.slice(0, top.lastIndexOf("/")) || "/"
-  oriel.controls.set("root", { value: top })
+  ovvi.controls.set("root", { value: top })
   /** A typed path, or the folder Choose Folder… picks (no path: the field's folder button): the tree rooted there,
    *  as the card's next place. A path that is no folder shakes the field. */
   const move = async (path?: string) => {
-    const root = path ?? (await oriel.pick.folder(top))
+    const root = path ?? (await ovvi.pick.folder(top))
     if (!root) return
-    if (!(await oriel.files.info(root).then((info) => info.folder, () => false))) {
-      return oriel.controls.set("root", { refused: true })
+    if (!(await ovvi.files.info(root).then((info) => info.folder, () => false))) {
+      return ovvi.controls.set("root", { refused: true })
     }
-    oriel.card.go(root === "/" ? "/" : `${root}/`)
+    ovvi.card.go(root === "/" ? "/" : `${root}/`)
   }
   /** Hidden files show: row 2's eye, kept with the card's controls. */
-  let dotfiles = oriel.controls.get("hidden-files") === true
+  let dotfiles = ovvi.controls.get("hidden-files") === true
 
   /** Each folder's entries as the tree has them: `""` is the root, and a folder's path ends in `/`, as the tree's. */
   const children = new Map<string, Set<string>>()
@@ -107,7 +107,7 @@ export async function show(place: Place): Promise<Reveal> {
    *  each listing of the root, so a `git init` in the tree shows git's letters and the status bar. */
   let repo: string | null = null
   let repository = false
-  const rooted = () => oriel.git.root(top).catch(() => null)
+  const rooted = () => ovvi.git.root(top).catch(() => null)
 
   root.innerHTML = `<div id="find" class="find" hidden><div class="find-row"><input class="find-field" placeholder="Filter"
     aria-label="Filter" spellcheck="false"><span class="find-count"></span><button class="find-icon" aria-label="Close Filter"
@@ -117,7 +117,7 @@ export async function show(place: Place): Promise<Reveal> {
     canRename: (item: { path: string }) => item.path !== UP.slice(0, -1),
     onRename: (event: FileTreeRenameEvent) => void renamed(event, own()),
     // A name in use in the tree, empty, or with a `/`: the row keeps its name.
-    onError: (error: string) => void oriel.toast(error),
+    onError: (error: string) => void ovvi.toast(error),
   })
   const tree = new FileTree({ paths: above ? [UP] : [], ...look, renaming: renaming(() => tree) })
   const results = new FileTree({ paths: [], ...look, renaming: renaming(() => results) })
@@ -127,7 +127,7 @@ export async function show(place: Place): Promise<Reveal> {
   const find = root.querySelector<HTMLElement>("#find")!
   const field = find.querySelector("input")!
   const count = find.querySelector<HTMLElement>(".find-count")!
-  const status = footer(oriel, root.querySelector("footer")!)
+  const status = footer(ovvi, root.querySelector("footer")!)
   tree.render({ containerWrapper: host })
   results.render({ containerWrapper: matches })
   // pierre counts an ignored path as a change of the folders above it: their dot shows only for git's changes.
@@ -181,7 +181,7 @@ export async function show(place: Place): Promise<Reveal> {
     unlisted.delete(at)
     let entries: { name: string; folder: boolean; ignored: boolean }[]
     try {
-      entries = await oriel.files.list(at ? `${base}/${at.slice(0, -1)}` : top)
+      entries = await ovvi.files.list(at ? `${base}/${at.slice(0, -1)}` : top)
     } catch {
       if (at) return
       children.clear()
@@ -231,7 +231,7 @@ export async function show(place: Place): Promise<Reveal> {
     const icon = failed ? "folder.badge.questionmark" : empty ? "folder" : "magnifyingglass"
     if (!message.hidden && message.dataset.icon !== icon) {
       message.dataset.icon = icon
-      void oriel.symbol(icon, 30).then((url) => message.style.setProperty("--symbol", `url(${url})`), () => {})
+      void ovvi.symbol(icon, 30).then((url) => message.style.setProperty("--symbol", `url(${url})`), () => {})
     }
   }
 
@@ -291,7 +291,7 @@ export async function show(place: Place): Promise<Reveal> {
    *  the status bar. */
   async function git() {
     const at = repo
-    const [now, head] = at ? await Promise.all([oriel.git.status(at).catch(() => []), oriel.git.head(at).catch(() => null)])
+    const [now, head] = at ? await Promise.all([ovvi.git.status(at).catch(() => []), ovvi.git.head(at).catch(() => null)])
       : [[], null]
     changes = now
     showStatus()
@@ -306,11 +306,11 @@ export async function show(place: Place): Promise<Reveal> {
     const other = own === tree ? results : tree
     if (other.getItem(from)) other.move(from, to)
     try {
-      await oriel.files.move(`${base}/${event.sourcePath}`, `${base}/${event.destinationPath}`)
+      await ovvi.files.move(`${base}/${event.sourcePath}`, `${base}/${event.destinationPath}`)
     } catch (error) {
       rekey(to, from)
       for (const each of [tree, results]) if (each.getItem(to)) each.move(to, from)
-      void oriel.toast(String((error as Error).message ?? error))
+      void ovvi.toast(String((error as Error).message ?? error))
     }
   }
 
@@ -335,7 +335,7 @@ export async function show(place: Place): Promise<Reveal> {
     // A dotfile shows only with the hidden files: the eye turns on (Show in File Explorer on `.gitignore`).
     if (!dotfiles && dotted(relative)) {
       dotfiles = true
-      oriel.controls.set("hidden-files", { value: true })
+      ovvi.controls.set("hidden-files", { value: true })
       await refresh()
     }
     for (const above of folders(relative).reverse()) {
@@ -360,7 +360,7 @@ export async function show(place: Place): Promise<Reveal> {
     }
   }))
 
-  oriel.on("control", ({ id, value }) => {
+  ovvi.on("control", ({ id, value }) => {
     // A click on row 2 leaves the tree with no selection.
     clear()
     if (id === "filter") {
@@ -378,13 +378,13 @@ export async function show(place: Place): Promise<Reveal> {
       void (paths ?? queue).then(match).catch(console.error)
     }
   })
-  oriel.on("find", () => openFind())
+  ovvi.on("find", () => openFind())
 
   /** The find bar at the top right (row 2's Filter, ⌘F, or a letter typed in the tree) takes the keyboard; `text` in
    *  place of its text. */
   function openFind(text?: string) {
     find.hidden = false
-    oriel.controls.set("filter", { value: true })
+    ovvi.controls.set("filter", { value: true })
     if (text !== undefined) {
       field.value = text
       filtered()
@@ -397,7 +397,7 @@ export async function show(place: Place): Promise<Reveal> {
   /** Esc, its close button or row 2's Filter again: the bar goes, with its filter, and the tree takes the keyboard. */
   function closeFind() {
     find.hidden = true
-    oriel.controls.set("filter", { value: false })
+    ovvi.controls.set("filter", { value: false })
     if (field.value) {
       field.value = ""
       filtered()
@@ -420,11 +420,11 @@ export async function show(place: Place): Promise<Reveal> {
   }
   const close = find.querySelector("button")!
   close.onclick = closeFind
-  symbols(oriel, ["xmark"])
+  symbols(ovvi, ["xmark"])
   close.style.setProperty("--symbol", "var(--sf-xmark)")
 
   // After each change under the root, and once when the card shows again.
-  oriel.files.watch(top, () => {
+  ovvi.files.watch(top, () => {
     if (due) return
     due = true
     // The next filter reads the paths again, for the files made since.
@@ -439,7 +439,7 @@ export async function show(place: Place): Promise<Reveal> {
   /** Every file of the root, for the filter: added under the folders no listing filled yet. */
   async function loadPaths() {
     const operations: FileTreeBatchOperation[] = []
-    for (const path of await oriel.files.paths(top).catch(() => [])) {
+    for (const path of await ovvi.files.paths(top).catch(() => [])) {
       if (dotfiles || !dotted(path)) put(path, operations)
     }
     tree.batch(operations)
@@ -475,7 +475,7 @@ export async function show(place: Place): Promise<Reveal> {
         // VoiceOver's press on `..` (no clicks counted) goes up.
         if (event.metaKey || event.altKey || (event.detail >= 2 && !toggle) || (at.id === UP && !event.detail)) {
           event.stopPropagation()
-          open(oriel, at.arg, how(event))
+          open(ovvi, at.arg, how(event))
         } else if (at.folder && !toggle && event.detail === 1 && !event.shiftKey && !event.ctrlKey) {
           event.stopPropagation()
           only(filter ? results : tree, at.id)
@@ -488,7 +488,7 @@ export async function show(place: Place): Promise<Reveal> {
     // The app's menu: Open (Open as Root on a folder), Open in New Tab, Open to the Side.
     trees.addEventListener("contextmenu", (event) => {
       const at = row(event)
-      if (at) void menu(oriel, event, at.arg)
+      if (at) void menu(ovvi, event, at.arg)
       else event.preventDefault()
     })
   }
@@ -510,9 +510,9 @@ export async function show(place: Place): Promise<Reveal> {
     if (plain && key === "Enter") {
       if (at && shown.startRenaming(at)) stem(shown, at)
     } else if (command && (key === "o" || key === "ArrowDown")) {
-      if (at) open(oriel, arg(at), "card")
+      if (at) open(ovvi, arg(at), "card")
     } else if (command && key === "ArrowUp") {
-      if (above) oriel.card.go(arg(UP))
+      if (above) ovvi.card.go(arg(UP))
     } else if (plain && key === "Escape" && !find.hidden) {
       closeFind()
     } else if (key.length === 1 && key !== " " && !event.metaKey && !event.ctrlKey && !event.altKey) {

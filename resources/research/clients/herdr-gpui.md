@@ -17,7 +17,7 @@ they name a crate.
   SSH hosts, through herdr workspace metadata tokens used as a mailbox.
 - **Notes back to the agent** (on a diff line, a page element, a terminal selection) are one prompt,
   pasted when herdr says the agent is idle, with Enter 150 ms later.
-- **Breadth far past Oriel's scope:** Teleport (move a worktree and its agent sessions to another host),
+- **Breadth far past Ovvi's scope:** Teleport (move a worktree and its agent sessions to another host),
   fan-out, PR and issue lists, automations in Luau, usage meters for 94 providers, cloud sandboxes, a
   phone PWA served from the Mac, a rich chat over ACP and over running Claude Code and Codex.
 
@@ -247,7 +247,7 @@ or on another branch, then `read-tree -m -u` and `reset`. The dialog shows only 
 
 ## 8. Chat view
 
-Oriel's decisions are in [../ui/chat-view.md](../ui/chat-view.md). In short (`herdr-gpui/docs/rich-chat.md`): native ACP chats
+Ovvi's decisions are in [../ui/chat-view.md](../ui/chat-view.md). In short (`herdr-gpui/docs/rich-chat.md`): native ACP chats
 run by `herdr-acp` inside a pane (found through the pane token `acp`; the GUI derives the socket path itself),
 and, opt-in, **running Claude Code and Codex sessions drawn as rich messages above the CLI's own input
 rows**: only the upper terminal cells are replaced, the bottom rows (editor, approvals, IME, image paste) stay
@@ -275,7 +275,7 @@ client ask for a fresh snapshot (`herdr-gpui/src/chat/session.rs:183-197`).
 ### Native ACP chat (replaces the TUI)
 
 - Start: `tab.create` with `env.HERDR_ACP=<path>`, then one fixed line typed into the new shell,
-  ` sh -c 'exec "$HERDR_ACP" claude'` (`herdr-gpui/src/chat/start.rs:101-150`). Same idea as Oriel's chooser.
+  ` sh -c 'exec "$HERDR_ACP" claude'` (`herdr-gpui/src/chat/start.rs:101-150`). Same idea as Ovvi's chooser.
 - Claude runs as `claude -p --input-format stream-json --output-format stream-json --include-partial-messages
   --permission-prompt-tool stdio --session-id <id>` (`herdr-acp/src/claude.rs:31-45`); approvals arrive as
   `can_use_tool` control requests. Codex runs as `codex app-server`, pi as `pi --mode rpc` (pi extension
@@ -286,7 +286,7 @@ client ask for a fresh snapshot (`herdr-gpui/src/chat/session.rs:183-197`).
 - So the agent's real TUI is gone. The "terminal" for this chat is `herdr-acp`'s own ratatui view
   (`herdr-acp/src/tui/view.rs`). `herdr-gpui chat show|hide|toggle` flips the GUI overlay off that view.
 
-### Existing CLI session (the part that matches Oriel)
+### Existing CLI session (the part that matches Ovvi)
 
 - **Finding the file** (`herdr-gpui/src/chat/existing.rs:237-346`): `herdr api snapshot` gives the pane's
   `agent_session` (must be a UUID and name the same agent as the pane); `herdr pane process-info` gives the foreground
@@ -337,7 +337,7 @@ Without tests: GUI chat 16.2k lines (`herdr-gpui/src/chat`), `herdr-acp` 10.7k (
 still says the view "is never offered for SSH", but the code routes SSH (`chat/discovery.rs:28-37`). Open: #595
 (chat lens beside the terminal; the user runs Claude/Codex on macOS, which observe does not cover), #837 (follow-ups).
 
-### For Oriel
+### For Ovvi
 
 - Copy: find the file from herdr's `agent_session` id plus the agent's config dir, an exact-name lookup, never a
   newest-file guess. Fail closed to the terminal on zero or several matches.
@@ -346,10 +346,10 @@ still says the view "is never offered for SSH", but the code routes SSH (`chat/d
 - Copy: pin the file (dev+inode), skip a partial last line, skip unknown records, pair tool results by id in a map,
   and send a fresh snapshot when the file was rewritten.
 - Copy: Codex reads only `response_item`, never the duplicated `event_msg` text; Claude dedupes by `uuid`.
-- Avoid: re-parsing an 8 MiB tail on every change; tail from an offset instead (Oriel's `tail -F`).
-- Avoid: `/proc`-only process checks (Linux only); Oriel's own launch flags give the session id directly.
-- Avoid: a headless replacement for the TUI (the native ACP path); it loses the real TUI, which Oriel keeps.
-- Note: their sends need the ACP path; the observed chat has no composer. Oriel's `agent.prompt` composer on the real
+- Avoid: re-parsing an 8 MiB tail on every change; tail from an offset instead (Ovvi's `tail -F`).
+- Avoid: `/proc`-only process checks (Linux only); Ovvi's own launch flags give the session id directly.
+- Avoid: a headless replacement for the TUI (the native ACP path); it loses the real TUI, which Ovvi keeps.
+- Note: their sends need the ACP path; the observed chat has no composer. Ovvi's `agent.prompt` composer on the real
   TUI is something neither path has.
 
 ## 9. Settings, keys, notifications, phone
@@ -381,32 +381,32 @@ license and a notice of changes. `herdr-protocol` and the settings schema are th
 script (`herdr-vcs/src/checkpoint/script.rs`), the remote shim (`remote_browser/herdr-gpui.sh`), the review
 prompt wording. Bundled RaTeX is MIT, KaTeX fonts OFL.
 
-## 11. Compared with Oriel
+## 11. Compared with Ovvi
 
-| Topic | herdr-gpui | Oriel | Verdict |
+| Topic | herdr-gpui | Ovvi | Verdict |
 |---|---|---|---|
-| Terminal bytes | herdr's cell grid, painted by GPUI | ANSI on `terminal session control`, libghostty | Oriel's: ligatures, local scrollback and find, no painter to keep |
-| herdr access | binary socket, method allowlist, CLI for the rest | JSON API through `remote-api-bridge`, events then snapshot | Oriel's: no positional wire copy, no CLI detour |
-| Panes on screen | one focused tab per connection; a connection per extra group | every pane of the shown tab streamed on its own | Oriel's |
-| Non-terminal panes | client-only tabs in a local JSON, a closed enum | a labelled placeholder herdr pane, one kind registry | Oriel's: other devices and the TUI see it, it survives restarts |
-| Browser profiles | one store for all hosts | one `WKWebsiteDataStore` per machine | Oriel's |
-| Remote localhost | per-port `-L`, URL rewritten | one SOCKS `-D` per machine, `<machine>.localhost` | Oriel's |
-| Web Inspector | debug builds only | ⌥⌘I, `isInspectable` | Oriel's |
+| Terminal bytes | herdr's cell grid, painted by GPUI | ANSI on `terminal session control`, libghostty | Ovvi's: ligatures, local scrollback and find, no painter to keep |
+| herdr access | binary socket, method allowlist, CLI for the rest | JSON API through `remote-api-bridge`, events then snapshot | Ovvi's: no positional wire copy, no CLI detour |
+| Panes on screen | one focused tab per connection; a connection per extra group | every pane of the shown tab streamed on its own | Ovvi's |
+| Non-terminal panes | client-only tabs in a local JSON, a closed enum | a labelled placeholder herdr pane, one kind registry | Ovvi's: other devices and the TUI see it, it survives restarts |
+| Browser profiles | one store for all hosts | one `WKWebsiteDataStore` per machine | Ovvi's |
+| Remote localhost | per-port `-L`, URL rewritten | one SOCKS `-D` per machine, `<machine>.localhost` | Ovvi's |
+| Web Inspector | debug builds only | ⌥⌘I, `isInspectable` | Ovvi's |
 | OAuth popups | adopted with `window.opener` | opened in the same card | **theirs** |
-| Ports | per workspace via `HERDR_WORKSPACE_ID`, every 5 s | menu on click, by process name | **theirs** for grouping; Oriel's for no timer |
-| Diff | review tab: two-phase load, side by side, viewed marks, notes | changes drawer, read-only, unified | combine: Oriel's drawer, their loading and marks |
+| Ports | per workspace via `HERDR_WORKSPACE_ID`, every 5 s | menu on click, by process name | **theirs** for grouping; Ovvi's for no timer |
+| Diff | review tab: two-phase load, side by side, viewed marks, notes | changes drawer, read-only, unified | combine: Ovvi's drawer, their loading and marks |
 | Last turn | commit + hidden ref, restore | loose `write-tree`, id in a state file | **theirs** |
 | Agent → app | control socket; token mailbox from SSH hosts | float and copy tokens; none for pages | same pattern; theirs reaches further |
 | Notes → agent | paste when idle, Enter 150 ms later | "Later" | **theirs** as the rule |
 | Chat | rich view above the CLI's own input rows; ACP | transcript tail + composer (design) | see [../ui/chat-view.md](../ui/chat-view.md) |
-| Phone | PWA served by a Mac daemon | native iOS app over SSH (design) | Oriel's direction; their pairing is a good reference |
+| Phone | PWA served by a Mac daemon | native iOS app over SSH (design) | Ovvi's direction; their pairing is a good reference |
 
-## 12. For Oriel
+## 12. For Ovvi
 
 ### Reuse
 
 1. **Checkpoints as commit + hidden ref** for the changes panel's Last turn: `commit-tree -p HEAD` under
-   `refs/oriel/checkpoints/<sha1(branch)>/<stamp>` with a branch trailer, keep 50, real index copied to a temp
+   `refs/ovvi/checkpoints/<sha1(branch)>/<stamp>` with a branch trailer, keep 50, real index copied to a temp
    index, `core.fsmonitor=false`, skip an unchanged tree, ignore blocked → working. Every device sees the refs,
    `git gc` cannot prune them, and no state file holds the tree id. Cost: about 1 day.
 2. **The delivery rule for notes to an agent:** paste when herdr says idle or done (hold up to 120 s), Enter
@@ -421,8 +421,8 @@ prompt wording. Bundled RaTeX is MIT, KaTeX fonts OFL.
 5. **OAuth popup adoption** in the browser card: build the popup from WebKit's configuration in
    `createWebViewWith` and show it as a sheet over the card until `webViewDidClose`. Cost: half a day.
 6. **The metadata-token mailbox** for a later "agent opens a page in a card": an id per request, URL in
-   80-character chunks, 30 s TTL, served once, http(s) only, only the request's own workspace, then Oriel's
-   load rule. Same channel as Oriel's float requests. Cost: 1 day plus a small shim or pi-hkandala tool.
+   80-character chunks, 30 s TTL, served once, http(s) only, only the request's own workspace, then Ovvi's
+   load rule. Same channel as Ovvi's float requests. Cost: 1 day plus a small shim or pi-hkandala tool.
 7. **Small habits:** navigation filter (http(s) and `about:blank` only, downloads refused); per-card page zoom on
    ⌘+/⌘−; hidden web views out of the hierarchy so they take no drops; `LocalCommand=echo marker` +
    `ExitOnForwardFailure` for forward readiness; host-key approval through a scratch `known_hosts`; wake
@@ -436,7 +436,7 @@ prompt wording. Bundled RaTeX is MIT, KaTeX fonts OFL.
 - Client-only tabs keyed by daemon workspace ids, and a closed enum per surface.
 - Writing herdr's shared `config.toml` from the app.
 - Per-port forwards that rewrite the page origin; a web view per tab per window with no cap.
-- Typing a command into a fresh shell to start a program (their editor path): Oriel's `layout.apply` with a
+- Typing a command into a fresh shell to start a program (their editor path): Ovvi's `layout.apply` with a
   command is better.
 - The breadth (usage meters, automations, cloud sandboxes, orchestrator, VS Code server): each is a product.
 
@@ -450,5 +450,5 @@ prompt wording. Bundled RaTeX is MIT, KaTeX fonts OFL.
 | Annotate a page and send to the agent | their most-used browser loop | 3–4 days; needs a bridge, so after the first slice |
 | Show a local `.md`/`.html` an agent wrote (scheme handler, no-script CSP) | no dev server needed | 1 day local; more over SSH |
 | Back/Forward pane history (⌘[ ⌘]) and reopen closed tab (⌘⇧T) | navigation | 1 day each |
-| Plugin values: show `agents[].tokens`, `state_labels`, `tab_bar_right` as herdr's TUI does | herdr plugins show something in Oriel | 1 day |
+| Plugin values: show `agents[].tokens`, `state_labels`, `tab_bar_right` as herdr's TUI does | herdr plugins show something in Ovvi | 1 day |
 | Closed-agents shelf that reopens with `--continue` | recover a closed agent | 1 day |

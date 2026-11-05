@@ -271,7 +271,7 @@ for (const [id, title, kind, src, match, x = {}] of E) {
 fs.writeFileSync(path.join(OUT, 'catalog.json'), JSON.stringify(catalog, null, 2) + '\n');
 
 // ---- the app's asset catalog: one template image set per icon, vector data kept -------------------------
-const ASSETS = path.resolve(OUT, '../../Oriel/Assets.xcassets');
+const ASSETS = path.resolve(OUT, '../../Ovvi/Assets.xcassets');
 for (const f of fs.readdirSync(ASSETS)) if (f.startsWith('program.')) fs.rmSync(path.join(ASSETS, f), { recursive: true });
 for (const c of catalog) {
   const dir = path.join(ASSETS, `program.${c.id}.imageset`);
@@ -292,7 +292,7 @@ const LIC = {
   'oh-my-pi repo': ['oh-my-pi-MIT.txt', `${WORK}/lic/omp.txt`, 'MIT, Copyright (c) 2025 Mario Zechner, (c) 2025-2026 Can Bölük'],
   'aider repo': ['aider-Apache-2.0.txt', `${WORK}/lic/aider.txt`, 'Apache-2.0'],
   'jj repo': ['jj-Apache-2.0.txt', `${WORK}/lic/jj.txt`, 'Apache-2.0'],
-  original: [null, null, 'CC0-1.0: drawn for Oriel from simple geometric shapes, dedicated to the public domain'],
+  original: [null, null, 'CC0-1.0: drawn for Ovvi from simple geometric shapes, dedicated to the public domain'],
 };
 fs.rmSync(path.join(OUT, 'licenses'), { recursive: true, force: true });
 fs.mkdirSync(path.join(OUT, 'licenses'));
@@ -346,7 +346,7 @@ const cells = catalog.map((c, i) => {
 });
 const W = COLS * CW, H = TOP + Math.ceil(catalog.length / COLS) * CH;
 const sheet = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"><rect width="100%" height="100%" fill="#e8e8e8"/>`
-  + `<text x="12" y="19" font-family="Helvetica" font-size="12" font-weight="bold" fill="#222">Oriel program icons. 1 px = 1 pt: each tile at 22x18 (1x) and 44x36 (2x), on dark #1e1e1e and light #f5f5f5.</text>${head}${cells.join('')}</svg>`;
+  + `<text x="12" y="19" font-family="Helvetica" font-size="12" font-weight="bold" fill="#222">Ovvi program icons. 1 px = 1 pt: each tile at 22x18 (1x) and 44x36 (2x), on dark #1e1e1e and light #f5f5f5.</text>${head}${cells.join('')}</svg>`;
 fs.writeFileSync(`${WORK}/sheet.svg`, sheet);
 fs.writeFileSync(path.join(OUT, 'contact-sheet.png'), new Resvg(sheet, { font: { loadSystemFonts: true } }).render().asPng());
 

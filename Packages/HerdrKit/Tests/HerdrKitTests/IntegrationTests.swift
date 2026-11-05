@@ -36,7 +36,7 @@ private let herdrInstalled: @Sendable () async -> Bool = { await shell("which", 
 
 /// A client for a new throwaway session, removed after `body`.
 private func withSession(_ exec: any Exec, _ body: (HerdrClient) async throws -> Void) async throws {
-    let session = "oriel-e2e-\(UUID().uuidString.prefix(6).lowercased())"
+    let session = "ovvi-e2e-\(UUID().uuidString.prefix(6).lowercased())"
     try #require(await shell(script, "up", session) == 0)
     defer { await shell(script, "down", session) }
     try await body(HerdrClient(session: session, exec: exec))
@@ -175,7 +175,7 @@ private func talk(_ client: HerdrClient, _ exec: SubscribeCounter) async throws 
 }
 
 @Test func `the login shell gives its variables and herdr's path`() async throws {
-    let dir = FileManager.default.temporaryDirectory.appending(path: "oriel-shell-\(UUID().uuidString.prefix(6))")
+    let dir = FileManager.default.temporaryDirectory.appending(path: "ovvi-shell-\(UUID().uuidString.prefix(6))")
     defer { try? FileManager.default.removeItem(at: dir) }
     try FileManager.default.createDirectory(at: dir.appending(path: "bin"), withIntermediateDirectories: true)
     let shell = dir.appending(path: "shell").path, herdr = dir.appending(path: "bin/herdr").path
@@ -233,13 +233,13 @@ private func control(_ client: HerdrClient) async throws {
         guard case let .frame(first)? = await events.next() else { throw HerdrError.failed("no first frame") }
         #expect(first.width == 60 && first.height == 12)
 
-        control.input("echo oriel-$((6*7)); stty size\r")
+        control.input("echo ovvi-$((6*7)); stty size\r")
         var text = ""
         for _ in 0 ..< 50 where !text.contains("12 60") {
             try await Task.sleep(for: .milliseconds(100))
             text = try await client.screen(pane.pane_id)
         }
-        #expect(text.contains("oriel-42"))
+        #expect(text.contains("ovvi-42"))
         #expect(text.contains("12 60"))
 
         control.resize(cols: 70, rows: 15, cellWidth: 8, cellHeight: 17)
@@ -284,22 +284,22 @@ func `a started server shares the CLI's paths`() async throws {
         }
 
         func run(_ argv: [String]) async throws -> Channel {
-            try await base.run(["env", "XDG_CONFIG_HOME=\(config)", "__CFBundleIdentifier=dev.hkandala.oriel"] + argv)
+            try await base.run(["env", "XDG_CONFIG_HOME=\(config)", "__CFBundleIdentifier=dev.ovvi.app"] + argv)
         }
     }
     // Not the temporary directory: a socket path there is too long.
-    let config = "/tmp/oriel-xdg-\(UUID().uuidString.prefix(6))"
-    let session = "oriel-e2e-\(UUID().uuidString.prefix(6).lowercased())"
+    let config = "/tmp/ovvi-xdg-\(UUID().uuidString.prefix(6))"
+    let session = "ovvi-e2e-\(UUID().uuidString.prefix(6).lowercased())"
     defer {
-        await shell("launchctl", "bootout", "gui/\(getuid())/dev.hkandala.oriel.herdr.\(session)")
+        await shell("launchctl", "bootout", "gui/\(getuid())/dev.ovvi.app.herdr.\(session)")
         try? FileManager.default.removeItem(atPath: config)
-        try? FileManager.default.removeItem(at: URL.libraryDirectory.appending(path: "Logs/Oriel/\(session).log"))
+        try? FileManager.default.removeItem(at: URL.libraryDirectory.appending(path: "Logs/Ovvi/\(session).log"))
     }
     let base = localExec
     let client = HerdrClient(session: session, exec: Moved(base: base, config: config))
     try await client.startServer(within: .seconds(10))
     #expect(FileManager.default.fileExists(atPath: "\(config)/herdr/sessions/\(session)"))
-    let job = try await base.output(["launchctl", "print", "gui/\(getuid())/dev.hkandala.oriel.herdr.\(session)"])
+    let job = try await base.output(["launchctl", "print", "gui/\(getuid())/dev.ovvi.app.herdr.\(session)"])
     // The login shell's herdr and its PATH as it is.
     let herdr = try #require(await base.herdr())
     #expect(job.contains("program = \(herdr)\n") && job.contains("PATH => \(base.environment["PATH"] ?? "")\n"))

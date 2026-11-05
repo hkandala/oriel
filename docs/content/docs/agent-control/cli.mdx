@@ -1,24 +1,24 @@
 ---
 title: "CLI"
-description: "The oriel command: every subcommand with examples, its JSON output and errors, and the script itself"
+description: "The ovvi command: every subcommand with examples, its JSON output and errors, and the script itself"
 ---
 
-`oriel` is a POSIX `sh` script of about 70 lines
-([Agent control](/docs/agent-control)). It carries its arguments to Oriel and
-prints the answer ([Protocol](/docs/agent-control/protocol)). Oriel parses
+`ovvi` is a POSIX `sh` script of about 70 lines
+([Agent control](/docs/agent-control)). It carries its arguments to Ovvi and
+prints the answer ([Protocol](/docs/agent-control/protocol)). Ovvi parses
 every command except `status`, which the script answers from herdr alone.
 
 ## Where it is
 
-- `~/.cache/oriel/bin/oriel` on each machine where Oriel opened a session,
-  This Mac included. Oriel writes it when it opens a session on the machine
+- `~/.cache/ovvi/bin/ovvi` on each machine where Ovvi opened a session,
+  This Mac included. Ovvi writes it when it opens a session on the machine
   and the file there is missing or older
   ([How the command gets there](/docs/agent-control/remote#how-the-command-gets-there)).
-- It is not on `PATH`. Agents use the full path (the `oriel` skill names
-  it: [The oriel skill](/docs/agent-control#the-oriel-skill)). A user who
+- It is not on `PATH`. Agents use the full path (the `ovvi` skill names
+  it: [The ovvi skill](/docs/agent-control#the-ovvi-skill)). A user who
   wants the short name adds
-  `export PATH="$HOME/.cache/oriel/bin:$PATH"` to their shell.
-- No file means that no Oriel ever opened a session on this machine.
+  `export PATH="$HOME/.cache/ovvi/bin:$PATH"` to their shell.
+- No file means that no Ovvi ever opened a session on this machine.
 - It needs `sh`, `sed`, `date`, `mv`, `head`, `tail`, `tr`, `uuidgen` or
   `/proc/sys/kernel/random/uuid`, and herdr at `$HERDR_BIN_PATH` (herdr sets
   it in each pane) or on `PATH`.
@@ -26,13 +26,13 @@ every command except `status`, which the script answers from herdr alone.
 ## Usage
 
 ```text
-oriel [--pane <pane>] [--timeout <seconds>] <command> [<args>] [--json]
+ovvi [--pane <pane>] [--timeout <seconds>] <command> [<args>] [--json]
 ```
 
 - `--pane` rings another pane of the session than `$HERDR_PANE_ID`. Use it
   for a caller outside a pane, or after the pane moved to another workspace:
   herdr then gives it a new id, and the environment keeps the old one.
-- `--timeout` is how long the command waits for Oriel's answer once Oriel
+- `--timeout` is how long the command waits for Ovvi's answer once Ovvi
   took the request, in whole seconds. The default is 10. Give `plugins new`,
   `reload` and `install` a longer one (they install and build), and `chat`
   20 s.
@@ -42,54 +42,54 @@ oriel [--pane <pane>] [--timeout <seconds>] <command> [<args>] [--json]
   counts anywhere in the arguments. The keys are sorted.
 - Without `--json`, a command prints its text. A command with no text of its
   own prints its JSON fields as `name: value` lines, sorted by name.
-- An error goes to standard error as `oriel: ‹message›`
+- An error goes to standard error as `ovvi: ‹message›`
   ([Error codes](/docs/agent-control/protocol#error-codes)). With `--json`,
   an error also prints `{"error":{"code":"…","message":"…"}}` on standard
-  output, the script's own errors too (`usage`, `no_oriel`, `timeout` and
+  output, the script's own errors too (`usage`, `no_ovvi`, `timeout` and
   `no_herdr`).
 - A `<pane>` is a pane id of the asking session (`w1:p3`) or
   `‹session›/‹pane id›` of another session on the same machine
   (`pi-herd/w1:p1`). It is always on the asking pane's machine. A session
   that herdr does not run there, or a pane that is not in it, is
   `pane_not_found`. Text that is not a pane is `bad_argument`.
-- Exit codes: 0 done, 1 failed, 2 usage, 3 no Oriel, 4 no answer, 5 not in
+- Exit codes: 0 done, 1 failed, 2 usage, 3 no Ovvi, 4 no answer, 5 not in
   herdr ([Exit codes](/docs/agent-control/protocol#exit-codes)).
 
 ## status
 
-Whether Oriel shows the asking pane, from herdr's tokens alone. It never
-asks Oriel, so it answers fast, also when no Oriel runs. It exits 0 when an
-Oriel follows the session, 3 when none does, and 5 when herdr has no such
-pane ([Is my pane in Oriel?](/docs/agent-control#is-my-pane-in-oriel)).
+Whether Ovvi shows the asking pane, from herdr's tokens alone. It never
+asks Ovvi, so it answers fast, also when no Ovvi runs. It exits 0 when an
+Ovvi follows the session, 3 when none does, and 5 when herdr has no such
+pane ([Is my pane in Ovvi?](/docs/agent-control#is-my-pane-in-ovvi)).
 
 ```sh
-$ oriel status
-Shown in Oriel
-$ oriel status --json
+$ ovvi status
+Shown in Ovvi
+$ ovvi status --json
 {"session":"default","pane":"w1:p2","open":true,"shown":true,"remote":false,"protocol":1}
-$ oriel status --watch        # the JSON line again each time it changes; reads every 2 s
+$ ovvi status --watch         # the JSON line again each time it changes; reads every 2 s
 ```
 
-The text is "Shown in Oriel", "Open in Oriel, not shown" or "Not in Oriel".
+The text is "Shown in Ovvi", "Open in Ovvi, not shown" or "Not in Ovvi".
 
 ## help
 
 ```sh
-oriel help                    # every command with its synopsis, status too
-oriel help open               # the synopsis and the details of one
+ovvi help                     # every command with its synopsis, status too
+ovvi help open                # the synopsis and the details of one
 ```
 
-Oriel writes the help from its commands, so it lists what that Oriel has.
-`oriel` with no command is `oriel help`. With `--json`, `help` answers
+Ovvi writes the help from its commands, so it lists what that Ovvi has.
+`ovvi` with no command is `ovvi help`. With `--json`, `help` answers
 `{"commands":[{"name","usage","summary"}…]}`, and `help <command>` answers
 its `name`, `usage`, `summary` and `help`.
 
 ## info
 
-What the Oriel that takes the request offers.
+What the Ovvi that takes the request offers.
 
 ```sh
-$ oriel info --json
+$ ovvi info --json
 {"agents":["claude","codex","pi","opencode"],"app":"0.1","appearance":"dark",
  "commands":["help","info","float","unfloat","copy","plugins","open","reveal","card","shown","notify","agent","chat","view","balance"],
  "machine":"This Mac","protocol":1}
@@ -97,12 +97,12 @@ $ oriel info --json
 
 | Field | Meaning |
 |---|---|
-| `app` | Oriel's version |
+| `app` | Ovvi's version |
 | `protocol` | the protocol version it speaks |
-| `machine` | Oriel's name for the asking pane's machine: `This Mac`, or the name in the machine list |
-| `appearance` | `light` or `dark`, as Oriel draws now (for an HTML report that matches) |
-| `commands` | the commands this Oriel parses (`status` is the script's) |
-| `agents` | the agents `oriel agent` starts with the chat view, by command |
+| `machine` | Ovvi's name for the asking pane's machine: `This Mac`, or the name in the machine list |
+| `appearance` | `light` or `dark`, as Ovvi draws now (for an HTML report that matches) |
+| `commands` | the commands this Ovvi parses (`status` is the script's) |
+| `agents` | the agents `ovvi agent` starts with the chat view, by command |
 
 ## plugins
 
@@ -112,23 +112,23 @@ plugin registry ([Where the registry looks](/docs/plugins/packages#where-the-reg
 herdr's and not in the list.
 
 ```text
-oriel plugins [--for <path or URL>]
-oriel plugins new <name>
-oriel plugins reload [<id>]
-oriel plugins install <source>
+ovvi plugins [--for <path or URL>]
+ovvi plugins new <name>
+ovvi plugins reload [<id>]
+ovvi plugins install <source>
 ```
 
 ```sh
-$ oriel plugins
+$ ovvi plugins
 browser    Browser        urls                   app
 explorer   File Explorer  files,folders          app
 git        Git            git                    app
-csv-table  CSV Table      files                  ~/.config/oriel/plugins/csv-table
-broken     not loaded                            ~/.config/oriel/plugins/broken  package.json: oriel.entry is missing
-$ oriel plugins --for data.csv      # the plugins that open this file, folder or URL, the default first
-csv-table  CSV Table      files                  ~/.config/oriel/plugins/csv-table  default
+csv-table  CSV Table      files                  ~/.config/ovvi/plugins/csv-table
+broken     not loaded                            ~/.config/ovvi/plugins/broken   package.json: ovvi.entry is missing
+$ ovvi plugins --for data.csv       # the plugins that open this file, folder or URL, the default first
+csv-table  CSV Table      files                  ~/.config/ovvi/plugins/csv-table   default
 explorer   File Explorer  files,folders          app
-csv-chart  CSV Chart      files                  ~/.config/oriel/plugins/csv-chart
+csv-chart  CSV Chart      files                  ~/.config/ovvi/plugins/csv-chart
 ```
 
 ```json
@@ -136,10 +136,10 @@ csv-chart  CSV Chart      files                  ~/.config/oriel/plugins/csv-cha
   { "id": "csv-table", "name": "CSV Table", "icon": "tablecells",
     "description": "A CSV or TSV file as a table you can sort.", "version": "0.1.0",
     "opens": { "files": ["*.csv", "*.tsv"] }, "chooser": null,
-    "source": "~/.config/oriel/plugins/csv-table",
-    "log": "/Users/me/Library/Logs/Oriel/plugins/csv-table.log" },
-  { "id": "broken", "source": "~/.config/oriel/plugins/broken",
-    "error": "package.json: oriel.entry is missing" }
+    "source": "~/.config/ovvi/plugins/csv-table",
+    "log": "/Users/me/Library/Logs/Ovvi/plugins/csv-table.log" },
+  { "id": "broken", "source": "~/.config/ovvi/plugins/broken",
+    "error": "package.json: ovvi.entry is missing" }
 ]
 ```
 
@@ -147,7 +147,7 @@ csv-chart  CSV Chart      files                  ~/.config/oriel/plugins/csv-cha
   written: `opens` has only the keys the manifest gives (`files`, `folders`,
   `git`, `urls`, `priority`). `description` and `version` are the package's.
 - `source` is the Plugins panel's row text: `app` for the browser and the
-  default plugins (the row says "Comes with Oriel"), the `npm:` or `git:`
+  default plugins (the row says "Comes with Ovvi"), the `npm:` or `git:`
   source, the local path, or the folder
   ([The Plugins panel](/docs/plugins/packages#the-plugins-panel)).
 - `log` is the full path of the plugin's log
@@ -160,7 +160,7 @@ csv-chart  CSV Chart      files                  ~/.config/oriel/plugins/csv-cha
   [Which plugin opens a file](/docs/plugins/manifest#which-plugin-opens-a-file),
   each with `"default": true` or `false`. For a file, the plugins that open it
   only as a choice in Open With (`"priority": "option"`) come after them:
-  `oriel open <id> <file>` opens the file with any of them. A relative path is read from the
+  `ovvi open <id> <file>` opens the file with any of them. A relative path is read from the
   command's folder, and a folder is one on the disk of the pane's machine (a
   missing path counts by its name, or as a folder when it ends in `/`).
   `open` picks its default plugin by the same order.
@@ -168,13 +168,13 @@ csv-chart  CSV Chart      files                  ~/.config/oriel/plugins/csv-cha
 ### plugins new
 
 ```sh
-$ oriel --timeout 120 plugins new "CSV Table"
-folder: /Users/me/.config/oriel/plugins/csv-table
+$ ovvi --timeout 120 plugins new "CSV Table"
+folder: /Users/me/.config/ovvi/plugins/csv-table
 id: csv-table
-log: /Users/me/Library/Logs/Oriel/plugins/csv-table.log
+log: /Users/me/Library/Logs/Ovvi/plugins/csv-table.log
 ```
 
-New Plugin… with the name as an argument: Oriel copies the template into the
+New Plugin… with the name as an argument: Ovvi copies the template into the
 plugins folder, installs its dependencies, builds it and trusts it, as the
 Plugins panel does ([Start from the template](/docs/plugins/building#start-from-the-template)).
 It answers `id`, `folder` and `log`. A name with no letter or digit, or a
@@ -184,14 +184,14 @@ Creating… meanwhile.
 ### plugins reload
 
 ```sh
-$ oriel plugins reload csv-table --json
+$ ovvi plugins reload csv-table --json
 {"built":true,"cards":1,"id":"csv-table","ms":840}
-$ oriel plugins reload                # every plugin with an open card
+$ ovvi plugins reload                 # every plugin with an open card
 csv-table built in 840 ms, 1 card(s)
 ```
 
 Reload Plugin for one id, or Reload Plugins with none
-([Reload](/docs/plugins/building#reload)). Oriel reads the registry again
+([Reload](/docs/plugins/building#reload)). Ovvi reads the registry again
 first, so a folder made by hand loads.
 - One id answers `id`, `built`, `ms` (the time of the build and the reload)
   and `cards` (the plugin's cards in every window: a pane shown in two
@@ -200,7 +200,7 @@ first, so a folder made by hand loads.
 - `built` is false for a plugin that is not trusted: it builds nothing, and
   its cards still ask the user.
 - A card with unsaved edits stops it with `dirty`, which names the pane.
-  Oriel never discards edits for an agent. It looks before anything builds
+  Ovvi never discards edits for an agent. It looks before anything builds
   and again before each plugin, and the message names the plugins reloaded
   before it. A card that gets edits during its plugin's build keeps its page
   while the plugin's other cards load the new build, and the answer is
@@ -214,17 +214,17 @@ first, so a folder made by hand loads.
 ### plugins install
 
 ```sh
-$ oriel --timeout 300 plugins install npm:oriel-csv-table
-csv-table  CSV Table  files  npm:oriel-csv-table
+$ ovvi --timeout 300 plugins install npm:ovvi-csv-table
+csv-table  CSV Table  files  npm:ovvi-csv-table
 ```
 
 Install from the Plugins panel, for an agent
 ([Install](/docs/plugins/packages#install)). The source is
 `npm:<package>`, `git:<repository>` or a folder (a relative one from the
 command's folder).
-- Oriel shows the trust prompt on the window of the asking session, with
+- Ovvi shows the trust prompt on the window of the asking session, with
   "‹agent› in pane ‹pane› asks to install it." first
-  ([The trust prompt](/docs/plugins/security#the-trust-prompt)). Oriel does
+  ([The trust prompt](/docs/plugins/security#the-trust-prompt)). Ovvi does
   not come to the front: it asks for attention in the Dock. Return does not
   press Install, so keys typed elsewhere cannot consent.
 - It answers after the install and the build, with the plugin's entry as in
@@ -242,12 +242,12 @@ command's folder).
 ## open
 
 Makes a browser or plugin card: a herdr pane with the label
-`oriel:<kind>#<iid> <arg>` and its placeholder, as the app's own commands do
+`ovvi:<kind>#<iid> <arg>` and its placeholder, as the app's own commands do
 ([Labels and instance ids](/docs/plugins/labels)).
 
 ```text
-oriel open <kind> [<arg>...] [<place>] [--new]
-oriel open <path-or-url> [<place>] [--new]
+ovvi open <kind> [<arg>...] [<place>] [--new]
+ovvi open <path-or-url> [<place>] [--new]
 
 <place>:  --beside <pane> [--down]     a split of that pane, right (or below). The default: beside the asking pane
           --down                       below the asking pane
@@ -257,28 +257,28 @@ oriel open <path-or-url> [<place>] [--new]
 ```
 
 ```sh
-oriel open git . uncommitted                      # the Uncommitted diff of this repository, beside me
-oriel open git . 4f2a91c --tab                    # a commit, in a new tab
-oriel open browser http://localhost:3000 --down   # a browser card below me
-oriel open ./docs/report.md                       # the default plugin: File Explorer, its Markdown page
-oriel open https://github.com/o/r/pull/7          # a plugin for that URL, else the browser
-oriel open browser ./report.html                  # a file in the browser, This Mac only
-oriel open browser http://localhost:3000/settings --replace w1:p7   # navigate, Back returns
-oriel open explorer . --float                     # a file tree in a floating window
+ovvi open git . uncommitted                       # the Uncommitted diff of this repository, beside me
+ovvi open git . 4f2a91c --tab                     # a commit, in a new tab
+ovvi open browser http://localhost:3000 --down    # a browser card below me
+ovvi open ./docs/report.md                        # the default plugin: File Explorer, its Markdown page
+ovvi open https://github.com/o/r/pull/7           # a plugin for that URL, else the browser
+ovvi open browser ./report.html                   # a file in the browser, This Mac only
+ovvi open browser http://localhost:3000/settings --replace w1:p7    # navigate, Back returns
+ovvi open explorer . --float                      # a file tree in a floating window
 ```
 
 ```json
-{"arg":"/repo/ uncommitted","kind":"git","label":"oriel:git#k3x9q2 /repo/ uncommitted",
+{"arg":"/repo/ uncommitted","kind":"git","label":"ovvi:git#k3x9q2 /repo/ uncommitted",
  "pane":"w1:p7","reused":false,"shown":true}
 ```
 
-- **Kind or path.** A first word that is a kind's id (from `oriel plugins`)
+- **Kind or path.** A first word that is a kind's id (from `ovvi plugins`)
   is the kind. The words of the kinds before the plugins (`file`, `preview`,
   `markdown`, `files`, `diff`) open File Explorer or Git, as labels do. A
   path with the same name as a kind is written `./name`. A word that is not a
   kind, with more words after it, is `plugin_not_found`.
 - **A path or URL alone** opens with its default plugin, by the order of
-  `oriel plugins --for`. An `http` or `https` URL opens with a plugin whose
+  `ovvi plugins --for`. An `http` or `https` URL opens with a plugin whose
   `urls` match it, else in the browser. A `file://` URL opens in the
   browser. A path must exist on the asking machine. A missing one is
   `bad_argument`, and so is a file that no plugin opens.
@@ -296,23 +296,23 @@ oriel open explorer . --float                     # a file tree in a floating wi
   control character, over 1024 characters), is `bad_argument`.
 - **Reuse.** Without `--new`, a card of the same kind and argument already in
   the session where the card would open is the answer (`"reused": true`), and
-  nothing new opens. When it is not in view, Oriel shows the notice
+  nothing new opens. When it is not in view, Ovvi shows the notice
   "‹agent› points to ‹title›" with **Show**. A reused card stays where it
-  is, also with `--float`: `oriel float` floats it.
+  is, also with `--float`: `ovvi float` floats it.
 - **The view.** A split of the asking pane shows where the agent is. A new
   tab is not selected. A new card out of view gets the notice "‹agent›
   opened ‹Kind› ‹title›" with **Show**, in each window that shows the session
   ([Notice](/docs/ui/window#notice)). A float opens its window without
-  activating Oriel.
+  activating Ovvi.
 - **One place at most.** Two places are `usage`.
-- **Replace** takes only a browser or plugin card. Oriel renames its label
+- **Replace** takes only a browser or plugin card. Ovvi renames its label
   with the card's own iid, so the card follows it as a label from elsewhere:
   a browser card as a new history entry, a plugin card with Back. A new kind
   makes the card again. A terminal or agent pane is `bad_argument`, so an
-  agent never ends a shell through Oriel. A card with unsaved edits is
+  agent never ends a shell through Ovvi. A card with unsaved edits is
   `dirty`. `--replace` with `--new` is `usage`.
 - **A failed float** of `--float` closes the new pane.
-- `shown` says whether the card is in view in a window of this Oriel. Oriel
+- `shown` says whether the card is in view in a window of this Ovvi. Ovvi
   answers once a snapshot has the new pane in its place.
 
 ‹agent› is the asking pane's agent name ("Claude Code"), else its program
@@ -322,22 +322,22 @@ shows it (a browser card's page title).
 ## float and unfloat
 
 ```sh
-oriel float w1:p3              # over the window where the user last worked in this session
-oriel float pi-herd/w1:p1 --on-top
-oriel unfloat w1:p3            # Detach: back into its tab
+ovvi float w1:p3               # over the window where the user last worked in this session
+ovvi float pi-herd/w1:p1 --on-top
+ovvi unfloat w1:p3             # Detach: back into its tab
 ```
 
 ```json
 {"existing":false,"floating":true,"onTop":false,"pane":"w1:p3"}
 ```
 
-- The float goes over the window of this Oriel where the user last typed or
+- The float goes over the window of this Ovvi where the user last typed or
   clicked in a card of the asking session
   ([Floating pane](/docs/ui/window#floating-pane)). A pane of a session with
   no page gets a float-only page. A session that no window shows is
   `failed`. A float that fails says so only in the answer: the window shows
   no warning.
-- The window comes to the front without activating Oriel, and the keyboard
+- The window comes to the front without activating Ovvi, and the keyboard
   stays in the window that had it.
 - A pane that floats already comes to the front (`"existing": true`).
   `--on-top` turns on Stay on Top.
@@ -349,7 +349,7 @@ oriel unfloat w1:p3            # Detach: back into its tab
 Points the user at a pane, without moving their view.
 
 ```sh
-$ oriel reveal w1:p3 --json
+$ ovvi reveal w1:p3 --json
 {"pane":"w1:p3","shown":false}
 ```
 
@@ -358,14 +358,14 @@ $ oriel reveal w1:p3 --json
 - Not in view: a [notice](/docs/ui/window#notice) in the information tone,
   "‹agent› points to ‹title›", with **Show**, in each window that shows the
   session. Show selects the pane's workspace, tab and card in that window.
-- A pane of a session that Oriel does not show is `failed`.
+- A pane of a session that Ovvi does not show is `failed`.
 
 ## card
 
 What a card shows.
 
 ```sh
-$ oriel card w1:p3 --json
+$ ovvi card w1:p3 --json
 {"arg":"/repo/Sources/main.swift","dirty":true,"floating":false,"kind":"explorer",
  "pane":"w1:p3","shown":true,"title":"main.swift"}
 ```
@@ -384,10 +384,10 @@ $ oriel card w1:p3 --json
 
 ## shown
 
-The panes of the asking session that this Oriel shows now.
+The panes of the asking session that this Ovvi shows now.
 
 ```sh
-$ oriel shown --json
+$ ovvi shown --json
 {"floating":["w3:p1"],"shown":["w1:p2","w1:p3"],"windows":1}
 ```
 
@@ -401,32 +401,32 @@ A notification on the Mac, through the app's notifications
 ([Notifications](/docs/status#notifications)).
 
 ```sh
-$ oriel notify "Tests pass" "412 passed in 38 s"
+$ ovvi notify "Tests pass" "412 passed in 38 s"
 notified: true
 pane: w1:p2
-$ oriel notify "Review ready" --pane w2:p1
+$ ovvi notify "Review ready" --pane w2:p1
 ```
 
 - The title is the agent's title, the body its body, and the subtitle
   "‹agent› · ‹session›".
-- A click brings Oriel to the front and shows the pane: the asking pane, or
+- A click brings Ovvi to the front and shows the pane: the asking pane, or
   `--pane`'s. Showing it there is the user's own action.
 - One per asking pane every 10 s, whatever `--pane` names: a second is
   `rate_limited`. A newer one from the same pane replaces the older in
   Notification Center.
-- With Oriel ▸ Notifications ▸ From Agents off, it posts nothing and answers
+- With Ovvi ▸ Notifications ▸ From Agents off, it posts nothing and answers
   `"notified": false` with exit 0. That does not count toward the limit.
-- If macOS does not let Oriel post notifications, it is `failed` with
+- If macOS does not let Ovvi post notifications, it is `failed` with
   macOS's words.
 
 ## agent, chat and view
 
 ```sh
-$ oriel agent claude --json            # beside me, with the chat view
+$ ovvi agent claude --json             # beside me, with the chat view
 {"agent":"claude","pane":"w1:p9"}
-$ oriel agent pi --tab
-$ oriel --timeout 20 chat w1:p4        # Relaunch with Chat, for an idle agent
-$ oriel view w1:p4 tui                 # the card's Chat | TUI switch
+$ ovvi agent pi --tab
+$ ovvi --timeout 20 chat w1:p4         # Relaunch with Chat, for an idle agent
+$ ovvi view w1:p4 tui                  # the card's Chat | TUI switch
 ```
 
 - `agent <name>` takes `claude`, `codex`, `pi` or `opencode`. Another name is
@@ -463,10 +463,10 @@ Evens out the splits of a pane's tab, as
 or stacked gets equal shares. Without a pane, it is the asking pane's tab.
 
 ```sh
-$ oriel balance
+$ ovvi balance
 pane: w1:p2
 tab: w1:t1
-$ oriel balance w2:p1 --json
+$ ovvi balance w2:p1 --json
 {"pane":"w2:p1","tab":"w2:t3"}
 ```
 
@@ -477,7 +477,7 @@ Puts its standard input on the Mac's clipboard (at most 1 MiB, else
 It never reads the clipboard.
 
 ```sh
-git diff | oriel copy
+git diff | ovvi copy
 ```
 
 ## From a program
@@ -489,12 +489,12 @@ import { execFile } from "node:child_process";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-const ORIEL = join(homedir(), ".cache", "oriel", "bin", "oriel");
+const OVVI = join(homedir(), ".cache", "ovvi", "bin", "ovvi");
 
-/** Runs `oriel <args> --json`; code 5 also when the script is missing. */
-export const oriel = (args: string[]) =>
+/** Runs `ovvi <args> --json`; code 5 also when the script is missing. */
+export const ovvi = (args: string[]) =>
   new Promise<{ code: number; json: any; err: string }>((ok) =>
-    execFile(ORIEL, [...args, "--json"], { timeout: 15_000 }, (e, out, err) =>
+    execFile(OVVI, [...args, "--json"], { timeout: 15_000 }, (e, out, err) =>
       ok({
         code: e ? (typeof e.code === "number" ? e.code : 5) : 0,
         json: out ? JSON.parse(out) : undefined,
@@ -506,21 +506,21 @@ export const oriel = (args: string[]) =>
 
 ## The script
 
-The whole client, as Oriel carries it (`Oriel/Agent/oriel.sh`). Line 2 is
-its version, `# oriel-cli ‹protocol›.‹revision›`
+The whole client, as Ovvi carries it (`Ovvi/Agent/ovvi.sh`). Line 2 is
+its version, `# ovvi-cli ‹protocol›.‹revision›`
 ([Versions](/docs/agent-control/protocol#versions)).
 
 ```sh
 #!/bin/sh
-# oriel-cli 1.2
-# Written by Oriel: asks the Oriel that follows this herdr session. Oriel parses the arguments.
-# https://github.com/hkandala/oriel/blob/main/docs/content/docs/agent-control/cli.mdx
+# ovvi-cli 1.2
+# Written by Ovvi: asks the Ovvi that follows this herdr session. Ovvi parses the arguments.
+# https://github.com/hkandala/ovvi/blob/main/docs/content/docs/agent-control/cli.mdx
 herdr=${HERDR_BIN_PATH:-herdr} session=${HERDR_SESSION:-default} pane=${HERDR_PANE_ID:-} timeout=10 json= j=
-dir=$HOME/.cache/oriel/rpc
+dir=$HOME/.cache/ovvi/rpc
 for a; do [ "$a" = --json ] && json=1; done
 # Exits with $1, saying $3 on stderr and, with --json, {"error":…} with the code $2 on stdout.
 fail() {
-    echo "oriel: $3" >&2
+    echo "ovvi: $3" >&2
     [ -z "$json" ] || printf '{"error":{"code":"%s","message":"%s"}}\n' "$2" \
         "$(printf %s "$3" | tr -d '\000-\037' | sed 's/[\\"]/\\&/g')"
     exit "$1"
@@ -539,12 +539,12 @@ set -- "$@" $j
 [ -n "$pane" ] || fail 5 no_herdr "run me in a herdr pane, or pass --pane"
 h() { "$herdr" --session "$session" "$@" 2>/dev/null; }
 
-# status: herdr's tokens only, so it answers with no Oriel.
+# status: herdr's tokens only, so it answers with no Ovvi.
 token() { printf %s "$1" | sed -n "s/.*\"$2\":\"\\([^\"]*\\)\".*/\\1/p"; }
 status() {
     p=$(h pane get "$pane") || fail 5 no_herdr "herdr has no pane $pane in session $session; pass --pane"
     w=$(h workspace get "$(token "$p" workspace_id)")
-    shown=$(token "$p" oriel-shown) open=$(token "$w" oriel-open)
+    shown=$(token "$p" ovvi-shown) open=$(token "$w" ovvi-open)
     printf '{"session":"%s","pane":"%s","open":%s,"shown":%s,"remote":%s,"protocol":%s}\n' "$session" "$pane" \
         "$([ -n "$open" ] && echo true || echo false)" "$([ -n "$shown" ] && echo true || echo false)" \
         "$([ "$shown" = remote ] && echo true || echo false)" "${open:-null}"
@@ -556,8 +556,8 @@ if [ "${1:-}" = status ]; then
     --watch) last= && while s=$(status); c=$?; [ $c -le 3 ]; do
         [ "$s" = "$last" ] || echo "$s"; last=$s; sleep 2; done ;;
     *) s=$(status); c=$?; case $s in
-        *'"shown":true'*) echo "Shown in Oriel" ;; *'"open":true'*) echo "Open in Oriel, not shown" ;;
-        ?*) echo "Not in Oriel" ;; esac; exit $c ;;
+        *'"shown":true'*) echo "Shown in Ovvi" ;; *'"open":true'*) echo "Open in Ovvi, not shown" ;;
+        ?*) echo "Not in Ovvi" ;; esac; exit $c ;;
     esac
     exit
 fi
@@ -565,18 +565,18 @@ fi
 umask 077 && mkdir -p "$dir" || fail 5 no_herdr "cannot write $dir"
 id=$( (cat /proc/sys/kernel/random/uuid || uuidgen) 2>/dev/null | tr A-F a-f) f=$dir/$id
 [ -n "$id" ] || fail 5 no_herdr "no uuidgen"
-# One byte over the 1 MiB limit, so Oriel sees standard input that is too large.
+# One byte over the 1 MiB limit, so Ovvi sees standard input that is too large.
 [ "${1:-}" = copy ] && head -c 1048577 >"$f.in"
-printf '%s\000' oriel-req 1 "$PWD" "$@" >"$f.tmp" && mv "$f.tmp" "$f.req" || fail 5 no_herdr "cannot write $dir"
-h pane report-metadata "$pane" --source oriel-cli --token "oriel-req=$id" --ttl-ms 3000 >/dev/null ||
+printf '%s\000' ovvi-req 1 "$PWD" "$@" >"$f.tmp" && mv "$f.tmp" "$f.req" || fail 5 no_herdr "cannot write $dir"
+h pane report-metadata "$pane" --source ovvi-cli --token "ovvi-req=$id" --ttl-ms 3000 >/dev/null ||
     { rm -f "$f".* && fail 5 no_herdr "herdr refused the request on pane $pane; pass --pane"; }
 # Waits until $1 holds, for $2 seconds by the clock (1 s less at worst).
 until_() { end=$(($(date +%s) + $2)) && until eval "$1"; do [ "$(date +%s)" -lt $end ] || return 1; sleep 0.05; done; }
 if ! until_ '[ ! -e "$f.req" ]' 3 && mv "$f.req" "$f.dead" 2>/dev/null; then
-    rm -f "$f".* && fail 3 no_oriel "no Oriel shows herdr session $session"
+    rm -f "$f".* && fail 3 no_ovvi "no Ovvi shows herdr session $session"
 fi
 until_ '[ -e "$f.exit" ]' "$timeout" ||
-    { rm -f "$f".* && fail 4 timeout "Oriel did not answer within $timeout s"; }
+    { rm -f "$f".* && fail 4 timeout "Ovvi did not answer within $timeout s"; }
 cat "$f.out" 2>/dev/null
 code=$(head -n 1 "$f.exit") && tail -n +2 "$f.exit" >&2
 rm -f "$f".*

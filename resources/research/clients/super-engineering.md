@@ -41,11 +41,11 @@ SSH workspaces: the app installs a managed `sc` CLI on the host (Linux or macOS)
 there; passwordless keys are required because background work never prompts (`super.engineering/docs/remote-workspaces`). Claude chats
 there use `claude -p`.
 
-## For Oriel
+## For Ovvi
 
 - Copy: disable the switch when the app cannot prove which session it would land on, rather than guess.
 - Copy: never treat screen text as approval or completion truth; hooks and structured events only.
 - Note: the "Compliant Claude view" shows ADEs moving Claude chats onto the interactive TUI for billing reasons.
   Anthropic announced a separate meter for `claude -p` and the Agent SDK, then paused it (its help center says nothing
-  has changed "for now"). Oriel's TUI-first design is already on the safe side.
-- Avoid: an idle-only, restart-to-switch toggle. Oriel keeps one process and switches views at any time.
+  has changed "for now"). Ovvi's TUI-first design is already on the safe side.
+- Avoid: an idle-only, restart-to-switch toggle. Ovvi keeps one process and switches views at any time.

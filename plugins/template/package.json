@@ -13,12 +13,12 @@
     "typescript": "7.0.2"
   },
   "peerDependencies": {
-    "@oriel/plugin-api": "*"
+    "@ovvi/plugin-api": "*"
   },
   "peerDependenciesMeta": {
-    "@oriel/plugin-api": { "optional": true }
+    "@ovvi/plugin-api": { "optional": true }
   },
-  "oriel": {
+  "ovvi": {
     "id": "my-plugin",
     "name": "My Plugin",
     "api": 1,

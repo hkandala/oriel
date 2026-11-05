@@ -55,7 +55,7 @@ never calls herdr's focus methods. A design gets decision numbers on the
   host" today. The plan: the app declares `NSLocalNetworkUsageDescription`,
   resolves the target with `ssh -G`, and opens an `NWConnection` to a local
   address before the first SSH connection, so the system asks once. If the
-  user says no, the page shows "Allow Local Network access for Oriel in System
+  user says no, the page shows "Allow Local Network access for Ovvi in System
   Settings › Privacy & Security". Tailscale addresses are not affected.
 - **VoiceOver reads the terminal.** A terminal card gives VoiceOver its screen
   text, read with `pane.read {source:"visible", format:"text"}` when
@@ -64,7 +64,7 @@ never calls herdr's focus methods. A design gets decision numbers on the
 - **tmux** as one more implementation of the
   [`Multiplexer` interface](/docs/architecture#the-multiplexer-interface),
   after Rex. Research:
-  [`tmux.md`](https://github.com/hkandala/oriel/blob/main/resources/research/multiplexers/tmux.md).
+  [`tmux.md`](https://github.com/hkandala/ovvi/blob/main/resources/research/multiplexers/tmux.md).
 - **Jump to the next agent that needs you** with one key, in the Agents
   view's priority order. It selects workspace, tab and card in the app and
   never calls herdr's focus methods.
@@ -102,15 +102,15 @@ never calls herdr's focus methods. A design gets decision numbers on the
   - A Codex fork with its parent's lines up to the fork
     (`forked_from_ordinal_exclusive`). Today it shows only its own lines.
 - **Agents use a browser card.** An agent can open a browser card and
-  change its address (`oriel open browser`), nothing more. An agent that needs to drive a page runs
+  change its address (`ovvi open browser`), nothing more. An agent that needs to drive a page runs
   its own browser on its machine (Playwright, chrome-devtools-mcp).
   WKWebView has no automation protocol. A later design lets an agent ask the
-  app, through the `oriel` command
+  app, through the `ovvi` command
   ([Agent control](/docs/agent-control)), to read, run script in
   or capture one browser card it is allowed to. It needs its own consent
   design.
 - **Terminal keys to check against libghostty** (herdr-gpui's defaults,
-  [research](https://github.com/hkandala/oriel/blob/main/resources/research/clients/herdr-gpui.md)):
+  [research](https://github.com/hkandala/ovvi/blob/main/resources/research/clients/herdr-gpui.md)):
   ⇧↩ sent as Esc and CR, because herdr sends a bare CR for Shift-Enter to a
   program without kitty keys, which submits an agent's prompt. Option as Alt
   "auto": the left Option key is Alt on US and ABC layouts, and the right one
@@ -138,7 +138,7 @@ never calls herdr's focus methods. A design gets decision numbers on the
   4. **Windows servers:** herdr supports them; the `sh` envelope does not.
 
   Plugins, labels and state files stay the same when it comes. Research:
-  [`plugins.md`](https://github.com/hkandala/oriel/blob/main/resources/research/plugins/plugins.md#how-plugins-reach-a-remote-machine).
+  [`plugins.md`](https://github.com/hkandala/ovvi/blob/main/resources/research/plugins/plugins.md#how-plugins-reach-a-remote-machine).
 
 ## Waiting on herdr
 
@@ -149,7 +149,7 @@ never calls herdr's focus methods. A design gets decision numbers on the
   `plugin_pane_opened` reply comes only for the other placements, which are
   normal panes. The ask: the popup (its terminal id and size) in
   `session.snapshot`, events when it opens and closes, and a close by id
-  (`popup.close` takes no parameters). Oriel then streams it by that id in a
+  (`popup.close` takes no parameters). Ovvi then streams it by that id in a
   [floating window](/docs/ui/window#floating-pane), as it does a floated pane.
 - **Panes started with a command after a cold restart** come back as plain
   shells, with their label. The ask: restore them with their `launch_argv`,
@@ -162,7 +162,7 @@ never calls herdr's focus methods. A design gets decision numbers on the
   The ask: a `terminal.clipboard` event on the control stream, sent to the
   client that streams the pane. Then the app puts it on the clipboard, and
   every program's copy works from a remote machine, as pi-hkandala's
-  copy does through [`oriel copy`](/docs/agent-control/cli#copy)
+  copy does through [`ovvi copy`](/docs/agent-control/cli#copy)
   ([Scrolling, queries and links](/docs/talking-to-herdr#scrolling-queries-and-links)).
 - **Named keys on the terminal stream.** The ask: herdr accepts named keys on
   `terminal.input` (`{"type":"terminal.input","keys":["up"]}`), encoded as
@@ -208,5 +208,5 @@ never calls herdr's focus methods. A design gets decision numbers on the
 - A menu bar status item: the floating pills would cover it.
 - Sparkle updates and a diagnostics window: not interface work.
 - Decorations with a GPU cost (Rex's melt transition, selection pulse).
-- Rex's theme, material or decompiled files in the repo: Oriel copies looks
+- Rex's theme, material or decompiled files in the repo: Ovvi copies looks
   by measuring, never Rex's files or icon art.

@@ -1,6 +1,6 @@
 # Controlling agent TUIs: libraries, CLIs and agent surfaces
 
-Survey of tools that read and drive an agent's TUI from outside, for Oriel's chat view (brief: `brief2.md`). Source
+Survey of tools that read and drive an agent's TUI from outside, for Ovvi's chat view (brief: `brief2.md`). Source
 read from shallow clones under `round2/src/`, issues read on GitHub, docs read on the vendors' sites, and one spike
 on Claude Code 2.1.310 in a throwaway herdr session. Per-project notes: [clients/](../clients/).
 
@@ -54,7 +54,7 @@ on Claude Code 2.1.310 in a throwaway herdr session. Per-project notes: [clients
 | Screen stillness | AgentAPI, tmux-cli, claude-squad | spinners stop, pickers animate (AgentAPI #171), tools run silent |
 | Screen strings per agent | ccmanager, agent-deck, claude-squad, herdr | each redesign (AgentAPI #209 `───` → `╌╌╌`; #207 Claude 2.1.83 stopped redrawing into vt10x) |
 | Screen diff as messages | AgentAPI | always somewhat: echo removal is fuzzy, headers leak (#174), ids merge (#205) |
-| Transcript tail | Orca, happy, Oriel's plan | fine for messages; says nothing about pickers |
+| Transcript tail | Orca, happy, Ovvi's plan | fine for messages; says nothing about pickers |
 | Hooks | Orca, agent-deck, happy | need launch flags; company hooks may answer first |
 | Agent-published state | Claude session record; Codex/opencode servers | Claude only without flags; the others need a launch flag |
 
@@ -86,24 +86,24 @@ TUI in herdr pane, `status` polled every 100 ms, details in
 The socket message landed in the transcript as `type:"user"`, `isMeta:true`, `origin.kind:"peer"`, so a transcript
 reader can tell it from typed prompts (`origin.kind:"human"`).
 
-## What Oriel takes
+## What Ovvi takes
 
 1. **Claude panes: read `~/.claude/sessions/<pid>.json`** (or `claude agents --json`) beside the transcript. Show
-   the chat only while `status` is `idle` or `busy`; `waiting` with a `waitingFor` Oriel cannot answer → show the
+   the chat only while `status` is `idle` or `busy`; `waiting` with a `waitingFor` Ovvi cannot answer → show the
    TUI. Over SSH this is one small file; Perl can poll it. Vet the record: `pid` in the pane's process tree,
    `procStart` equal, one match (agent-deck's checks).
 2. **Send with `agent.prompt` only when the agent says idle or busy** (Claude: the record; others: herdr plus the
    side channel), never during `waiting`. After sending, confirm by the transcript (a new user entry), not the
-   screen. No retry Enter unless the composer holds exactly Oriel's text.
+   screen. No retry Enter unless the composer holds exactly Ovvi's text.
 3. **Per-agent "waiting" sources, all agent-published:** Claude record; Codex `--remote` requests; opencode SSE;
    pi bridge. If none is there, fall back to herdr's `blocked` and show the TUI.
-4. **Claude inbox socket for Oriel's own automation** (for example a note after a file drop), never for what the
+4. **Claude inbox socket for Ovvi's own automation** (for example a note after a file drop), never for what the
    user typed.
 
-## What Oriel avoids
+## What Ovvi avoids
 
 - Messages or idle from screen diffs (AgentAPI's design, now abandoned).
-- Screen strings per agent version inside Oriel; leave screen detection to herdr.
+- Screen strings per agent version inside Ovvi; leave screen detection to herdr.
 - Bridges that own the process (ACP, SDK, happy): they need a second process and cannot show the user's TUI.
 - Killing or resuming the TUI to switch views (happy).
 - Channels and Remote Control: account and gateway limits; neither works under the company launcher.

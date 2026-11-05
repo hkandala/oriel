@@ -1,5 +1,5 @@
 {
-  "name": "@oriel/explorer",
+  "name": "@ovvi/explorer",
   "version": "1.9.1",
   "private": true,
   "description": "Files and folders",
@@ -38,12 +38,12 @@
     "typescript": "7.0.2"
   },
   "peerDependencies": {
-    "@oriel/plugin-api": "*"
+    "@ovvi/plugin-api": "*"
   },
   "peerDependenciesMeta": {
-    "@oriel/plugin-api": { "optional": true }
+    "@ovvi/plugin-api": { "optional": true }
   },
-  "oriel": {
+  "ovvi": {
     "id": "explorer",
     "name": "File Explorer",
     "api": 2,

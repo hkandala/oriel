@@ -4,7 +4,7 @@ Goal: five default plugins (File, Preview, Markdown, Diff, Files) built twice wi
 native views ([phase 43](43-plugins-native.md)) and once with web components ([phase 44](44-plugins-web.md)), so the
 user can try both and choose. This phase is what both share: the feature spec below, the plugin plumbing, and the
 file and git data. Research: `resources/research/plugins/default-plugins.md` and
-`~/Downloads/oriel-research/plugins.html` (its Mockups section has the recommended layouts).
+`~/Downloads/ovvi-research/plugins.html` (its Mockups section has the recommended layouts).
 
 ## The user's words
 
@@ -57,7 +57,7 @@ components"
 
 ## The spec (both variants build all of it)
 
-**Every plugin pane.** A herdr pane labeled `oriel:<kind>#<iid> <arg>` (as the browser), restored after a relaunch or
+**Every plugin pane.** A herdr pane labeled `ovvi:<kind>#<iid> <arg>` (as the browser), restored after a relaunch or
 a session restart, on This Mac and on remote machines (through `Exec`). Two header rows like the browser and agents:
 row 1 the kind's icon, the title, a dirty dot when unsaved, the state, and the pane buttons on hover or the active
 card; row 2 the kind's controls. The tab and the floating window read `‹Kind› ‹title›` (` | ` in plain text, phase 41).
@@ -166,7 +166,7 @@ identifiers of the header controls. Only the content area differs. Each variant'
 - **Decisions:** read prints `cksum` before `base64`: a change between the two only makes the next save stop with
   `changed`. Save writes a new file beside the old (`cp -p` keeps the mode), checks its size (a cut stdin decodes and
   exits 0) and the hash (nil: Overwrite), then `mv`; a link is written through. `mv` breaks hard links and makes the
-  saver the owner; a file in a folder the user cannot write does not save; a killed save leaves a `.oriel-save.*`.
+  saver the owner; a file in a folder the user cannot write does not save; a killed save leaves a `.ovvi-save.*`.
 - **Decisions:** one `watch` for files and folders. This Mac: FSEvents on the nearest folder that exists, filtered by
   the path, so an editor's replace or a file (or folder) that comes later is seen, and a folder yields for any change under it:
   the Files plugin lists its open folders again on each yield, for new files and git letters. Remote: a 2 s check of

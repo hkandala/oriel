@@ -52,7 +52,7 @@ final class SOCKSFront: Sendable {
         listener.cancel()
     }
 
-    private static let queue = DispatchQueue(label: "oriel.socks")
+    private static let queue = DispatchQueue(label: "ovvi.socks")
     private static let refused = Data([5, 5, 0, 1, 0, 0, 0, 0, 0, 0])
     private static let failed = Data([5, 1, 0, 1, 0, 0, 0, 0, 0, 0])
 

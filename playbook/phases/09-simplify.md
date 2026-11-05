@@ -53,7 +53,7 @@ feature stays. Only the way it works gets simpler. The user approved every item 
 - **XDG fix:** the launchd job that starts This Mac's server gets the same environment the
   CLI sees (at least `PATH`, `HOME`, `XDG_*`), so server and CLI agree on paths.
 - **P1. No live follow for renames either:** an open card changes only when it is built or
-  on Refresh; Refresh reads the snapshot first. Delete `oriel_rev` (D23) entirely, and the
+  on Refresh; Refresh reads the snapshot first. Delete `ovvi_rev` (D23) entirely, and the
   `pane.report_metadata` call after renames. Check whether the app still needs
   `pane.updated` at all.
 - **P3. Web load rule:** a page you create or type loads at once and approves its origin for

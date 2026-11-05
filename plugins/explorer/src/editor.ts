@@ -15,7 +15,7 @@ import {
   lineNumbers,
 } from "@codemirror/view"
 import { tags } from "@lezer/highlight"
-import type { OrielError } from "@oriel/plugin-api"
+import type { OvviError } from "@ovvi/plugin-api"
 import { finder } from "./find"
 import { failed, info } from "./info"
 import { name, type Place } from "./place"
@@ -77,10 +77,10 @@ export type Editor = { view: EditorView; land(at: string | undefined): void; sav
 /** The place's file in an editor under `parent`, or the info view when it is not text or too large to show. A file
  *  that becomes read only, writable, too large or not text shows the place anew (`again`). */
 export async function editor(place: Place, extensions: Extension[], parent: HTMLElement): Promise<Editor> {
-  const { oriel, arg: path, keep, again, live } = place
-  const file = await (place.read ?? oriel.files.read(path)).catch((error: OrielError) => error)
+  const { ovvi, arg: path, keep, again, live } = place
+  const file = await (place.read ?? ovvi.files.read(path)).catch((error: OvviError) => error)
   if (file instanceof Error) {
-    if (file.code === "notText" || file.code === "tooLarge") await info(oriel, path, parent)
+    if (file.code === "notText" || file.code === "tooLarge") await info(ovvi, path, parent)
     else failed(file, parent)
     return undefined
   }
@@ -91,13 +91,13 @@ export async function editor(place: Place, extensions: Extension[], parent: HTML
   /** Saves begun, so a check that read the disk before one does not answer after it. */
   let saves = 0
   let dirty = false
-  const find = finder(oriel)
+  const find = finder(ovvi)
 
   const update = (state: EditorState) => {
     const now = !state.doc.eq(disk)
     if (now !== dirty) {
       dirty = now
-      oriel.card.setDirty(dirty)
+      ovvi.card.setDirty(dirty)
     }
   }
 
@@ -127,7 +127,7 @@ export async function editor(place: Place, extensions: Extension[], parent: HTML
   disk = view.state.doc
   keep(() => {
     view.destroy()
-    if (dirty) oriel.card.setDirty(false)
+    if (dirty) ovvi.card.setDirty(false)
   })
 
   /** The file's text from disk: only the changed middle is replaced, so the caret and the scroll stay. */
@@ -150,7 +150,7 @@ export async function editor(place: Place, extensions: Extension[], parent: HTML
   /** The file from disk; undefined when it is gone or the place left. One now too large, not text, read only or
    *  writable shows the place anew. */
   const read = async () => {
-    const now = await oriel.files.read(path).catch((error: OrielError) => error)
+    const now = await ovvi.files.read(path).catch((error: OvviError) => error)
     if (!live()) return undefined
     if (now instanceof Error) return void (now.code === "notText" || now.code === "tooLarge" ? again() : undefined)
     if (now.writable === view.state.readOnly) return void again()
@@ -168,7 +168,7 @@ export async function editor(place: Place, extensions: Extension[], parent: HTML
   const ask = async (text: string, buttons: [string, string]) => {
     asking++
     try {
-      return await oriel.toast(text, buttons)
+      return await ovvi.toast(text, buttons)
     } finally {
       asking--
     }
@@ -181,14 +181,14 @@ export async function editor(place: Place, extensions: Extension[], parent: HTML
     if (!live() || view.state.readOnly || !dirty || saving) return
     saves++
     const sent = (saving = view.state.doc)
-    let failure: OrielError | undefined
+    let failure: OvviError | undefined
     try {
       // In the file's own line breaks.
-      hash = (await oriel.files.write(path, view.state.sliceDoc(), { over: over ?? undefined })).hash
+      hash = (await ovvi.files.write(path, view.state.sliceDoc(), { over: over ?? undefined })).hash
       disk = sent
       if (live()) update(view.state)
     } catch (error) {
-      failure = error as OrielError
+      failure = error as OvviError
     } finally {
       saving = undefined
     }
@@ -209,7 +209,7 @@ export async function editor(place: Place, extensions: Extension[], parent: HTML
     const before = hash, started = saves
     // Not after a save began meanwhile: its own answer (saved, or its toast) is the newer one.
     const stale = () => !live() || saving || saves !== started || hash !== before
-    const onDisk = await oriel.files.info(path).catch(() => undefined)
+    const onDisk = await ovvi.files.info(path).catch(() => undefined)
     if (!onDisk || onDisk.hash === before || stale()) return
     if (!dirty) {
       const now = await read()
@@ -234,8 +234,8 @@ export async function editor(place: Place, extensions: Extension[], parent: HTML
   }
   land(place.at)
 
-  oriel.on("save", () => void save())
-  oriel.on("find", () => find.open(view, false))
+  ovvi.on("save", () => void save())
+  ovvi.on("find", () => find.open(view, false))
   // Find and Replace, as in the Mac's editors: the menu has no item for it, so the page takes the key, also from
   // Markdown's Read, whose keyboard is on the scroller.
   const replace = (event: KeyboardEvent) => {
@@ -247,9 +247,9 @@ export async function editor(place: Place, extensions: Extension[], parent: HTML
   }
   addEventListener("keydown", replace)
   keep(() => removeEventListener("keydown", replace))
-  oriel.on("findNext", () => findNext(view))
-  oriel.on("findPrevious", () => findPrevious(view))
-  oriel.files.watch(path, () => void check())
+  ovvi.on("findNext", () => findNext(view))
+  ovvi.on("findPrevious", () => findPrevious(view))
+  ovvi.files.watch(path, () => void check())
   // A change between the read and the watch's start.
   void check()
   // The app gives the card's web view the keyboard: the editor takes it.

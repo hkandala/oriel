@@ -2,24 +2,24 @@ import Foundation
 @testable import HerdrKit
 import Testing
 
-private func manifest(_ oriel: String, package: String = #""version": "0.1.0""#) throws(ManifestError)
+private func manifest(_ ovvi: String, package: String = #""version": "0.1.0""#) throws(ManifestError)
     -> PluginManifest
 {
-    try PluginManifest(package: Data("{\(package), \"oriel\": {\(oriel)}}".utf8))
+    try PluginManifest(package: Data("{\(package), \"ovvi\": {\(ovvi)}}".utf8))
 }
 
 private let base = #""id": "csv-table", "name": "CSV Table", "api": 1, "entry": "dist/main.js", "icon": "tablecells""#
 
-private func error(_ oriel: String, package: String = #""version": "0.1.0""#) -> String? {
+private func error(_ ovvi: String, package: String = #""version": "0.1.0""#) -> String? {
     do {
-        _ = try manifest(oriel, package: package)
+        _ = try manifest(ovvi, package: package)
         return nil
     } catch {
         return error.text
     }
 }
 
-@Test func `a package's oriel key is its manifest, with the package's version and description`() throws {
+@Test func `a package's ovvi key is its manifest, with the package's version and description`() throws {
     let csv = try manifest(base + #""#
         + #", "opens": {"files": ["*.csv", "public.comma-separated-values-text"]}, "permissions": ["files:read"],"#
         + #""header": [{"id": "rows", "type": "text", "style": "dim"}, {"type": "spacer"},"#
@@ -58,20 +58,20 @@ private func error(_ oriel: String, package: String = #""version": "0.1.0""#) ->
 
 @Test func `a bad manifest names its field and what is wrong`() {
     #expect(error(base, package: #""name": "x""#) == "version is missing")
-    #expect(error(#""id": "csv""#) == "oriel.name is missing")
-    #expect(error(base.replacingOccurrences(of: #""api": 1"#, with: #""api": "1""#)) == "oriel.api has the wrong type")
+    #expect(error(#""id": "csv""#) == "ovvi.name is missing")
+    #expect(error(base.replacingOccurrences(of: #""api": 1"#, with: #""api": "1""#)) == "ovvi.api has the wrong type")
     #expect(error(base.replacingOccurrences(of: "csv-table", with: "CSV")) != nil)
     #expect(error(base.replacingOccurrences(of: "csv-table", with: "-csv")) != nil)
     #expect(error(base.replacingOccurrences(of: "dist/main.js", with: "../main.js")) != nil)
     #expect(error(base.replacingOccurrences(of: "dist/main.js", with: "src/main.ts"))
-        == "oriel.entry must be a built .js file in the package")
+        == "ovvi.entry must be a built .js file in the package")
     #expect(error(base + #", "chooser": "CSV", "opens": {"files": ["*.csv"]}"#)
-        == "oriel.chooser needs opens with folders or git, or no opens")
-    #expect(error(base + #", "header": [{"type": "slider", "id": "a"}]"#) == "oriel.header has an unknown type slider")
+        == "ovvi.chooser needs opens with folders or git, or no opens")
+    #expect(error(base + #", "header": [{"type": "slider", "id": "a"}]"#) == "ovvi.header has an unknown type slider")
     #expect(error(base + #", "header": [{"type": "button", "id": "a"}, {"type": "text", "id": "a"}]"#) != nil)
     #expect(error(base + #", "header": [{"type": "button"}]"#) != nil)
     #expect(error(base + #", "commands": [{"id": "e", "title": "Edit", "key": "e"}]"#) != nil)
-    #expect(error(base + #", "permissions": ["network"]"#) == "oriel.permissions has an unknown permission network")
+    #expect(error(base + #", "permissions": ["network"]"#) == "ovvi.permissions has an unknown permission network")
     #expect(error(base + #", "opens": {"priority": "high"}"#) != nil)
     #expect(error(base + #", "header": [{"type": "toggle", "id": "a"}, 5]"#) != nil)
     #expect((try? PluginManifest(package: Data("not json".utf8))) == nil)
@@ -80,9 +80,9 @@ private func error(_ oriel: String, package: String = #""version": "0.1.0""#) ->
 
 @Test func `a web address matches a plugin's urls`() throws {
     let pulls = try manifest(base + #", "opens": {"urls": ["https://github.com/*/*/pull/*"]}"#)
-    #expect(pulls.opens(url: "https://github.com/hkandala/oriel/pull/12"))
+    #expect(pulls.opens(url: "https://github.com/hkandala/ovvi/pull/12"))
     #expect(pulls.opens(url: "HTTPS://GitHub.com/a/b/pull/1/files"))
-    #expect(!pulls.opens(url: "https://github.com/hkandala/oriel/issues/12"))
+    #expect(!pulls.opens(url: "https://github.com/hkandala/ovvi/issues/12"))
     #expect(try !manifest(base).opens(url: "https://github.com/a/b/pull/1"))
 }
 

@@ -1,7 +1,7 @@
 import Foundation
 import UniformTypeIdentifiers
 
-/// A plugin's manifest (plugins/manifest): the `oriel` key of its package's `package.json`, with the
+/// A plugin's manifest (plugins/manifest): the `ovvi` key of its package's `package.json`, with the
 /// package's `version`, `description` and `keywords`. Read before any of the plugin's code runs, so the chooser, ⌘K
 /// and Open With list it at once. Unknown fields are ignored, so a manifest written for a newer app still loads.
 public struct PluginManifest: Decodable, Sendable, Equatable {
@@ -176,7 +176,7 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
         version = try package.decode(String.self, forKey: .version)
         description = try package.decodeIfPresent(String.self, forKey: .description) ?? ""
         keywords = try package.decodeIfPresent([String].self, forKey: .keywords) ?? []
-        let values = try package.nestedContainer(keyedBy: Keys.self, forKey: .oriel)
+        let values = try package.nestedContainer(keyedBy: Keys.self, forKey: .ovvi)
         id = try values.decode(String.self, forKey: .id)
         name = try values.decode(String.self, forKey: .name)
         api = try values.decode(Int.self, forKey: .api)
@@ -193,7 +193,7 @@ public struct PluginManifest: Decodable, Sendable, Equatable {
     }
 
     private enum PackageKeys: String, CodingKey {
-        case version, description, keywords, oriel
+        case version, description, keywords, ovvi
     }
 
     private enum Keys: String, CodingKey {
@@ -291,7 +291,7 @@ private enum ItemKeys: String, CodingKey {
     case value, title, symbol
 }
 
-/// A bad manifest: the field and what is wrong (`oriel.id is missing`).
+/// A bad manifest: the field and what is wrong (`ovvi.id is missing`).
 public struct ManifestError: Error, Equatable, CustomStringConvertible {
     public let text: String
 

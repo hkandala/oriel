@@ -1,5 +1,5 @@
 // The info view of a file not shown (File and Preview): its icon, name, size and kind, in place of `parent`'s content.
-import type { Oriel } from "@oriel/plugin-api"
+import type { Ovvi } from "@ovvi/plugin-api"
 
 /** A size as the Finder writes it (`ByteCountFormatter`'s file style): 950 bytes, 3 kB, 1.2 MB, 1.23 GB, half to
  *  even, in the user's locale. */
@@ -21,8 +21,8 @@ function size(bytes: number) {
 }
 
 /** The file's facts from the app; its error text when there is no file to tell of. */
-export async function info(oriel: Oriel, path: string, parent: HTMLElement) {
-  const file = await oriel.files.info(path).catch((error) => failed(error, parent))
+export async function info(ovvi: Ovvi, path: string, parent: HTMLElement) {
+  const file = await ovvi.files.info(path).catch((error) => failed(error, parent))
   if (!file) return
   const view = document.createElement("div")
   view.className = "info"

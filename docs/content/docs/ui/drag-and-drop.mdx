@@ -5,7 +5,7 @@ description: "Moving panes by dragging their header, and reordering tabs and wor
 
 ## What herdr allows
 
-Oriel offers only moves that herdr can make, and builds the rest from herdr
+Ovvi offers only moves that herdr can make, and builds the rest from herdr
 calls (D69). What herdr 0.9.5 allows, tested on a throwaway session:
 
 | herdr call | Allowed | Refused |
@@ -98,7 +98,7 @@ On a remote machine's card, each file is copied to that machine first, and
 the paths of the copies are pasted, escaped the same way, once all are
 copied. herdr's own remote client does the same with a dropped image. Each
 copy goes over the machine's one SSH connection (its relay) as base64 lines,
-into a new folder of its own in `oriel-drops-‹user id›` in the machine's
+into a new folder of its own in `ovvi-drops-‹user id›` in the machine's
 temporary folder (`$TMPDIR`, else `/tmp`), so it keeps its name. Only the
 user can read that folder, and each copy deletes the folders in it that are
 more than a day old. A folder, or a file over 16 MB (herdr's limit too), is not copied: a notice

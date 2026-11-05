@@ -22,9 +22,9 @@ heading at the end.
    Mac's clipboard. Copy on select in pi, Claude Code and other agents fails on remote machines too. Find the
    whole path: how the pi extension copies (`/Users/hkandala/code/pi-hkandala`; probably `pbcopy` locally
    and OSC 52 otherwise), whether herdr passes OSC 52 from a pane to its clients (the `terminal session
-   control` stream, also over the relay), and whether Oriel's libghostty surface handles a clipboard write
-   (the runtime's write-clipboard callback and its confirm setting). Fix it in Oriel; if herdr drops OSC 52,
-   say what herdr needs and do the best Oriel can. Check that local copy still works and that reading the
+   control` stream, also over the relay), and whether Ovvi's libghostty surface handles a clipboard write
+   (the runtime's write-clipboard callback and its confirm setting). Fix it in Ovvi; if herdr drops OSC 52,
+   say what herdr needs and do the best Ovvi can. Check that local copy still works and that reading the
    clipboard (OSC 52 read) stays off or asks, as Ghostty does by default. e2e: `printf` an OSC 52 write in
    a pane, locally and on CI's sshd (RemoteTests), and check `NSPasteboard`.
 
@@ -43,8 +43,8 @@ heading at the end.
 3. **"I don't want regular terminal copy, we should be able to copy what OSC 52 sends to us."** Undo lane C's
    `copy-on-select = clipboard`. "When I use herdr in Ghostty, this copy works as expected even on remote
    machines": find how (herdr's TUI client, `herdr --remote`, the server's `ServerMessage::Clipboard`, how
-   Ghostty takes the OSC 52) and every way Oriel can get the same writes on remote machines (local already
-   works). Go deep: a herdr client Oriel runs or speaks to, the relay, the remote server's environment and
+   Ghostty takes the OSC 52) and every way Ovvi can get the same writes on remote machines (local already
+   works). Go deep: a herdr client Ovvi runs or speaks to, the relay, the remote server's environment and
    clipboard tools, herdr's API and config, an upstream change. Pick the simplest one that works, build it,
    and e2e it on CI's sshd.
 
@@ -52,7 +52,7 @@ heading at the end.
 
 4. **Research how [orca](https://github.com/stablyai/orca), [paseo](https://github.com/getpaseo/paseo) and
    [paradev](https://github.com/paradevai/paradev) offer both a terminal and a chat view for agents** (one
-   agent per repo), and propose the best and simplest way for Oriel: switching back and forth between
+   agent per repo), and propose the best and simplest way for Ovvi: switching back and forth between
    terminal and chat without ending the running process if possible (orca may restart the agent in chat
    mode; that is acceptable if nothing better exists), streaming the agent's transcript file as a naive
    option, and it must work on remote machines. Write the findings in `resources/research/` and update
@@ -62,10 +62,10 @@ heading at the end.
 
 5. **"I don't like the approach for the copy: we are changing way too many things just for copy. I'm okay
    copying regular text with ⌘C. My only concern is the pi-hkandala extensions that copy to the clipboard.
-   pi-herd already asks Oriel to open floating panes; do the same for copying: simpler in pi-hkandala, and the
+   pi-herd already asks Ovvi to open floating panes; do the same for copying: simpler in pi-hkandala, and the
    app listens and copies."** Revert lane C2's clipboard client (and its side-effect workarounds). Then, like
-   the float request (phase 31 lane F): the pi extensions that copy, when their pane carries Oriel's presence
-   token, send the text to Oriel through herdr metadata; Oriel reads the request from `pane.updated` and puts
+   the float request (phase 31 lane F): the pi extensions that copy, when their pane carries Ovvi's presence
+   token, send the text to Ovvi through herdr metadata; Ovvi reads the request from `pane.updated` and puts
    the text on the Mac clipboard. Works for local and remote machines. Both repos.
 
 ## Lane K: keyboard follows a session swipe (item 6)
@@ -80,7 +80,7 @@ heading at the end.
 
 7. **"In the tab pill, the text overlaps with the close button. Add better shadowing on the text where the
    close button is, so it doesn't look cut abruptly or overlapping"** (screenshot
-   `/tmp/oriel-shots/34pill/user.png`: "swebench autopilot setup" runs into the ×). When the × shows, the
+   `/tmp/ovvi-shots/34pill/user.png`: "swebench autopilot setup" runs into the ×). When the × shows, the
    title fades out before it (a gradient mask), in both looks and schemes; when the × is hidden, the title
    keeps its full width.
 
@@ -159,8 +159,8 @@ heading at the end.
 
 - **Cause:** herdr 0.9.5 parses a pane's OSC 52 write but hands it (`ServerMessage::Clipboard`) only to its
   foreground TUI client, and `terminal session control` prints only frames and the close, so no clipboard
-  write ever reaches Oriel. On this Mac pi and the agents copy with `pbcopy`, which hid it; on a remote
-  machine pi falls back to OSC 52 (it does when `SSH_CONNECTION` is set, and the servers Oriel starts there
+  write ever reaches Ovvi. On this Mac pi and the agents copy with `pbcopy`, which hid it; on a remote
+  machine pi falls back to OSC 52 (it does when `SSH_CONNECTION` is set, and the servers Ovvi starts there
   have it). Spiked: a `printf '\e]52;c;…\a'` in a throwaway pane gives three frames and no OSC 52 or event.
 - **Fix:** libghostty's `copy-on-select = clipboard`: the card's own selection goes to the Mac's clipboard
   when the mouse button comes up (and on Select All), locally and on remote machines, also in mouse apps,
@@ -170,7 +170,7 @@ heading at the end.
   as drawn, borders too, unlike herdr's TUI, which gives that drag only to the program. The brief's OSC 52
   e2e cannot pass on herdr 0.9.5; the tests drag over a row in a mouse app (local, and Key Host on CI's
   sshd) and check `NSPasteboard`. What herdr needs is on the Future work page (Waiting on herdr): a
-  `terminal.clipboard` event on the control stream; Oriel then writes it to the clipboard in a few lines.
+  `terminal.clipboard` event on the control stream; Ovvi then writes it to the clipboard in a few lines.
 - **Runs:** red on the old code (both tests: clipboard nil) 40474163618; green on the fix: push run
   40474416375.
 - **Replaced by lane C2:** copy on select is reverted; OSC 52 writes reach the clipboard through a clipboard client.
@@ -204,7 +204,7 @@ heading at the end.
 - **Cause:** a chat view that switches without ending the agent needs the agent's own record of the conversation.
   Orca, Paseo and Paradev run a structured chat as a second, headless process (Claude Agent SDK over stream-json,
   `codex app-server`, `pi --mode rpc`, ACP) on a copy or a resume of the conversation; none shows one process as
-  both. Only Orca's transcript chat switches in place, which is Oriel's design. Chat code: Orca 150–170k lines,
+  both. Only Orca's transcript chat switches in place, which is Ovvi's design. Chat code: Orca 150–170k lines,
   Paseo about 88k, Paradev about 30k.
 - **Fix:** the design keeps the transcript chat and now prefers a path from `agent_session`, shows a "Working"
   row, and sends a Codex on its shared daemon to screen text; the rejected structured mode and the later Codex
@@ -223,7 +223,7 @@ heading at the end.
 - **Cause:** herdr 0.9.5 sends a pane's OSC 52 write (`ServerMessage::Clipboard`) only to its shell client in
   front, the kind its TUI is; a `terminal session control` stream never gets it. In Ghostty the TUI gets the
   write and prints OSC 52 into its terminal (through `ssh` when it runs remotely; a local TUI uses `pbcopy`), and
-  Ghostty sets the clipboard. Locally Oriel only seemed to work because pi and most tools use `pbcopy` on the Mac;
+  Ghostty sets the clipboard. Locally Ovvi only seemed to work because pi and most tools use `pbcopy` on the Mac;
   an OSC-52-only program failed locally too.
 - **Fix:** each open session runs a clipboard client: a Perl script sent in the command (as the relay is), local
   and over the relay, that says herdr's endpoint generation 1 hello on the client socket as a shell client in
@@ -241,27 +241,27 @@ heading at the end.
 - **Runs:** red on the old code (tests without the feature): 40484619881 (both: clipboard nil); green: push run 40487141179 (full run, on 5ccd878).
 - **For the user:** try pi's copy key and an agent's copy on select on a remote machine. While a herdr TUI attached
   to the same session is the one last used, it gets the writes instead (in Ghostty on this Mac they still land);
-  when it detaches, Oriel gets them again.
+  when it detaches, Ovvi gets them again.
 
 ### Lane C3
 
 - **Cause:** the user wants only pi-hkandala's copies to reach the Mac; lane C2's clipboard client (a herdr shell
   client in front) moved herdr's front from a TUI, laid out unshown tabs at 120 × 40, refilled an emptied session and
   needed workarounds. All of it is reverted (`1b465c0`); the OSC 52 facts stay in herdr research 2.3.
-- **Fix:** copy requests, like float requests. Oriel's `oriel-shown` mark now says `remote` on an SSH machine's panes
-  (`1` on This Mac). When a pane's mark is `remote`, pi-hkandala's `herdr/oriel-copy.ts` writes the text to
-  `/tmp/oriel-copy-<uuid>` and reports the uuid as the pane token `oriel-copy`. Oriel reads it off `pane.updated` in
+- **Fix:** copy requests, like float requests. Ovvi's `ovvi-shown` mark now says `remote` on an SSH machine's panes
+  (`1` on This Mac). When a pane's mark is `remote`, pi-hkandala's `herdr/ovvi-copy.ts` writes the text to
+  `/tmp/ovvi-copy-<uuid>` and reports the uuid as the pane token `ovvi-copy`. Ovvi reads it off `pane.updated` in
   any open session, reads and deletes the file with one run (over the relay when remote) and sets `NSPasteboard` once
   per id. pi-prompt-clipboard's key, pi-content-layout's ●
   and its selection copy call it first and fall back to pi's `copyToClipboard`.
 - **Decisions:** a file, not chunks: herdr cuts a token value at 80 characters (16 tokens per report, 32 per pane), so
-  a long prompt does not fit. The token holds only the id and Oriel builds the path, so no token names another file;
+  a long prompt does not fit. The token holds only the id and Ovvi builds the path, so no token names another file;
   `/tmp`, as macOS's `$TMPDIR` path would pass 80. The mark's value, not SSH variables, says remote: a remote Mac's
   server started without ssh has none, and its `pbcopy` would copy onto that Mac. The helper is one shared file in
   `herdr/`, so those two extensions now load from the repo, not alone from npm.
 - **Runs:** red on the old code 40492087778; green: push run 40494465206 (full run, on ab62903), chosen tests 40494518693.
 - **For the user:** pull pi-hkandala on the remote machine too, `/reload` pi there, then press `ctrl+shift+s` in pi
-  in an Oriel card of that machine: the prompt lands on the Mac's clipboard. Other programs' OSC 52 copies (vim,
+  in an Ovvi card of that machine: the prompt lands on the Mac's clipboard. Other programs' OSC 52 copies (vim,
   Claude Code) still need ⌘C on a selection.
 
 ### Lane T
@@ -272,7 +272,7 @@ heading at the end.
   ×; otherwise it keeps its 12 pt and its normal fade. The same in Glass and Classic, light and dark.
 - **Runs:** no UI test: the title is part of the tab button's accessibility element, so no frame of it
   reaches XCUITest; checked on Release screenshots, before (left) and after (right) in each look:
-  `/tmp/oriel-shots/34pill/compare.png` (full windows `before-*.png`, `after-*.png` there).
+  `/tmp/ovvi-shots/34pill/compare.png` (full windows `before-*.png`, `after-*.png` there).
 - **For the user:** hover a tab with a long title: it fades out before the ×.
 
 ### Lane P
@@ -328,5 +328,5 @@ heading at the end.
   dialog test that confirms with Return passed locally (close pane, tab, tabs to the right, other tabs, workspace,
   floated pane, Replace Pane, Stop and Delete Session). On the old code the button is blue.
 - **For the user:** close a pane running `sleep 100`: the Close Pane button is red, and Return still closes it.
-  Before and after, dark and light: `/tmp/oriel-shots/d2/compare.png` (Debug build through XCUITest; AppKit draws
+  Before and after, dark and light: `/tmp/ovvi-shots/d2/compare.png` (Debug build through XCUITest; AppKit draws
   the alert the same in Release).

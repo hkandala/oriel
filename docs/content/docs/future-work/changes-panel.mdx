@@ -7,10 +7,10 @@ Not built, and proposed: the user has not agreed to it yet. This page is the
 design of a changes panel: a drawer beside the tab page that shows what changed
 in the keyboard card's worktree, against one of three bases (the state the
 diff compares with). The idea and its git commands come from Kero
-([research](https://github.com/hkandala/oriel/blob/main/resources/research/clients/kero.md#the-changes-panel-diff-viewer)).
+([research](https://github.com/hkandala/ovvi/blob/main/resources/research/clients/kero.md#the-changes-panel-diff-viewer)).
 The checkpoints, the loading, the viewed marks and the comment delivery come
 from herdr-gpui
-([research](https://github.com/hkandala/oriel/blob/main/resources/research/clients/herdr-gpui.md)).
+([research](https://github.com/hkandala/ovvi/blob/main/resources/research/clients/herdr-gpui.md)).
 The Git plugin is built: a pane, not a drawer, with a repository's
 uncommitted changes or one commit ([Diff](/docs/plugins/default-plugins#diff)).
 
@@ -73,8 +73,8 @@ on cards. The chip needs the user's agreement before it is built.
   cp .git/index $tmp/index
   GIT_INDEX_FILE=$tmp/index git add --all -- .
   tree=$(GIT_INDEX_FILE=$tmp/index git write-tree)
-  git commit-tree -p HEAD -m "Oriel-Branch: <branch>" $tree
-  git update-ref refs/oriel/checkpoints/<sha1 of branch>/<stamp> <commit>
+  git commit-tree -p HEAD -m "Ovvi-Branch: <branch>" $tree
+  git update-ref refs/ovvi/checkpoints/<sha1 of branch>/<stamp> <commit>
   ```
   A tree equal to the last checkpoint's is skipped. The newest 50 per branch
   are kept. The base "Last turn" is the newest checkpoint against now.
@@ -83,7 +83,7 @@ on cards. The chip needs the user's agreement before it is built.
   no state file holds them. Branches, `git log` and the user's index do not
   show them.
 - **Gap:** the app sees a turn only while a window has that session open. A
-  turn that starts with no Oriel running has no snapshot, and the drawer then
+  turn that starts with no Ovvi running has no snapshot, and the drawer then
   offers only Uncommitted and Branch. A real fix needs herdr to take the
   snapshot or send a hook on a status change (an upstream ask).
 - **Two devices** both see the change. The second one finds the same tree
@@ -121,7 +121,7 @@ common case with no placeholder pane.
   machine into the user's logged-in web views.
 - A second, screen-based status detector: herdr's `agents[]` is the one
   source (D55).
-- A daemon of Oriel's own that holds panes, layout or scrollback: herdr owns
+- A daemon of Ovvi's own that holds panes, layout or scrollback: herdr owns
   them (D1, D57).
 - Writes in the first version, silent snapshots, and whole-text diffs with a
   diff algorithm of our own.

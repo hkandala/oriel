@@ -65,7 +65,7 @@ tool calls become `[Tool: kind] title` lines).
 | #223 | A stray `x` after every prompt: a workaround for a Claude 0.2.70 paste bug left in for a year. |
 | (code) | Bracketed paste starts with ESC, which **cancels** Claude's numbered pickers; answers must go as `raw`. |
 
-## For Oriel
+## For Ovvi
 
 - Copy: paste, then Enter as its own write, then **verify the screen moved and retry Enter** (3 s apart, capped).
 - Copy: wait for "no output for 16 ms" before reading a screen.

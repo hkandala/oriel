@@ -83,7 +83,7 @@ public struct Pane: Decodable, Sendable, Identifiable {
     public let agentStatus: AgentStatus?
     /// The agent's session, as its herdr integration reported it.
     public let agentSession: AgentSession?
-    /// Of its tokens only the `oriel` command's ring.
+    /// Of its tokens only the `ovvi` command's ring.
     let tokens: Ring?
 
     enum CodingKeys: String, CodingKey {
@@ -96,7 +96,7 @@ public struct Pane: Decodable, Sendable, Identifiable {
 struct Ring: Decodable {
     let request: String?
 
-    enum CodingKeys: String, CodingKey { case request = "oriel-req" }
+    enum CodingKeys: String, CodingKey { case request = "ovvi-req" }
 }
 
 /// herdr's `agent_session`: `value` is the session's id (Claude Code, Codex, OpenCode) or its file (pi). It can be an
@@ -119,16 +119,16 @@ public struct PaneScroll: Decodable, Sendable {
     }
 }
 
-/// A float request on a pane (talking-to-herdr#float-requests): its token `oriel-float` names the pane to float as
-/// `‹session›/‹pane id›`, `oriel-float-id` is a nonce.
+/// A float request on a pane (talking-to-herdr#float-requests): its token `ovvi-float` names the pane to float as
+/// `‹session›/‹pane id›`, `ovvi-float-id` is a nonce.
 public struct FloatRequest: Sendable {
     public let session: String
     public let pane: String
     public let nonce: String
 
     init?(_ tokens: [String: String]?) {
-        let parts = tokens?["oriel-float"]?.split(separator: "/", maxSplits: 1).map(String.init) ?? []
-        guard parts.count == 2, let nonce = tokens?["oriel-float-id"] else { return nil }
+        let parts = tokens?["ovvi-float"]?.split(separator: "/", maxSplits: 1).map(String.init) ?? []
+        guard parts.count == 2, let nonce = tokens?["ovvi-float-id"] else { return nil }
         session = parts[0]
         pane = parts[1]
         self.nonce = nonce

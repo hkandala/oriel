@@ -16,7 +16,7 @@ the client files say only what each one uses.
 | [allward.md](allward.md) | a terminal for agents across machines |
 | [moo.md](moo.md) | terminal, agents sidebar, browser tabs, ⌘K |
 | [herdr-gpui.md](herdr-gpui.md) | Rust and GPUI client (macOS, Linux, Windows): client-only browser, diff review and chat tabs |
-| [rex.md](rex.md) | Rex.app, the macOS client of the Rex multiplexer: the look Oriel follows |
+| [rex.md](rex.md) | Rex.app, the macOS client of the Rex multiplexer: the look Ovvi follows |
 | [gorex.md](gorex.md) | a Rex-like app in Go (and MyGo, its framework) |
 | [kero.md](kero.md) | terminal panes beside a browser and a changes panel |
 
@@ -120,7 +120,7 @@ the client reaches a herdr on another machine. Details and sources are in each c
 
 - **Nobody shows a strip of live panes across tabs.** herdr-gpui gets one surface (the focused tab) per
   connection; herdr-web-ui and herdrup show one pane at a time. herdrup's cache of hidden live terminals comes
-  closest to Oriel's strip.
+  closest to Ovvi's strip.
 - **Chat always comes from the agent's own transcript**, found through herdr's `agent_session` (or
   `pane.process_info` pid and cwd) and read by byte offset. Prompts and approvals come from the screen.
   Sending is `agent.prompt` (or paste + Enter), answers are `agent.send_keys`. No client builds chat from herdr

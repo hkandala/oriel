@@ -41,7 +41,7 @@ message to that thread goes through the bridge's own app-server, a second writer
 
 Bridge `src/` about 40k lines (`bridge.js` 5.5k, rollout mirror 2.3k, rollout watch 1k). The SwiftUI app is separate.
 
-## For Oriel
+## For Ovvi
 
 - Copy: the rollout tail rules: bounded bootstrap read, keep partial lines, treat a stalled file as stopped, close a
   turn after a short grace when the end marker never comes.

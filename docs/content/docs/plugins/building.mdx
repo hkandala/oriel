@@ -7,32 +7,32 @@ This page makes a plugin that shows a CSV file as a table you can sort. It
 starts from the template, builds with the package's own script, and shows how
 to reload, debug and let an agent make one.
 
-You need Node.js on This Mac: Oriel installs and builds plugins with the npm,
+You need Node.js on This Mac: Ovvi installs and builds plugins with the npm,
 pnpm or bun on your login `PATH`. It ships no bundler.
 
 ## Start from the template
 
 The template is a plugin package with everything a build needs. It is
 `plugins/template` in the repository, and the app carries it in
-`Oriel.app/Contents/Resources/web/template/`.
+`Ovvi.app/Contents/Resources/web/template/`.
 
 - **From the app:** the Plugins panel's **New Plugin…** asks for a name. It
-  copies the template to `~/.config/oriel/plugins/<id>/`, with the id made
+  copies the template to `~/.config/ovvi/plugins/<id>/`, with the id made
   from the name (lower case, letters and digits joined by `-`: "CSV Table"
   is `csv-table`), and puts the name and the id in `package.json`. Then it
   installs the dependencies, runs the build, and trusts the plugin, because
   you made it. Its row in the panel shows its folder.
-- **From an agent:** `oriel plugins new <name>` does the same
+- **From an agent:** `ovvi plugins new <name>` does the same
   ([An agent makes a plugin](#an-agent-makes-a-plugin)).
 - **By hand, or by an agent:** copy the template folder to
-  `~/.config/oriel/plugins/<id>/`, set `name` and the `oriel` key's `id` and
+  `~/.config/ovvi/plugins/<id>/`, set `name` and the `ovvi` key's `id` and
   `name`, then run `npm install` and `npm run build` in it.
 
 ```text
-~/.config/oriel/plugins/
-├── node_modules/@oriel/plugin-api/    the API's types (the app writes them)
+~/.config/ovvi/plugins/
+├── node_modules/@ovvi/plugin-api/     the API's types (the app writes them)
 └── csv-table/
-    ├── package.json      the oriel key, the scripts, esbuild and TypeScript
+    ├── package.json      the ovvi key, the scripts, esbuild and TypeScript
     ├── package-lock.json
     ├── tsconfig.json
     ├── README.md
@@ -58,9 +58,9 @@ The template's `package.json`:
     "check": "tsc -p ."
   },
   "devDependencies": { "esbuild": "0.28.2", "typescript": "7.0.2" },
-  "peerDependencies": { "@oriel/plugin-api": "*" },
-  "peerDependenciesMeta": { "@oriel/plugin-api": { "optional": true } },
-  "oriel": {
+  "peerDependencies": { "@ovvi/plugin-api": "*" },
+  "peerDependenciesMeta": { "@ovvi/plugin-api": { "optional": true } },
+  "ovvi": {
     "id": "my-plugin",
     "name": "My Plugin",
     "api": 1,
@@ -83,7 +83,7 @@ The template's `package.json`:
   File Explorer: pick it in Open With. Its `src/main.ts` shows the file and
   its line count, and follows the file as it changes.
 
-For CSV Table, change the `oriel` key to the one in
+For CSV Table, change the `ovvi` key to the one in
 [The manifest](/docs/plugins/manifest#an-example): the id `csv-table`,
 `opens` for `*.csv`, `*.tsv` and the CSV type, a row count, a First Row Is
 Header toggle and a Reload button in the header, and `files:read`.
@@ -116,25 +116,25 @@ export function parse(text: string, separator: string): string[][] {
 `src/main.ts`, the entry:
 
 ```ts
-import type { Oriel } from "@oriel/plugin-api"
+import type { Ovvi } from "@ovvi/plugin-api"
 import { parse } from "./parse"
 import "./table.css"
 
 type State = { column?: number; descending?: boolean; scroll?: number }
 
-export default async function main(oriel: Oriel) {
-  const path = oriel.card.arg
-  let state = oriel.state.get<State>() ?? {}
+export default async function main(ovvi: Ovvi) {
+  const path = ovvi.card.arg
+  let state = ovvi.state.get<State>() ?? {}
   let rows: string[][] = []
   const table = document.body.appendChild(document.createElement("table"))
 
   function save(change: State) {
     state = { ...state, ...change }
-    oriel.state.set(state)
+    ovvi.state.set(state)
   }
 
   function draw() {
-    const header = oriel.controls.get("first-row") === true
+    const header = ovvi.controls.get("first-row") === true
     const [head, ...body] = header ? rows : [rows[0]?.map((_, i) => `${i + 1}`) ?? [], ...rows]
     const { column, descending } = state
     if (column !== undefined) {
@@ -156,25 +156,25 @@ export default async function main(oriel: Oriel) {
       const line = tbody.insertRow()
       for (const cell of row) line.insertCell().textContent = cell
     }
-    oriel.controls.set("rows", { value: `${body.length} rows` })
+    ovvi.controls.set("rows", { value: `${body.length} rows` })
   }
 
   async function load() {
     try {
-      const { text } = await oriel.files.read(path)
+      const { text } = await ovvi.files.read(path)
       rows = parse(text, path.endsWith(".tsv") ? "\t" : ",")
       draw()
     } catch (error) {
       table.replaceChildren()
-      oriel.controls.set("rows", { value: (error as Error).message })
+      ovvi.controls.set("rows", { value: (error as Error).message })
     }
   }
 
-  oriel.on("control", ({ id }) => {
+  ovvi.on("control", ({ id }) => {
     if (id === "reload") load()
     if (id === "first-row") draw()
   })
-  oriel.files.watch(path, load)
+  ovvi.files.watch(path, load)
   addEventListener("scroll", () => save({ scroll: scrollY }), { passive: true })
 
   await load()
@@ -193,9 +193,9 @@ th, td { padding: 3px 10px; border-bottom: 0.5px solid var(--divider); white-spa
 
 What the code shows:
 - Text from the file goes in with `textContent`, never as HTML.
-- The sort and the scroll are in `oriel.state`, so a drop, a reload or a
+- The sort and the scroll are in `ovvi.state`, so a drop, a reload or a
   relaunch comes back sorted and at the same row. The toggle's value is the
-  app's, read with `oriel.controls.get`.
+  app's, read with `ovvi.controls.get`.
 - The watch reloads the table when the file changes: on This Mac by
   FSEvents, on a remote machine by a check every 2 s.
 - The CSS that `main.ts` imports becomes `dist/main.css`. The app links it,
@@ -216,7 +216,7 @@ What the code shows:
 
 ## Open it
 
-1. The plugin is in `~/.config/oriel/plugins/csv-table/` and built. A new
+1. The plugin is in `~/.config/ovvi/plugins/csv-table/` and built. A new
    folder needs **Reload Plugins** (the Plugins panel, or ⌘K) before the app
    reads it. New Plugin… and an install read it by themselves.
 2. Double-click a `.csv` file in a File Explorer's tree. CSV Table is now its
@@ -268,7 +268,7 @@ for every plugin with an open card.
   key: the browser's ⌥⌘I holds it. The source map shows your `.ts` files,
   with breakpoints. Safari's Develop menu reaches every card too.
 - **The log.** **Show Log** (the card's menu, its error card, the panel's
-  row) opens `~/Library/Logs/Oriel/plugins/<id>.log`. `tail -f` on it shows
+  row) opens `~/Library/Logs/Ovvi/plugins/<id>.log`. `tail -f` on it shows
   every build, `console` line, uncaught error and denied call
   ([Errors and logs](/docs/plugins/errors)).
 - **Types.** esbuild removes types and does not check them. Run `npm run
@@ -277,17 +277,17 @@ for every plugin with an open card.
 
 ## An agent makes a plugin
 
-An agent in a pane on This Mac makes a plugin with the `oriel` command
+An agent in a pane on This Mac makes a plugin with the `ovvi` command
 ([CLI](/docs/agent-control/cli#plugins)):
-1. `oriel --timeout 120 plugins new "CSV Table"` does what New Plugin…
-   does: it copies the template to `~/.config/oriel/plugins/csv-table/`,
+1. `ovvi --timeout 120 plugins new "CSV Table"` does what New Plugin…
+   does: it copies the template to `~/.config/ovvi/plugins/csv-table/`,
    installs and builds it, and trusts it. It answers the plugin's `id`, its
    `folder` and its `log`.
 2. The agent edits the folder, following these pages and the types in
-   `@oriel/plugin-api`.
-3. `oriel open csv-table ./data.csv` opens a card beside the agent's pane.
-   `oriel plugins --for data.csv` says which plugin opens a file by default.
-4. After each edit, `oriel plugins reload csv-table` builds it and loads its
+   `@ovvi/plugin-api`.
+3. `ovvi open csv-table ./data.csv` opens a card beside the agent's pane.
+   `ovvi plugins --for data.csv` says which plugin opens a file by default.
+4. After each edit, `ovvi plugins reload csv-table` builds it and loads its
    cards again. It answers `built`, `ms` and `cards`. A failed build is
    `build_failed`, with the build's last 20 lines. A card with unsaved edits
    stops it with `dirty`: the agent asks the user to save.
@@ -295,9 +295,9 @@ An agent in a pane on This Mac makes a plugin with the `oriel` command
    ([Errors and logs](/docs/plugins/errors)).
 
 A plugin folder that the agent makes by hand loads with
-`oriel plugins reload <id>`. Its first card asks the user for trust. To
+`ovvi plugins reload <id>`. Its first card asks the user for trust. To
 install from npm, git or a folder, the agent runs
-`oriel plugins install <source>`, and the user answers the trust prompt on
+`ovvi plugins install <source>`, and the user answers the trust prompt on
 the Mac.
 
 An agent on a remote machine cannot reach the Mac's plugins folder: `plugins
@@ -327,7 +327,7 @@ the same `build`, `dev` and `check` scripts, a lockfile, their own
 Git's manifest:
 
 ```json
-"oriel": {
+"ovvi": {
   "id": "git",
   "name": "Git",
   "api": 1,
@@ -366,7 +366,7 @@ Git's manifest:
 The shape of its `src/main.ts`:
 
 ```ts
-import type { Oriel } from "@oriel/plugin-api"
+import type { Ovvi } from "@ovvi/plugin-api"
 import "./rows.css"
 import "./home.css"
 import "./diff.css"
@@ -375,20 +375,20 @@ import * as Home from "./home"
 const HOME = ["git.branch", "git.working", "git.fetch", "git.pull", "git.push"]
 const DIFF = ["diff.home", "diff.layout", "diff.wrap", "diff.file-list", "diff.previous", "diff.next"]
 
-export default async function main(oriel: Oriel) {
+export default async function main(ovvi: Ovvi) {
   let Diff: typeof import("./diff") | undefined
 
   async function show(arg: string, at?: string) {
     const diff = arg.includes("/ ")               // "<root>/ <source>" is a diff, "<root>/" the home
-    for (const id of HOME) oriel.controls.set(id, { hidden: diff })
-    for (const id of DIFF) oriel.controls.set(id, { hidden: !diff })
+    for (const id of HOME) ovvi.controls.set(id, { hidden: diff })
+    for (const id of DIFF) ovvi.controls.set(id, { hidden: !diff })
     if (!diff) return Home.show(arg, at)
     Diff ??= await import("./diff")               // @pierre/diffs loads on the first diff
     return Diff.show(arg, at)
   }
 
-  oriel.on("place", ({ arg, at }) => void show(arg, at))
-  await show(oriel.card.arg, oriel.card.at)
+  ovvi.on("place", ({ arg, at }) => void show(arg, at))
+  await show(ovvi.card.arg, ovvi.card.at)
 }
 ```
 

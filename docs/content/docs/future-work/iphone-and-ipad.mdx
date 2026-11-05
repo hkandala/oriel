@@ -3,7 +3,7 @@ title: "iPhone and iPad"
 description: "One pane per page on iPhone, the Mac layout on iPad, over the same machines"
 ---
 
-Not built. The project has no iOS target today: Oriel is a macOS app. This
+Not built. The project has no iOS target today: Ovvi is a macOS app. This
 page is the design of an iPhone and iPad app that reaches the same machines
 over SSH.
 
@@ -25,7 +25,7 @@ over SSH.
   `inputAccessoryItems`), for terminals only: Esc, Tab, Shift-Tab, a Ctrl
   latch, arrows and Enter, as in every iOS herdr client. Check first that
   keyboard mode switches do not tear it down, as they did in Heeler
-  ([patterns across clients](https://github.com/hkandala/oriel/blob/main/resources/research/clients/README.md#patterns-across-clients)).
+  ([patterns across clients](https://github.com/hkandala/ovvi/blob/main/resources/research/clients/README.md#patterns-across-clients)).
 - Card buttons always show; there is no hover.
 - Tapping the title opens the machine, session and workspace switcher. The agents that
   need you are a bar under the navigation bar.
@@ -70,7 +70,7 @@ over SSH.
   that the key is pinned, and a changed key blocks the connection.
 - Pairing can follow the common pattern of iOS herdr clients: a QR code on
   the machine with a one-time bootstrap key that enrolls the device's key
-  ([patterns across clients](https://github.com/hkandala/oriel/blob/main/resources/research/clients/README.md#patterns-across-clients)).
+  ([patterns across clients](https://github.com/hkandala/ovvi/blob/main/resources/research/clients/README.md#patterns-across-clients)).
 - The phone reaches a Mac like any SSH machine: turn on System Settings ›
   General › Sharing › Remote Login, then add the Mac by its Tailscale or LAN
   name.
@@ -114,7 +114,7 @@ A small test build checks Citadel with the relay before any iOS work:
   the app. Follow Heeler's design: a stateless Worker as the relay, a herdr
   plugin `[[events]]` hook on the machine as the trigger, and end-to-end
   encryption with a key the app writes to the machine over SSH
-  ([patterns across clients](https://github.com/hkandala/oriel/blob/main/resources/research/clients/README.md#patterns-across-clients)).
+  ([patterns across clients](https://github.com/hkandala/ovvi/blob/main/resources/research/clients/README.md#patterns-across-clients)).
 - Faking the `audio` or `voip` background modes to stay connected risks App
   Store rejection, so the app does not.
 
@@ -130,10 +130,10 @@ A small test build checks Citadel with the relay before any iOS work:
   come later.
 - The App Store rules (guidelines 2.5.2 and 4.7, the license agreement's
   §3.3.1(B)) allow plugins as web pages under conditions; the evidence is in
-  [`plugins.md`](https://github.com/hkandala/oriel/blob/main/resources/research/plugins/plugins.md#plugins-on-ios).
+  [`plugins.md`](https://github.com/hkandala/ovvi/blob/main/resources/research/plugins/plugins.md#plugins-on-ios).
 - The later path: a setting "Load plugins from my Mac", off by default. The
   phone reads each plugin's built folder on the Mac (the entry's folder in
-  `~/.config/oriel/plugins/<id>/`, for example `dist/`) over the SSH
+  `~/.config/ovvi/plugins/<id>/`, for example `dist/`) over the SSH
   connection it already has, with one `tar` run and a safe tar reader (no
   `..`, no links, a size cap), and asks to trust each again. iOS cannot run
   a package's build script. There is

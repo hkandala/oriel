@@ -37,7 +37,7 @@ Some *italic* and _italic_, **bold** and __bold__, ***bold italic***, **bold wit
 
 ## Links
 
-- Inline: [Oriel](https://oriel.dev) and [with a title](https://oriel.dev "The title").
+- Inline: [Ovvi](https://ovvi.dev) and [with a title](https://ovvi.dev "The title").
 - Reference, full: [the docs][docs]; collapsed: [docs][]; shortcut: [docs].
 - Autolinks: <https://example.com> and <mail@example.com>.
 - Bare (GFM): https://example.com/path and www.example.com.
@@ -46,7 +46,7 @@ Some *italic* and _italic_, **bold** and __bold__, ***bold italic***, **bold wit
 - An address on the next line: [split](
   https://example.com).
 
-[docs]: https://oriel.dev/docs "Oriel docs"
+[docs]: https://ovvi.dev/docs "Ovvi docs"
 
 ## Images
 
@@ -143,8 +143,8 @@ Parentheses (they render as dots):
 
 | Plugin | Label argument | Page | Tab |
 |:-------|:--------------:|-----:|-----|
-| `explorer` | a folder's absolute path, ending in `/` | the tree, rooted there | `File Explorer oriel` |
-| `git` | the repository's root | the Git home | `Git oriel` |
+| `explorer` | a folder's absolute path, ending in `/` | the tree, rooted there | `File Explorer ovvi` |
+| `git` | the repository's root | the Git home | `Git ovvi` |
 
 ## HTML
 

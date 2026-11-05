@@ -7,7 +7,7 @@ program icons.
 
 ## Build
 
-1. **Assets.** Import every `resources/icons/svg/*.svg` into `Oriel/Assets.xcassets` as an image set
+1. **Assets.** Import every `resources/icons/svg/*.svg` into `Ovvi/Assets.xcassets` as an image set
    named `program.<id>` with "Preserve Vector Data" on and "Render As: Template" for the monochrome
    ones. Bundle `resources/icons/catalog.json` as an app resource (or turn it into one Swift table if
    that is fewer lines; pick one, not both). Keep `SOURCES.md` and the license texts in the repo and add
@@ -78,7 +78,7 @@ program icons.
 - **No `display_agent`.** herdr's `display_agent` is a human label set through `pane.report_metadata`, not an
   agent kind (`resources/research/multiplexers/herdr.md`), so it would rarely match `match.agent`; only `agent` is decoded.
   Phase 15 reads it from `snapshot.agents[]` if it needs it.
-- **The asset catalog is generated.** `tools/build.mjs` also writes `Oriel/Assets.xcassets/program.<id>.imageset`
+- **The asset catalog is generated.** `tools/build.mjs` also writes `Ovvi/Assets.xcassets/program.<id>.imageset`
   (the SVG, template, vector data kept), so a fix goes into the tool, not the asset catalog. The build is
   deterministic: rerunning it changed no other SVG.
 - **`ProgramTile(icon:letter:)` has no `size`.** Every tile today is 22×18; a later phase adds a size when it
@@ -100,7 +100,7 @@ program icons.
   `ProgramIcon` decodes only `id`, `tile` and `match`.
 - **The app bundles `catalog.json` by a file reference** in the project (not a copy, not a Swift table): one
   source, read once into a global `programIcons`.
-- **Credits:** `Oriel/Acknowledgements.txt` (About opens it): every icon source with its license.
+- **Credits:** `Ovvi/Acknowledgements.txt` (About opens it): every icon source with its license.
 - **Capsule accessibility value:** `"in view; icons: vim, sleep, nano"` (front first); `"icons: …"` when not in
   view. Two older tests now check the `in view` prefix.
 - **Stack layers:** each tile in front cuts a 1 pt ring (`destinationOut` in a compositing group) out of the

@@ -10,9 +10,9 @@ Design: [Chat view](../../docs/content/docs/ui/chat-view.mdx) and
 1. Launch flags (`-c hooks.SessionStart=…`, `-c hooks.state` with the trusted hash), the rollout follower,
    the screen check for pickers, the adapter.
 
-## Track B: pi and the pi-oriel extension (item 2)
-2. **pi-oriel** ships inside Oriel (in this repo, not in pi-hkandala: the user may not have it): Oriel
-   writes it to the pane's machine and starts pi with `-e <pi-oriel.ts> --oriel <state file>`. It reports
+## Track B: pi and the pi-ovvi extension (item 2)
+2. **pi-ovvi** ships inside Ovvi (in this repo, not in pi-hkandala: the user may not have it): Ovvi
+   writes it to the pane's machine and starts pi with `-e <pi-ovvi.ts> --ovvi <state file>`. It reports
    session, tree, blocked and idle lines; the adapter follows them and the transcript.
 
 ## Track C: opencode (item 3)
@@ -24,8 +24,8 @@ Design: [Chat view](../../docs/content/docs/ui/chat-view.mdx) and
 
 ### Track A
 
-- **Decisions:** the hook writes to `~/.cache/oriel/chat/T/hooks.jsonl` (phase 38's folder, not the design's
-  `/tmp/oriel-T`), and the marker is that folder inside a `hooks.SessionStart=` argument. Codex runs hooks with
+- **Decisions:** the hook writes to `~/.cache/ovvi/chat/T/hooks.jsonl` (phase 38's folder, not the design's
+  `/tmp/ovvi-T`), and the marker is that folder inside a `hooks.SessionStart=` argument. Codex runs hooks with
   `$SHELL -lc`, so the hook is plain commands with no variable, quote or backslash: it works in fish too. The chooser
   types `codex …` like the other agents, so the user's own `codex` alias (the company's `--yolo` and friends) still
   applies; the trust hash, not a bypass flag, keeps the "Hooks need review" picker away.
@@ -51,10 +51,10 @@ Design: [Chat view](../../docs/content/docs/ui/chat-view.mdx) and
 
 ### Track B
 
-- **Built:** `pi-oriel.ts` is an app resource (an `explicitFileTypes` entry makes Xcode copy a `.ts`). The chooser's
-  one run writes it to `~/.cache/oriel/pi-oriel-<sha8>.ts`, whole (base64: the relay passes lines), named by its
-  content; the line is `pi -e ~/.cache/oriel/pi-oriel-<sha8>.ts --oriel ~/.cache/oriel/chat/T/pi.jsonl`. The marker is
-  that path in the argv of `pi` or `pi.real`. pi-oriel makes the folder; the state file sits beside Claude Code's side
+- **Built:** `pi-ovvi.ts` is an app resource (an `explicitFileTypes` entry makes Xcode copy a `.ts`). The chooser's
+  one run writes it to `~/.cache/ovvi/pi-ovvi-<sha8>.ts`, whole (base64: the relay passes lines), named by its
+  content; the line is `pi -e ~/.cache/ovvi/pi-ovvi-<sha8>.ts --ovvi ~/.cache/ovvi/chat/T/pi.jsonl`. The marker is
+  that path in the argv of `pi` or `pi.real`. pi-ovvi makes the folder; the state file sits beside Claude Code's side
   files. The 30-day sweep (Claude Code's hook and the pi run) now goes by the files' times, then empty folders: a
   folder's own time does not change on appends, so a pane open 30 days lost its side files.
 - **Core changes (told to the other tracks):** `ChatAdapter.prepare(token, on:) -> String?` (the whole launch line
@@ -70,7 +70,7 @@ Design: [Chat view](../../docs/content/docs/ui/chat-view.mdx) and
   compaction are notes; `custom_message` is skipped.
 - **Cause (`/tree`):** pi writes nothing on `/tree`, and the state file and the transcript are two streams: on a new
   chat the state file is read before the transcript, so a bare leaf was applied to an empty history and the old
-  entries then moved the leaf back. pi-oriel adds `at`, the transcript's size at the move: the leaf moves when the
+  entries then moved the leaf back. pi-ovvi adds `at`, the transcript's size at the move: the leaf moves when the
   transcript is read up to it, and a move the transcript was read past is dropped (a card shown again after a turn in
   the terminal). The parser keeps each entry's parent and its steps, so another branch is built again without
   reading the file.
@@ -86,13 +86,13 @@ Design: [Chat view](../../docs/content/docs/ui/chat-view.mdx) and
 
 ### Track C
 
-- **Decisions:** the marker is `-- oriel-T` after `--port 0 --hostname 127.0.0.1` (opencode's yargs ignores what
+- **Decisions:** the marker is `-- ovvi-T` after `--port 0 --hostname 127.0.0.1` (opencode's yargs ignores what
   follows `--`), plus the design's check that the state line's `pid` is the marked process's. The line is
-  `ORIEL_OC_STATE=… OPENCODE_TUI_CONFIG=… OPENCODE_SERVER_PASSWORD=$(cat "…/pw") opencode …` typed straight into the
+  `OVVI_OC_STATE=… OPENCODE_TUI_CONFIG=… OPENCODE_SERVER_PASSWORD=$(cat "…/pw") opencode …` typed straight into the
   user's shell (sh, bash, zsh, fish ≥ 3.4), not the research's `env … sh -c 'exec opencode …'`: a user's alias or
   function still runs, and the password never reaches argv or the scrollback. The per-launch password and state live
-  in `~/.cache/oriel/chat/T/` (Claude Code's folder, the same 30-day cleanup); the plugin and `tui.json` in
-  `~/.cache/oriel/opencode/`, rewritten whole by `prepare` before each launch.
+  in `~/.cache/ovvi/chat/T/` (Claude Code's folder, the same 30-day cleanup); the plugin and `tui.json` in
+  `~/.cache/ovvi/opencode/`, rewritten whole by `prepare` before each launch.
 - **Decisions:** permissions show as a question card ("Bash: touch x", Allow once · Allow always · Reject, the TUI's
   words); a question with `multiple` or with no options goes to the live terminal. Every pending request on the
   TUI's own server counts (subagents' too: one server per TUI). Phase: a dialog or a request is Waiting, a busy

@@ -1,6 +1,6 @@
 # Phase 10: appearance and interface style
 
-Goal: Oriel draws in light or dark (or follows the system) and in two interface styles, Glass (today's
+Goal: Ovvi draws in light or dark (or follows the system) and in two interface styles, Glass (today's
 frosted look) and Classic (an opaque window), with Rex's surface values. Every later phase draws with
 the tokens this phase makes.
 
@@ -13,7 +13,7 @@ the tokens this phase makes.
    checkmarks. Phase 11 adds the same pickers to Settings.
 2. **Apply the appearance.** When the setting changes, set `NSApp.appearance` to `nil` (Auto),
    `NSAppearance(named: .aqua)` or `NSAppearance(named: .darkAqua)`. This covers every window, sheet,
-   menu and the Settings window. Remove `.preferredColorScheme(.dark)` (`OrielApp.swift`).
+   menu and the Settings window. Remove `.preferredColorScheme(.dark)` (`OvviApp.swift`).
 3. **One token type** in `Style.swift`: a small `Look` value read from the environment
    (`@Environment(\.colorScheme)` plus the style setting). It holds only what views draw. No theme
    engine. Values (from Rex's Modern = Glass and System = Classic files; light values first measured,

@@ -117,7 +117,7 @@ One capsule per herdr tab of the selected workspace (D42).
   many tabs shows as fast as one with a few.
 - **New tabs.** Every new tab goes at the end of its workspace's tabs: ⌘T,
   `+`, an open from a card (⌘-click, Git's Open File), a link opened in a new
-  tab, `oriel open --tab`, and a pane dropped on `+` or the bar's empty end.
+  tab, `ovvi open --tab`, and a pane dropped on `+` or the bar's empty end.
 - **Dividers.** 1 pt wide, 18 pt tall, centered between
   tabs. A divider next to the selected or the hovered tab is hidden, at once.
 - **Selection.** One marker sits on the selected tab. It is 30 pt tall and
@@ -143,12 +143,12 @@ One capsule per herdr tab of the selected workspace (D42).
   never shows an ellipsis. The folder part is in secondary text. The title is
   herdr's tab label. When the label is herdr's default (only digits), the
   title is the keyboard card's program and its folder's name, for example
-  "zsh ~" or "pi oriel" (D65). An agent's tab shows the agent's name and its
+  "zsh ~" or "pi ovvi" (D65). An agent's tab shows the agent's name and its
   pane's name in secondary text ("Claude Code Fix login"), a browser's
-  "Browser" and its page, and a plugin's name and title ("File Explorer oriel"). Until the program is known (a new tab's first
+  "Browser" and its page, and a plugin's name and title ("File Explorer ovvi"). Until the program is known (a new tab's first
   second), the title is "New Tab", never the number.
 - **Plain-text titles.** Where a title is plain text, with no dimmed part, a
-  ` | ` separates its two parts: "zsh | oriel", "Claude Code | Fix login",
+  ` | ` separates its two parts: "zsh | ovvi", "Claude Code | Fix login",
   "Browser | Hacker News". That is in ⌘K, the Window menu, Move Pane to Tab,
   the window title, a close dialog, the floating window's title and the
   accessibility labels built from them. The tab capsule, the hover card and
@@ -226,7 +226,7 @@ session open in this window (D43).
   Detach Session is disabled on the last page. The UI says "session", never
   "page": Window ▸ Previous Session and Next Session show the page before or
   after.
-- **Restore.** Windows come back after a normal quit too: Oriel registers
+- **Restore.** Windows come back after a normal quit too: Ovvi registers
   `NSQuitAlwaysKeepsWindows` in its own defaults, so the system's "Close
   windows when quitting an application" setting does not apply to it (a
   user's own `defaults write` still wins). A window that macOS restores opens
@@ -517,7 +517,7 @@ How it works: [Layout and sizing](/docs/layout).
   - Agent: row 1 has the pane's name: its label, else its session's title
     ([Session titles](/docs/ui/chat-view#session-titles)). Row 2 has the
     program glyph, the agent's name and the folder in secondary text
-    ("Claude Code ~/code/oriel"), then the agent's state label (its
+    ("Claude Code ~/code/ovvi"), then the agent's state label (its
     symbol and word in the status color, without the time) (herdr's, or the chat's own on a chat
     card; none while idle), then on the right Chat | TUI
     ([Chat view](/docs/ui/chat-view#what-it-looks-like)), or Relaunch with
@@ -584,7 +584,7 @@ How it works: [Layout and sizing](/docs/layout).
   dialog's default button, so the app gives Return to the red button itself.
 - ⌘-click on a link in a terminal opens it in the default browser, `http` and
   `https` only.
-- **Reveal.** When an agent runs `oriel reveal` on a card in view, the card's
+- **Reveal.** When an agent runs `ovvi reveal` on a card in view, the card's
   border lights in the accent color, 2 pt, for 0.6 s, and fades out over
   0.25 s ([CLI](/docs/agent-control/cli#reveal)). A floating card flashes in
   its own window. A card out of view gets a [notice](#notice) instead.
@@ -712,7 +712,7 @@ agents at once.
 
 A pane can float in a small window of its own, above the main window or, kept
 on top, above other apps (D50). herdr has no floating pane, so this is
-Oriel's own: the pane stays in its herdr tab, and other devices and herdr
+Ovvi's own: the pane stays in its herdr tab, and other devices and herdr
 clients see it there.
 - **Float Pane** (the `pip.enter` button in the card header, the pane's menus,
   View ▸ Pane and the palette) opens the window. Several can be open. On a
@@ -730,7 +730,7 @@ clients see it there.
   "Browser" and the page, a plugin's name and title with its Edited dot, or "New Pane" while
   the chooser shows, with the second part in
   secondary text (the window's title has ` | ` there). A plugin pane (any
-  `oriel:` label, such as a browser) shows no line and no place. A chat pane
+  `ovvi:` label, such as a browser) shows no line and no place. A chat pane
   shows Chat | TUI after the place. Then on the right the title
   row's 28 pt buttons: **Stay on Top** (a pin), **Close** (closes
   the pane, and asks first as any close does, in the floating window, also
@@ -776,7 +776,7 @@ clients see it there.
 - The terminal streams the whole time it floats, whichever tab or session the
   main window shows. Another window on the same session shows the pane as a
   normal card.
-- **From other tools:** `oriel://float?session=‹herdr session›&pane=‹pane id›`
+- **From other tools:** `ovvi://float?session=‹herdr session›&pane=‹pane id›`
   (and `&machine=‹machine id›` for a remote machine; This Mac otherwise)
   floats that pane over the machine's front main window, also when its
   session is not open there: then the session gets no page, no sidebar row
@@ -784,15 +784,15 @@ clients see it there.
   float does not come back after a relaunch). Open again for the same pane,
   it brings the window forward. A session or pane that is not there shows a
   notice and no window.
-- **From a pane, on any machine:** `oriel float <pane>`
+- **From a pane, on any machine:** `ovvi float <pane>`
   ([CLI](/docs/agent-control/cli#float-and-unfloat)), run in a pane of a
   session the app follows, floats the pane it names the same way, over the
   window where the user last typed or clicked in a card of that session.
-  The window comes to the front without activating Oriel, and the keyboard
+  The window comes to the front without activating Ovvi, and the keyboard
   stays in the window that had it. A pane that floats already comes to the
-  front. `--on-top` turns on Stay on Top, and `oriel unfloat` detaches it.
+  front. `--on-top` turns on Stay on Top, and `ovvi unfloat` detaches it.
   The app marks the panes it shows, so pi-herd asks it only for a click in
-  one of them; herdr's own popups do not show in Oriel. The older
+  one of them; herdr's own popups do not show in Ovvi. The older
   [float request](/docs/talking-to-herdr#float-requests) still works the
   same way.
 
@@ -807,11 +807,11 @@ A short message after a failed action or a refused move, or from an agent.
   happened, so a retry is not safe. The Open Session panel's "Could not
   start" notice has **Retry**.
 - **From an agent** ([Agent control](/docs/agent-control#the-users-view)):
-  "‹agent› opened ‹Kind› ‹title›" for a card that `oriel open` made out of
-  view, and "‹agent› points to ‹title›" for `oriel reveal` of a pane out of
-  view or a card that `oriel open` found already open. It is in the
+  "‹agent› opened ‹Kind› ‹title›" for a card that `ovvi open` made out of
+  view, and "‹agent› points to ‹title›" for `ovvi reveal` of a pane out of
+  view or a card that `ovvi open` found already open. It is in the
   information tone, with **Show**, in each window that shows the session.
-  Show selects the pane's workspace, tab and card in that window. Oriel does
+  Show selects the pane's workspace, tab and card in that window. Ovvi does
   not come to the front for it.
 - It goes after 4 s, or at ×. A newer notice replaces it.
 

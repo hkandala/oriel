@@ -20,7 +20,7 @@ times = {
     for seconds, name in (line.split("\t") for line in Path("scripts/test-times.tsv").read_text().splitlines()
                           if not line.startswith("#"))
 }
-tests = {t for f in Path("OrielUITests").glob("*.swift") for t in re.findall(r"func (test\w+)\(", f.read_text())}
+tests = {t for f in Path("OvviUITests").glob("*.swift") for t in re.findall(r"func (test\w+)\(", f.read_text())}
 if listed - tests:
     sys.exit(f"on-demand names no test: {sorted(listed - tests)}")
 shards = [[0, []] for _ in range(n)]
@@ -28,4 +28,4 @@ for test in sorted((t for t in tests if (t in listed) == on_demand), key=lambda 
     shard = min(shards, key=lambda s: s[0])
     shard[0] += times.get(test, 15)
     shard[1].append(test)
-print(",".join(f"OrielUITests/OrielUITests/{t}" for t in sorted(shards[i][1])))
+print(",".join(f"OvviUITests/OvviUITests/{t}" for t in sorted(shards[i][1])))

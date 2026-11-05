@@ -3,7 +3,7 @@
 Repo: https://github.com/paradevai/paradev (HEAD 2c586e1c, Elastic License 2.0). A rebrand of Superset
 (`@superset/*` packages). Bun and Turbo monorepo: Electron and React desktop with xterm.js, an Expo app, a Node
 `host-service` daemon per machine and a `pty-daemon` that owns the PTYs. Not a herdr client. The chat is behind the
-experimental `acp-chat` flag. The options for Oriel are in [../ui/chat-view.md](../ui/chat-view.md).
+experimental `acp-chat` flag. The options for Ovvi are in [../ui/chat-view.md](../ui/chat-view.md).
 
 ## How chat works
 
@@ -49,10 +49,10 @@ out to (JWT auth). No SSH transport for chat.
 About 30k lines for desktop chat: the runtime 10.8k (ACP adapter 4.2k), the protocol and client 3k, the desktop UI
 16k; 38k with the host mount (1.3k) and the shared composer (6.3k).
 
-## For Oriel
+## For Ovvi
 
 - Copy: if a structured mode ever comes, ACP with the official translators pointed at the user's binary is the
   cheapest way to many agents; no fs or terminal capabilities; `elicitation.form`.
 - Copy: a reply box over the terminal that pastes one block, without any chat.
-- Avoid: npm translators would have to be installed on every machine, which Oriel does not do; bypass mode by
+- Avoid: npm translators would have to be installed on every machine, which Ovvi does not do; bypass mode by
   default.

@@ -14,7 +14,7 @@ card.
 ## Label format
 
 ```text
-label     = "oriel:" plugin-id [ "/" pane-name ] "#" iid [ " " arg ]
+label     = "ovvi:" plugin-id [ "/" pane-name ] "#" iid [ " " arg ]
 plugin-id = [a-z0-9][a-z0-9._-]{0,63}
 pane-name = [a-z0-9][a-z0-9-]{0,31}
 iid       = [a-z0-9]{6}
@@ -24,16 +24,16 @@ arg       = the rest: no control characters, at most 1024 characters
 Examples, as a herdr TUI user sees them in the pane border:
 
 ```text
-oriel:git-history#k3f9q2 main
-oriel:explorer#q2m0zd /Users/me/code/oriel/README.md
-oriel:git#a81xw0 /Users/me/code/oriel/ uncommitted
-oriel:kanban/board#7tt1qe
-oriel:browser#m4p8sa http://localhost:3000/dashboard
+ovvi:git-history#k3f9q2 main
+ovvi:explorer#q2m0zd /Users/me/code/ovvi/README.md
+ovvi:git#a81xw0 /Users/me/code/ovvi/ uncommitted
+ovvi:kanban/board#7tt1qe
+ovvi:browser#m4p8sa http://localhost:3000/dashboard
 ```
 
 - The parser accepts `/<pane-name>`, and no plugin uses it: a plugin has one
   pane kind. A label with a pane name opens the plugin's one kind.
-- The `oriel:` prefix keeps a user's own label (`todo: fix login`) from turning
+- The `ovvi:` prefix keeps a user's own label (`todo: fix login`) from turning
   into a plugin.
 - The argument goes last, so the useful part is what a TUI user reads. herdr
   trims labels.
@@ -62,13 +62,13 @@ Browser and plugin panes are created the same way.
    starts the pane with its label and its placeholder command in one call:
    ```text
    layout.apply {workspace_id, focus:false,
-                 root:{type:"pane", cwd, label:"oriel:<plugin>#<iid> <arg>",
+                 root:{type:"pane", cwd, label:"ovvi:<plugin>#<iid> <arg>",
                        command:["sh","-c",<script>,"sh",<title>,<arg>]}}
    ```
    - `cwd` is the source pane's cwd, so a diff split from an agent's pane
      opens in that agent's repository.
    - The script prints the title, the argument without its scheme and "Shown
-     in Oriel" in the middle of the pane. On `SIGWINCH` it reads the label's
+     in Ovvi" in the middle of the pane. On `SIGWINCH` it reads the label's
      argument from herdr (`herdr pane get $HERDR_PANE_ID`) and draws again: on
      a resize, and when the app signals its processes by pid after the label
      changed (a browser's new address). herdr still finds a pane by its old id

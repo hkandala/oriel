@@ -65,12 +65,12 @@ No TUI is ever started, so the "switch views" question does not apply.
 Chat UI about 7.2k lines (`ClaudeCodeSession.tsx` 1.8k, `ToolWidgets.tsx` 3.0k, `StreamMessage.tsx` 0.7k,
 `FloatingPromptInput.tsx` 1.3k). Rust `commands/claude.rs` 2.3k. Whole backend 11k.
 
-## For Oriel
+## For Ovvi
 
 - Copy: one renderer for both the live stream and the transcript file. The stream-json line and the transcript
   line share types, so tool widgets work on both.
 - Copy: take the session id from the agent (the `init` line), and expect it to change on resume.
-- Avoid: `--dangerously-skip-permissions` as the answer to approvals. Oriel keeps the TUI for that.
+- Avoid: `--dangerously-skip-permissions` as the answer to approvals. Ovvi keeps the TUI for that.
 - Avoid: re-reading the whole transcript on every change, polling, and `-`→`/` path decoding. Tail by offset and get
   the transcript path from the agent.
 - Avoid: one process per prompt. It is why opcode died when Claude Code's TUI moved on (#398).

@@ -8,7 +8,7 @@ How CI runs, how to run part of it, and how to keep it green and fast.
   except docs-only changes (`playbook/**`, `docs/**`, `resources/**`, `**/*.md`): those start no run. The
   UI tests run only on a dispatch.
 - **Docs site.** `.github/workflows/docs-deploy.yml` builds the docs and deploys them to the Vercel project
-  `oriel` when `docs/` changes; Vercel's own git deploys are off. Run the `vercel` CLI only from the repo
+  `ovvi` when `docs/` changes; Vercel's own git deploys are off. Run the `vercel` CLI only from the repo
   root: in another folder `vercel pull --yes` creates and links a new project.
 - **Machines.** `runs-on: xcode-27`: a VM with a 1x display (a 1024 × 674 pt screen), the US keyboard layout
   and Reduce Motion on. The account has 5 macOS runners. herdr is downloaded and checked by its SHA-256
@@ -40,7 +40,7 @@ How CI runs, how to run part of it, and how to keep it green and fast.
 |---|---|---|
 | Checks | push to main | 1 |
 | Full run | `gh workflow run ci.yml --ref main` | 5 |
-| Chosen UI tests | `gh workflow run ci.yml --ref main -f only_testing=OrielUITests/OrielUITests/testA,OrielUITests/OrielUITests/testB` | 1 |
+| Chosen UI tests | `gh workflow run ci.yml --ref main -f only_testing=OvviUITests/OvviUITests/testA,OvviUITests/OvviUITests/testB` | 1 |
 | On-demand tests | `gh workflow run ci.yml --ref main -f on_demand=true` | 4 |
 | Same locally | `make e2e ONLY=…`, `make e2e ON_DEMAND_ONLY=1` (under the GUI lock) | this Mac |
 
@@ -119,12 +119,12 @@ If one slot is not enough, run each extra slot in a headless Tart VM. Set it up 
 
 ```sh
 brew install openai/tools/tart
-tart clone ghcr.io/cirruslabs/macos-golden-gate-base:latest oriel-vm   # 34 GB download, ~41 GB on disk
-tart set oriel-vm --cpu 4 --memory 8192 --display 1024x768             # CI's 1x screen
-tart run oriel-vm --no-graphics --no-audio --no-clipboard              # a background command
-VM=$(tart ip oriel-vm)                                                 # user and password: admin
-ssh-keygen -t ed25519 -N '' -f ~/.ssh/oriel_vm && ssh-copy-id -i ~/.ssh/oriel_vm admin@$VM
-# ~/.ssh/config: Host 192.168.64.*  User admin  IdentityFile ~/.ssh/oriel_vm  StrictHostKeyChecking no
+tart clone ghcr.io/cirruslabs/macos-golden-gate-base:latest ovvi-vm    # 34 GB download, ~41 GB on disk
+tart set ovvi-vm --cpu 4 --memory 8192 --display 1024x768              # CI's 1x screen
+tart run ovvi-vm --no-graphics --no-audio --no-clipboard               # a background command
+VM=$(tart ip ovvi-vm)                                                  # user and password: admin
+ssh-keygen -t ed25519 -N '' -f ~/.ssh/ovvi_vm && ssh-copy-id -i ~/.ssh/ovvi_vm admin@$VM
+# ~/.ssh/config: Host 192.168.64.*  User admin  IdentityFile ~/.ssh/ovvi_vm   StrictHostKeyChecking no
 rsync -a /Applications/Xcode.app admin@$VM:/Applications/
 ssh admin@$VM 'sudo xcode-select -s /Applications/Xcode.app && sudo xcodebuild -license accept &&
   sudo xcodebuild -runFirstLaunch && automationmodetool'   # must say "DOES NOT REQUIRE user authentication"
@@ -133,24 +133,24 @@ scp ~/.local/bin/herdr admin@$VM:.local/bin/herdr      # CI's herdr version
 ```
 
 Then do one run (below): if a privacy (TCC) prompt shows, allow it over VNC (`open vnc://$VM`). Save the
-guest to reset from: `tart stop oriel-vm && tart clone oriel-vm oriel-vm-clean`, and `tart run` it again.
+guest to reset from: `tart stop ovvi-vm && tart clone ovvi-vm ovvi-vm-clean`, and `tart run` it again.
 
 One run: build on the host, test in the guest.
 
 ```sh
-NAME=<agent>; DD=/tmp/oriel-dd-$NAME
-xcodebuild -scheme Oriel -derivedDataPath $DD -destination platform=macOS build-for-testing
+NAME=<agent>; DD=/tmp/ovvi-dd-$NAME
+xcodebuild -scheme Ovvi -derivedDataPath $DD -destination platform=macOS build-for-testing
 rsync -a --delete $DD/Build/Products/ admin@$VM:runs/$NAME/Products/
 rsync -a --delete scripts/ admin@$VM:runs/$NAME/scripts/
 ssh admin@$VM "cd runs/$NAME && scripts/e2e.sh xcodebuild test-without-building \
-  -xctestrun Products/Oriel_*.xctestrun -destination platform=macOS -only-testing:… \
+  -xctestrun Products/Ovvi_*.xctestrun -destination platform=macOS -only-testing:… \
   -resultBundlePath e2e.xcresult"
-rsync -a admin@$VM:runs/$NAME/e2e.xcresult /tmp/oriel-e2e-$NAME.xcresult
+rsync -a admin@$VM:runs/$NAME/e2e.xcresult /tmp/ovvi-e2e-$NAME.xcresult
 ```
 
-- **Rules.** One lock per VM (`/tmp/oriel-vm-1.lock`, `-2`), as the GUI lock. The guest runs its own herdr,
+- **Rules.** One lock per VM (`/tmp/ovvi-vm-1.lock`, `-2`), as the GUI lock. The guest runs its own herdr,
   so the user's sessions are out of reach, and `osascript` is safe there. Reset a dirty guest from
-  `oriel-vm-clean`.
+  `ovvi-vm-clean`.
 - **Limits.** Apple allows 2 macOS VMs per host. After a few start and stop cycles the limit error can stay
   until the host reboots (Tart #1217), so keep VMs running. Two 8 GB guests plus host builds make a laptop
   swap: run one. The guest's macOS must not be newer than the host's.

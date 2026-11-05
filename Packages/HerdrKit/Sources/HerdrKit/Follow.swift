@@ -41,7 +41,7 @@ public extension Exec {
             }
             var mark = mark, end = Int.max
             for await line in lines {
-                if line.hasPrefix("oriel-follow ") {
+                if line.hasPrefix("ovvi-follow ") {
                     let parts = line.split(separator: " ")
                     guard parts.count == 4, let offset = Int(parts[2]), let opened = Int(parts[3]) else { continue }
                     let restarted = parts[1] != mark.inode || offset != mark.offset
@@ -50,7 +50,7 @@ public extension Exec {
                     mark.offset = offset
                     end = opened
                     yield(.opened(mark, restarted: restarted))
-                } else if line.hasPrefix("oriel-skip "), let bytes = Int(line.dropFirst(11)) {
+                } else if line.hasPrefix("ovvi-skip "), let bytes = Int(line.dropFirst(11)) {
                     mark.offset += bytes
                 } else {
                     // Whole lines from a line start only, so the byte count holds (a cut inside a character would
@@ -113,15 +113,15 @@ public extension Exec {
         [ "$n" = "$3" ] && [ "$s" -ge "$o" ] || o=0
         [ "$s" -eq 0 ] || [ -z "$(tail -c +"$s" "$f" | head -c 1)" ] ||
           s=$((s - $(head -c "$s" "$f" | tail -n 1 | wc -c)))
-        echo "oriel-follow $n $o $s"
+        echo "ovvi-follow $n $o $s"
         r() { [ "$s" -gt "$o" ] || return 0
           trap 'kill $! 2>/dev/null; exit 143' TERM
           { dd bs=1 skip="$o" count=0 2>/dev/null; exec head -c $((s - o)); } <"$f" & wait $!; }
         [ "$4" = 0 ] && { r; exec tail -c +$((s + 1)) -F "$f" 2>/dev/null; }
-        p=$(mktemp -u "${TMPDIR:-/tmp}/oriel-follow.XXXXXX") && mkfifo -m 600 "$p" && exec 5<>"$p" 6<"$p" &&
+        p=$(mktemp -u "${TMPDIR:-/tmp}/ovvi-follow.XXXXXX") && mkfifo -m 600 "$p" && exec 5<>"$p" 6<"$p" &&
           rm -f "$p" || exit 1
         a=awk; command -v mawk >/dev/null && a="mawk -W interactive"
-        LC_ALL=C $a "$4"' { print "oriel-skip " length($0) + 1; fflush(); next } { print; fflush() }' <&6 5>&- 6<&- &
+        LC_ALL=C $a "$4"' { print "ovvi-skip " length($0) + 1; fflush(); next } { print; fflush() }' <&6 5>&- 6<&- &
         exec 6<&-; r >&5; exec tail -c +$((s + 1)) -F "$f" 2>/dev/null >&5 5>&-
         """#
     }

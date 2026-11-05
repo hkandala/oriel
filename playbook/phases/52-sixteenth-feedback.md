@@ -10,7 +10,7 @@ words are quoted; the decisions under them are the orchestrator's.
 
 Screenshots in `.build/fb52/` (not committed): `1.08.48.png` (chat tool rows), `1.26.38.png` (Git toast),
 `1.31.25.png` (Working Tree header), `1.34.54.png` (Markdown task boxes), `1.41.11.png` (Markdown table),
-`1.44.12.png` (Markdown lists), `2.29.45.png` (the tab hover card). Mockups: `~/Downloads/oriel-research/sidebar-mockups.html`.
+`1.44.12.png` (Markdown lists), `2.29.45.png` (the tab hover card). Mockups: `~/Downloads/ovvi-research/sidebar-mockups.html`.
 
 **Do not start until the user confirms.** The sidebar design is picked: B as in `resources/research/ui/sidebar-mockup-B.html` (Track F). Tracks push straight to main after review and green checks.
 
@@ -41,7 +41,7 @@ we were in one page and go back to previous page? is there a way to cache it or 
 
 3. **A page cache in the plugin runtime.** Each place a card visits keeps its DOM (detached, or hidden in place) for
    the last few history entries; Back and Forward show the kept DOM at once with its scroll, and refresh its data
-   behind it only if it changed. One mechanism in `web/oriel` for every plugin, not per plugin. Remove the
+   behind it only if it changed. One mechanism in `web/ovvi` for every plugin, not per plugin. Remove the
    restore code it replaces (kept open folders, scroll restore, landing scroll, Parent's read-first path where the
    cache covers it). Measure Back (click to drawn frame) before and after: target under 50 ms.
 4. **The first arrow selects the first row.** "when i press down or up arrow, first selection should be on first
@@ -72,7 +72,7 @@ we were in one page and go back to previous page? is there a way to cache it or 
     tab beside the git view tab, let's drop that, open file should just open new tab at the end of the tab list and
     show it, let's not complicate it, let's make sure this same logic works anywhere new tab is opened, its just
     opened at the end of the list to keep it simple and avoid flickers". Every new tab (⌘T, Open File, ⌘-click,
-    `oriel open --tab`, the chooser, drags to the bar's end) goes at the end; remove the move-after-current code.
+    `ovvi open --tab`, the chooser, drags to the bar's end) goes at the end; remove the move-after-current code.
     Owner: this track, also in the app.
 13. **Not here:** item 9 is Track B's.
 
@@ -110,7 +110,7 @@ we were in one page and go back to previous page? is there a way to cache it or 
 21. **No tab pill animations.** "recently we added tab pill animations right showing the tab pill movements on cmd+t
     and cmd+w, can we drop those animations and go back as before, i am not liking them much". Remove the tab motion
     (the transaction, the born views kept for it, the test step) and go back to the instant bar.
-26. **`oriel open` of a local file with a query.** Found by the orchestrator: `oriel open browser "/tmp/x.html?v=3"`
+26. **`ovvi open` of a local file with a query.** Found by the orchestrator: `ovvi open browser "/tmp/x.html?v=3"`
     encodes the `?` into the file name (`x.html%3Fv=3`), so the page does not load. A local path keeps its `?query`
     and `#fragment` as the URL's.
 
@@ -168,12 +168,12 @@ then working and no status when all idle". Build exactly `resources/research/ui/
   only a real move lights a row. Not the last hover's place: a busy app runs hovers late (phase 24).
 - **Decisions, address bar (20).** Return searches Google (`https://www.google.com/search?q=…`) for text with a space,
   or with no scheme, no dot and a host that is neither `localhost` nor IPv6. So `localhost:3000`, `example.com` and
-  `foo/bar.html` load; `swift actors`, `oriel` and `devbox:3000` search. A typed path (`/tmp/x.html`) does nothing, as
-  before. Only the address field searches: labels, links and `oriel open` never do. Placeholder "Ask Google or type a
-  URL". Pictures: `/tmp/oriel-shots/t52e/address-before-crop.png` → `address-after-crop.png`.
+  `foo/bar.html` load; `swift actors`, `ovvi` and `devbox:3000` search. A typed path (`/tmp/x.html`) does nothing, as
+  before. Only the address field searches: labels, links and `ovvi open` never do. Placeholder "Ask Google or type a
+  URL". Pictures: `/tmp/ovvi-shots/t52e/address-before-crop.png` → `address-after-crop.png`.
 - **Fix, tab pills (21).** The phase 49 motion is gone in full (`Transaction.tabMotion`, the scale transition,
   `Ahead.born`, FlickerTests' ⇧⌘W step): `git diff c034b5c3^` is empty for the files it touched, except later work.
-- **Cause, `oriel open` query (26).** `URL(filePath:)` encodes `?` and `#` into the file name (`x.html%3Fv=3`).
+- **Cause, `ovvi open` query (26).** `URL(filePath:)` encodes `?` and `#` into the file name (`x.html%3Fv=3`).
   **Fix:** the path ends at the first `?` or `#`; the rest is appended to the file URL. A file whose name holds `?` or
   `#` opens only as a `file://` URL with them encoded.
 - **For the user.** In ⌘K, rest the pointer on a row and scroll with the wheel and the trackpad: the light stays. Type
@@ -181,27 +181,27 @@ then working and no status when all idle". Build exactly `resources/research/ui/
 
 ### Track C
 
-- **Cause, new tabs (12).** A linked open (Git's Open File, ⌘-click in a plugin card) and `oriel open --tab` made the
+- **Cause, new tabs (12).** A linked open (Git's Open File, ⌘-click in a plugin card) and `ovvi open --tab` made the
   tab with `layout.apply`, which herdr adds last, then `tab.move`d it after the card's tab: the snapshot between the
   two showed it at the end. **Fix:** no move; `PanePlace.tab` has no index. ⌘T, links opened in a new tab and drops on
   `+` already went last. The UI tests check the new tab is last once it is selected, with a tab after the card's.
 - **Fix, toast (8).** One source for every toast and confirmation: `ToastView`. Its buttons were rounded rectangles
   6 pt from the capsule's right end, so a corner ran into the curve. They are capsules (`buttonBorderShape`) 7 pt from
   the top, bottom and right edge, concentric with the toast. The notice capsule (`NoticeCapsule`, Open Session's and
-  the Plugins panel's) draws round buttons too. Pictures: `/tmp/oriel-shots/t52c/toast-before.png` →
+  the Plugins panel's) draws round buttons too. Pictures: `/tmp/ovvi-shots/t52c/toast-before.png` →
   `toast-after.png` (a probe window: inactive, so no accent).
 - **Fix, Live (7).** The marker, its manifest control and its line in `main.ts` are gone. Git is 1.5.0.
 - **Decisions, gap (10).** The user then asked for the gap in every diff and to keep it while scrolling, with no
   divider in it: the whole diff page (`#diff`) starts 8 pt under row 2, so a file header sticks below the gap and the
   file list's line starts below it; the list's top padding is 3 px, so its title's middle meets the file header's.
-  Pictures (the built page in a bare WKWebView with a stand-in bridge, dark): `/tmp/oriel-shots/t52c/wt-before-scroll0.png`
+  Pictures (the built page in a bare WKWebView with a stand-in bridge, dark): `/tmp/ovvi-shots/t52c/wt-before-scroll0.png`
   → `wt-after-scroll0.png`, `wt-{before,after}-scroll700.png`, `commit-{before,after}-scroll{0,700}.png`.
 - **Cause, sticky headers (11).** `@pierre/diffs`' CodeView draws only the lines near the view: each file's box holds
   just those lines, inside one container that script moves with `position: sticky` and a top and bottom set at each
   render. A file header is CSS-sticky only inside that box. When a scroll runs past the drawn lines before script
   draws again, the box leaves the view and the header goes with it: whole frames with no header and no lines. Shown in
   the built page in a bare WKWebView with trackpad-phased scrolls (3000 px a frame, recorded with `screencapture -v`):
-  4–6 frames with no header in 3 of 4 runs on main, `/tmp/oriel-shots/t52c/sticky-before-frames.png`.
+  4–6 frames with no header in 3 of 4 runs on main, `/tmp/ovvi-shots/t52c/sticky-before-frames.png`.
 - **Fix (11).** A copy of the top file's header sits under the files' own, in the diff's scroll right after a commit's
   facts, with `position: sticky; top: 0` and no room taken, so the compositor keeps it in place with no script. A scroll
   (`subscribeToScroll`) only changes which file it names. The file's own header covers it whenever drawn, also while the
@@ -219,7 +219,7 @@ then working and no status when all idle". Build exactly `resources/research/ui/
 - **Fix, item 1.** A run's line and its open rows now take a reply bubble's place: they start 18 pt left of the replies'
   text and stop 48 pt short of the messages' right edge. Their text stays on the replies' edge, and an open call's
   input and output boxes end where the bubbles' widest width ends. Before: the user's `.build/fb52/1.08.48.png`
-  (`/tmp/oriel-shots/t52a/tools-before.png`); after: `/tmp/oriel-shots/t52a/tools-after.png` and
+  (`/tmp/ovvi-shots/t52a/tools-before.png`); after: `/tmp/ovvi-shots/t52a/tools-after.png` and
   `tools-after-crop.png`.
 - **Cause, item 2.** The chat gave the scroll view back the place the scroll view itself reported. With
   `.scrollTargetLayout()`, the scroll view names the row at the top as a scroll begins or ends; that name went into
@@ -282,8 +282,8 @@ then working and no status when all idle". Build exactly `resources/research/ui/
   red (t3code's Failed). The workspace menu drops its idle ring and no-agent dot. Group labels are 11 pt, the count after
   a dot in the same secondary color ("Working · 2"). The user then asked for smaller workspace icons: 12 pt, not
   the mockup's 16.
-- **Pictures.** Before `/tmp/oriel-shots/t52f/before/`, after `/tmp/oriel-shots/t52f/after2/`, side by side in
-  `/tmp/oriel-shots/t52f/compare/` (workspaces, agents by priority and by workspace, tab pills, hover card).
+- **Pictures.** Before `/tmp/ovvi-shots/t52f/before/`, after `/tmp/ovvi-shots/t52f/after2/`, side by side in
+  `/tmp/ovvi-shots/t52f/compare/` (workspaces, agents by priority and by workspace, tab pills, hover card).
 - **For the user.** Check the icons at 1x and in light mode (emerald `#10b981` on a light sidebar is faint), and open
   a Done agent from the Agents view by priority: its row stays under Done.
 
@@ -292,9 +292,9 @@ then working and no status when all idle". Build exactly `resources/research/ui/
 - **Cause (3, 9).** File Explorer drew every place anew: Back made a new tree, listed the root, listed the open folders
   again and set the scroll after two frames, so it took one listing per depth. Git's home hid with `display: none`,
   which dropped the body's scroll, so Back showed the home at the top while git read, then jumped to the landing.
-- **Fix (3).** One router in the plugin runtime, `oriel.pages.route(draw)` (plugin API 2). Each place draws in a page
+- **Fix (3).** One router in the plugin runtime, `ovvi.pages.route(draw)` (plugin API 2). Each place draws in a page
   of its own. The card keeps the last five pages, hidden with `inert` (and `visibility: hidden`), so a page keeps its
-  layout, scroll, open folders and selection. A page's own `oriel` scopes everything to when it shows: its handlers
+  layout, scroll, open folders and selection. A page's own `ovvi` scopes everything to when it shows: its handlers
   run only then (`theme` and `visible` always), its watches wait while it is hidden and call back once when it shows
   again, and its header controls are recorded and come back with it (the user's changes too). The tab's title comes
   back with the page, a hidden page's media pauses, a page left with unsaved edits is dropped, and all pages share one
@@ -316,13 +316,13 @@ then working and no status when all idle". Build exactly `resources/research/ui/
   row selected and no ring yet, the first ↓ goes to the first row (`..` when shown) and the first ↑ to the last.
 - **Fix (5, 6).** An empty folder shows `folder` and "This folder is empty" in the middle of the card. ⌘-click,
   ⌥-click and the row menu's Open in New Tab and Open to the Side open behind: a new `background` option of
-  `oriel.open` (API 2) skips the app's `follow`, so the selected tab and the keyboard stay. Git's Open File (a plain
+  `ovvi.open` (API 2) skips the app's `follow`, so the selected tab and the keyboard stay. Git's Open File (a plain
   click) still selects its new tab.
 - **Runs.** 41625748826 was red on the Back test: ⌘] with the filter field's keyboard went to Select Next Pane (the
   test now clicks a row first, and a field shown only for its text no longer takes the keyboard). Green on the
   reviewed code before the rebase: 41625753041, 41628369745, 41628374278.
-- **Pictures.** Empty folder: `/tmp/oriel-shots/t52b/empty-folder-before.png` → `empty-folder-after.png`. Git, no look
-  change (the same home and diff): `/tmp/oriel-shots/t52b/git-{before,after}-{home,diff}.png`.
+- **Pictures.** Empty folder: `/tmp/ovvi-shots/t52b/empty-folder-before.png` → `empty-folder-after.png`. Git, no look
+  change (the same home and diff): `/tmp/ovvi-shots/t52b/git-{before,after}-{home,diff}.png`.
 - **For the user.** In a File Explorer card, open folders, scroll, open a file, Back and Forward a few times: the tree
   and the file come back at once, where they were. Filter, open a match, Back: the matches are still there and the
   keyboard stays in the tree. In Git, scroll the history, open a commit, Back: no jump. ⌘-click three files: the tabs
@@ -355,7 +355,7 @@ then working and no status when all idle". Build exactly `resources/research/ui/
   and code in a quote keep their bars and fill, a comment over two lines shows on the caret's line, code inside an HTML
   block draws as one block. Left: a table in a quote draws markdown-it's own quote bar, a few px off the quote's.
 - **Pictures** (the built pages in headless Chrome with a stand-in API, before at cdf2568f on the left, after on the
-  right, the fixture `resources/research/ui/markdown-syntax.md`): `/tmp/oriel-shots/52d/fixture-{dark,light,edit,
+  right, the fixture `resources/research/ui/markdown-syntax.md`): `/tmp/ovvi-shots/52d/fixture-{dark,light,edit,
   edit-light}-{0..3}.png`, and phase 51's file (the user's list) `lists-phase51.png`.
 - **For the user.** Open a doc with wrapped paragraphs and lists (a phase file), and the fixture; ⌘E into a wrapped
   paragraph and type; tick a box in Read; open a file with no heading and see the outline toggle off.

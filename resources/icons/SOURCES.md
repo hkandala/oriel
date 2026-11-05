@@ -122,7 +122,7 @@ Notes:
 - oh-my-pi repo — MIT, Copyright (c) 2025 Mario Zechner, (c) 2025-2026 Can Bölük. Full text: [licenses/oh-my-pi-MIT.txt](licenses/oh-my-pi-MIT.txt)
 - Lobe Icons — MIT, Copyright (c) 2023 LobeHub, package @lobehub/icons-static-svg@1.97.0. Full text: [licenses/lobe-icons-MIT.txt](licenses/lobe-icons-MIT.txt)
 - Phosphor Icons — MIT, Copyright (c) 2023 Phosphor Icons, package @phosphor-icons/core@2.1.1 (fill weight). Full text: [licenses/phosphor-icons-MIT.txt](licenses/phosphor-icons-MIT.txt)
-- original — CC0-1.0: drawn for Oriel from simple geometric shapes, dedicated to the public domain
+- original — CC0-1.0: drawn for Ovvi from simple geometric shapes, dedicated to the public domain
 - aider repo — Apache-2.0. Full text: [licenses/aider-Apache-2.0.txt](licenses/aider-Apache-2.0.txt)
 - jj repo — Apache-2.0. Full text: [licenses/jj-Apache-2.0.txt](licenses/jj-Apache-2.0.txt)
 - Devicon — MIT, Copyright (c) 2015 konpa, package devicon@2.17.0. Full text: [licenses/devicon-MIT.txt](licenses/devicon-MIT.txt)

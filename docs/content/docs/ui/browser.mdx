@@ -8,12 +8,12 @@ and the app draws a web view in its rectangle. The browser is a pane kind in
 the plugin registry, built into the app with a manifest written in Swift
 ([The browser](/docs/plugins/browser)). What is not built yet is in
 [Future work](/docs/future-work#smaller-items). Research:
-[`browser.md`](https://github.com/hkandala/oriel/blob/main/resources/research/plugins/browser.md).
+[`browser.md`](https://github.com/hkandala/ovvi/blob/main/resources/research/plugins/browser.md).
 
 ## The label
 
-A pane is a browser pane when its herdr label is `oriel:browser#<iid> <url>`,
-for example `oriel:browser#m4p8sa http://localhost:3000/dashboard`
+A pane is a browser pane when its herdr label is `ovvi:browser#<iid> <url>`,
+for example `ovvi:browser#m4p8sa http://localhost:3000/dashboard`
 ([Labels and instance ids](/docs/plugins/labels)). The app knows
 the pane from the label alone: a pane made by the app, by an agent or in
 herdr's TUI is the same.
@@ -24,7 +24,7 @@ herdr's TUI is the same.
 - **url**: `http://` or `https://`, at most 1024 characters, no control
   characters. A bare `host:port` gets `http://`. `file://` opens only on This
   Mac; a remote machine serves its files through a server. A new pane has no
-  url yet: `oriel:browser#<iid>`.
+  url yet: `ovvi:browser#<iid>`.
 - The address is as the machine sees it: `localhost` means the pane's machine
   ([Remote pages](#remote-localhost)). herdr keeps it in its session file and
   shows it to every device, so an address must not hold a secret (for
@@ -44,7 +44,7 @@ A browser pane comes from the chooser's Browser
 1. The app picks a free iid and makes the pane in one call:
    `layout.apply {workspace_id, focus:false, root:{type:"pane", cwd, label,
    command}}` in a new tab, with the old pane's live folder, the label
-   `oriel:browser#<iid>` and the placeholder as its command
+   `ovvi:browser#<iid>` and the placeholder as its command
    ([Create](/docs/plugins/labels#create)).
 2. `pane.move` puts it beside the old pane, and `pane.close` closes the old
    pane, as Replace Pane does. If the move fails, the new pane closes. The new
@@ -56,15 +56,15 @@ A browser pane comes from the chooser's Browser
 4. The user types an address. Return loads it, approves its origin
    ([When a page loads by itself](#when-a-page-loads-by-itself)), removes the
    saved state, and sets the label with
-   `pane.rename {label: "oriel:browser#<iid> <url>"}`.
+   `pane.rename {label: "ovvi:browser#<iid> <url>"}`.
 
 ## In herdr's TUI
 
 The placeholder, about 25 lines of `sh` that herdr runs as the pane's command,
 prints "Browser", the address without its scheme (`example.com/docs`, or
 `/Users/me/report.html` for a `file:` address; nothing for none) and "Shown in
-Oriel" in the middle of the pane. It follows the page: when the label changes
-(a typed address, a link, an agent's `oriel open --replace`), the app sends the
+Ovvi" in the middle of the pane. It follows the page: when the label changes
+(a typed address, a link, an agent's `ovvi open --replace`), the app sends the
 placeholder `SIGWINCH`, and it reads its label from herdr (`herdr pane get`)
 and draws again. A resize draws it again the same way. Keys typed into the pane
 do nothing. The TUI's border shows the current label. After a cold restart herdr brings the pane back as a plain shell
@@ -110,7 +110,7 @@ server's terminal.
   (`https://www.google.com/search?q=…`): text with a space, or text with no
   scheme (`https://`), no dot, and a host that is not `localhost` or an IPv6
   address (`[::1]`). So `localhost:3000` and `example.com` load, and
-  `swift actors`, `oriel` and `devbox:3000` search. Esc puts back the current address and gives the keyboard to the
+  `swift actors`, `ovvi` and `devbox:3000` search. Esc puts back the current address and gives the keyboard to the
   page.
 - **Empty card.** Until its first page, the card shows a 44 pt `globe` in
   tertiary. The web view stays hidden until a page commits, because an empty
@@ -138,7 +138,7 @@ server's terminal.
   | a remote machine cannot reach a name | "‹machine› cannot reach ‹host:port›" |
   | the remote session is not live | "‹machine› is not connected" |
   | an unknown name | "Cannot find ‹host›" |
-  | the proxy did not start | "Oriel could not start the proxy to ‹machine›" |
+  | the proxy did not start | "Ovvi could not start the proxy to ‹machine›" |
   | anything else | WebKit's own text |
 
   The address field keeps the address that failed. WebKit goes back to the
@@ -154,7 +154,7 @@ server's terminal.
   its grid ([States](/docs/ui/states)). A page laid out at every frame made
   the split's motion stutter.
 - The tab's title is "Browser", then the page's title (else its host) in
-  secondary text, as a terminal tab's "zsh oriel" ("Browser | Hacker News"
+  secondary text, as a terminal tab's "zsh ovvi" ("Browser | Hacker News"
   where a title is plain text: [Tab bar](/docs/ui/window#tab-bar)). Its
   program icon shows `globe`. Its overview tile shows the page's last
   picture ([Overview](/docs/ui/window#overview)).
@@ -246,7 +246,7 @@ docked at the bottom of the card. Its own control moves it to a window.
   app's defaults (`__WebInspectorPageGroupLevel1__.WebKit2InspectorStartsAttached`),
   so the app removes that key before each show, and it docks every time.
 - Every card sets `isInspectable`, so Safari's Develop menu (Develop › ‹this
-  Mac› › Oriel) reaches each page too.
+  Mac› › Ovvi) reaches each page too.
 - The button and ⌥⌘I are disabled until the card has a page.
 
 ## State on the machine
@@ -254,7 +254,7 @@ docked at the bottom of the card. Its own control moves it to a window.
 The page and its back and forward list are saved on the pane's machine, in
 the instance state file
 ([State](/docs/plugins/api#state)):
-`$HOME/.local/state/oriel/<session>/browser/<iid>.json`.
+`$HOME/.local/state/ovvi/<session>/browser/<iid>.json`.
 - It holds `{"url": …, "history": …}`. `url` is as the machine sees it.
   `history` is WebKit's `interactionState` (the back and forward list) in
   base64, left out at 128 KiB and over.
@@ -402,22 +402,22 @@ machine again.
 ## Agents open browser panes
 
 Any agent in a herdr pane opens a browser card next to itself, on any
-machine, with the `oriel` command
+machine, with the `ovvi` command
 ([CLI](/docs/agent-control/cli#open)):
 
 ```sh
-oriel open browser http://localhost:3000            # beside the agent's pane
-oriel open browser http://localhost:3000 --tab      # in a new tab, with a notice that offers Show
-oriel open browser http://localhost:3000/x --replace w1:p7   # the card at w1:p7 goes to a new address
-oriel open browser ./report.html                    # a file, on This Mac only
+ovvi open browser http://localhost:3000             # beside the agent's pane
+ovvi open browser http://localhost:3000 --tab       # in a new tab, with a notice that offers Show
+ovvi open browser http://localhost:3000/x --replace w1:p7    # the card at w1:p7 goes to a new address
+ovvi open browser ./report.html                     # a file, on This Mac only
 ```
 
-- Oriel makes the pane as Open Browser Here does, with the label
-  `oriel:browser#<iid> <url>` and its placeholder, and answers with the
+- Ovvi makes the pane as Open Browser Here does, with the label
+  `ovvi:browser#<iid> <url>` and its placeholder, and answers with the
   pane, the label and whether the card shows.
 - `--replace` renames the card's label with its own iid. The open card loads
   the new address as a new history entry, by the load rule, and Back
-  returns. Oriel removes the card's saved state first, so a card made later
+  returns. Ovvi removes the card's saved state first, so a card made later
   loads the new address, not the saved one.
 - A card with the same address already in the session is the answer, unless
   `--new`.
@@ -428,9 +428,9 @@ The label is still how it works: any process that labels a pane by hand
 gets the same card.
 1. `herdr pane split "$HERDR_PANE_ID" --direction right --no-focus` makes a
    pane beside its own.
-2. `herdr pane rename <pane> "oriel:browser#<iid> <url>"` makes it a browser
+2. `herdr pane rename <pane> "ovvi:browser#<iid> <url>"` makes it a browser
    pane, with a fresh iid.
-3. `herdr pane report-metadata <pane> --source <name> --token oriel-label=1
+3. `herdr pane report-metadata <pane> --source <name> --token ovvi-label=1
    --ttl-ms 1000` on that pane. herdr sends no event for a rename, so this
    token's `pane.updated` event makes the app read the snapshot at once.
    Without it the card shows at the next event or the 30 s health check.
@@ -439,11 +439,11 @@ gets the same card.
 
 ## Security
 
-- The page gets no bridge: no `window.oriel` and no script message handlers,
+- The page gets no bridge: no `window.ovvi` and no script message handlers,
   so a page cannot run commands.
 - A page that a machine puts in a label or state file loads only by the
   rules in [When a page loads by itself](#when-a-page-loads-by-itself).
-- Plugin pages get the `oriel` object, under the rules in
+- Plugin pages get the `ovvi` object, under the rules in
   [Security and trust](/docs/plugins/security).
 
 ## Other rules

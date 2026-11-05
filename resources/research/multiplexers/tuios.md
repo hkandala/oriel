@@ -1,8 +1,8 @@
-# tuios as a backend for Oriel
+# tuios as a backend for Ovvi
 
 ## Short answer
 
-tuios fits Oriel with an adapter. It is the closest match to herdr of the multiplexers we looked at.
+tuios fits Ovvi with an adapter. It is the closest match to herdr of the multiplexers we looked at.
 Three facts make it close:
 
 1. tuios already answers herdr's socket API (herdr 0.9.5, protocol 22) on a second socket, with the
@@ -15,8 +15,8 @@ Three facts make it close:
 
 The main gaps: the herdr socket does not export the split tree (`splits` is always empty) and does not
 serve herdr's terminal protocol (`terminal.attach`). Tree edits (swap, resize, ratio) need an attached
-tuios client. A tuios session has at most 9 tabs by default. Sessions (Oriel workspaces) cannot be
-reordered. The "current workspace" (Oriel's selected tab) is shared session state.
+tuios client. A tuios session has at most 9 tabs by default. Sessions (Ovvi workspaces) cannot be
+reordered. The "current workspace" (Ovvi's selected tab) is shared session state.
 
 ## Sources
 
@@ -43,7 +43,7 @@ Layouts per workspace: `bsp` (binary split tree, the default), `master-stack`, `
 columns on a horizontal strip), or tiling off ("floating"). The mode is per session, the data is per
 workspace (`docs/LAYOUT_MODES.md` lines 19-35).
 
-## 2. How the levels map to Oriel
+## 2. How the levels map to Ovvi
 
 tuios itself publishes the mapping it uses for herdr tools (`docs/AGENT_STATE.md` lines 584-605):
 
@@ -53,39 +53,39 @@ tuios itself publishes the mapping it uses for herdr tools (`docs/AGENT_STATE.md
 | tab | workspace (numbered slot) | `<workspace id>:t<tab number>` |
 | pane | window | `<workspace id>:p` + first 12 hex digits of the window id |
 
-So for Oriel:
+So for Ovvi:
 
-| Oriel | tuios | Notes |
+| Ovvi | tuios | Notes |
 |---|---|---|
-| machine | host (a machine where `tuios` runs) | Oriel keeps using its own ssh `Exec`. tuios also has its own host links, which Oriel does not need. |
+| machine | host (a machine where `tuios` runs) | Ovvi keeps using its own ssh `Exec`. tuios also has its own host links, which Ovvi does not need. |
 | session (sidebar page, one herdr server) | a daemon: the default one, or a named server (`--server NAME`) | A named server has its own socket under `<socket folder>/servers/<name>/tuios.sock` (`docs/SESSIONS.md` line 1178). |
 | workspace | tuios session | Sessions list in creation order. They cannot be reordered (`workspace.move_block` answers `unsupported`, `docs/AGENT_STATE.md` line 758). |
 | tab | tuios workspace | At most 9 by default (`num_workspaces`). `tab.create` fails with `tab_create_failed` when all are in use (`docs/AGENT_STATE.md` line 680). A tab number is stable across moves. The workspace number is its position. |
 | pane | window | Window id and PTY id are stable. A move to another session keeps the window id and the PTY id. The herdr pane id changes (its prefix is the session), but `terminal_id` (`term_` + 12 hex digits of the PTY id) stays. I saw this in my test: `term_2001359e9c34` before and after a move to another session. |
 
-Missing or extra, compared with Oriel:
+Missing or extra, compared with Ovvi:
 
-- Extra level: spaces (labels on sessions). Oriel can ignore them, or show them as groups.
+- Extra level: spaces (labels on sessions). Ovvi can ignore them, or show them as groups.
 - Extra: floating windows, minimized windows, stacks, popups, scratch panes, picture in picture,
-  master-stack and scrolling layouts, multifocus (typing into several panes). Oriel's strip of cards
+  master-stack and scrolling layouts, multifocus (typing into several panes). Ovvi's strip of cards
   mirrors a split tree, so only the BSP layout maps cleanly. The gui-bridge sends a tree only when the
   layout is `bsp` (`internal/guibridge/layout.go` lines 59-66).
-- Zoom: tuios zooms one pane per workspace (`docs/AGENT_STATE.md` lines 785-789). Oriel's zoom is
-  per window and local, so Oriel does not need tuios zoom.
+- Zoom: tuios zooms one pane per workspace (`docs/AGENT_STATE.md` lines 785-789). Ovvi's zoom is
+  per window and local, so Ovvi does not need tuios zoom.
 - Tab count: tuios has a fixed number of workspace slots (9 by default). herdr has no such cap.
 - Focus: the current workspace and the focused window are session state shared by every client
-  (`docs/protocol.md` lines 1711-1760). Oriel keeps selection per window and never moves the
+  (`docs/protocol.md` lines 1711-1760). Ovvi keeps selection per window and never moves the
   multiplexer's focus. See section 3.4.
 
 ## 3. API for a remote or native client
 
-tuios has four ways in. All of them are local Unix sockets or a stdio process, so Oriel reaches a
+tuios has four ways in. All of them are local Unix sockets or a stdio process, so Ovvi reaches a
 remote machine through its ssh `Exec.run`.
 
-| Way in | Where | Format | Use for Oriel |
+| Way in | Where | Format | Use for Ovvi |
 |---|---|---|---|
 | JSON verb protocol | `tuios.sock` | One JSON line per request and reply, on the same socket as the binary client protocol (`docs/protocol.md` lines 1-40). `tuios call <verb> [params]` sends one verb from a shell (`docs/CLI_REFERENCE.md` line 3226). | State, writes, events, pane streams. Documented and versioned. New verbs do not bump the version. |
-| herdr socket API | `tuios.sock.herdr` | herdr's own JSON (protocol 22). | Oriel's existing `HerdrClient` calls, mostly unchanged. |
+| herdr socket API | `tuios.sock.herdr` | herdr's own JSON (protocol 22). | Ovvi's existing `HerdrClient` calls, mostly unchanged. |
 | gui-bridge | `tuios gui-bridge` on stdin/stdout | Length-prefixed frames: JSON events and commands, plus binary pane output, snapshot, resize and input frames (`internal/guibridge/bridge.go` lines 1-31). | Split trees, layout edits and all pane streams of one session, over one `Exec.run`. Hidden and "not for running by hand" (`cmd/tuios/gui_bridge_command.go` lines 11-13), so its wire can change without notice. |
 | binary client protocol | `tuios.sock` | Go `gob` frames (`internal/session/codec.go` lines 1-13). | Not usable from Swift. |
 
@@ -125,7 +125,7 @@ The socket path on macOS is `/tmp/tuios-<uid>/tuios.sock` when `XDG_RUNTIME_DIR`
   in my test with `tuios subscribe -s alpha`.
 - herdr socket: `events.subscribe` maps these to herdr's event names (`docs/AGENT_STATE.md` lines
   1203-1228). There is no `layout.updated` in that table. Guess: a split or ratio change does not
-  raise an event on the herdr socket. Oriel must read `layout-changed` on the verb socket, or the
+  raise an event on the herdr socket. Ovvi must read `layout-changed` on the verb socket, or the
   gui-bridge `state` event, instead.
 
 ### 3.3 Writes
@@ -138,13 +138,13 @@ The socket path on macOS is `/tmp/tuios-<uid>/tuios.sock` when `XDG_RUNTIME_DIR`
 | Resize border | gui-bridge `set-ratio` | `pane.resize` | Yes |
 | Set split ratio | gui-bridge `layout` op `set-ratio` with the node id | `layout.set_split_ratio` answers `unsupported` | Yes |
 | Move pane to another tab | `move-window` with `workspace` | `pane.move` to a tab or a new tab | No. tuios places the pane itself; `target_pane_id`, `split` and `ratio` are ignored (`docs/AGENT_STATE.md` line 684). The gui-bridge `move` op puts a pane beside a target pane on a side (`layout.go` lines 146-155). |
-| Move pane to another Oriel workspace | `move-window` with `to_session` | `pane.move` to a tab of another workspace | No. The program keeps running. |
-| Move pane to a new Oriel workspace | none in one call | `new_workspace` answers `unsupported` | Make the session first, then move. |
+| Move pane to another Ovvi workspace | `move-window` with `to_session` | `pane.move` to a tab of another workspace | No. The program keeps running. |
+| Move pane to a new Ovvi workspace | none in one call | `new_workspace` answers `unsupported` | Make the session first, then move. |
 | Rename pane | `set-window` with `name` | `pane.rename` | No |
 | Rename tab | `set-workspace-name` | `tab.rename` | No |
 | Reorder tabs | `set-workspace-order` | `tab.move` | No |
-| Rename Oriel workspace | `set-session-name` | `workspace.rename` | No |
-| Reorder Oriel workspaces | none | `workspace.move_block` answers `unsupported` | n/a |
+| Rename Ovvi workspace | `set-session-name` | `workspace.rename` | No |
+| Reorder Ovvi workspaces | none | `workspace.move_block` answers `unsupported` | n/a |
 | Close | `close-window`, `close-workspace`, `kill-session` | `pane.close`, `tab.close`, `workspace.close` | No |
 | Zoom, equalize, rotate, tiling on/off | `run-command ToggleZoom`, `set-layout` | `pane.zoom` | Yes |
 
@@ -169,7 +169,7 @@ screen) edits the tree and sends the whole tree for that workspace back to the d
   shows that workspace (`docs/protocol.md` lines 1690-1697). In my test, the trees for workspaces 3
   and 4 did not exist until the gui-bridge showed those workspaces with the `workspace` command.
 - Showing a workspace changes the session's current workspace for every client. This is a focus
-  change, which Oriel's rules forbid against herdr.
+  change, which Ovvi's rules forbid against herdr.
 
 ### 3.5 Terminal output for a native view
 
@@ -193,7 +193,7 @@ printed `100` and `30`.
 
 This is a better fit for libghostty than herdr's model. herdr sends its own re-rendered screen.
 tuios sends the program's real bytes, so the local surface keeps real scrollback, selection, links,
-OSC 133 marks and kitty graphics. Oriel's `scroll` call becomes local to the surface.
+OSC 133 marks and kitty graphics. Ovvi's `scroll` call becomes local to the surface.
 
 The gui-bridge sends the same kind of stream for every pane of the attached session on one stdio
 channel: `SNAP`, `OUTPUT`, `RESIZE` frames keyed by PTY id, and `INPUT` frames back
@@ -276,13 +276,13 @@ What the adapter fakes or stores:
 - The split tree. The herdr socket gives only pane rectangles. The adapter rebuilds a tree from the
   rectangles (guillotine cuts) and cannot set ratios. Resize, swap and ratio fail without a tuios
   client attached.
-- Workspace order (stored by Oriel, per machine).
+- Workspace order (stored by Ovvi, per machine).
 - "New workspace" as a pane destination (create the session, then move).
-- Control hand-off, in Oriel only. tuios has no owner that refuses a second controller.
+- Control hand-off, in Ovvi only. tuios has no owner that refuses a second controller.
 
-Design A is quick but loses the dividers, the most visible part of Oriel's strip.
+Design A is quick but loses the dividers, the most visible part of Ovvi's strip.
 
-### Design B: one `tuios gui-bridge` per open Oriel workspace
+### Design B: one `tuios gui-bridge` per open Ovvi workspace
 
 Run `tuios [--server S] gui-bridge --session-id <id> --cols C --rows R --cell-width W --cell-height H`
 through `Exec.run`. One stdio channel then carries the state (with trees and ratios), the layout
@@ -292,9 +292,9 @@ commands, any verb (`{"cmd":"verb"}`), and every pane's byte stream. Use the ver
 What the adapter fakes or stores:
 
 - Workspace order and worktree groups (tuios has neither).
-- The mapping from Oriel's split path (`[Bool]`) to tuios node ids, rebuilt from each `state` event.
+- The mapping from Ovvi's split path (`[Bool]`) to tuios node ids, rebuilt from each `state` event.
   The axis maps `x` → `right` and `y` → `down`.
-- Tab selection: Oriel's selection stays local. The adapter must not send `workspace` commands except
+- Tab selection: Ovvi's selection stays local. The adapter must not send `workspace` commands except
   to place a pane that is still `unplaced`. That one step moves the session's shared focus, and the
   adapter moves it back. Guess: this flickers in a tuios TUI that is attached at the same time.
 - Card sizes: the bridge lays out every tree over one grid. The adapter sends the strip size in cells
@@ -307,7 +307,7 @@ What the adapter fakes or stores:
 Risks:
 
 - `gui-bridge` is hidden and has no stability promise. Pin a tuios version, and test the wire in
-  Oriel's e2e suite.
+  Ovvi's e2e suite.
 - A tuios session has 9 tab slots by default.
 - Only the `bsp` layout gives a tree. A session in `master-stack`, `scrolling` or floating mode has
   rectangles only.
@@ -340,7 +340,7 @@ Risks:
 | `newTab(workspace:cwd:)` | Yes, up to 9 | herdr `tab.create`. |
 | `newWorkspace(label:cwd:)` | Yes | herdr `workspace.create` (a new tuios session). |
 | `rename(workspace:label:)` | Yes | herdr `workspace.rename`. |
-| `move(workspaces:before:)` | No | Store the order in Oriel. |
+| `move(workspaces:before:)` | No | Store the order in Ovvi. |
 | `close(workspace:group:)` | Partly | herdr `workspace.close` (`kill-session`). No worktree groups. |
 | `close(pane:)` | Yes | herdr `pane.close`. |
 | `close(tab:)` | Yes | herdr `tab.close`. |
@@ -351,4 +351,4 @@ Risks:
 
 Count: 30 methods. 25 work directly or through the bridge. 3 work partly (`snapshot` on design A,
 `move(pane:to:)`, `close(workspace:group:)`). 2 are not available: `scroll`, which the local surface
-replaces, and `move(workspaces:before:)`, which Oriel stores itself.
+replaces, and `move(workspaces:before:)`, which Ovvi stores itself.

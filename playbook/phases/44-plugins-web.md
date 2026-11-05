@@ -4,7 +4,7 @@ Goal: the five plugins of [phase 42's spec](42-plugins-base.md#the-spec-both-var
 recommended web stack in `WKWebView`, on branch `plugins-web` (from `plugins-base`). Same features as
 [phase 43](43-plugins-native.md); only the look of the content may differ. Stack and measurements:
 `resources/research/plugins/default-plugins.md#key-findings` ("If web is ever needed") and the web sections of
-`~/Downloads/oriel-research/plugins.html`.
+`~/Downloads/ovvi-research/plugins.html`.
 
 The header rows, the toast, Open With and all file and git data stay native (phase 42); only each card's content
 area is a web view. Track A goes first and merges early; tracks B–E start when it and phase 42's tracks are on
@@ -15,7 +15,7 @@ area is a web view. Track A goes first and merges early; tracks B–E start when
    renderer for Read mode (a recognized one, for example `markdown-it`), `pdf.js`; no framework; one `esbuild` bundle
    per kind. `make web` builds it into the app's resources; `make build` runs it; CI installs Node. No built bundle
    in git.
-2. A custom URL scheme (`oriel-plugin://`) that serves the bundle (`loadFileURL` runs no module scripts), one
+2. A custom URL scheme (`ovvi-plugin://`) that serves the bundle (`loadFileURL` runs no module scripts), one
    `WKWebView` per card with a shared process pool where WebKit allows it, the page's ⌘ keys handed back to the app
    (WebKit gives the page every ⌘ key first), the app's colors and fonts passed in as CSS variables, light and dark.
 3. A small typed bridge (`WKScriptMessageHandlerWithReply`): the page asks for a file, a listing, a patch or a log and
@@ -44,7 +44,7 @@ area is a web view. Track A goes first and merges early; tracks B–E start when
 - **Decisions:** `web/` uses npm (it comes with Node; `brew "node"` in the Brewfile, `brew install node` in CI's
   test job). `make web` runs esbuild (`web/src/*.ts` and `card.css` as entries, shared code in `web/src/lib/`) into
   `.build/web`, which a folder reference in the project copies into the app's `Resources/web`. The scheme serves
-  `oriel-plugin://app/<kind>` as a generated page that loads `card.css` and `<kind>.js`, and any other name from that
+  `ovvi-plugin://app/<kind>` as a generated page that loads `card.css` and `<kind>.js`, and any other name from that
   one folder. The card's label argument and the CSS variables go in by a document-start script, so the first paint
   has the app's colors; `color-scheme` follows the look. `UTType` knows no MIME type for `wasm` or `woff2`: the
   track that bundles them adds the two.
@@ -67,7 +67,7 @@ area is a web view. Track A goes first and merges early; tracks B–E start when
   1.4 s for six at once. Bundle: `test.js` 388 KB, 126 KB gzip (CodeMirror's basic setup).
 - **Runs:** the UI test fails at ⌘[ with menu-first taken out (CodeMirror's indent keeps the keyboard) and passes
   with it (local, three green runs). One local run drew a blank card while the disk was full.
-- **For the user:** nothing to try by hand yet: the test card shows only for a pane labeled `oriel:webtest#<iid>
+- **For the user:** nothing to try by hand yet: the test card shows only for a pane labeled `ovvi:webtest#<iid>
   <path>`, and phase 42's integration replaces it with the five kinds.
 
 ### Track B
@@ -180,7 +180,7 @@ area is a web view. Track A goes first and merges early; tracks B–E start when
   from the caret a task's `[ ]` is a box; table pipes stay (CodeMirror has no table view). A file that starts with
   `---` and has no second one is all YAML in Edit, with an empty outline, and renders normally in Read.
 - **Cause:** with `html: true` a file's `<meta http-equiv=refresh>`, a form or an SVG link navigated the card to any
-  site, which then had the bridge (read and save the file). **Fix:** every web card allows only `oriel-plugin:`
+  site, which then had the bridge (read and save the file). **Fix:** every web card allows only `ovvi-plugin:`
   navigations (`Relay`).
 - **Decisions:** the outline comes from the editor's syntax tree in both modes (headings at the top level, in lists
   and quotes); Read finds a heading by its source line (`data-line` from markdown-it's map). Read headings get

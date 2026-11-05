@@ -13,9 +13,9 @@ per hold, at most 10 minutes, released with a trap).
 
 1. **Remove every iOS placeholder** (user's decision on phase 32's big item): the iOS destination and
    settings in the Xcode project, the iOS build in the Makefile (`Makefile:28`) and CI, the iOS app icon
-   files (`icon_ios_1024.png`, its line in `scripts/app-icon.py`), the iOS stubs (OrielApp's
+   files (`icon_ios_1024.png`, its line in `scripts/app-icon.py`), the iOS stubs (OvviApp's
    ContentUnavailableView, the WorkingDots stub, others), and every `#if os(macOS)` / `#if canImport(AppKit)`
-   guard in `Oriel/`, `Packages/HerdrKit` and the tests that only exists for iOS. One or two commits, pushed
+   guard in `Ovvi/`, `Packages/HerdrKit` and the tests that only exists for iOS. One or two commits, pushed
    early: every other lane rebases over it. Docs lines about building for iOS go to lane D.
 
 ## Lane C: chrome regressions and contrast (items 2–4)
@@ -71,7 +71,7 @@ per hold, at most 10 minutes, released with a trap).
      folded into the design pages. `AGENTS.md` points every new agent at the way-of-working file and the
      phases, so the user never has to repeat it.
    - **resources/:** current information only (no dates, no history). Keep `branding/`, `icons/` and
-     `sources/` (review them). Move `inspirations/` out of the repo to `~/Downloads/oriel-inspirations/`.
+     `sources/` (review them). Move `inspirations/` out of the repo to `~/Downloads/ovvi-inspirations/`.
      Delete `metrics/`, `mockups/` (and the scripts that build them) and `visual-compare/`.
      `research/`: a few flat folders of md files only, no scripts, no spikes, no nested folders, no
      repeated content. One `clients/` folder (web client notes merged in, one file per client), keep
@@ -83,11 +83,11 @@ per hold, at most 10 minutes, released with a trap).
 ## Lane L: lessons from the sessions (feeds lane D)
 
 9. **Mine every session of this project for lessons** (user, 15:40): the orchestrator's sessions
-   (`~/.pi/agent/sessions/--Users-hkandala-code-oriel--/`) and the sub-agent sessions
-   (`~/.pi/agent/pi-herd/sessions/*.jsonl` whose cwd is `/Users/hkandala/code/oriel*`), read only. Look for
+   (`~/.pi/agent/sessions/--Users-hkandala-code-ovvi--/`) and the sub-agent sessions
+   (`~/.pi/agent/pi-herd/sessions/*.jsonl` whose cwd is `/Users/hkandala/code/ovvi*`), read only. Look for
    what went wrong and how it was fixed, what the user had to repeat or correct, rules that were added,
    checks that caught (or missed) bugs, slow or wasted steps, coordination failures between agents, and
-   tool or harness tricks. Write a deduplicated list to `/tmp/oriel-lessons/lessons.md` (each lesson: what
+   tool or harness tricks. Write a deduplicated list to `/tmp/ovvi-lessons/lessons.md` (each lesson: what
    to do, why, the evidence in one line), split into "way of working" (goes into the workflow file) and
    "lessons" (goes into the lessons file). Lane D folds it in.
 
@@ -108,7 +108,7 @@ per hold, at most 10 minutes, released with a trap).
 
 - **Cause.** Drops pasted This Mac's paths on remote cards too.
 - **Fix.** `Exec.upload` copies each dropped file over the relay into a fresh folder under
-  `${TMPDIR:-/tmp}/oriel-drops-<uid>` (0700, refused if it is a link or not the user's), pasting the copies'
+  `${TMPDIR:-/tmp}/ovvi-drops-<uid>` (0700, refused if it is a link or not the user's), pasting the copies'
   escaped paths in one paste; folders older than a day go. At most 16 MB a file, as herdr's own remote
   client (which does the same for images over its private protocol). Insert Path does the same.
 - **Decisions.** No delete on disconnect (an agent may not have read the file yet).
@@ -117,11 +117,11 @@ per hold, at most 10 minutes, released with a trap).
 
 - **Cause.** The system About panel showed `Credits.rtf` as one paragraph; the app shipped no license texts
   and credited neither Ghostty nor its libraries.
-- **Fix.** Oriel's own small About window (icon, name, version, one Acknowledgements button) opens the bundled
+- **Fix.** Ovvi's own small About window (icon, name, version, one Acknowledgements button) opens the bundled
   `Acknowledgements.txt` with every license in full, Ghostty's built-in libraries and fonts included. `make
   test` fails when an icon license is missing from it.
 - **For the user.** libghostty links GNU libintl (LGPL-2.1) statically: decide whether relinking matters for
-  how Oriel ships.
+  how Ovvi ships.
 
 ### Lane C
 
@@ -155,7 +155,7 @@ per hold, at most 10 minutes, released with a trap).
   (rv33-recheck: every item fixed but nits). Skipped nits: `clients/rex.md`'s section numbers keep their gaps
   (renumbering breaks its § cross-references); AGENTS.md repeats the never-bend rules on purpose (it is the
   first file an agent reads); the README keeps a short future-work list (the user asked for one).
-- **For the user.** Read README.md and `playbook/workflow.md`; `~/Downloads/oriel-inspirations/` has the
+- **For the user.** Read README.md and `playbook/workflow.md`; `~/Downloads/ovvi-inspirations/` has the
   inspirations, with the git-ignored video folders.
 
 ### Lane F
@@ -167,7 +167,7 @@ per hold, at most 10 minutes, released with a trap).
   `testCapsulesKeepTheirFramesWhenARowOfOneGrows`: red on the old code (40433850553, "(240, 37, 441, 34)"),
   green with the fix. The drop test and `markAndFloat` select the new tab with ⌘2 (the tests are about the drop
   and the float, not the click). Probed and clean: sidebar rows and strip pages that grow from one (40435022142).
-- **Cause, `testEachTabKeepsItsKeyboardCard`** (red in all three runs on 36b7c65). It counted `oriel-43` in the
+- **Cause, `testEachTabKeepsItsKeyboardCard`** (red in all three runs on 36b7c65). It counted `ovvi-43` in the
   shared pane w1:p2, and the new shard balance put an earlier remote test there that printed the same text. Each
   now prints its own word (`relay-4x`, `tab-keys-43`).
 - **Cause, the file drag** (40436157187: "the press did not start one"). The helper slept 0.5 s for the icon
@@ -183,8 +183,8 @@ per hold, at most 10 minutes, released with a trap).
   dispatch 40440111524 red only because Xcode's DTServiceHub crashed (SIGSEGV in a dyld callback) in the
   teardown of `testCommandClickOnALinkOpensIt`, after its checks passed. On-demand 40429001424 green (on
   a96e25f; later commits changed only tests and comments).
-- **Release smoke check** (`make app`, `oriel-dev-33final-smoke`; a Release XCUITest run for About, the
-  overview and the pill): all fine. `/tmp/oriel-shots/33final/`.
+- **Release smoke check** (`make app`, `ovvi-dev-33final-smoke`; a Release XCUITest run for About, the
+  overview and the pill): all fine. `/tmp/ovvi-shots/33final/`.
 - **Review.** l33-final-review, three rounds, all applied. Left as nits: `RevealTests`' WINCH trap stays in w1:p1;
   `RemoteTests.swift` and `Sidebar.swift` are at 400 lines (split them before adding); `ci.md`'s "2300 s"
   is now about 2130 s.

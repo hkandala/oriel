@@ -87,7 +87,7 @@ public actor SSHExec: Exec {
     }
 
     private static func noRelay(_ target: String) -> HerdrError {
-        .failed("Oriel needs Perl on \(target): its relay did not start")
+        .failed("Ovvi needs Perl on \(target): its relay did not start")
     }
 
     /// One SSH session on the master that runs the command. Without a master it fails at once instead of opening
@@ -262,7 +262,7 @@ public actor SSHExec: Exec {
 
     /// The last absolute path the login shell prints after our marker (an rc file may print first).
     private func findHerdr() async throws -> String? {
-        let marker = "oriel-herdr"
+        let marker = "ovvi-herdr"
         let shell = #"exec "${SHELL:-sh}" -lic "$0" </dev/null 2>/dev/null"#
         let text = try await output(["sh", "-c", shell, "echo \(marker); command -v herdr"])
         let path = text.components(separatedBy: marker).last?
@@ -283,11 +283,11 @@ extension SSHExec {
         argv.map { "'" + $0.replacingOccurrences(of: "'", with: #"'\''"#) + "'" }.joined(separator: " ")
     }
 
-    private static let question = "oriel-askpass "
+    private static let question = "ovvi-askpass "
 
     /// The sockets' folder: per user, 0700, no spaces; a socket path stays under the 104-byte limit.
     static let folder: String = {
-        let path = URL.cachesDirectory.appending(path: "oriel").path(percentEncoded: false)
+        let path = URL.cachesDirectory.appending(path: "ovvi").path(percentEncoded: false)
         try? FileManager.default.createDirectory(atPath: path, withIntermediateDirectories: true,
                                                  attributes: [.posixPermissions: 0o700])
         return path

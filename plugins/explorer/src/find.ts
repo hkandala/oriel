@@ -14,7 +14,7 @@ import {
 } from "@codemirror/search"
 import type { EditorState } from "@codemirror/state"
 import type { EditorView, Panel, ViewUpdate } from "@codemirror/view"
-import type { Oriel } from "@oriel/plugin-api"
+import type { Ovvi } from "@ovvi/plugin-api"
 import { symbols } from "./place"
 
 type Flag = "caseSensitive" | "wholeWord" | "regexp"
@@ -50,12 +50,12 @@ function icon(symbol: string, title: string, onclick: () => void) {
 }
 
 /** The search config's panel, and `open`, which shows the bar (⌘F), with its Replace row for `replace` (⌥⌘F). */
-export function finder(oriel: Oriel) {
+export function finder(ovvi: Ovvi) {
   /** The open panel's: its Replace row shown or not. */
   let shown: ((replace: boolean) => void) | undefined
 
   function createPanel(view: EditorView): Panel {
-    symbols(oriel, ["chevron.up", "chevron.down", "xmark", ...FLAGS.map(([, symbol]) => symbol)])
+    symbols(ovvi, ["chevron.up", "chevron.down", "xmark", ...FLAGS.map(([, symbol]) => symbol)])
     // `name="search"`: WebKit tells VoiceOver it is a search field.
     const field = make("input", { name: "search", className: "find-field", placeholder: "Find", ariaLabel: "Find" })
     const swap = make("input", { name: "replace", className: "find-field", placeholder: "Replace", ariaLabel: "Replace" })

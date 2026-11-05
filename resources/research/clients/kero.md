@@ -3,12 +3,12 @@
 ## Summary
 
 Kero is a desktop app (macOS, Windows, Linux) for running coding agents in terminals. A daemon, `kerod`,
-owns the PTYs, the layout and all state. The app is a window onto it, like Oriel is a window onto herdr.
+owns the PTYs, the layout and all state. The app is a window onto it, like Ovvi is a window onto herdr.
 Kero has two pane kinds: terminal and browser. The diff viewer is not a pane. It is a "Changes" side panel
 at the right of the selected session, and it follows the worktree of the focused pane. The browser pane is a
 daemon pane that has a URL and no PTY. The daemon keeps its place in the split tree and its URL. The app
-draws a `WKWebView` (on macOS) in that place. This is the same split of work that Oriel's design D51/D57
-already uses for web cards. The best new idea for Oriel is the Changes panel, with its "Last turn" view: a
+draws a `WKWebView` (on macOS) in that place. This is the same split of work that Ovvi's design D51/D57
+already uses for web cards. The best new idea for Ovvi is the Changes panel, with its "Last turn" view: a
 diff of what the agent changed since its turn started.
 
 ## 1. The pane model
@@ -45,9 +45,9 @@ workspaces (`docs/sessions.md`). A session is one sidebar row, and it shows its 
 session is about the same as one herdr tab.
 
 The split tree is `proto.Layout` (`internal/proto/layout.go:6-12`): a leaf has `Pane`, a split has `Row`
-(side by side, else stacked), `Ratio`, `A` and `B`. It is almost the same as Oriel's `SplitNode`. Kero splits
+(side by side, else stacked), `Ratio`, `A` and `B`. It is almost the same as Ovvi's `SplitNode`. Kero splits
 in all four directions in the tree itself: `Split(at, pane, direction, ratio)` puts the new pane first for
-left and up (`layout.go:51-76`). herdr has only right and down, so Oriel needs a swap after a move for left
+left and up (`layout.go:51-76`). herdr has only right and down, so Ovvi needs a swap after a move for left
 and top (see `docs/content/docs/ui/drag-and-drop.mdx`).
 
 Other layout operations: `Remove` (`layout.go:80-100`), `Neighbor` by pane centers on a unit square
@@ -130,7 +130,7 @@ program when you look at it. Commands, with sources:
 | Patch for large files and `kero diff` | `git diff -M <rev> <now> -- <paths>` | `internal/git/diff.go:176-180` |
 
 On macOS, Kero runs no git when `/usr/bin/git` is the stub and `xcode-select -p` fails
-(`internal/git/git.go:35-41`). Oriel's `GitStatus.usable` does the same check
+(`internal/git/git.go:35-41`). Ovvi's `GitStatus.usable` does the same check
 (`Packages/HerdrKit/Sources/HerdrKit/Git.swift:42-52`).
 
 Refresh. kerod does not watch the working tree. Once a second it stats a few files in the git directory:
@@ -195,7 +195,7 @@ in the default app.
   `pty_darwin.go`), ConPTY on Windows (`pty_windows.go`). No PTY library.
 - Emulator: libghostty-vt, loaded at run time with no cgo, through MyGo's `plugins/terminal`
   (MyGo `plugins/terminal/README.md`, `library.go:15-44`). It is the VT parser only. MyGo paints the cells
-  itself on the GPU. It is not a full libghostty surface like Oriel's. Ghostty themes and config keys load
+  itself on the GPU. It is not a full libghostty surface like Ovvi's. Ghostty themes and config keys load
   (`app.go:696-706`).
 - kerod runs one headless libghostty-vt per pane. A client that attaches gets frames of that emulator's
   screen, not the raw byte history (`internal/daemon/session.go:26-30`, `internal/client/client.go:313-352`).
@@ -204,7 +204,7 @@ in the default app.
 - Size between clients: a client "claims" a pane when the user types, scrolls or selects the session in it.
   The pane then takes that client's size (`internal/client/client.go:373-379`, `app.go:756-761`). The app
   claims again when the user comes back to the machine after being away, from the system idle time
-  (`app.go:640-683`). This is automatic. There is no "Take Back" button. Oriel's control hand-off is the
+  (`app.go:640-683`). This is automatic. There is no "Take Back" button. Ovvi's control hand-off is the
   same idea with an explicit button.
 
 Agent awareness:

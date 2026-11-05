@@ -4,7 +4,7 @@ import Testing
 
 /// A new folder in the temporary folder, removed by the caller.
 func scratchFolder() throws -> URL {
-    let folder = URL.temporaryDirectory.appending(path: "oriel-files-\(UUID().uuidString)")
+    let folder = URL.temporaryDirectory.appending(path: "ovvi-files-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
     // git's paths: `/private/var`, not `/var`.
     return try URL(filePath: #require(folder.resourceValues(forKeys: [.canonicalPathKey]).canonicalPath))

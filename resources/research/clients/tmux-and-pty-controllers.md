@@ -20,7 +20,7 @@ Read from shallow clones.
   with no output.
 - Prompt strings per agent version. They break on each redesign (AgentAPI #209: `───` became `╌╌╌`).
 
-## For Oriel
+## For Ovvi
 
 herdr already does all of this better: it owns the PTY, reads the screen server-side, reports
 `working|idle|blocked`, and its `agent.prompt` pastes and submits. Nothing here adds to herdr except the

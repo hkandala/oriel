@@ -14,7 +14,7 @@ Read from shallow clones.
 Resuming a transcript that a live TUI still writes means two writers. Claude refuses for background sessions
 ("Two processes can't write to the same transcript"); the others do not check. Orca forks instead.
 
-## For Oriel
+## For Ovvi
 
-Nothing to take for the chat over a running TUI. If Oriel ever adds a headless mode: fork, never resume, the
-live conversation (Orca's rule); happy's kill-and-resume switch is what Oriel avoids.
+Nothing to take for the chat over a running TUI. If Ovvi ever adds a headless mode: fork, never resume, the
+live conversation (Orca's rule); happy's kill-and-resume switch is what Ovvi avoids.

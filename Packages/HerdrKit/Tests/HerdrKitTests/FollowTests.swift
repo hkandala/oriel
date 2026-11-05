@@ -21,7 +21,7 @@ private func lineByLine(_ path: String, from mark: FileMark,
 /// The chat's file follower on This Mac (the relay runs the same script): a file made late, a split write, a resume
 /// from a mark, a rotated file, and a big file read whole.
 @Test func `follow reads whole lines and goes on from its mark`() async throws {
-    let folder = FileManager.default.temporaryDirectory.appending(path: "oriel-follow-\(UUID().uuidString)")
+    let folder = FileManager.default.temporaryDirectory.appending(path: "ovvi-follow-\(UUID().uuidString)")
     try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
     defer { try? FileManager.default.removeItem(at: folder) }
     let file = folder.appending(path: "t.jsonl")
@@ -72,7 +72,7 @@ private func lineByLine(_ path: String, from mark: FileMark,
 /// Skipped lines never come, but the mark counts their bytes; `loaded` comes at the open's last whole line, before the
 /// line still being written.
 @Test func `follow skips the lines no parser reads`() async throws {
-    let file = FileManager.default.temporaryDirectory.appending(path: "oriel-skip-\(UUID().uuidString).jsonl")
+    let file = FileManager.default.temporaryDirectory.appending(path: "ovvi-skip-\(UUID().uuidString).jsonl")
     defer { try? FileManager.default.removeItem(at: file) }
     try Data(#"{"type":"blob","é":1}\#n{"keep":1}\#n{"type":"blob"}\#n{"ke"#.utf8).write(to: file)
     var lines = try await lineByLine(file.path, from: FileMark(), skip: #"/^[{]"type":"blob"/"#)
@@ -91,7 +91,7 @@ private func lineByLine(_ path: String, from mark: FileMark,
 /// A follow dropped in the middle of its backlog sends no more of it: a remote one would flood the relay, and through
 /// awk a `head` left behind would hang on the FIFO. (Without awk, this Mac's reader drains the pipe before the kill.)
 @Test(.timeLimit(.minutes(1))) func `a dropped follow stops its backlog`() async throws {
-    let file = FileManager.default.temporaryDirectory.appending(path: "oriel-drop-\(UUID().uuidString).jsonl")
+    let file = FileManager.default.temporaryDirectory.appending(path: "ovvi-drop-\(UUID().uuidString).jsonl")
     defer { try? FileManager.default.removeItem(at: file) }
     let line = String(repeating: "x", count: 999)
     try Data(String(repeating: line + "\n", count: 20000).utf8).write(to: file)
@@ -122,7 +122,7 @@ private func lineByLine(_ path: String, from mark: FileMark,
 /// one's first line to its last: the follow starts a dozen processes before it reads, `tail` one, and on a starved Mac
 /// a process can take seconds to start.
 @Test func `a big backlog loads fast`() async throws {
-    let file = FileManager.default.temporaryDirectory.appending(path: "oriel-backlog-\(UUID().uuidString).jsonl")
+    let file = FileManager.default.temporaryDirectory.appending(path: "ovvi-backlog-\(UUID().uuidString).jsonl")
     defer { try? FileManager.default.removeItem(at: file) }
     try Data(String(repeating: String(repeating: "x", count: 7999) + "\n", count: 10000).utf8).write(to: file)
     var start: ContinuousClock.Instant?
@@ -145,7 +145,7 @@ private func lineByLine(_ path: String, from mark: FileMark,
 /// A burst written at once (150 turns of a long session) comes in one or two batches to a reader that is busy, as the
 /// app is while it draws: not one batch per line, each of which would draw the chat again.
 @Test func `a burst comes in few batches`() async throws {
-    let file = FileManager.default.temporaryDirectory.appending(path: "oriel-burst-\(UUID().uuidString).jsonl")
+    let file = FileManager.default.temporaryDirectory.appending(path: "ovvi-burst-\(UUID().uuidString).jsonl")
     defer { try? FileManager.default.removeItem(at: file) }
     try Data("a\n".utf8).write(to: file)
     var batches = try await localExec.follow(file.path, from: FileMark()).makeAsyncIterator()
@@ -175,7 +175,7 @@ private func lineByLine(_ path: String, from mark: FileMark,
 }
 
 @Test func `watch prints a file each time it changes`() async throws {
-    let file = FileManager.default.temporaryDirectory.appending(path: "oriel-watch-\(UUID().uuidString).json")
+    let file = FileManager.default.temporaryDirectory.appending(path: "ovvi-watch-\(UUID().uuidString).json")
     defer { try? FileManager.default.removeItem(at: file) }
     var lines = try await localExec.watch(["/nonexistent/x.json", file.path]).makeAsyncIterator()
     #expect(await lines.next() == "")
@@ -200,7 +200,7 @@ func `follow drops only what the parser skips`(name: String, unread: String, ext
     let url = try #require(Bundle.module.url(forResource: name, withExtension: "jsonl", subdirectory: "Fixtures"))
     let lines = try String(contentsOf: url, encoding: .utf8).split(separator: "\n").map(String.init) + extra
     let read = name == "codex-rollout" ? CodexRollout.read : ClaudeTranscript.read
-    let file = FileManager.default.temporaryDirectory.appending(path: "oriel-unread-\(UUID().uuidString).jsonl")
+    let file = FileManager.default.temporaryDirectory.appending(path: "ovvi-unread-\(UUID().uuidString).jsonl")
     defer { try? FileManager.default.removeItem(at: file) }
     try Data(lines.map { $0 + "\n" }.joined().utf8).write(to: file)
     var whole = ChatHistory(), followed = ChatHistory(), count = 0

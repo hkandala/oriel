@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Claude Code's stand-in for the chat view's UI tests (CI has no Claude Code).
 
-Started by the chooser with Oriel's flags (`--session-id T --settings <json>`), it runs the settings' own hooks,
+Started by the chooser with Ovvi's flags (`--session-id T --settings <json>`), it runs the settings' own hooks,
 writes a transcript in Claude Code's format, reports its state to herdr and answers prompts on its terminal: "wait"
 shows a dialog until 1 is typed, "ask" asks a question through the PermissionRequest hook, "slow" works until Esc,
 "mute" drops the next prompt, "long" gets a command with 200 lines of output, "big" writes 330 KB of lines the chat
@@ -24,12 +24,12 @@ import time
 import tty
 import uuid
 
-folder = os.path.join(os.environ.get("TMPDIR", "/tmp"), "oriel-stand-in")
+folder = os.path.join(os.environ.get("TMPDIR", "/tmp"), "ovvi-stand-in")
 os.makedirs(folder, exist_ok=True)
 # herdr prompts an agent only while a process of its name runs in the foreground: run again as `claude`.
 # A framework build's `python3` runs its Python.app, which would drop the name: link to that one.
-if os.environ.get("ORIEL_STAND_IN") != "1":
-    os.environ["ORIEL_STAND_IN"] = "1"
+if os.environ.get("OVVI_STAND_IN") != "1":
+    os.environ["OVVI_STAND_IN"] = "1"
     app = os.path.join(sys.base_prefix, "Resources/Python.app/Contents/MacOS/Python")
     link = os.path.join(folder, "claude")
     if os.path.islink(link):
@@ -60,7 +60,7 @@ def herdr(*arguments):
 
 
 def report(state):
-    herdr("report-agent", "--source", "oriel-e2e", "--agent", "claude", "--state", state)
+    herdr("report-agent", "--source", "ovvi-e2e", "--agent", "claude", "--state", state)
 
 
 def write(kind, **fields):
@@ -205,8 +205,8 @@ def main():
         signal.signal(signal.SIGHUP, signal.SIG_IGN)
         if "--settings" in args and os.path.exists(transcript):
             os.remove(transcript)
-        for side in re.findall(r"/\.cache/oriel/chat/([0-9a-f-]{36})", settings)[:1]:
-            shutil.rmtree(os.path.expanduser("~/.cache/oriel/chat/" + side), ignore_errors=True)
+        for side in re.findall(r"/\.cache/ovvi/chat/([0-9a-f-]{36})", settings)[:1]:
+            shutil.rmtree(os.path.expanduser("~/.cache/ovvi/chat/" + side), ignore_errors=True)
         # Bracketed paste off again, as Claude Code leaves it: bash 3.2 would take herdr's next paste marks as text.
         try:
             sys.stdout.write("\x1b[?2004l")

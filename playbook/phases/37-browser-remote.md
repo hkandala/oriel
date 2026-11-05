@@ -27,7 +27,7 @@ proxy, two machines with the same port don't collide, and the ports chip lists t
 
 ### Track A
 
-- **Spike:** `-O forward -D 127.0.0.1:<P>` works on Oriel's master (`ClearAllForwardings=yes`); `-D …:0` is
+- **Spike:** `-O forward -D 127.0.0.1:<P>` works on Ovvi's master (`ClearAllForwardings=yes`); `-D …:0` is
   refused, a taken port exits 255, a second identical forward is a silent no-op, and `-O cancel` of a missing one
   exits 0. `proxyConfigurations` can change between loads of a store (checked). curl resolves `*.localhost` itself
   and never asks the proxy, so check a proxy with WebKit, not curl.

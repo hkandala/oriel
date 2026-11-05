@@ -68,10 +68,10 @@ tmux). All content is encrypted end to end between CLI and phone (`api/encryptio
 `happy-cli/src` about 40k lines without tests (Claude part about 6k). `happy-app` about 130k lines; the chat list,
 message and tool views are a few thousand of those.
 
-## For Oriel
+## For Ovvi
 
 - Copy: get the session id from a **SessionStart hook** passed with `--settings`, not from a cwd guess.
 - Copy: dedupe transcript lines by `uuid` and keep watching the old file after a resume.
-- Avoid: the mode switch. Killing the TUI to chat breaks Oriel's rule that the TUI never restarts, and every bug
+- Avoid: the mode switch. Killing the TUI to chat breaks Ovvi's rule that the TUI never restarts, and every bug
   above sits on that seam.
 - Avoid: the `fetch` patch for status; it is dead on the native Claude binary.

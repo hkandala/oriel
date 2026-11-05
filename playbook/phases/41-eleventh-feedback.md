@@ -29,7 +29,7 @@ user's answers to the orchestrator's questions.
    there, so it looks weird, ... this applies for agents as well, i see Claude Code followed by session title, with
    no separator, let's add line separator for all such tabs". Decision: ` | ` wherever a title is plain text (⌘K,
    the Window menu, the window title, any other text-only place) for every tab: `Browser | Hacker News`,
-   `Claude Code | Fix login`, `zsh | oriel`. Tab capsules keep the dimmed second part.
+   `Claude Code | Fix login`, `zsh | ovvi`. Tab capsules keep the dimmed second part.
 5. **New Pane in a floating window.** "right now we see new pane and new tab in tab and pane titles which is good,
    but if i open that to a floating pane, i see zsh in the title, we should show New Pane there as well".
 6. **The tab's busy dots.** "when loader is shown on tab, i see loader overlapping with text, can we handle it on how
@@ -40,7 +40,7 @@ user's answers to the orchestrator's questions.
 ## Track C: the reply box and the chat's behavior (items 7–12, 14, 15)
 7. **The TUI by default.** "i still see chat view is default, i mentioned to make terminal as default view when
    opened from agents in new tab". A chat pane opens on its TUI; the user switches to Chat.
-8. **Names.** The switch is `Chat | TUI`; the button on a pane without Oriel's flags is `Relaunch with Chat` (help
+8. **Names.** The switch is `Chat | TUI`; the button on a pane without Ovvi's flags is `Relaunch with Chat` (help
    tag: "Restart ‹Agent› with chat, in the same session").
 9. **Placeholder.** "let's change placeholder to Ask Anything instead of Reply to Pi or Reply to Claude Code etc".
 10. **⇧Return.** "in input, shift+enter doesn't add a new line, so i can't type multi line things". ⇧Return (and
@@ -195,7 +195,7 @@ user's answers to the orchestrator's questions.
   Item 24 is the same cut, not a separate bug.
 - **Fix (22).** A new file is read from its start. On the pane's machine, awk drops the lines the parser skips (an awk
   pattern next to each parser: Claude's records that write `type` first and its non-queued attachments, Codex's
-  top-level types but `event_msg` and `turn_context`) and prints `oriel-skip <bytes>` for each, so the mark still
+  top-level types but `event_msg` and `turn_context`) and prints `ovvi-skip <bytes>` for each, so the mark still
   counts the file's bytes. Pi's and OpenCode's files pass whole (pi's tree needs every entry).
 - **Runs (22).** On the user's files: the 796 KB session passed 208 KB and showed its first prompt (the old start: 7
   entries, no prompt); 17 Claude sessions passed 3.0 of 12.5 MB and 40 Codex rollouts 3.1 of 14.7 MB, each with the
@@ -211,7 +211,7 @@ user's answers to the orchestrator's questions.
 - **Fix (25).** swift-markdown 0.9.0 (cmark-gfm) parses; the views draw tables (head on a fill, column alignment),
   task lists, strikethrough, nested quotes and lists, and rules. An image shows as its description, linked to it: loaded
   on its own, a reply could send what the agent read to any server. swift-markdown has no autolink extension: bare
-  `http(s)://` and `www.` addresses are linked with `NSDataDetector` (not names such as `Oriel.app`). It has no
+  `http(s)://` and `www.` addresses are linked with `NSDataDetector` (not names such as `Ovvi.app`). It has no
   footnotes either: `[^1]` reads as written.
 - **Also.** An unknown tool's target was its "first" text argument in a parsed dictionary's random order (a flaky
   history); it is now the first by key, in Claude's and pi's parsers.

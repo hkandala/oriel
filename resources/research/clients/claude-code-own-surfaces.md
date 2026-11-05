@@ -67,12 +67,12 @@ prompts.
 `claude --remote-control`, `/remote-control`: the session syncs through Anthropic's servers to claude.ai/code and the
 phone apps. No local API. Not available with an `ANTHROPIC_BASE_URL` gateway, so not under this launcher.
 
-## For Oriel
+## For Ovvi
 
 - Take: the session record as the **state source for Claude panes**: `busy`, `idle`, `waiting` + `waitingFor`.
-  `waiting` with anything Oriel does not handle → show the TUI. Over SSH: `cat` or a Perl poll of one small file.
+  `waiting` with anything Ovvi does not handle → show the TUI. Over SSH: `cat` or a Perl poll of one small file.
   Match a pane by `pid` (the pane's process tree); the file name stays, while `sessionId` changes on `/clear`
   (not checked whether the record follows at once).
-- Take with care: the inbox socket as a keystroke-free send for **automation** (Oriel's own notes to the agent),
+- Take with care: the inbox socket as a keystroke-free send for **automation** (Ovvi's own notes to the agent),
   since the model reads it as "not your user". The chat composer keeps typing into the pane.
 - Avoid: channels and Remote Control (account and gateway limits); parsing `~/.claude/jobs/`.

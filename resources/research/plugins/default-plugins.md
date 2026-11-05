@@ -1,6 +1,6 @@
 # Default plugins: native views over web components
 
-Research for Oriel's default pane kinds beyond Terminal, Agent and Browser: a file viewer and editor, Markdown,
+Research for Ovvi's default pane kinds beyond Terminal, Agent and Browser: a file viewer and editor, Markdown,
 diff and git history, and a file tree. Spikes ran on an Apple Silicon Mac with macOS 27.0.1, Xcode 27.1, Swift 6.4
 and Node 24, in throwaway folders outside the repo. Other jobs kept the load average at 260–600, so every time is an
 upper bound. Versions and licenses are from `gh api` and `npm view`.

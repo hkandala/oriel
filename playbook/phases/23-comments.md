@@ -5,7 +5,7 @@ phases 21 and 22, before the final review. Comments only: no code, test or behav
 
 ## Build
 
-1. Go through every source file: `Oriel/`, `OrielUITests/`, `Packages/HerdrKit/` (sources and tests),
+1. Go through every source file: `Ovvi/`, `OvviUITests/`, `Packages/HerdrKit/` (sources and tests),
    `scripts/`, `Makefile`, `.github/workflows/`, `.swiftlint.yml`.
 2. **Delete** a comment when the code already says it: it restates the next line, names what a well-named
    type, function or variable already names, narrates steps, or is out of date. Delete commented-out code.
@@ -54,7 +54,7 @@ scripts, Makefile, CI and `.swiftlint.yml`, reviewed every hunk and committed by
   height, PaneScroll's units); reply types' herdr method (`/// pane.read.`); TitleBar's "⌘K is the menu's" lines
   (why a button with `key:` has no shortcut); fixture and UI-test step comments that name the rule an assert
   checks or what a raw JSON input stands for; the e2e scripts' usage blocks and per-session notes.
-- **Comments-only check:** `/tmp/oriel-p23/comments_only.py BASE [HEAD]` strips Swift `//`, `///` and `/* */`
+- **Comments-only check:** `/tmp/ovvi-p23/comments_only.py BASE [HEAD]` strips Swift `//`, `///` and `/* */`
   outside string literals (plain, multiline and raw, so `https://` in strings survives) and `#` comments outside
   quotes in shell, Python, Makefile and YAML, drops blank lines and trailing spaces, and compares every file
   under the phase's paths. 4cb16f3..98afc2c: 78 files, 0 non-comment changes. A planted code change in Swift and

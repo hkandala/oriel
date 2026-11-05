@@ -11,7 +11,7 @@ public enum Update: Sendable {
     case float(FloatRequest)
     /// A copy request's text (talking-to-herdr#copy-requests).
     case copy(String)
-    /// The `oriel` command rang on the pane (agent-control/protocol): `id` names its request in the machine's mailbox.
+    /// The `ovvi` command rang on the pane (agent-control/protocol): `id` names its request in the machine's mailbox.
     case request(id: String, pane: String)
 }
 
@@ -41,7 +41,7 @@ public actor HerdrClient {
     private var floated: Set<String> = []
     /// The copy requests' ids (one per copy).
     private var copied: Set<String> = []
-    /// The last 256 `oriel` requests' ids, oldest first.
+    /// The last 256 `ovvi` requests' ids, oldest first.
     private var asked: [String] = []
 
     /// `timeout` bounds each request.
@@ -202,7 +202,7 @@ public actor HerdrClient {
     }
 
     /// (Re)opens the one events stream. Every line on it means "read the snapshot again"; a pane's float, copy and
-    /// `oriel` requests are the only payloads read.
+    /// `ovvi` requests are the only payloads read.
     private func subscribe(_ agentPanes: [String]) {
         events?.cancel()
         subscribed = agentPanes
@@ -235,10 +235,10 @@ public actor HerdrClient {
                     if let request = FloatRequest(message?.data?.pane?.tokens), floated.insert(request.nonce).inserted {
                         out?.yield(.float(request))
                     }
-                    if let id = message?.data?.pane?.tokens?["oriel-copy"], copied.insert(id).inserted {
+                    if let id = message?.data?.pane?.tokens?["ovvi-copy"], copied.insert(id).inserted {
                         copy(id)
                     }
-                    ask(message?.data?.pane?.tokens?["oriel-req"], message?.data?.pane?.paneID)
+                    ask(message?.data?.pane?.tokens?["ovvi-req"], message?.data?.pane?.paneID)
                     // Every other line, the first too (subscription_started: catch up on what came before it).
                     read()
                 }
@@ -252,7 +252,7 @@ public actor HerdrClient {
         }
     }
 
-    /// Yields an `oriel` request once per id: herdr sends the token again on each change of the pane until it expires.
+    /// Yields an `ovvi` request once per id: herdr sends the token again on each change of the pane until it expires.
     private func ask(_ id: String?, _ pane: String?) {
         // ponytail: a linear search of 256 ids per ring.
         guard let id, let pane, AgentRequest.isID(id), !asked.contains(id) else { return }
@@ -260,13 +260,13 @@ public actor HerdrClient {
         out?.yield(.request(id: id, pane: pane))
     }
 
-    /// Reads a copy request's text from `/tmp/oriel-copy-<id>` on the session's machine, as base64 (Linux's wraps
+    /// Reads a copy request's text from `/tmp/ovvi-copy-<id>` on the session's machine, as base64 (Linux's wraps
     /// lines), and deletes the file. Nothing comes for a missing file: a second Mac showing the pane read it first.
     private func copy(_ id: String) {
         // A UUID only: the id goes into the path.
         guard UUID(uuidString: id) != nil else { return }
         Task {
-            let script = #"f=/tmp/oriel-copy-$1; base64 <"$f" && rm -f "$f""#
+            let script = #"f=/tmp/ovvi-copy-$1; base64 <"$f" && rm -f "$f""#
             if let text = try? await exec.output(["sh", "-c", script, "sh", id]), !text.isEmpty,
                let data = Data(base64Encoded: text, options: .ignoreUnknownCharacters)
             {

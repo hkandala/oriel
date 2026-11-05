@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """pi's stand-in for the chat view's UI tests (CI has no pi).
 
-Started by the chooser with Oriel's flags (`-e <pi-oriel-<sha8>.ts> --oriel <state file>`), it needs the extension
-file whole (its sha256 starts with the name's sha8), writes the state lines pi-oriel writes and a session file in pi's
+Started by the chooser with Ovvi's flags (`-e <pi-ovvi-<sha8>.ts> --ovvi <state file>`), it needs the extension
+file whole (its sha256 starts with the name's sha8), writes the state lines pi-ovvi writes and a session file in pi's
 format, reports its state to herdr and answers prompts on its terminal: "wait" opens a dialog until 1 is typed, "slow"
 works until Esc and takes a message sent meanwhile after its tool, as pi steers, "/tree" moves the leaf back before
 the last user message, "tools" runs every kind of tool, anything else gets one command and the reply "Echo: <prompt>".
@@ -20,12 +20,12 @@ import time
 import tty
 import uuid
 
-folder = os.path.join(os.environ.get("TMPDIR", "/tmp"), "oriel-stand-in")
+folder = os.path.join(os.environ.get("TMPDIR", "/tmp"), "ovvi-stand-in")
 os.makedirs(folder, exist_ok=True)
 # herdr prompts an agent only while a process of its name runs in the foreground: run again as `pi`.
 # A framework build's `python3` runs its Python.app, which would drop the name: link to that one.
-if os.environ.get("ORIEL_STAND_IN") != "1":
-    os.environ["ORIEL_STAND_IN"] = "1"
+if os.environ.get("OVVI_STAND_IN") != "1":
+    os.environ["OVVI_STAND_IN"] = "1"
     app = os.path.join(sys.base_prefix, "Resources/Python.app/Contents/MacOS/Python")
     link = os.path.join(folder, "pi")
     if os.path.islink(link):
@@ -33,7 +33,7 @@ if os.environ.get("ORIEL_STAND_IN") != "1":
     os.symlink(app if os.path.exists(app) else os.path.realpath(sys.executable), link)
     os.execv(link, [link, os.path.abspath(__file__)] + sys.argv[1:])
 args = sys.argv[1:]
-extension, state = args[args.index("-e") + 1], args[args.index("--oriel") + 1]
+extension, state = args[args.index("-e") + 1], args[args.index("--ovvi") + 1]
 if not os.path.isfile(extension):
     sys.exit("Failed to load extension: Extension path does not exist: " + extension)
 with open(extension, "rb") as file:
@@ -46,7 +46,7 @@ leaf = None
 
 def report(state):
     subprocess.run([os.environ["HERDR_BIN_PATH"], "--session", os.environ["HERDR_SESSION"], "pane", "report-agent",
-                    "--source", "oriel-e2e", "--agent", "pi", "--state", state, os.environ["HERDR_PANE_ID"]],
+                    "--source", "ovvi-e2e", "--agent", "pi", "--state", state, os.environ["HERDR_PANE_ID"]],
                    capture_output=True)
 
 

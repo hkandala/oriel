@@ -1,7 +1,7 @@
 # Paseo (getpaseo/paseo): a daemon that drives agents headless
 
 Repo: https://github.com/getpaseo/paseo (commit b9f624f, Apache-2.0). TypeScript: a Node daemon, an Expo and React
-Native app, an Electron desktop. Not a herdr client. Read for its chat view; the options for Oriel are in
+Native app, an Electron desktop. Not a herdr client. Read for its chat view; the options for Ovvi are in
 [../ui/chat-view.md](../ui/chat-view.md).
 
 ## How chat works
@@ -46,7 +46,7 @@ encrypted relay (Noise NK, QR pairing), an SSH tunnel to a running daemon, or Do
   stuck (#6269), pi import truncates history (#4947), ACP prompts hang after a disconnect (#7070). A daemon started
   inside a Claude Code terminal starts `claude` children that are "Not logged in" (#3618).
 
-## For Oriel
+## For Ovvi
 
 - Copy: status from hooks gated on the app's own terminal variable; a resume command per agent; one canonical user
   row per prompt, matched by a client message id, not by text.

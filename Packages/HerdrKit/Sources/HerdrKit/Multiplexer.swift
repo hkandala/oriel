@@ -24,7 +24,7 @@ public protocol Multiplexer: Sendable {
     func pane(_ paneID: String) async throws -> Pane
     /// Marks the pane as shown to the user, for 30 s, or clears the mark (talking-to-herdr#agent-requests).
     func mark(_ paneID: String, shown: Bool) async throws
-    /// Marks the workspace as followed by Oriel, for 30 s, or clears the mark (agent-control#is-my-pane-in-oriel).
+    /// Marks the workspace as followed by Ovvi, for 30 s, or clears the mark (agent-control#is-my-pane-in-ovvi).
     func mark(workspace workspaceID: String, open: Bool) async throws
     /// What the pane runs besides its shell, else the shell (`isShell`, design D41).
     func program(_ paneID: String) async throws -> Program?
@@ -165,14 +165,14 @@ extension HerdrClient: Multiplexer {
 
     public nonisolated func mark(_ paneID: String, shown: Bool) async throws {
         // "remote": the pane is on another machine than this Mac, so its programs' own copy (pbcopy) misses this Mac.
-        let tokens: [String: any Sendable] = ["oriel-shown": shown ? (exec is SSHExec ? "remote" : "1") : NSNull()]
-        let _: Created = try await call("pane.report_metadata", ["pane_id": paneID, "source": "oriel",
+        let tokens: [String: any Sendable] = ["ovvi-shown": shown ? (exec is SSHExec ? "remote" : "1") : NSNull()]
+        let _: Created = try await call("pane.report_metadata", ["pane_id": paneID, "source": "ovvi",
                                                                  "tokens": tokens, "ttl_ms": 30000])
     }
 
     public nonisolated func mark(workspace workspaceID: String, open: Bool) async throws {
-        let tokens: [String: any Sendable] = ["oriel-open": open ? "\(AgentRequest.version)" : NSNull()]
-        let _: Created = try await call("workspace.report_metadata", ["workspace_id": workspaceID, "source": "oriel",
+        let tokens: [String: any Sendable] = ["ovvi-open": open ? "\(AgentRequest.version)" : NSNull()]
+        let _: Created = try await call("workspace.report_metadata", ["workspace_id": workspaceID, "source": "ovvi",
                                                                       "tokens": tokens, "ttl_ms": 30000])
     }
 

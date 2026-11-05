@@ -55,7 +55,7 @@ herdr 0.9.5 and OpenSSH 10.3, in a small ad-hoc signed app (`WKWebView`, no sand
 - WKWebView has no DevTools protocol. `safaridriver` drives Safari only (one session, "Allow Remote Automation"),
   not an app's web view. Playwright's WebKit is its own build, not the system view.
 - Agents that need a browser run their own on their machine (Playwright MCP, chrome-devtools-mcp, Browser Use),
-  next to the dev server; that needs nothing from Oriel.
+  next to the dev server; that needs nothing from Ovvi.
 - A later option: an agent asks the app through a pane metadata token (as pi-hkandala's copy requests do) to read,
   run script in or capture one card; the app answers with a file on the machine. Opt-in per card.
 

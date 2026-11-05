@@ -8,7 +8,7 @@ import Synchronization
 /// stdin); the relay answers `l <id> <line>` and, once the run's output ended and it was reaped,
 /// `x <id> <status> <stderr hex>`.
 /// ponytail: Perl, which nearly every Unix has (Debian's perl-base is essential); a machine without it shows
-/// "Oriel needs Perl". A relay in another language when one is missed.
+/// "Ovvi needs Perl". A relay in another language when one is missed.
 final class Relay: Sendable {
     private struct Run {
         let lines: AsyncStream<String>.Continuation
@@ -49,7 +49,7 @@ final class Relay: Sendable {
         for await line in channel.lines {
             let parts = line.split(separator: " ", maxSplits: 2, omittingEmptySubsequences: false)
             guard parts.count == 3, let id = Int(parts[1]) else {
-                if line == "oriel-relay 1" {
+                if line == "ovvi-relay 1" {
                     greeting.yield(true)
                 }
                 continue
@@ -186,7 +186,7 @@ final class Relay: Sendable {
         # stdin close first could exit by itself (143, not 9).
         elsif ($op eq 'k') { kill 9, $pid{$id} if $pid{$id}; close_input($id) }
     }
-    put("oriel-relay 1\n");
+    put("ovvi-relay 1\n");
     while (1) {
         my $waiting = reap();
         my $writes = IO::Select->new(map { $input{$_} } grep { length $pending{$_} } keys %input);

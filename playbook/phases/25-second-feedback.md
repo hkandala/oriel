@@ -36,7 +36,7 @@ closing and sessions, snappiness, pane motion, floating panes, an empty-strip bu
   Stop and Delete. 20: no hover panel when nobody needs you. 26: the hover card was see-through in Glass.
 - **Lane B2 (25).** The strip was empty in a one-tab workspace.
 - **Lane T (27, 28).** 27: a preview of the tab in its hover card. 28: a Rex-like light rim on the cards.
-- **Lane O (30).** Oriel used 1.2 GB and 17–32 % CPU on the user's Mac: bound the surfaces, pause hidden
+- **Lane O (30).** Ovvi used 1.2 GB and 17–32 % CPU on the user's Mac: bound the surfaces, pause hidden
   terminals, cut SwiftUI work; one herdr helper per session if it has no cons.
 
 ## Findings
@@ -84,7 +84,7 @@ closing and sessions, snappiness, pane motion, floating panes, an empty-strip bu
 
 ### Lane F2 (item 16)
 
-- **Cause.** herdr 0.9.5 has no floating pane its API shows, so floating is Oriel's own (D50).
+- **Cause.** herdr 0.9.5 has no floating pane its API shows, so floating is Ovvi's own (D50).
 - **Decisions.** A `WindowGroup` per floated terminal, restored by the main window after its pages (SwiftUI's
   own restore came first); the window shares its main window's page and streams; the pane stays in its tab.
 

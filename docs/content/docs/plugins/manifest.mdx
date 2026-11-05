@@ -1,9 +1,9 @@
 ---
 title: "The manifest"
-description: "The oriel key of a plugin's package.json: who it is, what it opens, how it shows, its header row and what it can do"
+description: "The ovvi key of a plugin's package.json: who it is, what it opens, how it shows, its header row and what it can do"
 ---
 
-A plugin's manifest is the `oriel` key of its `package.json`. The app reads
+A plugin's manifest is the `ovvi` key of its `package.json`. The app reads
 it before any of the plugin's code runs. So the chooser, ⌘K, Open With, the
 card's header row and the placeholder in herdr's TUI show at once, and the
 page only fills them in. There is no separate manifest file.
@@ -27,9 +27,9 @@ CSV table's manifest:
     "check": "tsc -p ."
   },
   "devDependencies": { "esbuild": "0.28.2", "typescript": "7.0.2" },
-  "peerDependencies": { "@oriel/plugin-api": "*" },
-  "peerDependenciesMeta": { "@oriel/plugin-api": { "optional": true } },
-  "oriel": {
+  "peerDependencies": { "@ovvi/plugin-api": "*" },
+  "peerDependenciesMeta": { "@ovvi/plugin-api": { "optional": true } },
+  "ovvi": {
     "id": "csv-table",
     "name": "CSV Table",
     "api": 1,
@@ -58,11 +58,11 @@ From the package itself:
 | `description` | no | One line: the chooser row's detail, and a line of the trust prompt. |
 | `keywords` | no | More words that ⌘K finds the plugin's Open ‹chooser› Here by. |
 
-In the `oriel` key:
+In the `ovvi` key:
 
 | Field | Required | Value |
 |---|---|---|
-| `id` | yes | 1 to 64 of `a-z`, `0-9` and `-`, starting with a letter or digit. The label's plugin id (`oriel:<id>#…`). It is the plugin's own, because a package name can be scoped (`@oriel/git`). The first package of an id wins ([Where the registry looks](/docs/plugins/packages#where-the-registry-looks)). |
+| `id` | yes | 1 to 64 of `a-z`, `0-9` and `-`, starting with a letter or digit. The label's plugin id (`ovvi:<id>#…`). It is the plugin's own, because a package name can be scoped (`@ovvi/git`). The first package of an id wins ([Where the registry looks](/docs/plugins/packages#where-the-registry-looks)). |
 | `name` | yes | What the user reads: the tab's first part ("CSV Table data.csv"), the placeholder's title, Open With, ⌘K, the Plugins panel. |
 | `api` | yes | The API version the plugin is written for, an integer, 1 or more ([Versions](/docs/plugins/api#versions)). |
 | `entry` | yes | The built entry, relative to the package: a `.js` file inside it, for example `dist/main.js`. Its chunks, its CSS (`main.css`) and its assets sit beside it in one flat folder. |
@@ -78,8 +78,8 @@ In the `oriel` key:
 - The app reads the manifest leniently. An unknown field is ignored, so a
   manifest written for a newer app still loads.
 - A missing required field or a wrong value leaves the plugin out. The log
-  and the plugin's cards name the field: `oriel.entry must be a built .js
-  file in the package`, `oriel.header.1 has the wrong type`
+  and the plugin's cards name the field: `ovvi.entry must be a built .js
+  file in the package`, `ovvi.header.1 has the wrong type`
   ([Errors and logs](/docs/plugins/errors)).
 - The checks beyond the types: the `id`'s letters, a non-empty `name` and
   `icon`, `api` of 1 or more, `entry` a `.js` path with no `/` at the start
@@ -109,7 +109,7 @@ label's argument holds, and the card's title.
 - `files` and `folders` can go together: File Explorer opens both, with
   `{ "folders": true, "files": ["*"] }`.
 - `urls` is a list of globs for web addresses, case blind, where `*` also
-  spans `/`. An `oriel.open` of an `http` or `https` address with no `plugin`
+  spans `/`. An `ovvi.open` of an `http` or `https` address with no `plugin`
   opens in a `default` plugin whose `urls` match it (a user's plugin before a
   default plugin), else in the browser.
 - `priority` is `"default"` (the default) or `"option"`. An option plugin
@@ -117,7 +117,7 @@ label's argument holds, and the card's title.
 
 ### Which plugin opens a file
 
-A link in a card, a double-click in File Explorer's tree and `oriel.open`
+A link in a card, a double-click in File Explorer's tree and `ovvi.open`
 with no `plugin` open a file with its default plugin. The app picks it by the
 file's name alone, so a remote file is not read first:
 1. Only `default` plugins whose patterns match take part.
@@ -156,7 +156,7 @@ wins over it. A path that ends in `/` opens in the first plugin with
 natively: the row is 32 pt tall, buttons are 22 × 22 pt in the card buttons'
 color, and the row ends where row 1 does. They show before the page loads,
 in a pane and in a floating window. The page changes them with
-`oriel.controls.set` and hears them with `oriel.on("control")`
+`ovvi.controls.set` and hears them with `ovvi.on("control")`
 ([Types](/docs/plugins/api#types)). A click on a button, a toggle, a segment
 or a menu item gives the card the keyboard, as a click on its page does.
 
@@ -221,8 +221,8 @@ swallows no key (D93).
   the command by. `key` is a ⌘ chord (`cmd+e`,
   `cmd+shift+k`). A key that the app already uses is left off, and the log
   says so once.
-- A pick sends `{ id }` to `oriel.on("control")`, as a header button does.
-  `oriel.controls.set` changes `title`, `checked` and `enabled`. A disabled
+- A pick sends `{ id }` to `ovvi.on("control")`, as a header button does.
+  `ovvi.controls.set` changes `title`, `checked` and `enabled`. A disabled
   command has no key, so ⌘E has its key only over Markdown.
 - `handles: ["save"]` gives the card ⌘S (File ▸ Save). `handles: ["find"]`
   gives it ⌘F, ⌘G and ⇧⌘G. The page hears `save`, `find`, `findNext` and
@@ -235,11 +235,11 @@ permissions fails with the error `denied`, and the log names it.
 
 | Permission | Allows | Words in the trust prompt |
 |---|---|---|
-| `files:read` | `oriel.files.read`, `readBytes`, `info`, `list`, `paths`, `watch` | "It can read files and folders on the machine of each card you open." |
-| `files:write` | `oriel.files.write`, `oriel.files.move` | "It can change files there." |
-| `git` | `oriel.git`: reads, and stage, unstage, commit, fetch, pull, push and switch | "It can read git repositories there, stage, commit, switch branches, pull and push." |
-| `run` | `oriel.run`: any command | "It can run any command as you there, including ones that use the network or keep running." |
-| `clipboard` | `oriel.clipboard.write` | "It can write to the clipboard." |
+| `files:read` | `ovvi.files.read`, `readBytes`, `info`, `list`, `paths`, `watch` | "It can read files and folders on the machine of each card you open." |
+| `files:write` | `ovvi.files.write`, `ovvi.files.move` | "It can change files there." |
+| `git` | `ovvi.git`: reads, and stage, unstage, commit, fetch, pull, push and switch | "It can read git repositories there, stage, commit, switch branches, pull and push." |
+| `run` | `ovvi.run`: any command | "It can run any command as you there, including ones that use the network or keep running." |
+| `clipboard` | `ovvi.clipboard.write` | "It can write to the clipboard." |
 
 Every permission reaches only the card's machine, but any path there that
 you can reach. The first sentence says where, and the others say "there".

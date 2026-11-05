@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Export Oriel's artwork to its macOS asset catalog."""
+"""Export Ovvi's artwork to its macOS asset catalog."""
 
 import json
 from pathlib import Path
@@ -8,12 +8,12 @@ from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).resolve().parents[1]
 BRAND = ROOT / "resources/branding"
-CATALOG = ROOT / "Oriel/Assets.xcassets/AppIcon.appiconset"
+CATALOG = ROOT / "Ovvi/Assets.xcassets/AppIcon.appiconset"
 SLOTS = ((16, 1), (16, 2), (32, 1), (32, 2), (128, 1), (128, 2), (256, 1), (256, 2), (512, 1), (512, 2))
 
 
 def main():
-    with Image.open(BRAND / "oriel-flat-stack-original.png") as source:
+    with Image.open(BRAND / "ovvi-flat-stack-original.png") as source:
         if source.width != source.height or source.width < 1024:
             raise ValueError("The source must be square and at least 1024 pixels wide")
         artwork = source.convert("RGB").resize((832, 832), Image.Resampling.LANCZOS)
@@ -35,7 +35,7 @@ def main():
     master = Image.new("RGBA", (1024, 1024))
     master.alpha_composite(shadow)
     master.alpha_composite(tile, (96, 96))
-    master.save(BRAND / "oriel-macos-1024.png", optimize=True)
+    master.save(BRAND / "ovvi-macos-1024.png", optimize=True)
 
     contents = json.loads((CATALOG / "Contents.json").read_text())
     entries = {(e["size"], e["scale"]): e for e in contents["images"] if e["idiom"] == "mac"}

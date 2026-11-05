@@ -1,8 +1,8 @@
 # Phase 51: Fifteenth feedback: our own states, File Explorer and Git polish, palette keycaps, CLI additions
 
 Goal: the fixes from the user's fifteenth round, plus the four CLI items parked after phase 50. The sidebar's
-states become Oriel's own (inspired by t3code, not a copy) and line up. File Explorer and Git lose their flickers
-and focus steals. Git gets reverts, flat diff headers and file icons. The palette shows keycaps. The `oriel`
+states become Ovvi's own (inspired by t3code, not a copy) and line up. File Explorer and Git lose their flickers
+and focus steals. Git gets reverts, flat diff headers and file icons. The palette shows keycaps. The `ovvi`
 command gains `view`, `balance` and opening on Chat.
 
 Design: [Sidebar](../../docs/content/docs/ui/sidebar.mdx), [Chat view](../../docs/content/docs/ui/chat-view.mdx),
@@ -18,12 +18,12 @@ Tracks push straight to main, each step after its own review and green checks on
 
 ## Track A: the sidebar's states (items 1–3)
 
-Files: `Oriel/Views/Sidebar*.swift`, `StateLabel`, the Agents view, the card header's state, their tests.
+Files: `Ovvi/Views/Sidebar*.swift`, `StateLabel`, the Agents view, the card header's state, their tests.
 
 1. **Our own icons.** "so with the new sidebar my concern is it feels like direct copy of t3code, i want it to be
    an inspired one rather than straight away copy, so let's change the icons for statuses to be something
    different and suits better, done icon is fine as is, working icon let's change it". Done keeps
-   `checkmark.circle`. Working gets a new symbol that fits Oriel: an animated one (for example SF Symbols'
+   `checkmark.circle`. Working gets a new symbol that fits Ovvi: an animated one (for example SF Symbols'
    `progress.indicator` style or a small spinner of our own, drawn with `symbolEffect`), not t3code's dashed
    circle. Needs you: choose a symbol that is not t3code's `questionmark.bubble` either (for example
    `hand.raised.fill` or `exclamationmark.bubble.fill`). Show the user the three side by side in the Findings
@@ -47,7 +47,7 @@ Files: `Oriel/Views/Sidebar*.swift`, `StateLabel`, the Agents view, the card hea
 
 ## Track B: the chat (item 4)
 
-Files: `Oriel/Chat/**`, its tests.
+Files: `Ovvi/Chat/**`, its tests.
 
 4. **Earlier rows stay.** "everything looks much better in the chat view now except one weird bug, so show earlier
    loads more chat messages which works fine, but the moment i reach to full bottom, all the previously loaded
@@ -107,7 +107,7 @@ Files: `plugins/git/**`, its manifest, its tests.
     A flat row joined to its diff: no card, no gap, a hairline under it.
 15. **File icons.** "in the file names in the sidebar and header, can we see the file icons similar to explorer".
     The same per-type icons as File Explorer, in the diff's file list and its headers. Share the icon set, do not
-    copy it (for example both plugins depend on the same icon package, or `@oriel/plugin-api` offers it).
+    copy it (for example both plugins depend on the same icon package, or `@ovvi/plugin-api` offers it).
 16. **Working Tree with no changes.** "when no changes are there in working tree, show the similar no changes with
     icon view in center, and sidebar should be disabled when no changes in working tree, we should just see no
     changes with icon in center". The home's empty state, centered; the file-list toggle disabled.
@@ -127,7 +127,7 @@ Files: `plugins/git/**`, its manifest, its tests.
 
 ## Track E: the palette, herdr's TUI, the CLI (items 22–28)
 
-Files: the palette, the placeholder, `Oriel/Agent/**`, `Oriel/Agent/oriel.sh`, the agent-control docs, the `oriel`
+Files: the palette, the placeholder, `Ovvi/Agent/**`, `Ovvi/Agent/ovvi.sh`, the agent-control docs, the `ovvi`
 skill in pi-hkandala, their tests.
 
 22. **Keycaps in the palette.** "in cmd+k, for hotkeys can we show proper keyboard like icon buttons similar to how
@@ -138,21 +138,21 @@ skill in pi-hkandala, their tests.
     the panel's width.
 24. **The browser placeholder shows its address.** "why don't i see path for browser plugin in regular herdr tui?"
     Screenshot `2.14.11.png`: File Explorer and Git placeholders show their argument, Browser ones only "Browser /
-    Shown in Oriel". Show the address (short form) as the others do, and keep it current when the page navigates
+    Shown in Ovvi". Show the address (short form) as the others do, and keep it current when the page navigates
     if the placeholder can follow the label cheaply; else the address it opened with.
-25. **`oriel view`.** `oriel view <pane> chat|tui` switches a chat agent's card, for every window of the session,
-    as the header's switch does; `oriel card` adds `"view": "chat"|"tui"`.
-26. **`oriel agent` opens on Chat.** The card opens on Chat, as after Relaunch with Chat. Fix the skill's wording.
-27. **`oriel plugins --for`** lists the Open With choices too, after the default (they do open it).
-28. **`oriel balance [<pane>]`** evens out the splits of that pane's tab (Balance Splits), the caller's tab by
+25. **`ovvi view`.** `ovvi view <pane> chat|tui` switches a chat agent's card, for every window of the session,
+    as the header's switch does; `ovvi card` adds `"view": "chat"|"tui"`.
+26. **`ovvi agent` opens on Chat.** The card opens on Chat, as after Relaunch with Chat. Fix the skill's wording.
+27. **`ovvi plugins --for`** lists the Open With choices too, after the default (they do open it).
+28. **`ovvi balance [<pane>]`** evens out the splits of that pane's tab (Balance Splits), the caller's tab by
     default.
 
-The `oriel` skill (`~/code/pi-hkandala/skills/oriel/`) gets items 25–28 in the right topic files; push pi-hkandala
-master when the Oriel side is on main.
+The `ovvi` skill (`~/code/pi-hkandala/skills/ovvi/`) gets items 25–28 in the right topic files; push pi-hkandala
+master when the Ovvi side is on main.
 
 ## Track F: dragging over web cards (item 29)
 
-Files: the card drag and drop code (`Oriel/Views/Drag*.swift`, the web card hosts), its tests.
+Files: the card drag and drop code (`Ovvi/Views/Drag*.swift`, the web card hosts), its tests.
 
 29. **Drop targets over web cards.** "one more bug i noticed with the plugin panes, drag and positioning them is bit
     janky like i don't see the blue hover thing clearly sometimes, it works well on regular terminal panes though".
@@ -217,15 +217,15 @@ Files: the card drag and drop code (`Oriel/Views/Drag*.swift`, the web card host
   glass), white on the lit row; a one-glyph cap is at least as wide as ⌘, so the caps line up. The palette is
   `.controlSize(.large)`, which `fieldCapsule` reads: the field's text 13 → 15 pt, its padding 8/5 → 12/9 pt; rows
   28 → 32 pt; the panel's inset 8 → 10 pt; the width stays 480 pt. Other filter fields keep their size. Pictures:
-  before `/tmp/oriel-shots/t51e/before/palette-{root,filtered}-crop.png`, after
-  `/tmp/oriel-shots/t51e/after/palette-{root,filtered}-crop.png`.
+  before `/tmp/ovvi-shots/t51e/before/palette-{root,filtered}-crop.png`, after
+  `/tmp/ovvi-shots/t51e/after/palette-{root,filtered}-crop.png`.
 - **Cause, browser placeholder (24).** The placeholder prints the argument it was started with. A browser opened
-  from the chooser (or `oriel open browser` with no address) starts empty, and a typed address, a link or
+  from the chooser (or `ovvi open browser` with no address) starts empty, and a typed address, a link or
   `--replace` changes only the label: every browser placeholder on the user's Mac ran with an empty argument.
   **Fix:** on SIGWINCH the script reads its label from herdr (`herdr pane get $HERDR_PANE_ID`, one `sed`) and draws
-  again; Oriel sends SIGWINCH by pid to the placeholder's processes when a snapshot shows a new label on a pane
+  again; Ovvi sends SIGWINCH by pid to the placeholder's processes when a snapshot shows a new label on a pane
   that runs it (one `kill` on the pane's machine, only on a label change, also one made while the new pane was still
-  starting). The address shows without its scheme. A placeholder from before Oriel started keeps its old argument
+  starting). The address shows without its scheme. A placeholder from before Ovvi started keeps its old argument
   until its label changes: a redraw of every placeholder at launch would cost one run per pane on each machine.
   Also fixed: under dash (`/bin/sh` on Debian and Ubuntu) `cat <&0 &` read `/dev/null` and the placeholder ended at
   once; it now reads standard input through descriptor 3.
@@ -237,18 +237,18 @@ Files: the card drag and drop code (`Oriel/Views/Drag*.swift`, the web card host
   it is first drawn. `plugins --for` adds a file's `option` plugins after the ranked list (not for folders or
   URLs, where Open With has none). `balance` answers `{pane, tab}`; Balance Splits now evens out herdr's tree read
   inside its write, the same code for the menu and the agent.
-- **For the user.** In herdr's TUI, type an address into a browser card in Oriel: the placeholder shows it. Run
-  `oriel agent claude --tab` and check that the card opens on Chat (CI has no `claude`, and this Mac's real one
+- **For the user.** In herdr's TUI, type an address into a browser card in Ovvi: the placeholder shows it. Run
+  `ovvi agent claude --tab` and check that the card opens on Chat (CI has no `claude`, and this Mac's real one
   would start, so no test reaches it).
 
 ### Track D
 
-- **Cause (item 18).** The graph's open and Parent take the same path (`oriel.open`, then the `place` event). The
+- **Cause (item 18).** The graph's open and Parent take the same path (`ovvi.open`, then the `place` event). The
   difference was where they start: from the home, the diff drew unseen over the home, which stayed; from a diff, the
   page first emptied itself (`clear()`) and hid while git read the parent, so the card was blank for the read. **Fix:**
   a move reads the patch and the commit's facts first, then clears and draws all of it in one task (also Back between
   two diffs). Shown in a headless page with a stand-in API and a slow `git.diff`: before
-  `/tmp/oriel-shots/t51d/harness-before-parent.png` (blank), after `harness-after-parent.png` (the old diff stays).
+  `/tmp/ovvi-shots/t51d/harness-before-parent.png` (blank), after `harness-after-parent.png` (the old diff stays).
 - **Decisions (item 19).** The "enter icon" was Word Wrap's `arrow.turn.down.left`, not a reload marker. No SF Symbol
   reads as wrapping, so Word Wrap is a new app symbol `text.wrap` (Material Design Icons' `wrap`, as `source.branch`).
   Working Tree also gets a quiet **Live** marker on row 2 (`dot.radiowaves.left.and.right` and the word, dim; a
@@ -265,7 +265,7 @@ Files: the card drag and drop code (`Oriel/Views/Drag*.swift`, the web card host
 - **Fix (items 14, 16, 17).** The file header is a flat 32 pt row joined to its diff with a hairline under it. A
   Working Tree with no changes shows the home's `checkmark.circle` placeholder in the middle, with no file list and
   its button off. Show More is a plain gray button, and the home ends 10 pt under it (was 32 pt).
-- **Pictures** (headless page, dark): `/tmp/oriel-shots/t51d/harness-{before,after}-{diff,empty,home}.png`,
+- **Pictures** (headless page, dark): `/tmp/ovvi-shots/t51d/harness-{before,after}-{diff,empty,home}.png`,
   `harness-after-home-hover.png` (Revert and Stage under the pointer).
 - **Review.** Word Wrap's new symbol drew blank (the app's own symbols are a list in `Plugin.swift`); Back during a
   pending Parent drew the parent under the old place; a work-tree read during a move drew into the old place; a
@@ -296,8 +296,8 @@ Files: the card drag and drop code (`Oriel/Views/Drag*.swift`, the web card host
 - **Tests.** AgentTests measure the slot's center, the header on the names' edge, the header on the group labels'
   edge in the Agents view, and the 20 pt move; the Working label's counting time no longer has a test (only the
   Agents view, popover and hover card show it, inside button labels).
-- **Pictures.** Before: `/tmp/oriel-shots/t49e/after-sidebar-crop.png`, `after-agents-crop.png`. After:
-  `/tmp/oriel-shots/t51a/states.png` (the three states side by side), `looks.png` (both views in dark Glass, light
+- **Pictures.** Before: `/tmp/ovvi-shots/t49e/after-sidebar-crop.png`, `after-agents-crop.png`. After:
+  `/tmp/ovvi-shots/t51a/states.png` (the three states side by side), `looks.png` (both views in dark Glass, light
   Glass and dark Classic, with and without git rows).
 - **For the user.** The spinner on a Retina screen, and that it stands still with Reduce Motion on.
 
@@ -334,7 +334,7 @@ Files: the card drag and drop code (`Oriel/Views/Drag*.swift`, the web card host
   edit); in Read the card saves it at once (one save after another, with any unsaved edits); a read-only file's boxes
   are disabled. File Explorer is 1.4.0.
 - **Pictures** (the built pages in headless Chrome with a stand-in API, before at 7be0267b and after):
-  `/tmp/oriel-shots/51c/{before,after}-markdown.png`, `-markdown-light.png`, `-no-match.png`.
+  `/tmp/ovvi-shots/51c/{before,after}-markdown.png`, `-markdown-light.png`, `-no-match.png`.
 - **For the user.** Dark mode caret in File and Markdown Edit. The ring: open a tree, see no ring, press ↓. Click a
   folder's name (selects), its chevron (opens), double-click (root, nothing opens). Open folders, open a file, Back.
   Click Fetch in Git beside a File Explorer; switch tabs and back with a terminal beside one. With a terminal's
@@ -358,7 +358,7 @@ Files: the card drag and drop code (`Oriel/Views/Drag*.swift`, the web card host
 - **Nits taken.** `balance` evens out the pane's tab as it is after earlier writes; the placeholder signal skips pids
   under 2; WebDragTests holds 4 s over each card; Git parses its icon sprite on first use; comments say why (no probe
   numbers, no t3code); the Revert All question's plural in the docs.
-- **Nits left.** The placeholder keeps SIGWINCH for Oriel's redraw (one `herdr pane get` per resize): a new signal
+- **Nits left.** The placeholder keeps SIGWINCH for Ovvi's redraw (one `herdr pane get` per resize): a new signal
   such as USR1 would end every placeholder started before the update, whose shell has no trap for it. The `relaunched`
   flag stays on a pane whose agent never started, as after Relaunch with Chat. The Spinner keeps its two lines of
   phase code beside the working dots'. `SVGElement.focus` and `window.focus` stay unguarded: no plugin calls them.

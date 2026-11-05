@@ -1,7 +1,7 @@
 # herdr as a backend
 
-What herdr 0.9.x offers a client, and its quirks. The full API is `herdr api schema --json`; the calls Oriel
-uses are in `docs/content/docs/reference/herdr-calls.mdx`, and how Oriel uses them in
+What herdr 0.9.x offers a client, and its quirks. The full API is `herdr api schema --json`; the calls Ovvi
+uses are in `docs/content/docs/reference/herdr-calls.mdx`, and how Ovvi uses them in
 `docs/content/docs/talking-to-herdr.mdx`. File references are to herdr's source.
 
 ## 1. Socket API
@@ -121,7 +121,7 @@ Every way a GUI on `terminal session control` could get the writes:
 | (d) herdr API, events, config, `pane.read` with escapes | none | no event carries the write; `pane.read` gives the parsed screen; config has only the copy toast's position |
 | (e) local programs | pi and most tools use `pbcopy` on This Mac, so local copy works; an OSC-52-only program (a `printf`, ssh from a local card) fails locally too | (b) covers both |
 | (f) upstream: a `terminal.clipboard` line on control streams | the clean fix | below |
-| (g) the program asks the GUI through pane metadata, as pi-herd's float request: a token names a file with the text | **chosen** for pi-hkandala's extensions (phase 34 lane C3) | only programs that know it; a token value holds 80 characters after trimming, without control characters (`MAX_METADATA_TOKEN_VALUE_LEN`, `src/app/api_helpers.rs`), 16 tokens per report and 32 per pane, so the text goes in `/tmp/oriel-copy-<uuid>` on the program's machine and the GUI reads and deletes it with one run. The GUI's mark says `remote` on panes of another machine, where the program's own `pbcopy` would miss the GUI's Mac |
+| (g) the program asks the GUI through pane metadata, as pi-herd's float request: a token names a file with the text | **chosen** for pi-hkandala's extensions (phase 34 lane C3) | only programs that know it; a token value holds 80 characters after trimming, without control characters (`MAX_METADATA_TOKEN_VALUE_LEN`, `src/app/api_helpers.rs`), 16 tokens per report and 32 per pane, so the text goes in `/tmp/ovvi-copy-<uuid>` on the program's machine and the GUI reads and deletes it with one run. The GUI's mark says `remote` on panes of another machine, where the program's own `pbcopy` would miss the GUI's Mac |
 | direct terminal attach (uherdr, herdr-world) or `observe` | none | herdr sends `Clipboard` only to shell clients |
 
 The upstream ask (f): carry the terminal id in `AppEvent::ClipboardWrite`, send `ServerMessage::Clipboard` also
@@ -169,7 +169,7 @@ streams, with no shell client that moves the front or sizes panes.
   (`plugin.pane.open placement:"popup"`, plugin entrypoints only) and close it (`popup.close`, no
   parameters). "Overlay" and "zoomed" placements are normal split panes in a tab with its `zoomed` flag set.
 - **Probing popups again:** run a throwaway server with its own config folder
-  (`XDG_CONFIG_HOME=/tmp/hx herdr --session oriel-dev-x server`, so the user's `plugins.json` stays
+  (`XDG_CONFIG_HOME=/tmp/hx herdr --session ovvi-dev-x server`, so the user's `plugins.json` stays
   untouched), link a throwaway plugin with `placement = "popup"`, and subscribe to every event type. The
   server log shows `pane.spawn` for the popup.
 - **Agent state hooks:** `herdr integration install <agent>` writes agent-side hooks or plugins that call `pane.report_agent` / `pane.report_agent_session` (Claude: SessionStart → session id only, state from screen manifest; Codex `--no-daemon`: session + turn state; Pi/OpenCode/Kimi/Kilo/OMP: full state). Third-party agents can call these methods themselves (`docs/add-herdr-support.mdx`), including `resume_argv` so herdr re-runs them after a restart. `agent.view.set` lets a caller customize the TUI's agent list ordering and filtering.

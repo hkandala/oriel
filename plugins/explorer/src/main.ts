@@ -1,8 +1,8 @@
 // File Explorer: one card that moves between four places, each its own module loaded on first use: the tree of a
 // folder (files.ts), and a file as text (file.ts), as Markdown (markdown.ts) or as an image, a PDF or a player
 // (preview.ts). The app draws row 2 from the manifest; each place shows its own controls. The card keeps the pages
-// it showed (`oriel.pages`).
-import type { Oriel } from "@oriel/plugin-api"
+// it showed (`ovvi.pages`).
+import type { Ovvi } from "@ovvi/plugin-api"
 import "./explorer.css"
 import "./files.css"
 import "./find.css"
@@ -31,16 +31,16 @@ const load = (kind: Kind): Promise<{ show(place: Place): Promise<Reveal> }> =>
     : kind === "markdown" ? import("./markdown")
     : import("./preview")
 
-export default async function main(oriel: Oriel) {
+export default async function main(ovvi: Ovvi) {
   // Show in File Explorer: the tree of the file's folder, the file selected.
-  oriel.on("control", ({ id }) => {
+  ovvi.on("control", ({ id }) => {
     if (id !== "reveal") return
-    const file = oriel.card.arg
-    oriel.card.go(file.slice(0, file.lastIndexOf("/") + 1), { at: file })
+    const file = ovvi.card.arg
+    ovvi.card.go(file.slice(0, file.lastIndexOf("/") + 1), { at: file })
   })
   // Each place in a page of its own, which the card keeps: Back and Forward show it as it was.
-  await oriel.pages.route(async (page) => {
-    const { arg, element: root } = page, place = kind(arg), scoped = page.oriel
+  await ovvi.pages.route(async (page) => {
+    const { arg, element: root } = page, place = kind(arg), scoped = page.ovvi
     // A new tree starts with no filter; a kept one keeps its own.
     for (const id of ALL) {
       const hidden = !CONTROLS[place].includes(id)
@@ -50,12 +50,12 @@ export default async function main(oriel: Oriel) {
     if (place !== "markdown") scoped.controls.set("edit-mode", { enabled: false, checked: false })
     root.dataset.place = place
     // A text file's read starts while its place's code loads.
-    const read = place === "file" || place === "markdown" ? oriel.files.read(arg) : undefined
+    const read = place === "file" || place === "markdown" ? ovvi.files.read(arg) : undefined
     read?.catch(() => undefined)
     const [code, crumbs] = await Promise.all([load(place), place === "files" ? [] : trail(scoped, arg)])
     if (place !== "files") scoped.controls.set("jump", { value: crumbs, symbol: "" })
     const reveal = await code.show({
-      oriel: scoped, arg, at: page.at, root, read, trail: crumbs,
+      ovvi: scoped, arg, at: page.at, root, read, trail: crumbs,
       keep: page.keep,
       again: page.redraw,
       live: () => !page.dropped,

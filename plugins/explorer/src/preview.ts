@@ -1,6 +1,6 @@
 // Preview: an image, a PDF (pdf.js), audio or video (WebKit's player) from the card's file, or the info view. Row 2:
 // a PDF's page, and zoom for images and PDFs.
-import type { OrielError } from "@oriel/plugin-api"
+import type { OvviError } from "@ovvi/plugin-api"
 import { failed, info } from "./info"
 import { drawn, extension, type Place, type Reveal } from "./place"
 
@@ -10,18 +10,18 @@ const ZOOM = ["fit", "actual", "out", "in"] as const
 let styled: Promise<unknown> | undefined
 
 export async function show(place: Place): Promise<Reveal> {
-  const { oriel, arg: path, root, keep, live } = place
+  const { ovvi, arg: path, root, keep, live } = place
   const ext = extension(path), group = drawn(path)
   let zoom: (to: Zoom) => void = () => {}
   /** What the file shown holds: an image's resize observer, a PDF's worker, a blob's address. */
   let release = () => {}
   keep(() => release())
-  for (const step of ZOOM) oriel.controls.set(`zoom.${step}`, { hidden: group !== "image" && group !== "pdf" })
-  oriel.on("control", ({ id }) => {
+  for (const step of ZOOM) ovvi.controls.set(`zoom.${step}`, { hidden: group !== "image" && group !== "pdf" })
+  ovvi.on("control", ({ id }) => {
     const step = ZOOM.find((step) => id === `zoom.${step}`)
     if (step) zoom(step)
   })
-  const page = (text: string) => oriel.controls.set("page", { value: text, hidden: !text })
+  const page = (text: string) => ovvi.controls.set("page", { value: text, hidden: !text })
 
   const image = (url: string, fallback: () => void) => {
     const box = Object.assign(document.createElement("div"), { className: "scroller" })
@@ -90,10 +90,10 @@ export async function show(place: Place): Promise<Reveal> {
   let hash: string | undefined
   /** The file's bytes, drawn; the info view for a kind not drawn, or a file WebKit or pdf.js cannot decode. */
   const draw = async () => {
-    if (!group) return info(oriel, path, root)
+    if (!group) return info(ovvi, path, root)
     // The card shown again, or a change that left the bytes as they were: the hash first, no bytes read.
-    if (hash && (await oriel.files.info(path).catch(() => undefined))?.hash === hash) return
-    const file = await oriel.files.readBytes(path).catch((error: OrielError) => error)
+    if (hash && (await ovvi.files.info(path).catch(() => undefined))?.hash === hash) return
+    const file = await ovvi.files.readBytes(path).catch((error: OvviError) => error)
     if (!live() || (!(file instanceof Error) && file.hash === hash)) return
     zoom = () => {}
     release()
@@ -101,13 +101,13 @@ export async function show(place: Place): Promise<Reveal> {
     page("")
     if (file instanceof Error) {
       hash = undefined
-      return file.code === "tooLarge" ? info(oriel, path, root) : failed(file, root)
+      return file.code === "tooLarge" ? info(ovvi, path, root) : failed(file, root)
     }
     hash = file.hash
     const fallback = () => {
       zoom = () => {}
       page("")
-      void info(oriel, path, root)
+      void info(ovvi, path, root)
     }
     if (group === "pdf") return pdf(file.data, fallback)
     // The system's type, else the kind's group with the extension.
@@ -131,7 +131,7 @@ export async function show(place: Place): Promise<Reveal> {
 
   /** One draw at a time, in order: a PDF loads over several turns. */
   let shown = draw()
-  oriel.files.watch(path, () => {
+  ovvi.files.watch(path, () => {
     shown = shown.then(draw, draw)
   })
   await shown

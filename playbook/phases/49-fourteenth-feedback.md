@@ -15,7 +15,7 @@ and green checks on its exact head (`make lint build test`, a chosen-tests CI ru
 
 ## Track A: the chat (items 1–2)
 
-Files: `Oriel/Chat/**`, the chat's tests.
+Files: `Ovvi/Chat/**`, the chat's tests.
 
 1. **Every agent message, tool calls folded.** "chat loads much better now, one improvement, i think right now we
    show only last assistant message and do not show any intermediate messages, let's change that to show all
@@ -38,7 +38,7 @@ Files: `Oriel/Chat/**`, the chat's tests.
 
 ## Track B: File Explorer (items 3–15)
 
-Files: `plugins/explorer/**`, its manifest, the header code it needs (`Oriel/Plugins/Header*.swift`), its tests.
+Files: `plugins/explorer/**`, its manifest, the header code it needs (`Ovvi/Plugins/Header*.swift`), its tests.
 Owner of the shared syntax colors (item 11) and the sidebar slide (item 14) that Git also uses.
 
 3. **Folder color.** "can we change the colors of folders in file explorer plugin, let's make it similar to macos
@@ -49,7 +49,7 @@ Owner of the shared syntax colors (item 11) and the sidebar slide (item 14) that
    highlighted it should show some short view of path instead of full absolute path like how browser address bar
    currently does yk, also lets add at the top .. thing and double clicking on that should take to parent folder
    and make it root". The root control becomes a field like the browser's address bar: at rest it shows the short
-   path (`~/code/oriel`, the last parts when long); clicked, the full path, editable, with Return to go and Escape
+   path (`~/code/ovvi`, the last parts when long); clicked, the full path, editable, with Return to go and Escape
    to cancel; a path that is not a folder shakes and stays. The tree's first row is `..`; double-click makes the
    parent the root (at `/` it is not shown).
 6. **⌘F.** "clicking cmd+f in file explorer should activate filter input".
@@ -130,7 +130,7 @@ Swift; coordinate by message).
 
 ## Track D: the window and the app (items 29–33)
 
-Files: `Oriel/Views/TabBar.swift`, the chooser, the palette, `Oriel/Plugins/PluginsPanel*` and the herdr side of
+Files: `Ovvi/Views/TabBar.swift`, the chooser, the palette, `Ovvi/Plugins/PluginsPanel*` and the herdr side of
 plugin panes, their tests.
 
 29. **Chooser wraps.** "in the new pane can we cycle the selection like if i am at terminal and press up arrow i
@@ -161,13 +161,13 @@ plugin panes, their tests.
 
 ## Track E: agent states (item 34)
 
-Files: `Oriel/Views/Sidebar*.swift`, the state capsule in the card header, the agents view, their tests.
+Files: `Ovvi/Views/Sidebar*.swift`, the state capsule in the card header, the agents view, their tests.
 
 34. **States as in t3code.** "i don't see any changes to agent statuses changes similar to t3code, you mentioned
     you made changes earlier, can we fix that, let's check t3code and inspire from it on how it shows agent
     statuses on sidebar etc and improve it". Read t3code's source (github.com/pingdotgg/t3code: the sidebar's thread
     rows and their status) and record in the Findings how it shows working, waiting for input, done and error (shape,
-    color, motion, words, where). Then make Oriel's sidebar rows, the card header and the agents view follow it.
+    color, motion, words, where). Then make Ovvi's sidebar rows, the card header and the agents view follow it.
     Show the user a picture of the result before pushing.
 
 ## Findings
@@ -186,13 +186,13 @@ Files: `Oriel/Views/Sidebar*.swift`, the state capsule in the card header, the a
   the Agents view, popover, hover card and overview, and the workspace row's leading state slot: the label now ends
   the row's first line, as t3code's status slot. Idle shows nothing (the Agents view shows the age). Needs you and
   Done rows have their name in medium weight. The tab bar keeps Rex's working dots and badges (phase 33).
-- **Decisions.** herdr has one "blocked" for both input and approval, so Oriel keeps its word "Needs you" and its
+- **Decisions.** herdr has one "blocked" for both input and approval, so Ovvi keeps its word "Needs you" and its
   amber, with t3code's question bubble. herdr reports no error, so "Error" stays the chat card's own. The symbol
   does not move, as in t3code's sidebar: the counting time shows the work. The card header shows no time (its row is
   full). A workspace's time is the longest of its tabs' front agents'.
 - **Cost.** Each working label ticks once a second for its first minute, then once a minute, all on the same
   wall-clock second, so a hundred working agents make one update a second at most, not a hundred.
-- **Pictures.** Before and after, the same four states: `/tmp/oriel-shots/t49e/before-sidebar-crop.png` →
+- **Pictures.** Before and after, the same four states: `/tmp/ovvi-shots/t49e/before-sidebar-crop.png` →
   `after-sidebar-crop.png`, `before-agents-crop.png` → `after-agents-crop.png`.
 - **For the user.** The time counts from when this app saw the agent start working: after a relaunch, or on
   another Mac, an agent that has worked for 20 minutes starts at 0s.
@@ -204,19 +204,19 @@ Files: `Oriel/Views/Sidebar*.swift`, the state capsule in the card header, the a
   commands, so there is no Commands header and no header twice. A few keyless commands got their group (Close Other
   Tabs, Rename Tab, Rename Workspace, Detach Pane, Copy, Paste, Save under Edit). Typed rows keep their order and show
   the group dimmed after the title; it is the row's accessibility value, not part of its label. The Shortcuts panel
-  shows Plugins only over a plugin card. Pictures: `/tmp/oriel-shots/t49d/palette-{root,typed}-{before,after}.png`.
+  shows Plugins only over a plugin card. Pictures: `/tmp/ovvi-shots/t49d/palette-{root,typed}-{before,after}.png`.
 - **Decisions, chooser (29):** ↑ and ↓ wrap, also when held.
 - **Decisions, Show in New Pane (30):** `settings.json` keeps the ids the chooser leaves out (`hideInNewPane`), so a
   plugin with a chooser row is shown until the user turns it off. The panel's switch sits on each such row; the
   install dialog has it as the NSAlert's checkbox (`suppressionButton`), the card's trust prompt as a checkbox that
-  writes at once. ⌘K's Open ‹chooser› Here stays. Picture: `/tmp/oriel-shots/t49d/plugins-panel-after.png`.
+  writes at once. ⌘K's Open ‹chooser› Here stays. Picture: `/tmp/ovvi-shots/t49d/plugins-panel-after.png`.
 - **Cause, placeholders (31):** after a cold restart herdr brings each pane back as a login shell under its label
-  (spiked on 0.9.5: `-zsh`, a new terminal id); a pane an agent labels with the oriel-panes skill keeps its shell
+  (spiked on 0.9.5: `-zsh`, a new terminal id); a pane an agent labels with the ovvi-panes skill keeps its shell
   unless the agent runs the optional `placeholder.sh`. When the placeholder process ends, herdr closes the pane, so
   that case needs nothing. **Fix:** each `pane.process_info` answer for a browser or plugin pane with only its shell
   in front types ` exec <envelope of exec + placeholder argv>` and Return, once per shell pid; a label change asks
   again, and a labeled pane running another program gets one more look 5 s later (a slow startup).
-- **For the user:** the pi-hkandala `oriel-panes` skill's optional `pane run placeholder.sh` step now races with the
+- **For the user:** the pi-hkandala `ovvi-panes` skill's optional `pane run placeholder.sh` step now races with the
   app's own (harmless: the second line goes into the placeholder's `cat`); drop the step there.
 - **Decisions, tab pills (33):** read from the recording at 60 fps: on ⌘T Rex's marker slides about 180 pt in
   0.07–0.15 s, ease-out, no bounce, while the new tab's content shows in its slot; on ⌘W the closed tab's content goes
@@ -226,7 +226,7 @@ Files: `Oriel/Views/Sidebar*.swift`, the state capsule in the card header, the a
   checks with `-recordFrames`). A new tab scales and fades in, a closed one out; the marker glides. herdr's tab keeps
   its stand-in's view (`Ahead.born`), so its growth is not cut short when the snapshot lands. No motion when the bar
   changes workspace (a new tab in another workspace, a workspace's last tab closed), for a close that asks first, or
-  with Reduce Motion. Pictures (CI, `-forceMotion`, frames as recorded): `/tmp/oriel-shots/t49d/tab-pills-after-strip.png`
+  with Reduce Motion. Pictures (CI, `-forceMotion`, frames as recorded): `/tmp/ovvi-shots/t49d/tab-pills-after-strip.png`
   and `tab-pills-before-strip.png` (the old bar: every change in one frame).
 - **For the user:** when the tabs overflow the bar, a new tab's scroll into view lands just after the glide (one
   small step at its end); check ⌘T and ⌘W by hand with Reduce Motion off.
@@ -268,7 +268,7 @@ Files: `Oriel/Views/Sidebar*.swift`, the state capsule in the card header, the a
 - **Runs.** Chosen-tests CI runs, green on the pushed heads: 41297000504 (89fb18c9: FilesTests, FileTests, HeaderTests,
   MarkdownTests), 41298939441 (fa7d058c: MarkdownTests, FilesTests, the file card). CI's screenshots draw no web
   content, so the pictures of the pages come from the built plugin in headless Chrome with a stand-in API, before
-  (main at 7603a9c4) and after: `/tmp/oriel-shots/49b/before-harness-{read,edit,tree}.png`,
+  (main at 7603a9c4) and after: `/tmp/ovvi-shots/49b/before-harness-{read,edit,tree}.png`,
   `after-harness-{read,edit,dark,tree,treed}.png`; row 2 from CI: `before-file-explorer-home.png`,
   `after-file-explorer-home.png`.
 - **For the user.** Scroll the tree with the wheel while another pane has the keyboard, then click a row: the click
@@ -292,9 +292,9 @@ Files: `Oriel/Views/Sidebar*.swift`, the state capsule in the card header, the a
   message.
 - **Cause (item 25).** The Uncommitted diff did follow the work tree, but only for new files: CodeView keeps a record
   whose `version` did not change, and the items had none, so a file already shown kept its old text while the list's
-  counts moved (`/tmp/oriel-shots/live-before-crop-2.png`). **Fix:** each item's version goes up when its text or fold
+  counts moved (`/tmp/ovvi-shots/live-before-crop-2.png`). **Fix:** each item's version goes up when its text or fold
   changes, and an unchanged file keeps its old `fileDiff` object, so only changed files draw and the scroll stays
-  (`/tmp/oriel-shots/live-crop-2.png`).
+  (`/tmp/ovvi-shots/live-crop-2.png`).
 - **Decisions (item 25).** No new 2 s `git status` poll: `files.watch` already calls back only while the card shows,
   with FSEvents on This Mac and the 2 s check on a remote machine. The place is named Working Tree (title and label
   word); a bordered Working Tree button on the home's row 2 opens it, disabled when git cannot read.
@@ -309,12 +309,12 @@ Files: `Oriel/Views/Sidebar*.swift`, the state capsule in the card header, the a
 - **Narrow cards.** On CI's 1x screen a half-width card cut "Fetch" to "F…": the row's bordered buttons drop their
   words together when the row has no room for all of them (one `ViewThatFits` over the row). A commit card's
   VoiceOver name is its subject, as its title.
-- **Item 26.** The diff's file list is Track B's shared `oriel-sidebar` (card.css): `data-closed` slides it out in
+- **Item 26.** The diff's file list is Track B's shared `ovvi-sidebar` (card.css): `data-closed` slides it out in
   0.25 s, and Previous / Next's place is kept after the slide (`transitionend`).
-- **For the user.** Classic and light: `/tmp/oriel-shots/t49c-classic-light.png`. The file headers use `doc` for
+- **For the user.** Classic and light: `/tmp/ovvi-shots/t49c-classic-light.png`. The file headers use `doc` for
   every file, as the home's rows: File Explorer's per-type icons live in its own bundle.
-- **Pictures.** Home: before `/tmp/oriel-shots/t49c-home-before.png`, after `/tmp/oriel-shots/t49c-home-after1.png`.
-  Diff, commit page, Working Tree: before the bottom right of the first, after `/tmp/oriel-shots/t49c-diff-after2.png`.
+- **Pictures.** Home: before `/tmp/ovvi-shots/t49c-home-before.png`, after `/tmp/ovvi-shots/t49c-home-after1.png`.
+  Diff, commit page, Working Tree: before the bottom right of the first, after `/tmp/ovvi-shots/t49c-diff-after2.png`.
 
 ### Track A
 
@@ -353,8 +353,8 @@ Files: `Oriel/Views/Sidebar*.swift`, the state capsule in the card header, the a
   loop turn after the commit that draws the spinner (a one-shot observer after Core Animation's commit, then a wake-up;
   not `afterCommit`, which also fires on a click's tracking loop exit, before the commit).
 - **Pictures.** Before/after on the 117 MB session, scrolled up mid-chat (`sips -Z 1200` of the window):
-  `/tmp/oriel-shots/t49a-before-5-up.png` (Replies only: one reply per turn) and
-  `/tmp/oriel-shots/t49a-after-5-up.png` (every message, runs folded as "Ran 2 commands ›").
+  `/tmp/ovvi-shots/t49a-before-5-up.png` (Replies only: one reply per turn) and
+  `/tmp/ovvi-shots/t49a-after-5-up.png` (every message, runs folded as "Ran 2 commands ›").
 - **For the user.** Open a long chat: every reply shows, and each run of tool calls is one closed line; open one and
   close it. Scroll up and click Show Earlier: the spinner shows in the button, then the rows come above without moving
   what is in view. Scroll up a little: the round Scroll to Bottom button shows. Not checked by hand: that the spinner

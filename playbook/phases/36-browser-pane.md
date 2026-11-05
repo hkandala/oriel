@@ -7,21 +7,21 @@ pane, label and state rules it sets are the ones later plugins follow. Remote ma
 Design: [Browser](../../docs/content/docs/ui/browser.mdx), the plugin pages under
 `docs/content/docs/future-work/plugins/`, and `resources/research/plugins/browser.md`. The user approved
 WKWebView (not CEF), Web Inspector in a separate window, and mock-up A
-(`~/Downloads/oriel-research/browser-view.html`).
+(`~/Downloads/ovvi-research/browser-view.html`).
 
 ## Track A: the browser pane (items 1–6)
 
 1. **The pane in herdr.** Picking Browser in the chooser (phase 35), "Open Browser Here" in ⌘K, or a URL
    opened from a terminal link with ⌥ (if it fits) makes the pane a browser: herdr label
-   `oriel:browser#<iid> <url>`, and the ~20-line placeholder script in the pane so herdr's TUI shows
-   "Browser / url / Shown in Oriel", redraws on resize and ignores keys. Moves, tabs, zoom, floating and
+   `ovvi:browser#<iid> <url>`, and the ~20-line placeholder script in the pane so herdr's TUI shows
+   "Browser / url / Shown in Ovvi", redraws on resize and ignores keys. Moves, tabs, zoom, floating and
    session restarts keep working because it is a normal herdr pane.
 2. **The card.** WKWebView with mock-up A's toolbar (back, forward, reload or stop, the address field with
    ⌘L, the Web Inspector button), loading and error states, the loader then fade-in as in phase 35. One
    `WKWebsiteDataStore(forIdentifier:)` for This Mac. `isInspectable` on every card; the button opens Web
    Inspector in its own window (check `_WKInspector.show` in the running app; Safari's Develop menu always
    works).
-3. **State.** A small state file on the pane's machine, keyed by iid, holds the address; Oriel reads it when
+3. **State.** A small state file on the pane's machine, keyed by iid, holds the address; Ovvi reads it when
    it rebuilds the card (relaunch, session restart, moved pane) and writes it on navigation. The load rule
    from the design (saved URL, else the label's URL).
 4. **Kind-aware commands.** "Open Browser Here" hides on a browser pane; ⌘R on a browser pane shows the
@@ -30,14 +30,14 @@ WKWebView (not CEF), Web Inspector in a separate window, and mock-up A
 5. **Floating** a browser pane works like any pane.
 
 6. **Agents open plugin panes.** Any agent that can run herdr opens a browser pane next to itself: a new
-   pane with the label `oriel:browser#<iid> <url>` (iid: 6 random `[a-z0-9]`, not used by another pane in
-   the session) and, optionally, the placeholder script. Oriel shows it from the label alone, local and
+   pane with the label `ovvi:browser#<iid> <url>` (iid: 6 random `[a-z0-9]`, not used by another pane in
+   the session) and, optionally, the placeholder script. Ovvi shows it from the label alone, local and
    remote. Write the contract (label format, iid rule, args per kind, placeholder optional, file:// only on
    This Mac; remote files go through a server and phase 37's proxy) for the docs pass, and a skill
-   (`oriel-panes/SKILL.md`, in pi-hkandala's skills folder; follow its AGENTS.md) with the exact herdr
+   (`ovvi-panes/SKILL.md`, in pi-hkandala's skills folder; follow its AGENTS.md) with the exact herdr
    commands to split beside the agent's own pane (`$HERDR_PANE_ID`), set the label and start the
    placeholder, and when to use it (show an HTML report, a dev server, docs). e2e: a pane labeled by the
-   herdr CLI (not by Oriel) shows the browser with its URL.
+   herdr CLI (not by Ovvi) shows the browser with its URL.
 
 e2e: open a browser from the chooser and the palette on a local test page (a file or a tiny server the test
 starts), navigate, relaunch and see the same address, restart the herdr session and see it again, the
@@ -90,10 +90,10 @@ Captures: `scrawl-1793181414481-118c7.scrawl` and `scrawl-1793181638672-118c7-3.
   browser panes closed with their tab or replaced go with the 30-day prune. A `mailto:` or app link opens its app.
 - **Not built:** Find in the page (⌘F is disabled on a browser card), the ⌥-click on a terminal link, the
   palette's "Open in Browser" row for a typed address, Refresh, and the Inspector button's lit state.
-- **Contract (item 6, for the docs pass):** label `oriel:browser#<iid> <url>`; iid 6 `[a-z0-9]`, unique in the
+- **Contract (item 6, for the docs pass):** label `ovvi:browser#<iid> <url>`; iid 6 `[a-z0-9]`, unique in the
   session, never changed; url `http(s)://` (bare `host:port` gets `http://`), ≤ 1024 characters, no control
   characters, `file://` only on This Mac (remote files through a server); the placeholder is optional; other
-  plugins take their kind's argument the same way. The skill `oriel-panes` (pi-hkandala `skills/oriel-panes/`) has
+  plugins take their kind's argument the same way. The skill `ovvi-panes` (pi-hkandala `skills/ovvi-panes/`) has
   the exact commands: `herdr pane split "$HERDR_PANE_ID" --direction right --no-focus`, `herdr pane rename`, and
   `herdr pane run … placeholder.sh`.
 - **For the user:** a real dev server page (`localhost:3000`) and a login that should persist across relaunches;

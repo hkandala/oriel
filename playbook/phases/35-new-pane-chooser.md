@@ -18,10 +18,10 @@ browser ones when the pane already is one; the agent one shows all the time. Use
 
 ## Track A: the chooser (items 1–5)
 
-1. **The chooser.** Every pane Oriel creates (⌘T, ⌘D, ⇧⌘D, ⌃⌘T, New Workspace, a drop on New Workspace, an
+1. **The chooser.** Every pane Ovvi creates (⌘T, ⌘D, ⇧⌘D, ⌃⌘T, New Workspace, a drop on New Workspace, an
    empty session's first workspace) shows, on its card, a small glass chooser over the waiting terminal:
    **Terminal** (selected), **Agent**, **Browser**. ←/→ or ↑/↓ move, Return or a click picks, Esc picks
-   Terminal. The herdr pane and its shell start at once behind it, as today. Panes made outside Oriel (herdr's
+   Terminal. The herdr pane and its shell start at once behind it, as today. Panes made outside Ovvi (herdr's
    TUI or CLI) and panes that already run something show their terminal as today. The chooser is the app's
    state only (not herdr's); after a relaunch, a pane still at the chooser shows its terminal. Design bar (user):
    "modern Liquid Glass, center aligned, spacious with good padding and icons"; the full design is
@@ -56,7 +56,7 @@ ready; Esc gives a terminal; ⌘R on a terminal shows no chooser; the palette co
   (› / ⌄), and a short card scrolls the list to the selected row. Keys: ↑ ↓ move and stop at the ends, Return picks
   (on Agent it opens it, its first agent selected), → opens Agent, ← and Esc close it, Esc on a closed list picks
   Terminal; 1–3 pick the top rows, 1–4 the agents while Agent is open. The back button and `.back` id are gone; the
-  Agent row's value is "expanded" or "collapsed". Mock-up: `~/Downloads/oriel-research/new-pane-final.html`. Agent
+  Agent row's value is "expanded" or "collapsed". Mock-up: `~/Downloads/ovvi-research/new-pane-final.html`. Agent
   opens and closes over 0.15 s (none with Reduce Motion). The loader: the agent's program tile (44 × 36 pt) centered,
   and under it one centered line, a small spinner left of "Starting ‹agent›…" in 13 pt secondary.
 - **Decisions:** Open Browser Here waits for phase 36 (it would do what Open Terminal Here does). Start Agent Here is

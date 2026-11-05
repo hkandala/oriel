@@ -10,7 +10,7 @@ Goal: the fixes from the user's seventeenth round:
 - A workspace with many browser or plugin tabs switches as fast as any other.
 - The browser keeps the typed address and takes a click on its empty and error pages.
 - Glass stays readable over a bright window.
-- The `oriel` skill moves into this repo.
+- The `ovvi` skill moves into this repo.
 
 Five research reports (herdr-core, releases with an updater, telemetry, onboarding, the Settings window) are plans only. They change no code.
 
@@ -67,7 +67,7 @@ after review and green checks.
    probably due to we are waiting for actual herdr pane to be created may be? fix it such that even if it create
    back to back cmd+d and press cmd+w to close it should work".
    - ⌘W always closes the card that has the keyboard, at once, including a split herdr has not answered yet.
-   - When herdr's pane for a closed placeholder arrives, Oriel closes it; nothing shows in between.
+   - When herdr's pane for a closed placeholder arrives, Ovvi closes it; nothing shows in between.
    - A UI test presses ⌘D three times and ⌘W three times with no waits: one pane is left, with nothing extra after
      herdr settles.
 28. **Tab drops without a flicker.** "for tab drag and repositioning, when i leave the tab at a certain position, i
@@ -131,7 +131,7 @@ what differs unless a card needs it otherwise, and give the reason in Findings.
     arrow should work for navigating back and forth similar to browser, right now i cannot go back or forward in
     history using keyboard".
     - ⌘← / ⌘→ and ⌘[ / ⌘] go Back and Forward. ⌘↑ goes to the parent, as in Finder.
-    - Put this in the runtime's page router (`oriel.pages`), so every plugin with history gets it. A text field
+    - Put this in the runtime's page router (`ovvi.pages`), so every plugin with history gets it. A text field
       with the keyboard keeps ⌘← / ⌘→ for its caret.
 11. **Return renames.** "also when using keyboard, enter should rename the file instead of opening, same for
     folder/files, and cmd+o should open the file".
@@ -280,17 +280,17 @@ what differs unless a card needs it otherwise, and give the reason in Findings.
     with rex, they handle that well, you can still see the window behind but it doesn't interrupt with making it
     unreadable or anything, let's use similar thing what they do".
     - Study `/Applications/Rex Beta.app`: its window material, any tint or dimming layer, its opacity, and how its
-      text keeps contrast. Take pictures of Rex and Oriel over the same white window.
+      text keeps contrast. Take pictures of Rex and Ovvi over the same white window.
     - Then match Rex's approach in dark glass: for example a darker tint under the content, a stronger blur, or a
       vibrancy-aware label colour.
     - Light glass is checked the same way over a black window.
     - Text contrast must stay at or above WCAG AA (4.5:1) over white, with the window behind still visible.
-33. **The skill lives in this repo.** "i also noticed our oriel skill is in pi-hkandala, why? pi-hkandala is
-    compleltely independent repo, we should have skills within oriel repo, create may be skills folder and keep it
+33. **The skill lives in this repo.** "i also noticed our ovvi skill is in pi-hkandala, why? pi-hkandala is
+    compleltely independent repo, we should have skills within ovvi repo, create may be skills folder and keep it
     in there".
-    - Move `~/code/pi-hkandala/skills/oriel/` to `skills/oriel/` here, with its history in one commit and the source
+    - Move `~/code/pi-hkandala/skills/ovvi/` to `skills/ovvi/` here, with its history in one commit and the source
       named.
-    - `make install` links it into `~/.agents/skills/oriel` (pi and Codex) and `~/.claude/skills/oriel` (Claude
+    - `make install` links it into `~/.agents/skills/ovvi` (pi and Codex) and `~/.claude/skills/ovvi` (Claude
       Code), if absent.
     - Delete it from pi-hkandala and push there.
     - Update the docs that name pi-hkandala (agent-control, the CLI's hints).
@@ -304,7 +304,7 @@ what differs unless a card needs it otherwise, and give the reason in Findings.
     delay when clicking on the workspace that has many tabs, i noticed this exactly in the current workspace where
     we have so many reports opened in tabs, let's improve the workspace switching overall and make it snappy".
     - Measure first, from the click to the first drawn frame of the new workspace. Use real HTML reports (the
-      `~/Downloads/oriel-research/*.html` files).
+      `~/Downloads/ovvi-research/*.html` files).
       - For a target workspace with 1 tab, with 10 terminal tabs, with 10 browser tabs, and with 10 mixed plugin tabs
         (browser, File Explorer, Git).
       - For both directions, and for a workspace seen before versus not seen since launch.
@@ -376,7 +376,7 @@ what differs unless a card needs it otherwise, and give the reason in Findings.
     address bar, similar to that, do not show full absolut path all the time, same like file explorer again".
     - Keep today's chooser as it is. Add one quiet line under the list: "Opens in", then the folder the new pane will
       start in.
-    - The folder shows short, as File Explorer's path bar does: `~/code/oriel`, or relative to the repository, never
+    - The folder shows short, as File Explorer's path bar does: `~/code/ovvi`, or relative to the repository, never
       the full absolute path at rest. Name the machine only when it is not This Mac.
     - A click on the path turns it into a text field with the path selected. Return applies it and Esc cancels it.
       `~` and relative paths are taken. A folder that does not exist on that machine shows an inline error, and the
@@ -429,8 +429,8 @@ what differs unless a card needs it otherwise, and give the reason in Findings.
 
 ## Research, plans only (items 34–38, 42, 43)
 
-No code changes. Each report is one self-contained HTML file in `/tmp/oriel-research/`, copied to
-`~/Downloads/oriel-research/`, written in plain English.
+No code changes. Each report is one self-contained HTML file in `/tmp/ovvi-research/`, copied to
+`~/Downloads/ovvi-research/`, written in plain English.
 
 34. **herdr-core.** "herdr has recently introduced herdr-core, can you check how that works, i think we can ship
     herdr-core within our app and use it without need to ask user to install herdr or anything, i think herdr core
@@ -494,7 +494,7 @@ The tracks run in parallel, each in its own worktree. Estimates are in agent hou
 
 - D and E both touch `plugins/explorer`: D owns the tree and its header, and E owns the file cards. Each bumps
   File Explorer's version when it lands, rebasing on the other.
-- D puts the history keys (10) in `web/oriel`; F rebases onto it.
+- D puts the history keys (10) in `web/ovvi`; F rebases onto it.
 - F's destructive role (25) touches `ToastView` and the plugin API.
 
 The whole phase is about 6 h of wall time with all tracks at once, then the finish (docs pass, final review, two full
@@ -521,9 +521,9 @@ CI runs and on-demand) at about 2–3 h.
   tool the summary counts is in view when the run opens.
 - **Runs.** The new UI test on the old code: red with 9 rows of 10 (run 41962205822). On the fix: green
   on the pushed head.
-- **Pictures.** Before, the real run in dark: `/tmp/oriel-shots/t53a/before-real-run-dark.png`. After:
-  `/tmp/oriel-shots/t53a/after-real-run-dark.png` and the stand-in's run with every tool,
-  `/tmp/oriel-shots/t53a/after-tools-light.png`.
+- **Pictures.** Before, the real run in dark: `/tmp/ovvi-shots/t53a/before-real-run-dark.png`. After:
+  `/tmp/ovvi-shots/t53a/after-real-run-dark.png` and the stand-in's run with every tool,
+  `/tmp/ovvi-shots/t53a/after-tools-light.png`.
 - **For the user.** In pi's chat, open a run whose summary says "read N files" after codemode scripts: each read sits
   under its codemode row. Open a run with a large write inside a script: its row shows the file. In a Codex chat
   that starts subagents, the run lists each start and each message.
@@ -541,8 +541,8 @@ CI runs and on-demand) at about 2–3 h.
 - **Cause, item 30.** The default was already Priority. The user's windows had saved Workspace in scene storage, so
   they kept showing it. **Fix:** the key is now `agentOrder`. Every window starts at Priority once and keeps any later
   choice (agreed with the orchestrator).
-- **Item 33.** The skill moved unchanged (byte for byte) from pi-hkandala `skills/oriel` at `7ac9136`. `make install`
-  links it where no `oriel` skill exists, and `-f` replaces a link whose checkout is gone. The agent-control page
+- **Item 33.** The skill moved unchanged (byte for byte) from pi-hkandala `skills/ovvi` at `7ac9136`. `make install`
+  links it where no `ovvi` skill exists, and `-f` replaces a link whose checkout is gone. The agent-control page
   tells how to copy it to a remote machine.
 - **Cause, item 32.** Dark Glass darkened the blur with black blended `overlay`, under a `#1e1e1e` tint at 0.5. An
   `overlay` blend leaves white as it is and turns dark parts black, so it raised the contrast of whatever was behind:
@@ -565,11 +565,11 @@ CI runs and on-demand) at about 2–3 h.
   Contrast over white, at the brightest pixel: sidebar text (white 0.65) went from 4.4:1 to 6.0:1, and terminal text
   (`#d0d0d0`) from 4.9:1 to 6.6:1. The card header buttons are 3.2:1 (at least 3:1 is needed). Light over black:
   sidebar text is 6.3:1. `cardSolid` follows the card without the keyboard (`#2e` → `#34`). Pictures:
-  `/tmp/oriel-shots/t53g/before-oriel-dark-over-white.png`, `after-oriel-dark-over-white.png`,
-  `before-`/`after-oriel-dark-over-black.png`, `before-`/`after-oriel-light-over-black.png` (light is unchanged),
-  `screen-rex-dark-white.png`; the 0.6 trial: `t0.6-oriel-dark-over-*.png`.
+  `/tmp/ovvi-shots/t53g/before-ovvi-dark-over-white.png`, `after-ovvi-dark-over-white.png`,
+  `before-`/`after-ovvi-dark-over-black.png`, `before-`/`after-ovvi-light-over-black.png` (light is unchanged),
+  `screen-rex-dark-white.png`; the 0.6 trial: `t0.6-ovvi-dark-over-*.png`.
 - **Cost, item 32.** The glass layer costs WindowServer about 5 points of one core while a terminal prints at full speed:
-  28 % before, 33 % after (`top`, two runs each, alternating, load average 70 to 150). Oriel's own CPU is unchanged
+  28 % before, 33 % after (`top`, two runs each, alternating, load average 70 to 150). Ovvi's own CPU is unchanged
   (16 %). Idle, no difference shows.
 - **Runs, item 32.** `testGlassCardsHaveABrighterTopRim` failed on main after b9597cd5 (Track B's active border, item
   2): the border lies over the keyboard card's rim, so its side read 65 steps over the fill (run 41968008720). The test
@@ -577,8 +577,8 @@ CI runs and on-demand) at about 2–3 h.
 - **For the user, items 27–33.** ⌘K, then scroll to the end: a cut row runs to the panel's edge, and the gap shows
   only after the last row. In the Agents view, only Working rows show a time ("<1m", then 1m, 2m…), and Needs you and
   Done show the icon alone. Every window opens the Agents view in Priority order once, and keeps a choice you make
-  after. In a new pi or Claude Code session, the `oriel` skill loads from this repo
-  (`~/.agents/skills/oriel` and `~/.claude/skills/oriel` link to `~/code/oriel/skills/oriel`).
+  after. In a new pi or Claude Code session, the `ovvi` skill loads from this repo
+  (`~/.agents/skills/ovvi` and `~/.claude/skills/ovvi` link to `~/code/ovvi/skills/ovvi`).
 - **For the user, item 32.** Put a white window (a web page) behind a dark Glass window: no text or edges come
   through, only a soft light. Do the same in light Glass over a dark window. With Reduce Transparency on (System
   Settings ▸ Accessibility ▸ Display), Glass turns opaque and stays readable.
@@ -610,7 +610,7 @@ CI runs and on-demand) at about 2–3 h.
   (buffers above and below the drawn lines). No script moves a header; the phase 52 copy is deleted.
 - **Runs (23).** The real app on this Mac, two 30-step trackpad flicks (HID) over a 483-line file: the header sat at
   the same pixel row in all 131 frames while it stuck, and no frame showed text above it
-  (`/tmp/oriel-shots/t53f/sticky-after-real.mov`, `sticky-after-real-sheet.png`). Synthetic probe flicks: the header
+  (`/tmp/ovvi-shots/t53f/sticky-after-real.mov`, `sticky-after-real-sheet.png`). Synthetic probe flicks: the header
   in every frame, a few frames of blank lines at file boundaries while the next lines draw. First draw, probe, 1,000
   new 30-line files: CodeView ~550 ms, every view at once ~2,300 ms, lazy views ~500 ms; 53 files about the same
   before and after. A file growing 40 lines above the one in view moved it 800 px without `steady`, 0 px with it; the
@@ -666,7 +666,7 @@ CI runs and on-demand) at about 2–3 h.
   the error page and "Open this page?") and 41962785281.
 - **The error click's check.** A web view reports no keyboard focus of its own in XCUITest, so the test checks that
   the terminal lost the keyboard and that ⌘L then acts on this card.
-- **Pictures** in `/tmp/oriel-shots/t53c/`: before (old code, CI, dark): `before-remote-chip.png`,
+- **Pictures** in `/tmp/ovvi-shots/t53c/`: before (old code, CI, dark): `before-remote-chip.png`,
   `before-empty-click.png`. After: `after-failed-address-dark.png`, `after-chip-machine-dark.png`,
   `after-chip-this-mac-dark.png`, `after-chip-machine-light.png`, `after-chip-this-mac-light.png`.
 - **For the user.**
@@ -675,7 +675,7 @@ CI runs and on-demand) at about 2–3 h.
   2. With two panes, click the other pane, then click anywhere on the browser's error page, or on a new browser
      card's globe. The browser card becomes active.
   3. On a remote machine, open a browser card on `localhost:<port>`. Click the machine chip: it says "This Mac", and
-     the page loads from this Mac's `localhost`. Click it again: back to the machine's page. Quit and reopen Oriel:
+     the page loads from this Mac's `localhost`. Click it again: back to the machine's page. Quit and reopen Ovvi:
      the card keeps its choice.
 
 ### Track B
@@ -708,7 +708,7 @@ CI runs and on-demand) at about 2–3 h.
   the same test with 3 panes (the lit card did not step back once a snapshot had its pane); the reviewer found it too.
   Green, 12 chosen tests: 41961788350 and 41963184169 (the pushed head before its last rebase onto Track C's browser
   commits).
-- **Pictures** in `/tmp/oriel-shots/t53b/`: `border-before-*.png` and `border-after-*.png` (glass and classic, dark
+- **Pictures** in `/tmp/ovvi-shots/t53b/`: `border-before-*.png` and `border-after-*.png` (glass and classic, dark
   and light); the drop at 60 fps, `drop-before-60fps.mov` and `drop-after-60fps.mov` (the tab bar, cropped), with the frames
   around the drop in `drop-before-frames.png`, `drop-after-frames.png` and the `drop-*-sheet.png` strips.
 - **For the user.**
@@ -753,7 +753,7 @@ CI runs and on-demand) at about 2–3 h.
   Mode and the palette, not in the mode menu (no hint text in the UI).
 - **Task boxes (26).** 0.95 em → 1.1 em (13.3 → 15.4 px at the 14 px prose size), not 1.15: the box sits in the
   bullet's 1.1 em slot, and a wider box pushed the first line 0.05 em right of its wrapped lines.
-- **Pictures** in `/tmp/oriel-shots/t53e/`: `before-{dark,light}.png`, `step1-after-{dark,light}.png` (the row),
+- **Pictures** in `/tmp/ovvi-shots/t53e/`: `before-{dark,light}.png`, `step1-after-{dark,light}.png` (the row),
   `step2-after-{dark,light}.png` (Side by Side and Source), `find-replace-dark.png`,
   `markdown-side-by-side-dark.png` (from the UI tests).
 - **For the user:** open a code file, an image and a Markdown file from a repository and from `~/Downloads`: the
@@ -797,7 +797,7 @@ CI runs and on-demand) at about 2–3 h.
   first runs on the new code went red where the tests expected the old `..` button and the old first row. The dot's
   pixel check runs only on a Mac (CI's screenshots draw no web content, so there it is skipped): locally it is red
   with the dots style taken out ("a clean folder shows a change dot") and green with it.
-- **Pictures** in `/tmp/oriel-shots/t53d/`: `before-*` and `after-*`, dark and light, of the tree, the tree scrolled
+- **Pictures** in `/tmp/ovvi-shots/t53d/`: `before-*` and `after-*`, dark and light, of the tree, the tree scrolled
   (sticky folders) and the find bar.
 - **For the user.**
   1. In a File Explorer card, row 2 shows Back, Forward, the path (wide), then Filter, Collapse All and the eye. Click
@@ -818,7 +818,7 @@ CI runs and on-demand) at about 2–3 h.
 ### Track H
 
 - **How measured.** Release builds on this Mac, the bench session's workspaces: one (1 terminal tab), terms (10
-  terminal tabs), webs (10 browser tabs on the `oriel-research` reports, copied to `/tmp`), mixed (10 tabs: browsers,
+  terminal tabs), webs (10 browser tabs on the `ovvi-research` reports, copied to `/tmp`), mixed (10 tabs: browsers,
   File Explorer, Git) and many (30 terminal tabs). `-recordLatency` gives each switch's time from the click to the end
   of the turn whose commit drew it, and (a local patch) the main thread's CPU time in it. Clicks went to the HID tap
   under the GUI lock; an in-app driver (local patch) switched workspaces in a background window with no lock. The Mac's
@@ -836,7 +836,7 @@ CI runs and on-demand) at about 2–3 h.
 - **Cause, repeated first visits.** A web card shown for the first time since launch costs 80–145 ms of main thread
   (a new WKWebView and WebContent process, the page loads); a kept one is reused. Cards were dropped by the memory
   trim, which halved both kept sets (to 12 web cards, 12 terminals) on every pressure *warning*. The user's installed
-  Oriel got one every 30 minutes like clockwork (16:47, 17:17, … 19:17 in the log) while
+  Ovvi got one every 30 minutes like clockwork (16:47, 17:17, … 19:17 in the log) while
   `kern.memorystatus_vm_pressure_level` read normal with 43 % of 32 GB free. **Fix (agreed with the orchestrator):**
   only critical pressure trims; a warning does nothing. D46 and the design pages say so.
 - **Numbers** (main-thread CPU ms, then wall ms; medians):
@@ -877,8 +877,8 @@ CI runs and on-demand) at about 2–3 h.
   are the means of full runs 41988017252, 42004828681 and 42026081029 (five shards of 796–798 s). Replayed with the
   slowest run's own times the worst shard is 873 s, plus up to 370 s of setup, build and upload: 1243 s, so a test job
   now stops at 25 minutes (ci.md).
-- **Pictures.** The look does not change: `/tmp/oriel-shots/t53h/before-webs-dark.png` and
-  `/tmp/oriel-shots/t53h/after-webs-dark.png` are the same pixels.
+- **Pictures.** The look does not change: `/tmp/ovvi-shots/t53h/before-webs-dark.png` and
+  `/tmp/ovvi-shots/t53h/after-webs-dark.png` are the same pixels.
 - **For the user.**
   1. Open a workspace with 20 or more tabs, then switch to it and away a few times: it shows at once, as a small one
      does.
@@ -895,7 +895,7 @@ CI runs and on-demand) at about 2–3 h.
   background window, 1.2 s apart, and logged each switch's main-thread CPU time to the end of the turn that drew it,
   with counts of the bodies run. The Mac's load was 100–140, so I compared CPU medians of 6–7 switches, before and after
   in the same hour, and checked each cause with a count. Time Profiler and SwiftUI traces of 14 switches to the chat
-  tab are in `/tmp/oriel-shots/t53i/` (`tp-before`, `tp-lines`, `sui-before`, `sui-after`). Under the SwiftUI
+  tab are in `/tmp/ovvi-shots/t53i/` (`tp-before`, `tp-lines`, `sui-before`, `sui-after`). Under the SwiftUI
   instrument (which slows the app) the 14 switches had 15 hangs of 250–930 ms and 731,000 SwiftUI updates before, 4
   hangs of 256–304 ms and 235,000 updates after.
 - **Cause.** An idle chat costs nothing (13–50 ms of main thread per 5 s, as a terminal tab). The cost is each show:
@@ -930,8 +930,8 @@ CI runs and on-demand) at about 2–3 h.
 - **Runs.** The new UI test counts the rows built (the stack's rows in the accessibility tree), then again after Show
   Earlier and a workspace switch back. Its first version (the count after a switch back) on the old code: 33 rows,
   red (run 41985315591); at most 10 on the new.
-- **Pictures.** The chat at the bottom looks the same, pixel for pixel: `/tmp/oriel-shots/t53i/before-chat.png`,
-  `/tmp/oriel-shots/t53i/after-chat.png`.
+- **Pictures.** The chat at the bottom looks the same, pixel for pixel: `/tmp/ovvi-shots/t53i/before-chat.png`,
+  `/tmp/ovvi-shots/t53i/after-chat.png`.
 - **For the user.**
   1. Open your long session in a chat tab, then switch to another tab and back, and to another workspace and back,
      a few times: it shows about three times faster than before (124 ms of main thread against 394 here; a terminal
@@ -1012,8 +1012,8 @@ CI runs and on-demand) at about 2–3 h.
 - **The tree's find bar.** Track D and Track E built two "terminal ⌘F" bars in parallel. The tree's now uses the
   editor's `find.css` and `symbols()`, and floats at the tree's top right as a compact capsule, as the user asked ("why
   the ehck the filter input is taking all the width"): the rows no longer move under it. File Explorer is 1.9.1.
-  Pictures: before `/tmp/oriel-shots/t53d/after-{dark,light}-find.png`, after
-  `/tmp/oriel-shots/p53f/after-{dark,light}-find.png`.
+  Pictures: before `/tmp/ovvi-shots/t53d/after-{dark,light}-find.png`, after
+  `/tmp/ovvi-shots/p53f/after-{dark,light}-find.png`.
 - **Nits.** `WindowBackground` has its own file. The quick-close step back before a question gets a `ponytail:` note:
   a cancelled question leaves the earlier card lit. Left: the capsule width in the lazy-row test stays a constant (the
   bound is twice the fit, and a width change shows in the tab tests); the change-dot pixel check stays Mac-only.
@@ -1040,7 +1040,7 @@ CI runs and on-demand) at about 2–3 h.
 ### Track M
 
 - **What the capture shows.** Both sessions' cards are terminals (Claude Code and pi TUIs, glow), not chat cards: the
-  shift between keyframes 2 and 3 is Claude Code's own redraw (its tool output lost a line), not Oriel. Frame by frame
+  shift between keyframes 2 and 3 is Claude Code's own redraw (its tool output lost a line), not Ovvi. Frame by frame
   at 240 fps, every session swipe ends the same way. The sidebar's page comes to about 2 pt short of its place. Then
   no frame is drawn for 83–125 ms. Then the window shows the new session with the page still 1.5 pt short, and the
   next frame jumps it onto its place. Nothing in a card moves, apart from a TUI's timer updating as its stream comes
@@ -1072,7 +1072,7 @@ CI runs and on-demand) at about 2–3 h.
   50 ms longer after the pages come within 2 pt, so the two tests' bound on that wait went from 80 to 120 ms: still
   well under the old 150–200 ms tail it guards against.
 - **Recordings.** The UI test's screen recordings, before and after:
-  `/tmp/oriel-shots/t53m/before-swipe-test.mp4` and `after-swipe-test.mp4`. Each frame's offsets:
+  `/tmp/ovvi-shots/t53m/before-swipe-test.mp4` and `after-swipe-test.mp4`. Each frame's offsets:
   `before-latency.txt` and `after-latency.txt`. I made no screen recording at 120 fps, because the Mac was in use.
 - **Left.** The new session still appears about 100 ms after its page lands: that is the cost of building its page.
   Making the show cheaper is a separate job.

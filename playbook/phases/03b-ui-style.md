@@ -7,7 +7,7 @@ conflict (see "Changes to the design" below).
 ## References
 
 - Screenshots in the Rex reference shots (Rex and similar apps; some in a light
-  theme, Oriel stays dark). Study every one at full size.
+  theme, Ovvi stays dark). Study every one at full size.
   - `01-titlebar-tabs-single-pane.jpeg`: compact title bar with the session name, one tab
     capsule, ⌘ and + on the right; one pane card inset under it.
   - `02-titlebar-tabs-pane-header.png`: several tab capsules in the title bar (icon tile +

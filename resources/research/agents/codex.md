@@ -1,9 +1,9 @@
 # Codex: chat view research
 
-> Two spikes in throwaway herdr panes for the [chat view](../ui/chat-view.md). The second one settled the reliable core below; spike scripts and samples lived in `/tmp/oriel-research/` and were not kept.
+> Two spikes in throwaway herdr panes for the [chat view](../ui/chat-view.md). The second one settled the reliable core below; spike scripts and samples lived in `/tmp/ovvi-research/` and were not kept.
 
 Codex CLI 0.163.0 through the company launcher, herdr 0.9.5, macOS. Runs were in the throwaway session
-`oriel-dev-research-codex2` (removed), `gpt-5.6-luna` at low effort.
+`ovvi-dev-research-codex2` (removed), `gpt-5.6-luna` at low effort.
 Every agent was started by typing `/usr/local/bin/codex …` into the pane's shell with `herdr pane send-text`.
 
 ## Summary
@@ -11,8 +11,8 @@ Every agent was started by typing `/usr/local/bin/codex …` into the pane's she
 | Feature | Mechanism | Rating | Evidence |
 |---|---|---|---|
 | Launch flags | Inline `-c hooks.SessionStart=…` plus `-c hooks.state={…trusted_hash…}`. No file, no trust dialog, no bypass flag | RELIABLE | No dialog; hook ran; `config.toml`/`hooks.json` hashes unchanged; user hooks still ran (herdr `agent_session` set) |
-| Recognize Oriel panes | A token in the hook path, read from argv via `pane.process_info` | RELIABLE | `codex`, `dotslash`, `codex.real` argv all carry `oriel-T1` |
-| Transcript discovery | SessionStart hook appends its JSON (with `transcript_path`, `source`) to `/tmp/oriel-<token>/hooks.jsonl`; last non-null path wins | RELIABLE | Followed startup, `/new`, `/clear`, `/resume`, `/fork`; compaction keeps the file |
+| Recognize Ovvi panes | A token in the hook path, read from argv via `pane.process_info` | RELIABLE | `codex`, `dotslash`, `codex.real` argv all carry `ovvi-T1` |
+| Transcript discovery | SessionStart hook appends its JSON (with `transcript_path`, `source`) to `/tmp/ovvi-<token>/hooks.jsonl`; last non-null path wins | RELIABLE | Followed startup, `/new`, `/clear`, `/resume`, `/fork`; compaction keeps the file |
 | File watching | `tail -n +1 -F <rollout>`; parse `event_msg/item_completed` | RELIABLE | Line on disk 0.1–0.3 s after the TUI drew the final text; 0 partial chunks |
 | Parser core | `parse.py`: user, assistant, thinking, tools, subagents, plan, question, turn start/end, interrupt; unknown lines skipped | RELIABLE (typed items) / FRAGILE (code-mode `exec` rows) | `python3 parse.py --demo` passes on both samples |
 | Send | `herdr agent prompt` | RELIABLE when ready | Idle, working (steers), multiline: all landed as `UserMessage` |
@@ -29,10 +29,10 @@ Every agent was started by typing `/usr/local/bin/codex …` into the pane's she
 
 ## Launch command
 
-What Oriel types into the pane's shell (token `7f3a`, made per pane; output of `python3 launch.py 7f3a`):
+What Ovvi types into the pane's shell (token `7f3a`, made per pane; output of `python3 launch.py 7f3a`):
 
 ```sh
-/usr/local/bin/codex -c 'hooks.SessionStart=[{hooks=[{type="command",command="mkdir -p /tmp/oriel-7f3a; umask 077; cat >> /tmp/oriel-7f3a/hooks.jsonl; echo >> /tmp/oriel-7f3a/hooks.jsonl"}]}]' -c 'hooks.state={"/<session-flags>/config.toml:session_start:0:0"={trusted_hash="sha256:…"}}'
+/usr/local/bin/codex -c 'hooks.SessionStart=[{hooks=[{type="command",command="mkdir -p /tmp/ovvi-7f3a; umask 077; cat >> /tmp/ovvi-7f3a/hooks.jsonl; echo >> /tmp/ovvi-7f3a/hooks.jsonl"}]}]' -c 'hooks.state={"/<session-flags>/config.toml:session_start:0:0"={trusted_hash="sha256:…"}}'
 ```
 
 Add the promo guard the user needs (`-c 'tui.model_availability_nux."gpt-6-sol"=9'`). I tested the full line in
@@ -56,14 +56,14 @@ Add the promo guard the user needs (`-c 'tui.model_availability_nux."gpt-6-sol"=
   `hooks.json`, config.toml hooks, plugin hooks and managed hooks; none is replaced. `hooks.state` merges per key.
 - **Side effect:** any `-c` makes Codex run in embedded mode, not on the shared background server (a startup warning
   sits behind "⚠ 1 warning · f2"). That is what makes hooks run with the pane's env and the TUI hold the rollout.
-- **Recognition after an Oriel relaunch.** `pane.process_info` gives the argv. A `/tmp/oriel-([0-9a-z]+)/` match
-  gives the token and the file, so no Oriel-side state is needed. A pane where the user quit and restarted plain
-  `codex` has no token, so it gets no chat switch (correct). Delete `/tmp/oriel-<token>` when the pane closes.
+- **Recognition after an Ovvi relaunch.** `pane.process_info` gives the argv. A `/tmp/ovvi-([0-9a-z]+)/` match
+  gives the token and the file, so no Ovvi-side state is needed. A pane where the user quit and restarted plain
+  `codex` has no token, so it gets no chat switch (correct). Delete `/tmp/ovvi-<token>` when the pane closes.
 
 ## 1–2. Transcript discovery
 
 The hooks payload holds `session_id`, `transcript_path`, `cwd`, `model`, `permission_mode`, and `source`. Results
-from `hooks.log` and `run/oriel-T1/hooks.jsonl`:
+from `hooks.log` and `run/ovvi-T1/hooks.jsonl`:
 
 | Action | SessionStart `source` | File | When the hook fires |
 |---|---|---|---|
@@ -165,7 +165,7 @@ to 120 s for `perm.<pid>.ans`, prints the answer, and exits.
 - **Hooks run before the reviewer.** The order is hooks, then Guardian (`auto_review`, forced by
   `/etc/codex/managed_config.toml`), then the user. Under default permissions the hook fired for `rm -rf g1`, so a
   waiting hook takes over every escalation that Guardian would have reviewed. That changes the user's policy.
-- **All PermissionRequest hooks are awaited in parallel, and any deny wins.** A slow Oriel hook delays the user's
+- **All PermissionRequest hooks are awaited in parallel, and any deny wins.** A slow Ovvi hook delays the user's
   other hooks too. `/hooks` lists 3 installed PermissionRequest hooks from plugins and admin config.
 - **The TUI cannot answer while the hook waits.**
 
@@ -185,9 +185,9 @@ and killed it afterwards. The client was `ssh -F /dev/null -i … -o UserKnownHo
 touch `~/.ssh`.
 
 - **Launch:** the same line typed into the remote pane. The hook is inline, nothing is installed, and the token dir
-  is `/tmp/oriel-<token>` on the remote.
+  is `/tmp/ovvi-<token>` on the remote.
 - **Recognize:** `herdr pane.process_info` (remote herdr) argv → token.
-- **Discover:** one-shot `grep -v '"transcript_path":null' /tmp/oriel-<token>/hooks.jsonl | tail -1`.
+- **Discover:** one-shot `grep -v '"transcript_path":null' /tmp/ovvi-<token>/hooks.jsonl | tail -1`.
 - **Stream:** `tail -n 0 -F <rollout>` over SSH into local `parse.py` gave `turn_start`, `status`,
   `user "remote-ok"`, `assistant "remote-ok"`, `turn_end`. To follow a SessionStart switch, stream
   `tail -F hooks.jsonl` as well (second stream), or re-run the one-shot after each Stop or send.

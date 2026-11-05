@@ -1,12 +1,12 @@
-# Plugin systems: what Oriel borrows
+# Plugin systems: what Ovvi borrows
 
-Context: an Oriel plugin is a folder with a manifest and `main.ts`. The app bundles it with esbuild, serves it into one WKWebView per card, and the plugin calls native Swift through a typed `oriel` module. Hot reload runs on file change, and the built-ins use the same format. For each system below: how it works, then what to take and what to skip.
+Context: an Ovvi plugin is a folder with a manifest and `main.ts`. The app bundles it with esbuild, serves it into one WKWebView per card, and the plugin calls native Swift through a typed `ovvi` module. Hot reload runs on file change, and the built-ins use the same format. For each system below: how it works, then what to take and what to skip.
 
 ---
 
 ## 1. bb (get-bb/bb): "the agent IDE that builds itself"
 
-**Which bb.** Three things share the name. One is get-bb/bb (getbb.app): an MIT-licensed agentic IDE (desktop, web, CLI and HTTP API) that runs Claude Code, Codex, pi and other agents. Another is shuyhere/bb-agent, a small terminal agent. The third is Bitbucket, which has no "bb IDE". I chose **get-bb/bb**. It is the AI/agent IDE, it has a real plugin SDK, and it ships 21 bundled plugins built on that same SDK (git, GitHub, monaco-editor, pdf-preview, theme-preview). It is the closest match to Oriel. https://github.com/get-bb/bb · https://getbb.app · https://github.com/MGrin/awesome-bb-plugins
+**Which bb.** Three things share the name. One is get-bb/bb (getbb.app): an MIT-licensed agentic IDE (desktop, web, CLI and HTTP API) that runs Claude Code, Codex, pi and other agents. Another is shuyhere/bb-agent, a small terminal agent. The third is Bitbucket, which has no "bb IDE". I chose **get-bb/bb**. It is the AI/agent IDE, it has a real plugin SDK, and it ships 21 bundled plugins built on that same SDK (git, GitHub, monaco-editor, pdf-preview, theme-preview). It is the closest match to Ovvi. https://github.com/get-bb/bb · https://getbb.app · https://github.com/MGrin/awesome-bb-plugins
 
 **Written/loaded.** A plugin is an npm-style package. `bb.server` is the backend factory, run by the daemon. `bb.app` is an optional React frontend that runs inside the bb UI. `bb.host` is an optional full-trust Node entry. Path installs load the server `.ts` directly. `bb plugin build` uses a pinned esbuild and Tailwind to make `dist/app.js` and `dist/server.js`. React and the SDK are not bundled: they are "shimmed" to the host's own runtime.
 
@@ -85,8 +85,8 @@ Hooks change an `output` object in place, and a hook can throw to veto the actio
 **Hot reload.** None: you restart OpenCode. **Security:** none. The plugin gets Bun's `$` shell and full process rights.
 
 **Take**
-- **The entry signature.** One async function gets a context object and returns hooks. That is the simplest shape that is fully typed. Oriel can use `export default (oriel: Oriel, card: CardContext) => void | Promise<void>`, with events registered through `oriel.on(...)`.
-- **Project-local plugin folders** (`.opencode/plugins/`) next to global ones. For Oriel: `~/.config/oriel/plugins/` plus a folder per project, on the herdr host.
+- **The entry signature.** One async function gets a context object and returns hooks. That is the simplest shape that is fully typed. Ovvi can use `export default (ovvi: Ovvi, card: CardContext) => void | Promise<void>`, with events registered through `ovvi.on(...)`.
+- **Project-local plugin folders** (`.opencode/plugins/`) next to global ones. For Ovvi: `~/.config/ovvi/plugins/` plus a folder per project, on the herdr host.
 
 **Skip**
 - No manifest. We need a manifest because the native header and file-type matching must be known **before** any JS runs.
@@ -137,9 +137,9 @@ CSP: `default-src 'none'; script-src ${webview.cspSource}; style-src ${webview.c
 
 **Take**
 - **`selector.filenamePattern` + `priority: default | option`.** Use this as is in our manifest (`opens: [{ pattern: "*.md", priority: "default" }]`). It settles who wins when the markdown and preview built-ins both match.
-- **Header controls declared in the manifest, state pushed at runtime.** VS Code splits the two: a static `menus` entry, plus `when` keys that change it. For Oriel: the manifest declares `controls[{ id, icon, title, kind: button|toggle|menu }]`, and the plugin calls `card.controls.update(id, { on, enabled, hidden })`. Clicks arrive as `card.on("control", id)`. Swift draws the header before the webview loads.
-- **`getState`/`setState`**: synchronous to read, JSON, and cached in the page. Oriel should give the plugin the last saved state at load (`card.state`) and keep it across hot reload, restarts and relayout. One feature replaces both `retainContextWhenHidden` and the serializer.
-- **Theme tokens as CSS variables plus a body class**, and **CSP with resource roots**. In WebKit that means a `WKURLSchemeHandler` for `oriel-plugin://<id>/` that serves only the plugin folder and the bundle, with a strict CSP header.
+- **Header controls declared in the manifest, state pushed at runtime.** VS Code splits the two: a static `menus` entry, plus `when` keys that change it. For Ovvi: the manifest declares `controls[{ id, icon, title, kind: button|toggle|menu }]`, and the plugin calls `card.controls.update(id, { on, enabled, hidden })`. Clicks arrive as `card.on("control", id)`. Swift draws the header before the webview loads.
+- **`getState`/`setState`**: synchronous to read, JSON, and cached in the page. Ovvi should give the plugin the last saved state at load (`card.state`) and keep it across hot reload, restarts and relayout. One feature replaces both `retainContextWhenHidden` and the serializer.
+- **Theme tokens as CSS variables plus a body class**, and **CSP with resource roots**. In WebKit that means a `WKURLSchemeHandler` for `ovvi-plugin://<id>/` that serves only the plugin folder and the bundle, with a strict CSP header.
 
 **Skip**
 - The two-process split (extension host plus webview). Our "host" is Swift, so `main.ts` runs in the webview and calls the bridge directly. Skip `activationEvents` too: a card is created on demand, so loading is already lazy.
@@ -184,7 +184,7 @@ The API crate is versioned (`zed_extension_api = "0.x"`), and Zed keeps old WIT 
 **Hot reload.** "Install Dev Extension" points at a folder and overrides the published version ("Overridden by dev extension"). It rebuilds when you reinstall, not on save. **Security:** capabilities (`process:exec`, `download_file`, `npm:install`) are declared with glob scopes. Users can narrow what is granted in settings with `granted_extension_capabilities`. A missing capability makes the API call return an error. It does not crash the extension.
 
 **Take**
-- **Capabilities declared in the manifest with glob scopes, and denied calls return errors.** For Oriel: `permissions: { run: ["git", "rg"], files: "card-root" | "home" | "any", network: [...] }`. Swift checks each bridge call and rejects with a typed error. Built-ins get the same check, so it gets tested.
+- **Capabilities declared in the manifest with glob scopes, and denied calls return errors.** For Ovvi: `permissions: { run: ["git", "rg"], files: "card-root" | "home" | "any", network: [...] }`. Swift checks each bridge call and rejects with a typed error. Built-ins get the same check, so it gets tested.
 - **`schema_version` in the manifest**, separate from the API version. It lets us change the manifest format later.
 - **A dev folder overrides the installed plugin with the same id**, and the UI shows a badge for it.
 
@@ -231,9 +231,9 @@ class MyView extends ItemView {
 **Hot reload.** pjeby/hot-reload watches every plugin folder that has a `.git` folder or a `.hotreload` file. When `main.js`, `styles.css` or `manifest.json` changes, it disables and re-enables the plugin. Open views are closed and opened again; they get back the state saved through `setState`. **Security:** none. Plugins get full Node and Electron, and the store depends on review and on code being public.
 
 **Take**
-- **`register*` helpers that clean up on their own.** Every `oriel.watch`, `oriel.on` or timer is tied to the card's lifetime and released on close or reload, with no unsubscribe calls in plugin code. This gives clean hot reload almost for free.
-- **`minAppVersion` + `versions.json`.** A plain minimum version is easier to reason about than a semver range. For Oriel: `minOriel: "0.9"` plus `apiVersion: 1`.
-- **View `getState`/`setState` kept in the layout.** It confirms the per-card state design above: card state belongs in Oriel's layout save, next to the card.
+- **`register*` helpers that clean up on their own.** Every `ovvi.watch`, `ovvi.on` or timer is tied to the card's lifetime and released on close or reload, with no unsubscribe calls in plugin code. This gives clean hot reload almost for free.
+- **`minAppVersion` + `versions.json`.** A plain minimum version is easier to reason about than a semver range. For Ovvi: `minOvvi: "0.9"` plus `apiVersion: 1`.
+- **View `getState`/`setState` kept in the layout.** It confirms the per-card state design above: card state belongs in Ovvi's layout save, next to the card.
 
 **Skip**
 - Imperative `addAction` header buttons. They exist only after JS runs, so the header flickers. Use manifest-declared controls.
@@ -267,9 +267,9 @@ await LocalStorage.setItem("k", "v"); const v = await LocalStorage.getItem<strin
 **Hot reload.** `npm run dev` (`ray develop`) builds on save and reloads the open command, with an error overlay. **Security:** process isolation only, plus store review of open-source code. There are no runtime permissions.
 
 **Take**
-- **Typed `preferences` in the manifest that the host draws as native settings** (textfield, password, checkbox, dropdown). For Oriel: plugin settings in the manifest, drawn by Swift in Settings, read with `oriel.settings.get()`, and secrets kept in Keychain.
+- **Typed `preferences` in the manifest that the host draws as native settings** (textfield, password, checkbox, dropdown). For Ovvi: plugin settings in the manifest, drawn by Swift in Settings, read with `ovvi.settings.get()`, and secrets kept in Keychain.
 - **Native controls described by JS.** `ActionPanel` is the same idea as our header controls. Keep it small: buttons, toggles and menus only.
-- **`ray develop` as a single command.** Oriel's dev loop should need no CLI at all: drop a folder in, save, reload. Show build errors in the card, not only in logs.
+- **`ray develop` as a single command.** Ovvi's dev loop should need no CLI at all: drop a folder in, save, reload. Show build errors in the card, not only in logs.
 
 **Skip**
 - Turning a whole React UI into native views. Our cards are webviews on purpose.
@@ -335,8 +335,8 @@ ipcMain.handle("read", (e, p) => { /* check e.senderFrame and p */ });
 The docs say never to expose `ipcRenderer` itself. Validate the sender and the arguments in the main process.
 
 **Take**
-- **Scoped permissions with path variables** (`$HOME`, and for us `$CARD_ROOT` or `$PROJECT`). Swift resolves them per card and refuses paths outside them. Generate the TypeScript declarations for `oriel` from one Swift/JSON schema, the way Tauri generates its schemas.
-- **The Electron rule: expose functions, never the channel.** In WebKit, use `WKScriptMessageHandlerWithReply` (it returns promises) behind a small injected `oriel` module. Swift checks the card id, plugin id and arguments on every call. JS never sees a raw `postMessage`.
+- **Scoped permissions with path variables** (`$HOME`, and for us `$CARD_ROOT` or `$PROJECT`). Swift resolves them per card and refuses paths outside them. Generate the TypeScript declarations for `ovvi` from one Swift/JSON schema, the way Tauri generates its schemas.
+- **The Electron rule: expose functions, never the channel.** In WebKit, use `WKScriptMessageHandlerWithReply` (it returns promises) behind a small injected `ovvi` module. Swift checks the card id, plugin id and arguments on every call. JS never sees a raw `postMessage`.
 - **Grant per webview.** Each card's webview carries only its own plugin's permissions, so one card cannot reach another plugin's capabilities.
 
 **Skip**
@@ -347,10 +347,10 @@ The docs say never to expose `ipcRenderer` itself. Validate the sender and the a
 
 ## What this changes in our design
 
-1. **Manifest** (must work before JS runs): `id, name, version, schemaVersion, apiVersion, minOriel, main, icon, opens[{pattern, priority}], controls[{id, icon, title, kind}], settings[{name, type, title}], permissions{files, run[], network[], devNetwork[]}`.
-2. **Entry:** `export default (oriel: Oriel, card: Card) => void | Promise<void>`. Every subscription is tied to the card and cleaned up on its own. `card.state` is given at load and survives reload and restart. `card.controls.update(id, …)` changes a header control, and clicks arrive as `card.on("control", id)`. A plugin that claims a file can still return the card to the built-in (bb's `Original`).
+1. **Manifest** (must work before JS runs): `id, name, version, schemaVersion, apiVersion, minOvvi, main, icon, opens[{pattern, priority}], controls[{id, icon, title, kind}], settings[{name, type, title}], permissions{files, run[], network[], devNetwork[]}`.
+2. **Entry:** `export default (ovvi: Ovvi, card: Card) => void | Promise<void>`. Every subscription is tied to the card and cleaned up on its own. `card.state` is given at load and survives reload and restart. `card.controls.update(id, …)` changes a header control, and clicks arrive as `card.on("control", id)`. A plugin that claims a file can still return the card to the built-in (bb's `Original`).
 3. **Hot reload:** build the candidate bundle. If esbuild or init fails, keep the old webview and show the error. If it succeeds, swap and pass `card.state` across. A dev folder overrides an installed plugin with the same id.
-4. **Security:** a strict CSP from a custom scheme. `connect-src` comes from `permissions.network`. Swift checks every bridge call against the manifest scopes. Built-ins declare permissions too, and a lint/CI check confirms they use only the public `oriel` API (bb's "forkable" check).
+4. **Security:** a strict CSP from a custom scheme. `connect-src` comes from `permissions.network`. Swift checks every bridge call against the manifest scopes. Built-ins declare permissions too, and a lint/CI check confirms they use only the public `ovvi` API (bb's "forkable" check).
 
 ## Summary
 

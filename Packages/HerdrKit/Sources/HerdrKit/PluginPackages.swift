@@ -151,13 +151,13 @@ public enum PluginPackages {
     /// No npm, pnpm or bun on the login `PATH`: a plugin's card says to install Node.js.
     public struct NoManager: LocalizedError {
         public var errorDescription: String? {
-            "Oriel installs and builds plugins with npm, pnpm or bun, and none is on your PATH. Install Node.js from "
+            "Ovvi installs and builds plugins with npm, pnpm or bun, and none is on your PATH. Install Node.js from "
                 + "nodejs.org, then try again."
         }
     }
 
     /// The package's `dependencies` and `devDependencies` in its own `node_modules`, from its lockfile when it has
-    /// one. No install scripts run, and no peer dependencies install: `@oriel/plugin-api` is the app's. What the
+    /// one. No install scripts run, and no peer dependencies install: `@ovvi/plugin-api` is the app's. What the
     /// manager printed; empty with no dependencies.
     public static func dependencies(_ folder: URL, exec: any Exec) async throws -> String {
         let json = package(folder)
@@ -181,7 +181,7 @@ public enum PluginPackages {
         return try await run([manager(folder, exec: exec).name, "run", "--silent", "build"], in: folder, exec: exec)
     }
 
-    /// The file `oriel-plugin://<id>/<name>` serves from `folder`, nil when it would leave it: a name with a folder or
+    /// The file `ovvi-plugin://<id>/<name>` serves from `folder`, nil when it would leave it: a name with a folder or
     /// a hidden one, or a symlink (`git clone` keeps them) out of `folder`, or a `folder` that resolves out of `root`
     /// (its package). Else a page with no permissions could read any file of the user's with `fetch`.
     public static func served(_ name: String, in folder: URL, within root: URL) -> URL? {

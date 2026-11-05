@@ -12,7 +12,7 @@ dialogs, and a CI that is fast and never flaky.
   paging between tabs and between sessions in the overview, following the fingers. 6: in the Agents view a
   vertical three-finger swipe steps the agent rows.
 - **Lane F (7).** pi-herd's float request travels through herdr (metadata tokens), so it works for agents on
-  remote machines; Oriel marks the panes it shows instead of an ack.
+  remote machines; Ovvi marks the panes it shows instead of an ack.
 - **Lane M (11, 12).** 11: the quicker paging looked cut. 12: the pill jumped after the overview; it should
   fade in on the selected tab.
 - **Lane K (13).** ⌃⇥ sometimes stepped panes, and with several windows a key acted on another window.
@@ -42,10 +42,10 @@ dialogs, and a CI that is fast and never flaky.
 
 ### Lane F (item 7)
 
-- **Decisions** (spiked on herdr 0.9.5). Oriel reports `oriel-shown` on every pane in view (30 s ttl,
+- **Decisions** (spiked on herdr 0.9.5). Ovvi reports `ovvi-shown` on every pane in view (30 s ttl,
   refreshed every 10 s, cleared on leave and at quit). pi-herd reads its own pane: with the mark it reports
-  `oriel-float` and a nonce, else it opens herdr's popup at once. Token names allow no dots; 16 per report,
-  32 per pane, 80-character values. An ack was built first and dropped: it slowed herdr's popup without Oriel.
+  `ovvi-float` and a nonce, else it opens herdr's popup at once. Token names allow no dots; 16 per report,
+  32 per pane, 80-character values. An ack was built first and dropped: it slowed herdr's popup without Ovvi.
 
 ### Lane M (items 11, 12)
 
@@ -61,7 +61,7 @@ dialogs, and a CI that is fast and never flaky.
 
 - **Cause.** A second key (⌃⇥) whose first's menu item was disabled went on to AppKit, which stepped the key
   view loop; menu actions are closures of the focused value's `CommandList`, which can be another window's.
-- **Fix.** A matched second key in an Oriel window is always taken; every keyed menu item runs the key window's
+- **Fix.** A matched second key in an Ovvi window is always taken; every keyed menu item runs the key window's
   command, made when the key is pressed (`CommandList.keyWindow`).
 
 ### Lane O (items 14, 15)

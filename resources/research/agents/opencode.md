@@ -1,18 +1,18 @@
 # opencode: chat view research
 
-> Two spikes in throwaway herdr panes for the [chat view](../ui/chat-view.md). The second one settled the reliable core below; spike scripts and samples lived in `/tmp/oriel-research/` and were not kept.
+> Two spikes in throwaway herdr panes for the [chat view](../ui/chat-view.md). The second one settled the reliable core below; spike scripts and samples lived in `/tmp/ovvi-research/` and were not kept.
 
 Tested: npm `opencode-ai@1.19.4` (round 1 install), `XDG_*` under `/tmp`, project `.opencode/opencode.json` with
 `{env:…}` for the gateway, Haiku 4.5, `bash`/`edit` set to `ask`. herdr 0.9.5, throwaway session
-`oriel-dev-research-opencode2`. Commands were typed into the pane's shell with `herdr pane run`, the way the chooser
+`ovvi-dev-research-opencode2`. Commands were typed into the pane's shell with `herdr pane run`, the way the chooser
 would.
 
 ## Summary
 
 | # | Feature | Mechanism | Rating | Evidence |
 |---|---|---|---|---|
-| 1 | Launch flags | `--port 0 --hostname 127.0.0.1` + `OPENCODE_SERVER_PASSWORD` (read from a 0600 file) + `OPENCODE_TUI_CONFIG` → Oriel's 20-line TUI plugin | RELIABLE (npm build) / SKIP (company launcher) | 1.1 |
-| 1 | Recognize the pane | The plugin's state line `{pid,url,session,dialog}` in a file whose path Oriel chose; its `pid` = `pane.process_info` pid | RELIABLE | 1.2 |
+| 1 | Launch flags | `--port 0 --hostname 127.0.0.1` + `OPENCODE_SERVER_PASSWORD` (read from a 0600 file) + `OPENCODE_TUI_CONFIG` → Ovvi's 20-line TUI plugin | RELIABLE (npm build) / SKIP (company launcher) | 1.1 |
+| 1 | Recognize the pane | The plugin's state line `{pid,url,session,dialog}` in a file whose path Ovvi chose; its `pid` = `pane.process_info` pid | RELIABLE | 1.2 |
 | 2 | Find the transcript | `session` field in the state line (from `api.route.current`), and the server URL, so the chat reads `GET /session/<id>/message` | RELIABLE | 2 |
 | 2 | Follow /new, /sessions, fork, compaction | State line changes within 200 ms. Compaction keeps the id and adds a `compaction` part. Subagents are child sessions. | RELIABLE | 2 |
 | 3 | Watch | `curl -sN /event` (SSE, one JSON object per `data:` line) + `tail -F` of the state file | RELIABLE | 3 |
@@ -28,20 +28,20 @@ would.
 | 8 | Model/mode change, pickers, images, `@file` | Show the TUI. `tab` cycles the agent. | SKIP | 8 |
 | 8 | Show model/agent, todos, subagent rows | From the transcript (`agent`, `modelID`, `todowrite` input, `task` metadata `sessionId`) | RELIABLE | 3.3 |
 
-## Launch command (what Oriel types)
+## Launch command (what Ovvi types)
 
-One relay run per host, once. It writes three files into `D=${XDG_CACHE_HOME:-$HOME/.cache}/oriel/opencode`, a 0700
+One relay run per host, once. It writes three files into `D=${XDG_CACHE_HOME:-$HOME/.cache}/ovvi/opencode`, a 0700
 folder:
-- `oriel-tui.js`: copy of `oriel/oriel-tui.js`.
-- `tui.json`: `{"plugin":["<D>/oriel-tui.js"]}`.
+- `ovvi-tui.js`: copy of `ovvi/ovvi-tui.js`.
+- `tui.json`: `{"plugin":["<D>/ovvi-tui.js"]}`.
 
 One relay run per pane:
 - `umask 077; printf %s <random> > <D>/<terminal_id>.pw`.
 
-Then Oriel types this into the pane (`T` = herdr `terminal_id`; `<opencode>` = the resolved binary):
+Then Ovvi types this into the pane (`T` = herdr `terminal_id`; `<opencode>` = the resolved binary):
 
 ```sh
- env ORIEL_OC_STATE=<D>/<T>.jsonl OPENCODE_TUI_CONFIG=<D>/tui.json sh -c 'OPENCODE_SERVER_PASSWORD=$(cat <D>/<T>.pw) exec <opencode> --port 0 --hostname 127.0.0.1'
+ env OVVI_OC_STATE=<D>/<T>.jsonl OPENCODE_TUI_CONFIG=<D>/tui.json sh -c 'OPENCODE_SERVER_PASSWORD=$(cat <D>/<T>.pw) exec <opencode> --port 0 --hostname 127.0.0.1'
 ```
 
 Tested as typed. `process_info` argv is `opencode --port 0 --hostname 127.0.0.1`. The password is not in the
@@ -57,22 +57,22 @@ and 200 with it.
 - `OPENCODE_SERVER_PASSWORD` turns on Basic auth (user `opencode`). In `--port` mode the TUI itself uses
   `ServerAuth.headers()`, so it keeps working.
 - `OPENCODE_TUI_CONFIG` is **merged** between the global and the project `tui.json`, so plugins are concatenated.
-  Test: the user's herdr plugin (copied into the `/tmp` global config) and Oriel's plugin both ran. herdr
-  `agent_session` and Oriel's `session` showed the same id.
+  Test: the user's herdr plugin (copied into the `/tmp` global config) and Ovvi's plugin both ran. herdr
+  `agent_session` and Ovvi's `session` showed the same id.
 - No user file is touched. The user's `opencode.json`, permission rules and plugins apply unchanged.
 - The env vars are inherited by the agent's tools (same user, so this is acceptable).
-- Not caused by Oriel: on every start, opencode itself writes `.gitignore`, `package.json` and `node_modules` into the
+- Not caused by Ovvi: on every start, opencode itself writes `.gitignore`, `package.json` and `node_modules` into the
   global config folder and into every `.opencode` folder (its `@opencode-ai/plugin` install). This happens with or
   without plugins.
 
-**1.2 Recognition, also after an Oriel relaunch.** The plugin appends a line to `$ORIEL_OC_STATE` at start and
+**1.2 Recognition, also after an Ovvi relaunch.** The plugin appends a line to `$OVVI_OC_STATE` at start and
 whenever a value changes (it polls every 200 ms):
 `{"t":…,"pid":58763,"url":"http://127.0.0.1:62532","route":"home","session":null,"dialog":false}`.
-- Oriel knows the path, because it built it from the `terminal_id`.
+- Ovvi knows the path, because it built it from the `terminal_id`.
 - A pane gets the chat switch only when the last line's `pid` equals the pid in `herdr pane process-info`.
 - If the user quits and starts opencode by hand, the pid differs, so there is no chat.
-- After an Oriel relaunch, `tail -n1` of the file restores `url` and `session`. curl reads the password file on the
-  host, so Oriel stores no secret.
+- After an Ovvi relaunch, `tail -n1` of the file restores `url` and `session`. curl reads the password file on the
+  host, so Ovvi stores no secret.
 - No `lsof` is needed: the plugin reports the real URL.
 - Startup: herdr said `idle` at +4.1 s and the first state line came at +6.7 s. opencode waits for its plugin npm
   install before it loads plugins. **Risk:** on a host with no npm registry, this may delay or block the plugin until
@@ -98,7 +98,7 @@ SSE takes over. **There is no file to guess. The id comes from this TUI's own ro
 | `/compact` | Same id | `compaction` part + assistant message with `agent:"compaction"`; SSE `session.compacted` |
 | Subagent (`task`) | Root id kept | Child `ses_…` with `parentID`. The tool metadata `sessionId` links to it. |
 
-Without Oriel's plugin, the fallback is herdr `agent_session`, which works only if herdr's opencode integration is
+Without Ovvi's plugin, the fallback is herdr `agent_session`, which works only if herdr's opencode integration is
 installed. The SSE-only fallback follows only on activity: FRAGILE.
 
 ## 3. Watching
@@ -146,7 +146,7 @@ Fragile:
 
 **3.4 No port.** You can poll `opencode.db` (WAL) with `sqlite3 -json`. Rows land as fast as SSE (above). But the
 schema is internal, it changes in 2.x, `sqlite3` may not exist on the host, and pending requests are never on disk.
-FRAGILE. Only useful for panes not started by Oriel, which get no chat anyway.
+FRAGILE. Only useful for panes not started by Ovvi, which get no chat anyway.
 
 ## 4. Send
 
@@ -186,7 +186,7 @@ Alternatives:
 - **Questions:** `POST /question/que_…/reply {"answers":[["Blue"]]}` → 200. The TUI showed "Blue" and the model
   said "You picked Blue." Then SSE `question.replied`. There is also `/question/:id/reject`. Custom-text answers were
   not tested.
-- **Race:** after the user answered in the TUI (`esc` = reject), Oriel's reply got **404
+- **Race:** after the user answered in the TUI (`esc` = reject), Ovvi's reply got **404
   `PermissionNotFoundError`**: clean. The chat drops the card on `*.replied` or on a 404.
 - **Timeouts:** none. A request waits forever (in-memory `Deferred`).
 - **Abort while pending:** `POST /abort` ended the turn, but the permission **stayed** in `GET /permission`, in the
@@ -236,15 +236,15 @@ relay write. Needs `curl` on the host; Perl's `IO::Socket` could stand in (not t
 
 ## Source
 
-The TUI plugin as tested (20 lines), named in Oriel's `tui.json` (`{"plugin":["<D>/oriel-tui.js"]}`). Reading the server URL goes through the SDK client's private `_client`: check it on each opencode release.
+The TUI plugin as tested (20 lines), named in Ovvi's `tui.json` (`{"plugin":["<D>/ovvi-tui.js"]}`). Reading the server URL goes through the SDK client's private `_client`: check it on each opencode release.
 
 ```js
-// Oriel TUI plugin: appends one JSON line to $ORIEL_OC_STATE whenever the TUI's session, dialog state or server URL changes.
+// Ovvi TUI plugin: appends one JSON line to $OVVI_OC_STATE whenever the TUI's session, dialog state or server URL changes.
 import { appendFileSync } from "node:fs"
 export default {
-  id: "oriel.state",
+  id: "ovvi.state",
   tui: async (api) => {
-    const file = process.env.ORIEL_OC_STATE
+    const file = process.env.OVVI_OC_STATE
     if (!file) return
     let last = ""
     const tick = () => {

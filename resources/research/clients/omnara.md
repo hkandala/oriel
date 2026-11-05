@@ -36,10 +36,10 @@ Codex used a packaged fork of the Codex binary (`omnara/agents/codex.py`), Amp a
 `claude_wrapper_v3.py` 1,633 lines, `format_utils.py` 403, reset handler 114. The whole 1.7.0 package is about 13k
 lines with server and SDK.
 
-## For Oriel
+## For Ovvi
 
 - Copy: choose the session id up front (`--session-id <uuid>`) so the transcript path is known before the first
-  line; Oriel launches agents, so it can do this too.
+  line; Ovvi launches agents, so it can do this too.
 - Copy: Enter as a separate write after the text.
 - Avoid: approvals parsed from the screen. When the chat cannot be sure, show the TUI.
 - Note: the team dropped wrapping Claude Code altogether for its own harness; the wrapper did not last.

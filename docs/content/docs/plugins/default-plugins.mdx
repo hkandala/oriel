@@ -13,7 +13,7 @@ Each is a herdr pane that runs a placeholder, as a browser pane is
 ([Browser](/docs/ui/browser)), and the app draws the card.
 
 Both are plugin packages, `explorer` and `git`, that the app installs in
-`~/.config/oriel/plugins/` on first launch
+`~/.config/ovvi/plugins/` on first launch
 ([The default plugins](/docs/plugins/packages#the-default-plugins)). The
 user or an agent can edit them and press Reload Plugin. They use only the
 public [plugin API](/docs/plugins/api): the app draws the header rows from
@@ -25,7 +25,7 @@ This Mac and on remote machines, with the limits in
 
 ## The label
 
-A plugin pane's herdr label is `oriel:<plugin>#<iid> <arg>`
+A plugin pane's herdr label is `ovvi:<plugin>#<iid> <arg>`
 ([Labels and instance ids](/docs/plugins/labels)). The argument is the place
 the card shows, and it picks the card's page. A relaunch, a cold restart of
 herdr or another device makes the card at that place. The instance state
@@ -34,13 +34,13 @@ Side by Side, Word Wrap and its file list ([State](/docs/plugins/api#state)).
 
 | Plugin | Label argument | Page | Title | Tab |
 |---|---|---|---|---|
-| `explorer` | a folder's absolute path, ending in `/` | the tree, rooted there | the folder's name | `File Explorer oriel` |
+| `explorer` | a folder's absolute path, ending in `/` | the tree, rooted there | the folder's name | `File Explorer ovvi` |
 | `explorer` | a file's absolute path | File, Preview or Markdown, by the file's name | the file's name | `File Explorer main.swift` |
-| `git` | the repository's root, ending in `/` | the Git home | the root's name | `Git oriel` |
+| `git` | the repository's root, ending in `/` | the Git home | the root's name | `Git ovvi` |
 | `git` | the root with its `/`, a space, then `uncommitted` or a commit hash | a diff | `Working Tree`, or the commit's subject (the short hash until the page has read it) | `Git Working Tree` |
 
 - The tab and the floating window read "‹name› ‹title›", the title in
-  secondary text, as a terminal tab's "zsh oriel"
+  secondary text, as a terminal tab's "zsh ovvi"
   ([Tab bar](/docs/ui/window#tab-bar)). A path with a control character, or
   over 1024 characters, makes no label, so nothing opens.
 - The words of the kinds before the plugin system still open: `file`,
@@ -49,7 +49,7 @@ Side by Side, Word Wrap and its file list ([State](/docs/plugins/api#state)).
   opens the tree. An old `diff` label (`<root> <source>`) still opens its
   diff. The root's `/` keeps a root whose last word looks like a hash
   (`My Project abcdef0`) a home.
-- The placeholder prints the plugin's name, the argument and "Shown in Oriel"
+- The placeholder prints the plugin's name, the argument and "Shown in Ovvi"
   in the middle of the pane in herdr's TUI, and follows the label when it
   changes
   ([In herdr's TUI](/docs/ui/browser#in-herdrs-tui)).
@@ -278,7 +278,7 @@ File, Preview and Markdown share one row 2, with the same order, spacing and
 - **The breadcrumbs** are the file's path, its parts with `›` between them
   and the first part in secondary text. Inside a Git repository the path
   starts at the repository's root, with the root's name first
-  (`oriel › Oriel › App › OrielApp.swift`). Outside one, it starts at the home
+  (`ovvi › Ovvi › App › OvviApp.swift`). Outside one, it starts at the home
   folder (`~ › Downloads › photo.png`), else at `/`. The breadcrumbs are cut
   in the middle when the row is narrow.
 
@@ -296,7 +296,7 @@ selection in the accent at 24 %. A 6 pt gap sits under the header.
   find bar shows), **Collapse All** and **Show Hidden Files** (`eye`).
 - **The root** is a path field, like the browser's address. At rest it shows
   the root's path with the home as `~`, cut at the start when it is long
-  (`…ode/oriel`). A click shows the whole path, selected. Return goes there,
+  (`…ode/ovvi`). A click shows the whole path, selected. Return goes there,
   with `.`, `..` and `//` resolved: the tree rooted at that folder becomes the
   card's next place. A path that is no folder makes the field shake (a beep
   with Reduce Motion); the typed path stays. Esc puts the root back. A path
@@ -384,7 +384,7 @@ selection in the accent at 24 %. A 6 pt gap sits under the header.
 An editable text view (CodeMirror 6).
 - **Row 2** ([A file's row 2](#a-files-row-2)): the breadcrumbs end with the
   scopes around the caret, outermost first, after a `curlybraces` glyph
-  (`oriel › Oriel › App › OrielApp.swift › {} OrielApp`).
+  (`ovvi › Ovvi › App › OvviApp.swift › {} OvviApp`).
 - **Text:** line numbers, the current line lit, bracket matching, the other
   matches of the selection marked, undo and redo, and Tab to indent. Lines
   wrap, because cards are often narrow. A wrapped line goes on at its own
@@ -777,8 +777,8 @@ the machine. The limits:
 
 ## How the cards are built
 
-- **Packages.** Each is a package in `~/.config/oriel/plugins/<id>/`: its
-  `package.json` with the `oriel` key, a lockfile, its own `node_modules`,
+- **Packages.** Each is a package in `~/.config/ovvi/plugins/<id>/`: its
+  `package.json` with the `ovvi` key, a lockfile, its own `node_modules`,
   `src/` and the built `dist/`
   ([File Explorer and Git in the same layout](/docs/plugins/building#file-explorer-and-git-in-the-same-layout)).
 - **One web view per card.** Each card is a `WKWebView` of its own, and
@@ -802,7 +802,7 @@ the machine. The limits:
   read. Saves, hashes, watches and git run in HerdrKit's `Files` and `Git` on
   the card's machine ([The plugin API](/docs/plugins/api)).
 - **SF Symbols in a page.** The Git home and the diff's list ask the app for
-  the symbols they draw (`oriel.symbol`), and use each PNG as a mask in the
+  the symbols they draw (`ovvi.symbol`), and use each PNG as a mask in the
   text's color.
 - **The place rule** is in `places.json`, which the page and the app both
   read: the app picks the tab's icon, the page's accessibility identifier

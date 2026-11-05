@@ -45,7 +45,7 @@ Nerd Font glyphs working.
 10. **e2e**: against a throwaway session:
     - opening the app attaches the selected tab's panes (each card shows the shell prompt:
       check via `pane.read` that the PTY size equals the card's cols × rows);
-    - typing `echo oriel-$RANDOM` + Enter in a card: `pane.read` shows the output;
+    - typing `echo ovvi-$RANDOM` + Enter in a card: `pane.read` shows the output;
     - resizing the window changes the PTY size (`stty size` / `pane.read`);
     - clicking a card focuses it and keys go there, not to the other card;
     - scrolling in a card with long output scrolls (herdr viewport moves, `pane.read`

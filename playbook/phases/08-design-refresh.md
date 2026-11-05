@@ -1,7 +1,7 @@
 # Phase 8: design refresh
 
 Goal: the design in `docs/content/docs/` and the interactive overview
-(`docs/public/overview/index.html`) describe Oriel with the decisions below. Docs and
+(`docs/public/overview/index.html`) describe Ovvi with the decisions below. Docs and
 mock-ups only, except where marked. Evidence: now in
 `resources/research/plugins/plugins.md`.
 
@@ -56,7 +56,7 @@ decisions get "Changed by Dxx", new ones get new numbers.
    multiplexer's implementation may use it where the app owns the terminal bytes. No new
    UI.
 7. **Chat view stays.** **Floating panes move to Future work** (pages, decisions, features,
-   mock-ups, data rows such as the `oriel:float` tab). **Arc-style sideways machine swipe
+   mock-ups, data rows such as the `ovvi:float` tab). **Arc-style sideways machine swipe
    stays.**
 8. **D16 dropped**: the app keeps its own machine list on macOS too (one code path with
    iOS). When herdr is installed on the Mac, its `herdr machine list` entries are imported.
@@ -90,13 +90,13 @@ decisions get "Changed by Dxx", new ones get new numbers.
 - **Machine name:** a small machine-name line at the top of each sidebar machine page. The
   session button still shows the session name only.
 - **Web cards keep their viewing state on the machine (D58):** the label
-  `oriel:web#<iid> <url>` keeps the typed address; the current address and scroll position
+  `ovvi:web#<iid> <url>` keeps the typed address; the current address and scroll position
   go in the instance state file `web/<iid>.json`, as for plugins.
 - **No live cross-device follow for any card (D59):** a card, web included, reads its state
   file only when it is built (fresh start, new device, reopened; on iOS only cards the system
   discarded). Every plugin and web card gets a header **Refresh** (it replaces the web card's
-  Reload) that rebuilds the card from the machine. State writes no longer change `oriel_rev`;
-  it follows only renames. `oriel.state` is for view state; live shared data goes in files
+  Reload) that rebuilds the card from the machine. State writes no longer change `ovvi_rev`;
+  it follows only renames. `ovvi.state` is for view state; live shared data goes in files
   read with `run`.
 - **The `Multiplexer` protocol is also in code** (item 2's scope): `HerdrKit` has the
   protocol, `HerdrClient` conforms, and the app talks to it.

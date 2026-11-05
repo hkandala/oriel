@@ -19,7 +19,7 @@ private func history() throws -> ChatHistory {
     let history = try history()
     #expect(history.entries.compactMap(\.user) == [
         "Run the shell command 'echo spike-ok' and then reply with just the word done.",
-        "In /private/tmp/oriel-39codex-spike: first make a 2-step plan with your plan tool, then create notes.txt with "
+        "In /private/tmp/ovvi-39codex-spike: first make a 2-step plan with your plan tool, then create notes.txt with "
             + "two lines (alpha, beta), then change beta to gamma with an edit, then run 'false' as a shell command, "
             + "then read launch.py, then reply with a short summary.",
         "Run the shell command 'sleep 30' then reply ok.",
@@ -71,10 +71,10 @@ private func history() throws -> ChatHistory {
 }
 
 @Test func `codex trust hash matches what Codex trusted`() {
-    let command = "umask 077;mkdir -p $HOME/.cache/oriel/chat/11111111-2222-4333-8444-555555555555;"
-        + "cat>>$HOME/.cache/oriel/chat/11111111-2222-4333-8444-555555555555/hooks.jsonl;"
-        + "echo>>$HOME/.cache/oriel/chat/11111111-2222-4333-8444-555555555555/hooks.jsonl;"
-        + "find $HOME/.cache/oriel/chat -mindepth 1 -maxdepth 1 -mtime +30 -exec rm -rf {} +"
+    let command = "umask 077;mkdir -p $HOME/.cache/ovvi/chat/11111111-2222-4333-8444-555555555555;"
+        + "cat>>$HOME/.cache/ovvi/chat/11111111-2222-4333-8444-555555555555/hooks.jsonl;"
+        + "echo>>$HOME/.cache/ovvi/chat/11111111-2222-4333-8444-555555555555/hooks.jsonl;"
+        + "find $HOME/.cache/ovvi/chat -mindepth 1 -maxdepth 1 -mtime +30 -exec rm -rf {} +"
     // Codex 0.163 ran this hook from `-c hooks.state` with no "Hooks need review" picker.
     #expect(CodexRollout.trust(command) == "sha256:8573ebd0ca560392787a8597d28edaed82f341be511519f80ceb5a91d429795a")
 }

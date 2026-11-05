@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """OpenCode's stand-in for the chat view's UI tests (CI has no OpenCode).
 
-Started by the chooser with Oriel's line (`--port 0 --hostname 127.0.0.1 -- oriel-T`, the password and the TUI config
+Started by the chooser with Ovvi's line (`--port 0 --hostname 127.0.0.1 -- ovvi-T`, the password and the TUI config
 in the environment), it runs opencode 1.x's server shapes on 127.0.0.1 behind Basic auth (the history, `/event`, the
-permission and question requests and their replies), appends the state lines Oriel's TUI plugin would (only when
+permission and question requests and their replies), appends the state lines Ovvi's TUI plugin would (only when
 the config names the plugin file), reports its state to herdr and answers prompts on its terminal: "allow" asks a
 permission, "ask" a question, "pick" opens a dialog until 1 is typed, "slow" works until Esc Esc, anything else
-gets one command and the reply "Echo: <prompt>". With ORIEL_STAND_IN_REFUSE=1 it refuses the flags, as a build
+gets one command and the reply "Echo: <prompt>". With OVVI_STAND_IN_REFUSE=1 it refuses the flags, as a build
 without them may, and runs plain (no server) when started without them.
 """
 import base64
@@ -26,14 +26,14 @@ import threading
 import time
 import tty
 
-if os.environ.get("ORIEL_STAND_IN_REFUSE") == "1" and "--port" in sys.argv:
+if os.environ.get("OVVI_STAND_IN_REFUSE") == "1" and "--port" in sys.argv:
     sys.exit("Unrecognized flag: --port")
 plain = "--port" not in sys.argv
-folder = os.path.join(os.environ.get("TMPDIR", "/tmp"), "oriel-stand-in")
+folder = os.path.join(os.environ.get("TMPDIR", "/tmp"), "ovvi-stand-in")
 os.makedirs(folder, exist_ok=True)
 # herdr prompts an agent only while a process of its name runs in the foreground: run again as `opencode`.
-if os.environ.get("ORIEL_STAND_IN") != "1":
-    os.environ["ORIEL_STAND_IN"] = "1"
+if os.environ.get("OVVI_STAND_IN") != "1":
+    os.environ["OVVI_STAND_IN"] = "1"
     app = os.path.join(sys.base_prefix, "Resources/Python.app/Contents/MacOS/Python")
     link = os.path.join(folder, "opencode")
     if os.path.islink(link):
@@ -42,7 +42,7 @@ if os.environ.get("ORIEL_STAND_IN") != "1":
     os.execv(link, [link, os.path.abspath(__file__)] + sys.argv[1:])
 
 password = os.environ.get("OPENCODE_SERVER_PASSWORD")
-state_file = None if plain else os.environ.get("ORIEL_OC_STATE")
+state_file = None if plain else os.environ.get("OVVI_OC_STATE")
 plugged = False
 if not plain:
     with open(os.environ["OPENCODE_TUI_CONFIG"]) as config:
@@ -193,7 +193,7 @@ def ask(kind, request):
 
 def report(state):
     subprocess.run([os.environ["HERDR_BIN_PATH"], "--session", os.environ["HERDR_SESSION"], "pane", "report-agent",
-                    "--source", "oriel-e2e", "--agent", "opencode", "--state", state, os.environ["HERDR_PANE_ID"]],
+                    "--source", "ovvi-e2e", "--agent", "opencode", "--state", state, os.environ["HERDR_PANE_ID"]],
                    capture_output=True)
 
 

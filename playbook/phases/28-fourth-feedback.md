@@ -1,7 +1,7 @@
 # Phase 28: The user's fourth round of feedback
 
 Goal: the items of the user's first Scrawl capture: empty sessions, the session swipe, the overview, floating
-windows, herdr popups through Oriel, and remote machines.
+windows, herdr popups through Ovvi, and remote machines.
 
 ## Items
 
@@ -10,8 +10,8 @@ windows, herdr popups through Oriel, and remote machines.
 - **Lane V (3, 4).** 3: overview tiles faded in while scrolling. 4: in the overview the title row holds only
   the traffic lights and one ×; wider margins.
 - **Lane F (5–7).** 5: a taller floating window; a clear hierarchy between the pane's info and its place. 6:
-  the placeholder says the pane floats and has a Show Pane button. 7: `oriel://float?session=…&pane=…`
-  floats any pane; pi-herd uses it when the click came through Oriel.
+  the placeholder says the pane floats and has a Show Pane button. 7: `ovvi://float?session=…&pane=…`
+  floats any pane; pi-herd uses it when the click came through Ovvi.
 - **Lane R (8–11).** 8: a remote machine opens in a new window. 9: never show the server's login banner in
   errors; no company names anywhere. 10: ssh's questions in a glass dialog. 11: every answer is a hidden
   field except the host-key yes/no.
@@ -41,7 +41,7 @@ windows, herdr popups through Oriel, and remote machines.
 
 - **Decisions.** A floating window opens at 75 % of the main window's height; a thin divider and quieter text
   separate the place. A session with no page gets a float-only page (no sidebar row, no strip page, not
-  saved) that goes with its last float. pi-herd floats through Oriel when Oriel is the frontmost app
+  saved) that goes with its last float. pi-herd floats through Ovvi when Ovvi is the frontmost app
   (macOS only, never over SSH).
 
 ### Lane E (items 1, 2)

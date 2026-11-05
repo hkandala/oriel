@@ -5,15 +5,15 @@ import Testing
 /// npm never reaches the network here (`npm_config_offline`), and git none of the user's config.
 private let offline = ProcessExec(localExec.environment.merging([
     "npm_config_offline": "true", "npm_config_userconfig": "/dev/null",
-    "npm_config_cache": URL.temporaryDirectory.appending(path: "oriel-npm-cache").path,
+    "npm_config_cache": URL.temporaryDirectory.appending(path: "ovvi-npm-cache").path,
     "GIT_CONFIG_GLOBAL": "/dev/null", "GIT_CONFIG_NOSYSTEM": "1",
 ]) { $1 }, herdr: nil, asked: .now)
 
 private func package(_ folder: URL, version: String, extra: [String: Any] = [:]) throws {
     let json: [String: Any] = [
         "name": "csv-table", "version": version, "description": "Tables",
-        "oriel": ["id": "csv-table", "name": "CSV Table", "api": 1, "entry": "dist/main.js", "icon": "tablecells",
-                  "permissions": ["files:read"]],
+        "ovvi": ["id": "csv-table", "name": "CSV Table", "api": 1, "entry": "dist/main.js", "icon": "tablecells",
+                 "permissions": ["files:read"]],
     ].merging(extra) { $1 }
     try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
     try JSONSerialization.data(withJSONObject: json).write(to: folder.appending(path: "package.json"))
@@ -76,7 +76,7 @@ private func package(_ folder: URL, version: String, extra: [String: Any] = [:])
     let source = scratch.appending(path: "source"), plugins = scratch.appending(path: "plugins")
     // A dependency from the package's own files, and the host types as a peer, which must not install.
     try package(source, version: "1.0.0", extra: [
-        "dependencies": ["pad": "file:vendor/pad"], "peerDependencies": ["@oriel/plugin-api": "*"],
+        "dependencies": ["pad": "file:vendor/pad"], "peerDependencies": ["@ovvi/plugin-api": "*"],
     ])
     let pad = source.appending(path: "vendor/pad")
     try FileManager.default.createDirectory(at: pad, withIntermediateDirectories: true)
@@ -93,7 +93,7 @@ private func package(_ folder: URL, version: String, extra: [String: Any] = [:])
     let folder = try await PluginPackages.finish(staged, into: plugins, exec: offline).folder
     #expect(folder.lastPathComponent == "csv-table-1.0.0")
     #expect(FileManager.default.fileExists(atPath: folder.appending(path: "node_modules/pad/index.js").path))
-    #expect(!FileManager.default.fileExists(atPath: folder.appending(path: "node_modules/@oriel").path))
+    #expect(!FileManager.default.fileExists(atPath: folder.appending(path: "node_modules/@ovvi").path))
 }
 
 @Test func `a package that is not a plugin is left out of the plugins folder`() async throws {
@@ -116,7 +116,7 @@ private func package(_ folder: URL, version: String, extra: [String: Any] = [:])
 @Test func `the settings list keeps the file's other keys and each source once`() throws {
     let scratch = try scratchFolder()
     defer { try? FileManager.default.removeItem(at: scratch) }
-    let settings = scratch.appending(path: "oriel/settings.json")
+    let settings = scratch.appending(path: "ovvi/settings.json")
     try PluginPackages.list("npm:a", in: settings, add: true)
     try FileManager.default.createDirectory(at: settings.deletingLastPathComponent(), withIntermediateDirectories: true)
     try Data(#"{"theme":"x","packages":["./b",{"source":"npm:a"}]}"#.utf8).write(to: settings)
@@ -182,7 +182,7 @@ private func buildable(_ folder: URL, build: String = "mkdir -p dist && cp main.
 
 @Test func `the scheme serves a package's files, never through a symlink out of it`() throws {
     let files = FileManager.default
-    let root = URL.temporaryDirectory.appending(path: "oriel-served-\(UUID().uuidString)")
+    let root = URL.temporaryDirectory.appending(path: "ovvi-served-\(UUID().uuidString)")
     let package = root.appending(path: "csv"), dist = package.appending(path: "dist")
     defer { try? files.removeItem(at: root) }
     try files.createDirectory(at: dist, withIntermediateDirectories: true)

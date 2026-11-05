@@ -111,7 +111,7 @@ and Return never reaches the old card's shell.
 
 ## The folder
 
-The folder line says where the pick starts: "Opens in ~/code/oriel". At
+The folder line says where the pick starts: "Opens in ~/code/ovvi". At
 first the folder is the pane's own folder, as herdr reports it.
 
 - **Look.** "Opens in" is tertiary. The folder is secondary and medium. The
@@ -148,12 +148,12 @@ by the view's alpha), so there is no wait.
 A pick types the agent's launch line and Return into the pane's shell, as Go
 to Directory types its `cd`
 ([Command palette](/docs/ui/window#command-palette)). The line is the
-command with Oriel's chat flags, so the pane gets a
+command with Ovvi's chat flags, so the pane gets a
 [chat view](/docs/ui/chat-view). For Pi and OpenCode, one run on the pane's
 machine first writes the files the line needs
 ([Launch flags](/docs/ui/chat-view#launch-flags)). On a remote machine the
 shell and the agent run on that machine. An agent in a pane starts
-another the same way, loader included, with `oriel agent <name>`
+another the same way, loader included, with `ovvi agent <name>`
 ([CLI](/docs/agent-control/cli#agent-chat-and-view)).
 
 - **The loader.** The card shows the agent's program tile at 44 × 36 pt in its
@@ -174,7 +174,7 @@ another the same way, loader included, with `oriel agent <name>`
   again in two checks in a row, from 1 s after the line
   ([Program icons](/docs/ui/program-icons#when-the-app-asks-herdr)), the app
   types the bare command (`claude`, `codex`, `pi` or `opencode`) once more.
-  An agent build that refuses Oriel's flags then starts with no chat.
+  An agent build that refuses Ovvi's flags then starts with no chat.
 - **Failure.** When the shell is in front again after the bare command too
   (the command failed or ended), or after 10 s with no ready status, the
   terminal shows the same way, with what the command printed (for example
@@ -187,7 +187,7 @@ dimmed and takes no pick.
 
 - **The check.** Each window checks its machine one time, when the window
   opens. One command runs on the machine through the window's connection:
-  `$SHELL -ilc 'echo; for c in claude codex pi opencode; do command -v $c >/dev/null && echo $c; done; echo oriel-end'`.
+  `$SHELL -ilc 'echo; for c in claude codex pi opencode; do command -v $c >/dev/null && echo $c; done; echo ovvi-end'`.
   The first `echo` puts the agents on their own lines after any text from
   the startup files. The last line marks a loop that ran.
   The login shell runs the user's startup files, so the shell's `PATH` and

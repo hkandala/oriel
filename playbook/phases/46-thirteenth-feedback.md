@@ -13,7 +13,7 @@ orchestrator's. Where this file and a design page disagree, this file wins (the 
 
 ## Track A: the chat (items 1–10)
 
-Files: `Oriel/Chat/**`, the chat's tests. Owner of the card header's state capsule (item 10).
+Files: `Ovvi/Chat/**`, the chat's tests. Owner of the card header's state capsule (item 10).
 
 1. **Reply box height.** "let's reduce chat view max input length from 10 to 5, i am referring to prompt input".
    The reply box grows to 5 lines, then scrolls.
@@ -69,7 +69,7 @@ Files: `Oriel/Chat/**`, the chat's tests. Owner of the card header's state capsu
 
 ## Track B: panes, speed and memory (items 11–15)
 
-Files: `Oriel/Terminal/PaneViewRegistry.swift`, `Oriel/Browser/**`, the overview, the strip's scroll and card
+Files: `Ovvi/Terminal/PaneViewRegistry.swift`, `Ovvi/Browser/**`, the overview, the strip's scroll and card
 mounting, the bench harness. `WebCard.swift` belongs to track D; ask it for any hook you need there.
 
 11. **Browser flash on a switch.** "browser works good now, no issues, only thing is when i switch between
@@ -120,8 +120,8 @@ Small fix, straight to main. Files: the strip's gesture code, `swiping.mdx` (thi
 
 ## Track D: File Explorer (items 17–19, 21, 23–28, 31)
 
-Files: `Oriel/Plugins/**` except `Oriel/Plugins/Diff/**`, `web/src/{file,files,markdown,preview}*`, `web/src/lib/**`,
-`Oriel/Store/Chooser.swift` rows. Owner of `PluginKind`, labels, `WebCard.swift`, Open With and the open gestures.
+Files: `Ovvi/Plugins/**` except `Ovvi/Plugins/Diff/**`, `web/src/{file,files,markdown,preview}*`, `web/src/lib/**`,
+`Ovvi/Store/Chooser.swift` rows. Owner of `PluginKind`, labels, `WebCard.swift`, Open With and the open gestures.
 Its first commit is the rename of the kinds (`explorer`, `git`; old label words still parse), merged early so
 track E rebases on it.
 
@@ -181,7 +181,7 @@ track E rebases on it.
 
 ## Track E: Git (items 20, 22, 29, 30, 31)
 
-Files: `Oriel/Plugins/Diff/**`, `web/src/diff*`, the new Git pages. Uses track D's kind, open gestures and back and
+Files: `Ovvi/Plugins/Diff/**`, `web/src/diff*`, the new Git pages. Uses track D's kind, open gestures and back and
 forward; ask track D for any change in its files.
 
 20. **A Git view that fits.** "the ui of git view is pretty bad, it doesn't fit to our overall design well". The
@@ -209,8 +209,8 @@ forward; ask track D for any change in its files.
 
 ## Track F: the window's graph (item 14 follow-up)
 
-Files: `Oriel/Views/HoverCard.swift`, `Oriel/App/Commands.swift`, `Oriel/App/CommandList.swift`, the registry and
-`Oriel/Terminal/WebCards.swift`. Option B of track B's spike, each change measured with the same sample before and
+Files: `Ovvi/Views/HoverCard.swift`, `Ovvi/App/Commands.swift`, `Ovvi/App/CommandList.swift`, the registry and
+`Ovvi/Terminal/WebCards.swift`. Option B of track B's spike, each change measured with the same sample before and
 after (Release, `sample` over tab clicks, three swipes and two overview opens).
 
 32. **The hover panel's preference.** Replace `OpenPanelKey`, which every trigger wrote, with observed state.
@@ -259,7 +259,7 @@ after (Release, `sample` over tab clicks, three swipes and two overview opens).
   taken at 1x (6 MB for a full-window card, not 24): a cover shows a few frames, a tile is scaled down. One cap over
   all pictures in the app, 200 MB, the least recently taken out first (a card with none shows its loader).
 - **Decisions.** Pictures are not purgeable (macOS takes volatile surfaces back within seconds). `Page.shownTerminals` now holds web cards' panes
-  too, so a switch between two browser tabs reaches the registry, and Oriel's `mark` writes cover them as floats did.
+  too, so a switch between two browser tabs reaches the registry, and Ovvi's `mark` writes cover them as floats did.
   Web cards' views get `renewGState` 50 ms after a show, so WebKit learns where the strip put them.
 - **Cause, item 28** (found in the final full runs). An open's new tab is made last and selected, then moved
   beside its card. The strip kept its scroll offset, so the selected tab showed the page of the tab that now sat where

@@ -1,9 +1,9 @@
 # Claude Code: chat view research
 
-> Two spikes in throwaway herdr panes for the [chat view](../ui/chat-view.md). The second one settled the reliable core below; spike scripts and samples lived in `/tmp/oriel-research/` and were not kept.
+> Two spikes in throwaway herdr panes for the [chat view](../ui/chat-view.md). The second one settled the reliable core below; spike scripts and samples lived in `/tmp/ovvi-research/` and were not kept.
 
 Claude Code 2.1.310 behind the company launcher `/usr/local/bin/claude`. herdr 0.9.5, throwaway session
-`oriel-dev-research-claude2` (now deleted). Every session was launched the way the chooser would: the command typed into
+`ovvi-dev-research-claude2` (now deleted). Every session was launched the way the chooser would: the command typed into
 the pane's zsh with `herdr pane run` (and once over SSH). Model haiku.
 
 ## Summary
@@ -11,8 +11,8 @@ the pane's zsh with `herdr pane run` (and once over SSH). Model haiku.
 | Feature | Mechanism | Rating | Evidence |
 |---|---|---|---|
 | Launch flags | `--session-id <T> --settings '<json>'` typed after the full path | RELIABLE | launcher merges both `--settings`; user hooks still ran |
-| Recognize an Oriel pane | `herdr pane process-info` argv has `--session-id <T>` and `/tmp/oriel-chat/<T>` | RELIABLE | found pid by token, local and over SSH |
-| Transcript discovery | SessionStart hook appends `{session_id, transcript_path, source}` to `/tmp/oriel-chat/<T>/hooks.jsonl` | RELIABLE | startup, resume, clear, `/new`, fork, compact all tested |
+| Recognize an Ovvi pane | `herdr pane process-info` argv has `--session-id <T>` and `/tmp/ovvi-chat/<T>` | RELIABLE | found pid by token, local and over SSH |
+| Transcript discovery | SessionStart hook appends `{session_id, transcript_path, source}` to `/tmp/ovvi-chat/<T>/hooks.jsonl` | RELIABLE | startup, resume, clear, `/new`, fork, compact all tested |
 | File watching | `tail -n +1 -F <transcript>`; hold back a partial last line | RELIABLE | late file, partial line, rotation tested |
 | Parser | known `type`s only, skip the rest | RELIABLE for the core, FRAGILE for extras | `parse.py` on 2 sessions + subagent |
 | Live text | none on disk (one line per finished block) | SKIP | disk 0.1–1.8 s after the screen |
@@ -29,15 +29,15 @@ the pane's zsh with `herdr pane run` (and once over SSH). Model haiku.
 
 ## Launch command
 
-Oriel makes a fresh lowercase UUID `T` per launch (a reused id fails: "Session ID … is already in use"). It is the
+Ovvi makes a fresh lowercase UUID `T` per launch (a reused id fails: "Session ID … is already in use"). It is the
 session id **and** the token for the side-channel folder. It types (one line, 891 bytes):
 
 ```sh
 /usr/local/bin/claude --session-id T --settings '{"hooks":{
  "SessionStart":[{"hooks":[{"type":"command","timeout":10,
-   "command":"d=/tmp/oriel-chat/T;mkdir -p $d;{ tr -d \"[:cntrl:]\";echo;}>>$d/hooks.jsonl"}]}],
+   "command":"d=/tmp/ovvi-chat/T;mkdir -p $d;{ tr -d \"[:cntrl:]\";echo;}>>$d/hooks.jsonl"}]}],
  "PermissionRequest":[{"matcher":"AskUserQuestion","hooks":[{"type":"command","timeout":1810,
-   "command":"d=/tmp/oriel-chat/T;mkdir -p $d;id=$(date +%s)$$;: >$d/req-$id;{ printf \"{\\\"oriel_req\\\":\\\"$id\\\",\\\"input\\\":\";tr -d \"[:cntrl:]\";echo \"}\";}>>$d/hooks.jsonl;n=0;while [ $n -lt 9000 ] && [ -f $d/req-$id ] && kill -0 $PPID 2>/dev/null;do if [ -f $d/dec-$id ];then cat $d/dec-$id;rm -f $d/dec-$id $d/req-$id;exit 0;fi;sleep 0.2;n=$((n+1));done;rm -f $d/req-$id"}]}]}}'
+   "command":"d=/tmp/ovvi-chat/T;mkdir -p $d;id=$(date +%s)$$;: >$d/req-$id;{ printf \"{\\\"ovvi_req\\\":\\\"$id\\\",\\\"input\\\":\";tr -d \"[:cntrl:]\";echo \"}\";}>>$d/hooks.jsonl;n=0;while [ $n -lt 9000 ] && [ -f $d/req-$id ] && kill -0 $PPID 2>/dev/null;do if [ -f $d/dec-$id ];then cat $d/dec-$id;rm -f $d/dec-$id $d/req-$id;exit 0;fi;sleep 0.2;n=$((n+1));done;rm -f $d/req-$id"}]}]}}'
 ```
 
 (Line breaks added here; `gen.py T --inline` prints the real line. Plus the user's own chooser flags.)
@@ -45,30 +45,30 @@ session id **and** the token for the side-channel folder. It types (one line, 89
 - Nothing is installed. The hooks are POSIX `sh` + `tr` + `date` only (no python, no jq).
 - Hook stdin JSON never has raw control characters inside strings, so `tr -d "[:cntrl:]"` makes one line.
 - **Shells:** fine in zsh/bash/sh. fish treats `\\` inside single quotes differently and would break the `\\\"`
-  sequences. For fish or an unknown shell, write the same JSON to `/tmp/oriel-chat/T/settings.json` first (one relay
-  run: `mkdir -p … && cat > …`) and type `--settings /tmp/oriel-chat/T/settings.json` (file mode of `gen.py`).
+  sequences. For fish or an unknown shell, write the same JSON to `/tmp/ovvi-chat/T/settings.json` first (one relay
+  run: `mkdir -p … && cat > …`) and type `--settings /tmp/ovvi-chat/T/settings.json` (file mode of `gen.py`).
 - The line lands in the shell's history and scrollback (it is long). The file form keeps it short.
 - **Never pass the command through nested shell quoting.** My first SSH launch used a heredoc inside `$( )` run by
   macOS `/bin/sh` (bash 3.2). It silently dropped brace groups from the JSON, and a stray `/usr/local/bin/claude` line
   reached the TUI as a prompt that the agent then acted on (it ran `ls -l /usr/local/bin/claude`). Sending the line
-  base64-encoded (`herdr pane run <pane> "$(echo <b64> | base64 -d)"`) gave a byte-identical argv. Oriel's relay should
+  base64-encoded (`herdr pane run <pane> "$(echo <b64> | base64 -d)"`) gave a byte-identical argv. Ovvi's relay should
   pass it as one argv string, never re-quote it.
 
 ## 1. Launch flags and recognition
 
 - **Merging with the launcher:** the Mach-O launcher adds its own `--settings {cleanupPeriodDays, env…}`,
   `--add-dir`, `--autocompact`. The native process argv then has two `--settings`. Test: a `-p` run with
-  `--settings '{"env":{"X_ORIEL":"1"},"hooks":{"SessionStart":…}}'` logged `launcher_env=set oriel_env=set`: both apply.
+  `--settings '{"env":{"X_OVVI":"1"},"hooks":{"SessionStart":…}}'` logged `launcher_env=set ovvi_env=set`: both apply.
 - **User config kept:** hooks merge across levels. The user's SessionStart hook (herdr integration) still ran:
   herdr's `agent_session` was set. `~/.claude/settings.json` mtime unchanged through all runs. `~/.claude.json` is
-  rewritten by every Claude run (its own state), not by anything Oriel sends.
-- **No `--permission-mode`.** Managed policy starts in `auto`. Oriel should not change it (I added `default` only for
-  tests). The user's own chooser flags go after Oriel's.
-- **Recognize later** (also after an Oriel relaunch): `herdr pane process-info --pane <id>` lists the foreground
-  processes with argv. The pane is Oriel's when a `…/claude_code/native/claude` argv contains `--session-id <T>` and
-  `/tmp/oriel-chat/<T>`. That pid also names `~/.claude/sessions/<pid>.json`. Tested locally and over SSH.
+  rewritten by every Claude run (its own state), not by anything Ovvi sends.
+- **No `--permission-mode`.** Managed policy starts in `auto`. Ovvi should not change it (I added `default` only for
+  tests). The user's own chooser flags go after Ovvi's.
+- **Recognize later** (also after an Ovvi relaunch): `herdr pane process-info --pane <id>` lists the foreground
+  processes with argv. The pane is Ovvi's when a `…/claude_code/native/claude` argv contains `--session-id <T>` and
+  `/tmp/ovvi-chat/<T>`. That pid also names `~/.claude/sessions/<pid>.json`. Tested locally and over SSH.
 - **Limits:** after `/exit` the pane is a shell again (no marker). herdr's own restore re-runs `claude --resume <id>`
-  without Oriel's flags, so that pane gets no chat. To resume with the chat, Oriel types
+  without Ovvi's flags, so that pane gets no chat. To resume with the chat, Ovvi types
   `--resume <current session id> --settings …` with the same token (tested: SessionStart `source:"resume"`, same file).
 
 ## 2. Transcript discovery
@@ -148,8 +148,8 @@ the decision file). But in this company environment it is not reliable:
 1. Company plugins add PermissionRequest hooks. `agent-security-guardrails` returned
    `{"behavior":"allow"}` 100 ms after a Write request (debug log). Claude waits for **all** hooks and an allow wins:
    my chat `deny` gave "Allowed by PermissionRequest hook" and the file was written.
-2. Without Oriel, that same request would close by itself. With Oriel's waiting hook, the dialog stays open until
-   someone answers, so Oriel would **add prompts** the user never had, and its Deny button would lie.
+2. Without Ovvi, that same request would close by itself. With Ovvi's waiting hook, the dialog stays open until
+   someone answers, so Ovvi would **add prompts** the user never had, and its Deny button would lie.
 3. TUI-first race: once (of four tries) the TUI answer did not apply until my hook exited (spinner "running
    PermissionRequest hooks… 4/5", herdr status `idle`); it went on the moment the request file was removed.
 4. Deny did win for a `curl` that guardrails itself asked about. So upstream (no auto-allowing hooks) this would be
@@ -160,14 +160,14 @@ The chat instead shows the pending tool row (the `tool_use` line is already on d
 reject and end the turn, digits pick an option).
 
 **Questions (AskUserQuestion): RELIABLE in chat.** The hook (matcher `AskUserQuestion` only, verified: a Bash dialog
-made no request) appends `{"oriel_req":"<id>","input":{…tool_input.questions…}}` to `hooks.jsonl` and waits.
+made no request) appends `{"ovvi_req":"<id>","input":{…tool_input.questions…}}` to `hooks.jsonl` and waits.
 - Answer: write `dec-<id>` atomically (`… > dec-<id>.tmp && mv`), content
   `{"hookSpecificOutput":{"hookEventName":"PermissionRequest","decision":{"behavior":"allow","updatedInput":{"questions":<echo>,"answers":{"<question text>":"<label>"}}}}}`.
   Result: "Which fruit? → Pear", the dialog closed, the model replied "Pear". It worked with guardrails on, and over SSH
   ("Black").
 - No decision → the dialog stays (other hooks' allow does not close a question). Timeout is the same: the hook
   prints nothing.
-- TUI first: Claude went on at once ("Cat", "Mon"); my hook kept polling. Oriel removes `req-<id>` when the
+- TUI first: Claude went on at once ("Cat", "Mon"); my hook kept polling. Ovvi removes `req-<id>` when the
   question's `tool_result` appears or the status leaves `waiting`; the hook then exits. It also exits when Claude dies
   (`kill -0 $PPID`) or after 30 min. `askUserQuestionTimeout` (5 min in this user's settings) was not tested.
 - Multi-question / multiSelect / "Type something": build `answers` per question; free text was not tested.
@@ -175,7 +175,7 @@ made no request) appends `{"oriel_req":"<id>","input":{…tool_input.questions�
 **Knowing it waits:** `sessions/<pid>.json` `status: "waiting"` for permission dialogs, questions and pickers.
 It turned `waiting` about 1 s before herdr turned `blocked`. herdr says `blocked` for dialogs only, and the
 Notification hook (`permission_prompt`) comes about 6 s late (`idle_prompt` after about 60 s idle). Rule: `waiting`
-with no open Oriel question → show the TUI. If the file is missing, fall back to herdr `blocked`.
+with no open Ovvi question → show the TUI. If the file is missing, fall back to herdr `blocked`.
 
 ## 7. Remote (tested with a user-mode sshd)
 
@@ -187,14 +187,14 @@ Killed afterwards; private keys deleted.
 |---|---|---|
 | Launch | one-shot `herdr pane run <pane> "<cmd>"` (pass the command as one argv string, e.g. base64) | worked |
 | Recognize / pid | one-shot `herdr pane process-info --pane <id>` | worked |
-| Session changes, questions | stream `tail -n +1 -F /tmp/oriel-chat/T/hooks.jsonl` | worked |
+| Session changes, questions | stream `tail -n +1 -F /tmp/ovvi-chat/T/hooks.jsonl` | worked |
 | Transcript | stream `tail -c +N -F <transcript_path>` (path from the hook line, never a local path) | worked, parsed |
 | Answer a question | one-shot `cat > dec-<id>.tmp && mv …` with the JSON on stdin | worked ("Black") |
 | Status | one-shot `cat ~/.claude/sessions/<pid>.json` (the file is rewritten, not appended: poll it, or run a Perl loop that prints on change) | worked |
 | Send / interrupt | one-shot `herdr agent prompt` / `pane send-keys` | worked |
 
-Notes: non-interactive SSH had no `herdr` on PATH (`~/.local/bin/herdr`); Oriel should resolve full paths once.
-`/tmp/oriel-chat` is per host; macOS deletes /tmp files after 3 days unused, and the hooks `mkdir -p` each time.
+Notes: non-interactive SSH had no `herdr` on PATH (`~/.local/bin/herdr`); Ovvi should resolve full paths once.
+`/tmp/ovvi-chat` is per host; macOS deletes /tmp files after 3 days unused, and the hooks `mkdir -p` each time.
 
 ## 8. Everything else
 

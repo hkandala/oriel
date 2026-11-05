@@ -1,86 +1,86 @@
 ---
 title: "Agent control"
-description: "The oriel command: agents float panes, open browser and plugin cards, manage plugins and learn whether Oriel shows them, on This Mac and on remote machines"
+description: "The ovvi command: agents float panes, open browser and plugin cards, manage plugins and learn whether Ovvi shows them, on This Mac and on remote machines"
 ---
 
 An agent in a herdr pane can do everything herdr does: make tabs, workspaces
-and splits, run commands, rename and close panes. It asks Oriel for the
-things only Oriel has: a floating window, a browser or plugin card, the list
+and splits, run commands, rename and close panes. It asks Ovvi for the
+things only Ovvi has: a floating window, a browser or plugin card, the list
 of plugins, a new plugin, a notification on the Mac, an agent with the chat
-view, and the answer to "does Oriel show me?". It asks
-with one command, `oriel`, which works the same on This Mac and on every
-remote machine that Oriel connects to (D104).
+view, and the answer to "does Ovvi show me?". It asks
+with one command, `ovvi`, which works the same on This Mac and on every
+remote machine that Ovvi connects to (D104).
 
-- **The command, `oriel`,** is a small `sh` script at
-  `~/.cache/oriel/bin/oriel` on each machine where Oriel opened a session.
-  Oriel writes it there ([CLI](/docs/agent-control/cli)).
+- **The command, `ovvi`,** is a small `sh` script at
+  `~/.cache/ovvi/bin/ovvi` on each machine where Ovvi opened a session.
+  Ovvi writes it there ([CLI](/docs/agent-control/cli)).
 - **herdr is the bus.** The command writes its arguments to a file on its own
   machine and rings a doorbell: a herdr metadata token on its own pane. Each
-  Oriel that follows the session hears the token on its event stream. One of
+  Ovvi that follows the session hears the token on its event stream. One of
   them takes the file, does the work and writes the answer back as files
   ([Protocol](/docs/agent-control/protocol)).
-- **Oriel parses the arguments, not the script.** The script only carries
+- **Ovvi parses the arguments, not the script.** The script only carries
   argv and prints what comes back. A new command needs no new script on any
   machine.
-- **Two presence tokens** say whether Oriel shows a pane (`oriel-shown`) and
-  whether an Oriel follows the session (`oriel-open`). `oriel status` reads
-  them from herdr, with no Oriel involved
-  ([Is my pane in Oriel?](#is-my-pane-in-oriel)).
+- **Two presence tokens** say whether Ovvi shows a pane (`ovvi-shown`) and
+  whether an Ovvi follows the session (`ovvi-open`). `ovvi status` reads
+  them from herdr, with no Ovvi involved
+  ([Is my pane in Ovvi?](#is-my-pane-in-ovvi)).
 - **An agent never moves the user's view.** It can add a card or a floating
   window. To point at something, it shows a notice with **Show**.
 
-## The oriel skill
+## The ovvi skill
 
 A skill is a folder of instructions that an agent loads when a task needs it.
-The `oriel` skill, in `skills/oriel/` of the Oriel repo, teaches an agent the
-`oriel` command
-([what it holds](/docs/agent-control/migration#the-oriel-skill)).
+The `ovvi` skill, in `skills/ovvi/` of the Ovvi repo, teaches an agent the
+`ovvi` command
+([what it holds](/docs/agent-control/migration#the-ovvi-skill)).
 
 - **On This Mac,** `make install` links the folder to
-  `~/.agents/skills/oriel` (pi and Codex) and `~/.claude/skills/oriel`
-  (Claude Code). It leaves an `oriel` skill that is already there alone.
+  `~/.agents/skills/ovvi` (pi and Codex) and `~/.claude/skills/ovvi`
+  (Claude Code). It leaves an `ovvi` skill that is already there alone.
 - **On a remote machine,** copy the folder to the same places, for example
-  `ssh <machine> mkdir -p .agents/skills && scp -r skills/oriel
-  <machine>:.agents/skills/`. Oriel does not install
+  `ssh <machine> mkdir -p .agents/skills && scp -r skills/ovvi
+  <machine>:.agents/skills/`. Ovvi does not install
   it there.
 
-## What Oriel does, and what stays herdr
+## What Ovvi does, and what stays herdr
 
 | Operation | Who | Command |
 |---|---|---|
 | New tab, workspace, split; run a command; rename, move, close a pane; read output; send keys; agent status | herdr | `herdr pane split …`, `herdr tab create …` |
-| Is my pane shown in Oriel? Does an Oriel follow my session? | herdr tokens that Oriel writes | `oriel status` (no Oriel needed) |
-| Oriel's version, protocol, commands, appearance | Oriel | `oriel info` |
-| List the kinds an agent can open (the browser and every plugin) | Oriel (the plugins live on the Mac) | `oriel plugins` |
-| Make, build and install a plugin | Oriel, for a pane on This Mac | `oriel plugins new`, `oriel plugins reload`, `oriel plugins install` |
-| Open a browser or plugin card: beside a pane, in a new tab, floating, or in place of a card | Oriel | `oriel open git . uncommitted` |
-| Open a file or URL with its default plugin | Oriel | `oriel open ./README.md` |
-| Float and unfloat a pane, Stay on Top | Oriel | `oriel float w1:p3 --on-top`, `oriel unfloat w1:p3` |
-| Point the user at a pane, without moving their view | Oriel | `oriel reveal w1:p3` |
-| What a card shows: kind, argument, title, unsaved edits, floating | Oriel | `oriel card w1:p3` |
-| Which panes of my session show now, and which float | Oriel | `oriel shown` |
-| A notification on the Mac; a click shows the pane | Oriel | `oriel notify "Tests pass" "42 passed"` |
-| Start an agent with the chat view | Oriel (the launch flags are made per launch) | `oriel agent claude` |
-| Relaunch an idle agent with the chat view | Oriel | `oriel --timeout 20 chat w1:p4` |
-| Switch an agent's card to its chat or its TUI | Oriel | `oriel view w1:p4 chat` |
-| Even out the splits of a tab | Oriel | `oriel balance` |
-| Copy text to the Mac's clipboard | Oriel | `echo hi \| oriel copy` |
+| Is my pane shown in Ovvi? Does an Ovvi follow my session? | herdr tokens that Ovvi writes | `ovvi status` (no Ovvi needed) |
+| Ovvi's version, protocol, commands, appearance | Ovvi | `ovvi info` |
+| List the kinds an agent can open (the browser and every plugin) | Ovvi (the plugins live on the Mac) | `ovvi plugins` |
+| Make, build and install a plugin | Ovvi, for a pane on This Mac | `ovvi plugins new`, `ovvi plugins reload`, `ovvi plugins install` |
+| Open a browser or plugin card: beside a pane, in a new tab, floating, or in place of a card | Ovvi | `ovvi open git . uncommitted` |
+| Open a file or URL with its default plugin | Ovvi | `ovvi open ./README.md` |
+| Float and unfloat a pane, Stay on Top | Ovvi | `ovvi float w1:p3 --on-top`, `ovvi unfloat w1:p3` |
+| Point the user at a pane, without moving their view | Ovvi | `ovvi reveal w1:p3` |
+| What a card shows: kind, argument, title, unsaved edits, floating | Ovvi | `ovvi card w1:p3` |
+| Which panes of my session show now, and which float | Ovvi | `ovvi shown` |
+| A notification on the Mac; a click shows the pane | Ovvi | `ovvi notify "Tests pass" "42 passed"` |
+| Start an agent with the chat view | Ovvi (the launch flags are made per launch) | `ovvi agent claude` |
+| Relaunch an idle agent with the chat view | Ovvi | `ovvi --timeout 20 chat w1:p4` |
+| Switch an agent's card to its chat or its TUI | Ovvi | `ovvi view w1:p4 chat` |
+| Even out the splits of a tab | Ovvi | `ovvi balance` |
+| Copy text to the Mac's clipboard | Ovvi | `echo hi \| ovvi copy` |
 
 Every command, its options and its JSON output:
 [CLI](/docs/agent-control/cli).
 
-## Is my pane in Oriel?
+## Is my pane in Ovvi?
 
-An agent wants to know if a person sees its pane in Oriel now, and to keep
-knowing as that changes. Two tokens answer it. Oriel writes both, herdr keeps
+An agent wants to know if a person sees its pane in Ovvi now, and to keep
+knowing as that changes. Two tokens answer it. Ovvi writes both, herdr keeps
 them, and any process in the session reads them with herdr calls.
 
 | Token | On | Value | Written | Means |
 |---|---|---|---|---|
-| `oriel-shown` | each pane in view | `1`, or `remote` when the pane's machine is not the Mac that runs that Oriel | when the pane comes into view, every 10 s while it stays, cleared when it leaves; `ttl_ms` 30000 | an Oriel window shows the pane now: it is in the shown tab of the page in view of a visible window (and is the zoomed card, when one is), or it floats |
-| `oriel-open` | each workspace of the session | the protocol version, `1` | while any window of that Oriel has the session open (a float-only page too): on each snapshot with a new workspace, every 10 s; cleared when the last window lets the session go and on quit; `ttl_ms` 30000 | an Oriel follows the session, so it takes requests, also when the pane is in a hidden tab |
+| `ovvi-shown` | each pane in view | `1`, or `remote` when the pane's machine is not the Mac that runs that Ovvi | when the pane comes into view, every 10 s while it stays, cleared when it leaves; `ttl_ms` 30000 | an Ovvi window shows the pane now: it is in the shown tab of the page in view of a visible window (and is the zoomed card, when one is), or it floats |
+| `ovvi-open` | each workspace of the session | the protocol version, `1` | while any window of that Ovvi has the session open (a float-only page too): on each snapshot with a new workspace, every 10 s; cleared when the last window lets the session go and on quit; `ttl_ms` 30000 | an Ovvi follows the session, so it takes requests, also when the pane is in a hidden tab |
 
-`oriel status --json` reads them with `pane get` and `workspace get` and
+`ovvi status --json` reads them with `pane get` and `workspace get` and
 prints:
 
 ```json
@@ -91,53 +91,53 @@ prints:
 |---|---|---|
 | `session` | string | `$HERDR_SESSION` |
 | `pane` | string | the asking pane, `$HERDR_PANE_ID` or `--pane` |
-| `open` | boolean | the pane's workspace has `oriel-open`: an Oriel takes requests for this session |
-| `shown` | boolean | the pane has `oriel-shown`: at least one Oriel window, on any Mac, shows it now |
-| `remote` | boolean | `oriel-shown` is `remote`: the Oriel that marked it last runs on another machine, so the agent's own `pbcopy` does not reach that Mac |
-| `protocol` | integer or null | the value of `oriel-open`; null when `open` is false |
+| `open` | boolean | the pane's workspace has `ovvi-open`: an Ovvi takes requests for this session |
+| `shown` | boolean | the pane has `ovvi-shown`: at least one Ovvi window, on any Mac, shows it now |
+| `remote` | boolean | `ovvi-shown` is `remote`: the Ovvi that marked it last runs on another machine, so the agent's own `pbcopy` does not reach that Mac |
+| `protocol` | integer or null | the value of `ovvi-open`; null when `open` is false |
 
 - **Once per action** is the rule. pi-herd reads `shown` at each click. An
-  agent reads `open` before it calls `oriel`, or it calls and handles exit
+  agent reads `open` before it calls `ovvi`, or it calls and handles exit
   code 3.
 - **Keep knowing.** A process that shows the state (a footer, a status line)
   subscribes to herdr's `pane.updated` for its own pane and
   `workspace.metadata_updated` for its workspace. herdr sends them on each
-  write and when a token expires. `oriel status --watch` prints the JSON line
+  write and when a token expires. `ovvi status --watch` prints the JSON line
   again each time it changes. It reads every 2 s, because a shell script
   cannot hold a herdr subscription.
-- **Several windows and Macs** share one `oriel-shown` per pane. `shown` is
-  true while any window of any Oriel shows the pane. A window that hides the
+- **Several windows and Macs** share one `ovvi-shown` per pane. `shown` is
+  true while any window of any Ovvi shows the pane. A window that hides the
   tab clears the mark, and another window or Mac that still shows it writes
   it again within 10 s. So `shown` can read false for up to 10 s while a
   second Mac shows the pane. A floating pane counts as shown.
-- **Oriel quits:** it clears its marks, `oriel-open` first. It waits up to
+- **Ovvi quits:** it clears its marks, `ovvi-open` first. It waits up to
   1 s. A crash leaves the marks until `ttl_ms` ends, 30 s at most.
 
 ## The user's view
 
 An agent adds and offers. It never moves the view:
-- Oriel never comes to the front for a request, never selects a tab or a
+- Ovvi never comes to the front for a request, never selects a tab or a
   page, and never moves herdr's focus or the keyboard.
 - A new card beside the asking pane shows where the agent is.
 - A card out of view (in a new tab, or a card that already existed), and
-  `oriel reveal` of a pane out of view, show a notice with **Show** in each
+  `ovvi reveal` of a pane out of view, show a notice with **Show** in each
   window that shows the session
   ([Notice](/docs/ui/window#notice)). Show selects the pane's workspace, tab
   and card in that window.
-- `oriel reveal` of a pane in view flashes its card's border once.
+- `ovvi reveal` of a pane in view flashes its card's border once.
 - A float from an agent orders its window to the front without activating
-  Oriel. The keyboard stays in the window that had it.
-- A click on an agent's notification brings Oriel to the front and shows the
+  Ovvi. The keyboard stays in the window that had it.
+- A click on an agent's notification brings Ovvi to the front and shows the
   pane: the user asked for it.
-- The trust prompt for `oriel plugins install` shows on the session's window
-  and asks for attention in the Dock. Oriel does not come to the front, and
+- The trust prompt for `ovvi plugins install` shows on the session's window
+  and asks for attention in the Dock. Ovvi does not come to the front, and
   Return does not press Install.
 
 ## Security
 
 Any process that can reach a session's herdr socket (the same user on that
 machine) can ring the doorbell. That process can already type into every pane
-of the session, so Oriel gives it nothing on that machine that herdr does not.
+of the session, so Ovvi gives it nothing on that machine that herdr does not.
 What is new is what lands on the Mac, so the rules limit that:
 - A request acts only on its own machine: panes of its own session, or
   `‹session›/‹pane›` of a session on the same machine. A pane argument cannot
@@ -150,26 +150,26 @@ What is new is what lands on the Mac, so the rules limit that:
   trust prompt.
 - No focus steal and no view change (above). At most one notification per
   pane every 10 s, and none while the user turned off
-  Oriel ▸ Notifications ▸ From Agents.
-- Oriel builds every file path itself from the request id, which must be a
+  Ovvi ▸ Notifications ▸ From Agents.
+- Ovvi builds every file path itself from the request id, which must be a
   UUID.
 
 Details: [Protocol](/docs/agent-control/protocol#security).
 
 ## Why this design
 
-- **herdr as the bus** reaches every machine that Oriel follows and every
-  Oriel that follows the session, with no new connection. Oriel's own socket
+- **herdr as the bus** reaches every machine that Ovvi follows and every
+  Ovvi that follows the session, with no new connection. Ovvi's own socket
   forwarded over SSH would open a door from the machine to the Mac, which the
   SSH link keeps shut on purpose
   ([Why not a forwarded socket](/docs/agent-control/remote#why-not-a-forwarded-socket)).
-  The `oriel://float` URL works only on This Mac and gives no answer.
-  Escape sequences go to herdr, which owns the terminal, not to Oriel.
-- **argv in, Oriel parses** keeps the script small and the same on every
+  The `ovvi://float` URL works only on This Mac and gives no answer.
+  Escape sequences go to herdr, which owns the terminal, not to Ovvi.
+- **argv in, Ovvi parses** keeps the script small and the same on every
   machine. Structured JSON requests would make the script know every command.
 - **A command, not an MCP server,** works for every agent and shell script
   with no configuration per agent. An MCP server can wrap it.
-- **Fail fast with exit 3** when no Oriel takes a request. The caller picks
+- **Fail fast with exit 3** when no Ovvi takes a request. The caller picks
   its fallback: pi-herd opens herdr's popup, an agent tells the user.
 
 ## Not built
@@ -181,8 +181,8 @@ Details: [Protocol](/docs/agent-control/protocol#security).
   Plugins panel.
 - The size and position of a floating window from an agent: it keeps the
   frame of the pane's last float.
-- Changing the theme: agents can read the appearance only (`oriel info`).
-- Callers outside herdr panes (cron, Mac apps): `oriel://float` covers This
+- Changing the theme: agents can read the appearance only (`ovvi info`).
+- Callers outside herdr panes (cron, Mac apps): `ovvi://float` covers This
   Mac.
 - Presence tokens per Mac, which would close the 10 s gap above.
 - pi-herd's hidden agents with the chat view: pi-herd starts agents with its

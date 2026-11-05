@@ -1,6 +1,6 @@
 # Playbook
 
-How Oriel is built, for the agents that build it. What the app does is in `docs/content/docs/`; how to build,
+How Ovvi is built, for the agents that build it. What the app does is in `docs/content/docs/`; how to build,
 run and test it is in the root `README.md`.
 
 | File | What it holds |
@@ -22,7 +22,7 @@ run and test it is in the root `README.md`.
 | 4b | Actions: close, zoom, new tab, workspace and session, palette | [04b-actions.md](phases/04b-actions.md) |
 | 5 | Swipe across tabs, tab pills, chrome polish | [05-strip-and-glass.md](phases/05-strip-and-glass.md) |
 | 6 | Hardening and v0 wrap-up | [06-hardening.md](phases/06-hardening.md) |
-| 7 | Rename Herdlight to Oriel | [07-rename.md](phases/07-rename.md) |
+| 7 | Rename Herdlight to Ovvi | [07-rename.md](phases/07-rename.md) |
 | 8 | Design refresh | [08-design-refresh.md](phases/08-design-refresh.md) |
 | 9 | Simplify the design: same features, simpler mechanisms | [09-simplify.md](phases/09-simplify.md) |
 | 10 | Appearance (Auto, Light, Dark) and interface style (Glass, Classic) | [10-appearance.md](phases/10-appearance.md) |
@@ -54,7 +54,7 @@ run and test it is in the root `README.md`.
 | 36 | The browser pane on This Mac | [36-browser-pane.md](phases/36-browser-pane.md) |
 | 37 | The browser pane on remote machines | [37-browser-remote.md](phases/37-browser-remote.md) |
 | 38 | Chat view: the core and Claude Code | [38-chat-view-core.md](phases/38-chat-view-core.md) |
-| 39 | Chat view: Codex, pi (pi-oriel) and opencode | [39-chat-view-agents.md](phases/39-chat-view-agents.md) |
+| 39 | Chat view: Codex, pi (pi-ovvi) and opencode | [39-chat-view-agents.md](phases/39-chat-view-agents.md) |
 | 40 | Tenth feedback: two-row headers, browser polish, chat sessions and reading | [40-tenth-feedback.md](phases/40-tenth-feedback.md) |
 | 41 | Eleventh feedback: browser links, titles, the chat's reply box, rows, loading, overview, swipes | [41-eleventh-feedback.md](phases/41-eleventh-feedback.md) |
 | 42 | Default plugins: the shared spec and base (merged into main) | [42-plugins-base.md](phases/42-plugins-base.md) |
@@ -62,10 +62,10 @@ run and test it is in the root `README.md`.
 | 44 | Default plugins with web components (merged into main) | [44-plugins-web.md](phases/44-plugins-web.md) |
 | 45 | Twelfth feedback: the chat's turns, empty state, speed and the panes skill | [45-twelfth-feedback.md](phases/45-twelfth-feedback.md) |
 | 46 | Thirteenth feedback: chat bubbles and long chats, pane speed, File Explorer and Git | [46-thirteenth-feedback.md](phases/46-thirteenth-feedback.md) |
-| 47 | The plugin system: packages, the `oriel` API, File Explorer and Git on it (merged into main) | [47-plugin-system.md](phases/47-plugin-system.md) |
+| 47 | The plugin system: packages, the `ovvi` API, File Explorer and Git on it (merged into main) | [47-plugin-system.md](phases/47-plugin-system.md) |
 | 48 | Instant tabs: no strip, no tab animations, simpler code | [48-instant-tabs.md](phases/48-instant-tabs.md) |
 | 49 | Fourteenth feedback: full chat turns, File Explorer and Git polish, statuses, tab pills | [49-fourteenth-feedback.md](phases/49-fourteenth-feedback.md) |
-| 50 | Agent control: the `oriel` command, its protocol and the `oriel` skill (merged into main) | [50-agent-control.md](phases/50-agent-control.md) |
+| 50 | Agent control: the `ovvi` command, its protocol and the `ovvi` skill (merged into main) | [50-agent-control.md](phases/50-agent-control.md) |
 | 51 | Fifteenth feedback: our own states, File Explorer and Git polish, palette keycaps, CLI additions | [51-fifteenth-feedback.md](phases/51-fifteenth-feedback.md) |
 | 52 | Sixteenth feedback: clean back and forth, Markdown done right, the sidebar's final design | [52-sixteenth-feedback.md](phases/52-sixteenth-feedback.md) |
 | 53 | Seventeenth feedback: a Finder-like File Explorer, one file-card header, clean Git diffs, the active pane | [53-seventeenth-feedback.md](phases/53-seventeenth-feedback.md) |

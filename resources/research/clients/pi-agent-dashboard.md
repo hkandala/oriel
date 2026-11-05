@@ -53,11 +53,11 @@ Huge: client about 170k lines, server 140k, shared 53k, extension 29k (no tests)
 forwarder, prompt send, PromptBus, backfill) is a few thousand. Installed with `pi install`, which writes pi's
 settings; a per-run `-e <path>` load would not.
 
-## For Oriel
+## For Ovvi
 
 - Copy: for pi, an extension passed with `-e` on the launch line is the robust path: events out, `sendUserMessage`
-  in, the TUI untouched. Only Oriel-launched panes get it, as the brief wants.
+  in, the TUI untouched. Only Ovvi-launched panes get it, as the brief wants.
 - Copy: PromptBus semantics: show a dialog in both places, first answer wins, dismiss the other. Anything the bus
   does not know (`custom`) stays in the TUI.
 - Copy: the tail cursor with a last-line hash, and never emit a partial line.
-- Avoid: forwarding every `message_update` (live text); Oriel does not need it, and it slowed the TUI.
+- Avoid: forwarding every `message_update` (live text); Ovvi does not need it, and it slowed the TUI.

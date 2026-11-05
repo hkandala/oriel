@@ -2,7 +2,7 @@
 
 Repo: https://github.com/manaflow-ai/cmux (commit 97e8a228, GPL-3.0-or-later; server parts BUSL-1.1). A native macOS
 terminal built on libghostty (Swift, about 14k Swift files), plus an iOS app, a Bun/React web sidecar
-(`agent-chat/`) and a Go remote daemon. Very active. It is the closest project to Oriel's plan: a **terminal-backed
+(`agent-chat/`) and a Go remote daemon. Very active. It is the closest project to Ovvi's plan: a **terminal-backed
 chat** over the agent's TUI, same process, with hooks for state and the transcript for content. It also has a
 separate structured chat (new processes over stream-json, app-server, pi RPC, ACP), like Orca.
 
@@ -77,11 +77,11 @@ design (`cmux/docs/multi-machine-sessions.md`) is a draft.
   of `server.ts`, `cmux-rpc.ts` 38). The whole web sidecar is 7.8k + 6.7k UI; the shared Swift chat package 21k;
   the wrappers 3.5k lines of bash.
 
-## For Oriel
+## For Ovvi
 
 - Copy: the whole terminal-chat design. Hooks give the session id and transcript path; the JSONL is tailed by offset
   with inode checks; prompts are pasted; questions stay in the terminal behind an "Answer in terminal" button.
 - Copy: clear line, paste, short delay, re-check the process, then submit; never resend after the text was accepted.
 - Copy: pid liveness, not titles, to decide that the chat still belongs to the pane.
-- Avoid: a 2,459-line bash wrapper. Oriel types its own flags into the shell, so it needs no PATH shim.
+- Avoid: a 2,459-line bash wrapper. Ovvi types its own flags into the shell, so it needs no PATH shim.
 - Avoid: guessing "running" from file age alone; herdr's agent state is better.

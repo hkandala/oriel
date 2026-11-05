@@ -22,7 +22,7 @@ import Testing
 }
 
 @Test func `a pi session file's last name, read through the script`() async throws {
-    let file = FileManager.default.temporaryDirectory.appending(path: "oriel-title-\(UUID().uuidString).jsonl")
+    let file = FileManager.default.temporaryDirectory.appending(path: "ovvi-title-\(UUID().uuidString).jsonl")
     defer { try? FileManager.default.removeItem(at: file) }
     try """
     {"type":"session","version":3,"id":"01a1","cwd":"/tmp"}

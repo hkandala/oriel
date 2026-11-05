@@ -1,10 +1,10 @@
 # Phase 50: Agent control
 
-Goal: build the recommended agent-control design: the `oriel` command and its protocol, so agents on This Mac and on
-remote machines open and drive Oriel cards, ask whether they are shown, and manage plugins. Then replace today's
-workarounds and the `oriel-panes` skill with one `oriel` skill.
+Goal: build the recommended agent-control design: the `ovvi` command and its protocol, so agents on This Mac and on
+remote machines open and drive Ovvi cards, ask whether they are shown, and manage plugins. Then replace today's
+workarounds and the `ovvi-panes` skill with one `ovvi` skill.
 
-Design: the recommended design, `~/Downloads/oriel-research/agent-control-design.html` (it wins), and the proposed
+Design: the recommended design, `~/Downloads/ovvi-research/agent-control-design.html` (it wins), and the proposed
 pages `docs/content/docs/future-work/agent-control/*.mdx`, which this phase moves out of future work and rewrites as
 built. The user: "in parallel in a separate branch let's work on the agent control impl as well, go with your
 recommended design, and once all the fixes i asked for above are done and agent control impl is also done, let's
@@ -16,49 +16,49 @@ suite on the exact head, and a fast-forward of main.
 
 ## How the branch runs
 
-- Base branch `agent-control` on origin (never main until the end). Each track: worktree `../oriel-50<t>` off
-  `origin/agent-control`, branch `wt-50<t>`, `DERIVED_DATA=/tmp/oriel-dd-50<t>`. Merge when the orchestrator says:
+- Base branch `agent-control` on origin (never main until the end). Each track: worktree `../ovvi-50<t>` off
+  `origin/agent-control`, branch `wt-50<t>`, `DERIVED_DATA=/tmp/ovvi-dd-50<t>`. Merge when the orchestrator says:
   `git pull --rebase origin agent-control`, `make lint build test`, `git push origin HEAD:agent-control`.
 - The orchestrator rebases `agent-control` onto `origin/main` only between merges, when no track is mid-merge,
   and says so; a track then runs `git pull --rebase origin agent-control` before its merge.
 - UI tests on CI: `gh workflow run ci.yml --ref <tag or agent-control> -f only_testing=…`. One run in flight per
   track at most (two in all); never wait on one in a loop: report its id.
 - Track order: A first (it is the base of the others), then B and C in parallel, then D and E in parallel.
-  The removal of `oriel-float` and `oriel-copy` (the report's track 6) is one release later, not in this phase.
+  The removal of `ovvi-float` and `ovvi-copy` (the report's track 6) is one release later, not in this phase.
 
 ## Track A: the bus (items 1–6)
 
-Files: `Packages/HerdrKit` (the decode, the take and answer runs, the `oriel-open` marks), `Oriel/Store/HostStore.swift`
-(split it first: it is at the 400-line limit), `Oriel/Store/Presence.swift`, a new `Oriel/Agent/` folder (the
+Files: `Packages/HerdrKit` (the decode, the take and answer runs, the `ovvi-open` marks), `Ovvi/Store/HostStore.swift`
+(split it first: it is at the 400-line limit), `Ovvi/Store/Presence.swift`, a new `Ovvi/Agent/` folder (the
 parser and dispatcher, `info`, `help`, `float`, `unfloat`, `copy`), the script as an app resource, and a new
-`OrielUITests/AgentControlTests.swift` plus one case in `RemoteTests.swift`. Track A owns the dispatcher file;
-B, C and D each add their commands in their own file under `Oriel/Agent/` and one registration line in it.
+`OvviUITests/AgentControlTests.swift` plus one case in `RemoteTests.swift`. Track A owns the dispatcher file;
+B, C and D each add their commands in their own file under `Ovvi/Agent/` and one registration line in it.
 
-1. **The script.** `oriel` as an app resource, from the design's script (cli.mdx, The script), `# oriel-cli 1` on
+1. **The script.** `ovvi` as an app resource, from the design's script (cli.mdx, The script), `# ovvi-cli 1` on
    line 2; `status` (with `--json`, `--watch`) answered by the script from herdr tokens alone.
-2. **Written on connect.** When a store opens a session on a machine: one run makes `~/.cache/oriel/{bin,rpc}`
+2. **Written on connect.** When a store opens a session on a machine: one run makes `~/.cache/ovvi/{bin,rpc}`
    (rpc mode 0700), removes mailbox files older than 60 minutes and reads line 2; a second run writes the script
    (temporary name, `mv`, 0755) when missing or older. Never an older one over a newer one (remote.mdx).
-3. **The doorbell.** HerdrKit decodes `oriel-req` off `pane.updated` (UUID v4 pattern only, the last 256 ids per
+3. **The doorbell.** HerdrKit decodes `ovvi-req` off `pane.updated` (UUID v4 pattern only, the last 256 ids per
    session, once per id) into `Update.request(id:pane:)`. The take (`mv .req .run; base64`) and the answer
    (`.out`, then `.exit`, each by temporary name and `mv`; remove `.run`, `.in`) are one run each (protocol.mdx).
    Size limits: 64 KiB, 64 fields, `.in` 1 MiB.
-4. **Two Oriels.** An Oriel whose user is away (no key or click in the app for 60 s, the screen locked, or no
+4. **Two Ovvis.** An Ovvi whose user is away (no key or click in the app for 60 s, the screen locked, or no
    visible window shows the session) waits 500 ms before its take.
-5. **`oriel-open`.** `1` on each workspace of a followed session (`workspace.report_metadata`, source `oriel`,
-   `ttl_ms` 30000), with the 10 s `oriel-shown` refresh and on a snapshot with a new workspace; cleared on Detach
-   Session and on quit (the same 1 s wait as `oriel-shown`).
+5. **`ovvi-open`.** `1` on each workspace of a followed session (`workspace.report_metadata`, source `ovvi`,
+   `ttl_ms` 30000), with the 10 s `ovvi-shown` refresh and on a snapshot with a new workspace; cleared on Detach
+   Session and on quit (the same 1 s wait as `ovvi-shown`).
 6. **The dispatcher and the first commands.** `AgentCommands.run(argv, cwd:, from:, store:)`: the one parser
    (global `--json`; errors as text or `{"error":{code,message}}`, exit codes per protocol.mdx), `help` generated
    from the commands, `info`, `float` (`--on-top`; `existing`), `unfloat` (`not_floating`), `copy` (stdin from
    `.in`, 1 MiB). Pane arguments: `w1:p3` or `‹session›/‹pane›` on the same machine only (`other_machine`).
-   Tests: an e2e test that runs the command in a pane of an `oriel-e2e-*` session (float, copy, status, exit 3
-   with no Oriel) and checks through accessibility values and herdr; a RemoteTests case over CI's sshd. Measure
+   Tests: an e2e test that runs the command in a pane of an `ovvi-e2e-*` session (float, copy, status, exit 3
+   with no Ovvi) and checks through accessibility values and herdr; a RemoteTests case over CI's sshd. Measure
    the round trip on This Mac and over the sshd and write it in the Findings.
 
 ## Track B: cards (items 7–10)
 
-Files: `Oriel/Agent/` (its own file), `Oriel/Plugins/OpenPlugin.swift`, the notice in the window, tests in
+Files: `Ovvi/Agent/` (its own file), `Ovvi/Plugins/OpenPlugin.swift`, the notice in the window, tests in
 `AgentControlTests.swift` (its own test methods, below track A's) or a new `AgentCardTests.swift`.
 
 7. **`open`** in its four places (default split right of the asking pane, `--down`, `--beside <pane>`, `--tab`
@@ -75,7 +75,7 @@ Files: `Oriel/Agent/` (its own file), `Oriel/Plugins/OpenPlugin.swift`, the noti
 
 ## Track C: plugins (items 11–14)
 
-Files: `Oriel/Agent/` (its own file), `Oriel/Plugins/PluginInstalls.swift`, `PluginBuilds.swift`, `Registry.swift`,
+Files: `Ovvi/Agent/` (its own file), `Ovvi/Plugins/PluginInstalls.swift`, `PluginBuilds.swift`, `Registry.swift`,
 `PluginTrust.swift` (the agent's name in the prompt), tests in a new `AgentPluginTests.swift`.
 
 11. **`plugins`** from `Registry.all` and `Registry.problem` (cli.mdx and the design: `source` is the panel's row
@@ -89,7 +89,7 @@ Files: `Oriel/Agent/` (its own file), `Oriel/Plugins/PluginInstalls.swift`, `Plu
 
 ## Track D: agents and notices (items 15–17)
 
-Files: `Oriel/Agent/` (its own file), the notification code and Settings (the switch), `Oriel/Chat/EnableChat.swift`
+Files: `Ovvi/Agent/` (its own file), the notification code and Settings (the switch), `Ovvi/Chat/EnableChat.swift`
 for the relaunch, tests in a new `AgentStartTests.swift`.
 
 15. **`agent <name>`** with the places of `open` (track B's place parser, reused): the pane, then the agent's
@@ -101,75 +101,75 @@ for the relaunch, tests in a new `AgentStartTests.swift`.
 
 ## Track E: pi-hkandala (items 18–20)
 
-In `~/code/pi-hkandala` on the local branch `oriel-skill` (never pushed until Oriel's side is on main).
+In `~/code/pi-hkandala` on the local branch `ovvi-skill` (never pushed until Ovvi's side is on main).
 
-18. **The `oriel` skill** (below, The skill).
-19. **pi-herd's float** (`orielFloat`) through `oriel --pane ‹pane› float ‹session›/‹pane›`; any exit but 0 opens the
-    herdr popup as before; `orielShows` stays (migration.mdx).
-20. **pi's copy** (`herdr/oriel-copy.ts`) through `oriel copy` on stdin under the same remote test; its test moves
-    to a fake script; the 30 s cleanup goes. The `oriel-panes` skill and `placeholder.sh` go.
+18. **The `ovvi` skill** (below, The skill).
+19. **pi-herd's float** (`ovviFloat`) through `ovvi --pane ‹pane› float ‹session›/‹pane›`; any exit but 0 opens the
+    herdr popup as before; `ovviShows` stays (migration.mdx).
+20. **pi's copy** (`herdr/ovvi-copy.ts`) through `ovvi copy` on stdin under the same remote test; its test moves
+    to a fake script; the 30 s cleanup goes. The `ovvi-panes` skill and `placeholder.sh` go.
 
 ## Decisions (the orchestrator, from the design's open questions)
 
-- One `oriel-shown` for all devices (no per-device tokens).
+- One `ovvi-shown` for all devices (no per-device tokens).
 - Agent notifications get a third switch, "From agents", on by default.
-- A stale `$HERDR_PANE_ID` fails at herdr before Oriel hears it: the script exits 5 and says to pass `--pane`.
-  `pane_not_found` is for a pane argument Oriel cannot find.
+- A stale `$HERDR_PANE_ID` fails at herdr before Ovvi hears it: the script exits 5 and says to pass `--pane`.
+  `pane_not_found` is for a pane argument Ovvi cannot find.
 - `plugins install` is This Mac only; `plugins new` trusts the plugin, as the panel does.
 - `chat` on the asking pane is `self`.
-- Oriel keeps reading `oriel-float` and `oriel-copy` in this phase.
+- Ovvi keeps reading `ovvi-float` and `ovvi-copy` in this phase.
 
 ## The skill
 
-"also update the oriel-panes skill, also call it just oriel skill and it should be fully based on the agent control
+"also update the ovvi-panes skill, also call it just ovvi skill and it should be fully based on the agent control
 impl, keep it concise, simple, let it refer to herdr skill for any herdr related stuff, also use progressive
 disclosure and have may be different md files where agent can load what only needed, keep the skill very clear and
 simple and brief."
 
-- `~/code/pi-hkandala/skills/oriel/`: a short `SKILL.md` (what Oriel is, how to tell it is there, the five commands
+- `~/code/pi-hkandala/skills/ovvi/`: a short `SKILL.md` (what Ovvi is, how to tell it is there, the five commands
   an agent uses most, and links), plus one file per topic loaded only when needed (for example `cards.md`,
   `plugins.md`, `remote.md`). Every herdr detail points to the herdr skill (`herdr --skill`).
-- The `oriel-panes` skill and its `placeholder.sh` go; pi-herd's `orielFloat` and `oriel-copy.ts` move onto the
-  command (the report's migration table). Push pi-hkandala to master when the Oriel side is on main.
+- The `ovvi-panes` skill and its `placeholder.sh` go; pi-herd's `ovviFloat` and `ovvi-copy.ts` move onto the
+  command (the report's migration table). Push pi-hkandala to master when the Ovvi side is on main.
 
 ## Findings
 
 ### Track A
 
-- **Spike (herdr 0.9.5).** `pane report-metadata --token oriel-req=… --ttl-ms 3000` from a pane works and exits 1 for
+- **Spike (herdr 0.9.5).** `pane report-metadata --token ovvi-req=… --ttl-ms 3000` from a pane works and exits 1 for
   an unknown pane; `pane.updated` carries the whole pane (`pane_id`, `tokens` of every source merged) and comes again,
   without the token, when it expires. `workspace.report_metadata` takes `tokens` and `ttl_ms` like the pane call, a
   `null` clears, and `workspace.metadata_updated` carries the workspace's `tokens`. `pane get` and `workspace get` print
-  compact JSON on one line, so the script's `sed` reads `workspace_id`, `oriel-shown` and `oriel-open`.
-- **Round trip.** `oriel info`, typed in a pane, to its exit. This Mac, by hand: 0.34 s at best, 0.47 s median,
-  0.69 s at worst (10 calls, load average 130–200 from other agents' builds); `oriel status` 0.18 s. CI's VM: 0.23 s
+  compact JSON on one line, so the script's `sed` reads `workspace_id`, `ovvi-shown` and `ovvi-open`.
+- **Round trip.** `ovvi info`, typed in a pane, to its exit. This Mac, by hand: 0.34 s at best, 0.47 s median,
+  0.69 s at worst (10 calls, load average 130–200 from other agents' builds); `ovvi status` 0.18 s. CI's VM: 0.23 s
   at best, 0.5 s median, 1.55 s at worst. Over CI's sshd on localhost (Key Host): 0.18 s at best, 0.36 s median,
   0.48 s at worst, faster than This Mac because the relay is one long-lived process, while This Mac starts a
-  `Process` for the take and another for the answer. With no Oriel, exit 3 after 2.4–3.0 s. The script's own forks
+  `Process` for the take and another for the answer. With no Ovvi, exit 3 after 2.4–3.0 s. The script's own forks
   (the ring, `date` and `sleep` in each 50 ms poll) cost the rest, so a busy Mac is above the design's 0.1 s.
-- **Decisions.** A stale or unknown asking pane never reaches Oriel: the ring fails at herdr, so the script exits 5
+- **Decisions.** A stale or unknown asking pane never reaches Ovvi: the ring fails at herdr, so the script exits 5
   and says to pass `--pane`; `pane_not_found` is only for a pane argument. A pane argument is always read on the
   asking pane's machine (the syntax cannot name another), so no pane argument answers `other_machine`; a
   `‹session›/‹pane›` whose session herdr does not run there is `pane_not_found`. `--json` counts anywhere in the
   arguments. Without `--json`, a command that gives no text prints its JSON fields as `name: value` lines. `copy`
-  answers `{"bytes": n}` and prints nothing. `oriel-open` marks every workspace of a session while any window has it
+  answers `{"bytes": n}` and prints nothing. `ovvi-open` marks every workspace of a session while any window has it
   open (a float-only page too), not only while its page is in view: requests are taken then. A request that is not
   one, or is over 64 KiB or 64 fields, answers `usage`; a newer protocol answers `protocol`.
 - **The dispatcher.** A command is an `AgentCommand` (`name`, `usage`, `summary`, `help`, `run`) declared as a
-  `static let` in its track's own file under `Oriel/Agent/`, and one line in `AgentCommands.all`. `run` reads its
+  `static let` in its track's own file under `Ovvi/Agent/`, and one line in `AgentCommands.all`. `run` reads its
   arguments off an `AgentCall` (`flag`, `value`, `argument`, `optionalArgument`, `done`, `target` for a pane), throws
   `AgentError(code:message:)` (any other error answers `failed`), and returns `AgentOutput(json, text:)`.
-- **Two Oriels.** Away is no key press or click in the app for 60 s, the screen locked, or no visible window with the
-  session's page in view; an away Oriel waits 500 ms before its take.
-- **The script's version.** Line 2 is `# oriel-cli ‹protocol›.‹revision›` (`1.1` now). Oriel compares the
+- **Two Ovvis.** Away is no key press or click in the app for 60 s, the screen locked, or no visible window with the
+  session's page in view; an away Ovvi waits 500 ms before its take.
+- **The script's version.** Line 2 is `# ovvi-cli ‹protocol›.‹revision›` (`1.1` now). Ovvi compares the
   machine's line 2 with its bundled script's, as numbers, and writes only over a lower one, so a fixed script
   replaces an older one without a new protocol. For the docs pass: protocol.mdx, cli.mdx and remote.mdx say
-  `# oriel-cli 1`. No command is `help`; `help status` answers from a help-only `status` entry.
+  `# ovvi-cli 1`. No command is `help`; `help status` answers from a help-only `status` entry.
 - **Tests.** The remote case sits in `AgentControlTests.swift`, not `RemoteTests.swift`, which is at the 400-line
   limit; it skips without CI's sshd as the others do. The e2e test writes the script and the mailbox in the real
-  `~/.cache/oriel` (a cache, as the chat state is), never over a newer script.
-- **For the user.** A float from `oriel float` (and its `existing` bring-to-front) should open without activating
-  Oriel: check it with Oriel in the background.
+  `~/.cache/ovvi` (a cache, as the chat state is), never over a newer script.
+- **For the user.** A float from `ovvi float` (and its `existing` bring-to-front) should open without activating
+  Ovvi: check it with Ovvi in the background.
 
 ### Track B
 
@@ -190,7 +190,7 @@ simple and brief."
 - **Arguments.** A path whose name is no kind must exist on the asking machine (`bad_argument`); a word after an
   unknown first word is `plugin_not_found` (with the registry's reason when there is one). Git takes a folder of a
   repository (its root) and `uncommitted` or a hex commit; `browser ./page.html` is a `file://` URL, This Mac only.
-  The default plugin is track C's `Registry.openers(for:)`, the one rule `oriel.open` uses too.
+  The default plugin is track C's `Registry.openers(for:)`, the one rule `ovvi.open` uses too.
 - **`card` and `shown`.** A terminal's or an agent's `arg` is its folder; `error` comes only when there is one (a
   missing plugin's reason, a plugin page's failure). `shown` lists the tab panes in view and, apart, the floats;
   `windows` counts the visible windows with the session's page in view. A floating card flashes in its own window.
@@ -198,19 +198,19 @@ simple and brief."
   `--beside <pane> [--down]`, `--tab`, `--float` or `--replace <pane>` (at most one; else `usage`), then
   `try await call.newPane(place)` (no label: a shell; its writes go through `HostStore.request`, which `write` now
   wraps) makes the pane in the request's folder and returns
-  `(store, pane)` once a snapshot has it; `.tab(float: true)` floats it as `oriel float` does; `.replace` is
+  `(store, pane)` once a snapshot has it; `.tab(float: true)` floats it as `ovvi float` does; `.replace` is
   `usage` there, so `agent` rejects it before.
-- **For the user.** Run `oriel open git . --tab` and `oriel reveal <pane of another tab>` from an agent with Oriel
-  in the background: the notice shows in each window of the session, Show selects the card there, and Oriel does not
-  come to the front. An agent's float (`oriel float`, `open --float`) orders its window to the front without
-  activating Oriel and gives the keyboard back to the window that had it; check that with Oriel in the background
-  and while typing in Oriel.
+- **For the user.** Run `ovvi open git . --tab` and `ovvi reveal <pane of another tab>` from an agent with Ovvi
+  in the background: the notice shows in each window of the session, Show selects the card there, and Ovvi does not
+  come to the front. An agent's float (`ovvi float`, `open --float`) orders its window to the front without
+  activating Ovvi and gives the keyboard back to the window that had it; check that with Ovvi in the background
+  and while typing in Ovvi.
 
 ### Track C
 
 - **Decisions.** `plugins` is one command with the subcommands `new`, `reload`, `install`; a first word that is none
   of them is the list. `source` is the Plugins panel's row text (the folder, `npm:…`, `git:…`), except `app` for the
-  browser and the default plugins, whose row says "Comes with Oriel". A package that did not load shows `id`, `source`
+  browser and the default plugins, whose row says "Comes with Ovvi". A package that did not load shows `id`, `source`
   (its folder) and `error` (`package.json: …`); in the text it is a `not loaded` row. `log` is the full path, and only
   for a pane on This Mac and a plugin with an entry (not the browser). `--for` and a relative `install` path are read
   from the command's folder; `--for` treats an argument ending in `/` (or `.`) as a folder (the docs should say "end a
@@ -224,7 +224,7 @@ simple and brief."
   `CancellationError` (no notice in the panel; `declined` for an agent). An agent's work shows in the panel too
   (Creating…, Installing…, a failure).
 - **The agent's trust prompt.** The same sheet as the panel's, on the window of the asking session, with "‹agent› in
-  pane ‹pane› asks to install it." first. Oriel never comes to the front for it (it asks for attention in the Dock),
+  pane ‹pane› asks to install it." first. Ovvi never comes to the front for it (it asks for attention in the Dock),
   and Return does not press Install, so keys typed elsewhere cannot consent. If the script's `--timeout` ends first,
   the prompt stays and the install goes on.
 - **reload.** One id: the registry is read again first, so a folder made by hand loads; an unknown id is
@@ -234,23 +234,23 @@ simple and brief."
   ones reloaded before it); edits made during one plugin's own build are still Plugin.reload's (the panel's) race.
   `build_failed`'s message is the card's toast title and the build's last 20 lines. A failed agent install leaves
   the panel's notice without Retry.
-- **For the user.** The trust prompt with the agent's name: `/tmp/oriel-shots/agent-trust-prompt.png`. Check by hand
-  that it shows on the session's window while Oriel is in the background, and that Return does not install.
+- **For the user.** The trust prompt with the agent's name: `/tmp/ovvi-shots/agent-trust-prompt.png`. Check by hand
+  that it shows on the session's window while Ovvi is in the background, and that Return does not install.
 
 ### Track D
 
 - **Spike (herdr 0.9.5).** Once a pane has an agent session (`report-agent-session`), herdr takes no more state
   reports for it, from any source. A stand-in that must look busy reports `working` before its session.
-- **The switches.** Oriel had none: needs you and finished were fixed (settings.mdx, status.mdx), and there is no
-  Settings window (D62). So the menu bar has Oriel ▸ Notifications ▸ Needs You, Finished, From Agents. Each is on by
+- **The switches.** Ovvi had none: needs you and finished were fixed (settings.mdx, status.mdx), and there is no
+  Settings window (D62). So the menu bar has Ovvi ▸ Notifications ▸ Needs You, Finished, From Agents. Each is on by
   default and is a key in app storage (`notifyNeedsYou`, `notifyFinished`, `notifyFromAgents`). The palette shows them
   as a sub-page. For the docs pass: settings.mdx and status.mdx.
 - **notify.** It answers `{"pane", "notified"}`. With From Agents off, it answers `"notified": false` and exit 0, and
   does not count toward the limit. The limit is one per asking pane (by terminal) every 10 s, whatever `--pane`
   names. A pane that
-  macOS does not let Oriel notify gets `failed` with macOS's words. The id is `agent|‹machine›|‹session›|‹terminal›`:
+  macOS does not let Ovvi notify gets `failed` with macOS's words. The id is `agent|‹machine›|‹session›|‹terminal›`:
   a newer one from the same pane replaces it, and the snapshot's sweep removes it only once its pane closed.
-  A click brings Oriel to the front and shows the pane, the same as a needs-you click. The subtitle is
+  A click brings Ovvi to the front and shows the pane, the same as a needs-you click. The subtitle is
   "‹agent› · ‹session›".
 - **agent.** It takes B's places, but not `--replace` (`usage`). An unknown name is `bad_argument`. It puts the
   chooser's loader on the new pane, as Start Agent Here does, and answers `{"pane", "agent"}` once the line is typed
@@ -263,26 +263,26 @@ simple and brief."
 - **Tests.** The `agent` test checks the errors everywhere. It skips the rest on a Mac that has `claude`: a new pane's
   shell has no stand-in, and the real one would start (and write `~/.claude`). So the typed line is checked on CI
   only.
-- **For the user.** Click an agent's banner while Oriel is in the background: Oriel comes to the front and shows the
-  pane. Turn off From Agents and check that `oriel notify` shows nothing. Turn off Needs You or Finished and check
-  that those banners stop. Run `oriel agent claude --tab` and check that the view does not move and that Claude Code
-  starts with the chat view. `oriel chat` on an idle agent clears a draft the user is typing into it (⌃C, then the
+- **For the user.** Click an agent's banner while Ovvi is in the background: Ovvi comes to the front and shows the
+  pane. Turn off From Agents and check that `ovvi notify` shows nothing. Turn off Needs You or Finished and check
+  that those banners stop. Run `ovvi agent claude --tab` and check that the view does not move and that Claude Code
+  starts with the chat view. `ovvi chat` on an idle agent clears a draft the user is typing into it (⌃C, then the
   quit command), and the loader takes the keys until the agent is back: the design accepts this, as chat never asks.
 
 ### Final review
 
-- **Script 1.2.** The script's own errors print `{"error":…}` with `--json` too (`usage`, `no_oriel`, `timeout`,
+- **Script 1.2.** The script's own errors print `{"error":…}` with `--json` too (`usage`, `no_ovvi`, `timeout`,
   `no_herdr`), its link points to the built page, and `copy` writes at most 1 MiB and one byte. `make test` checks
-  that cli.mdx shows the script as Oriel carries it.
+  that cli.mdx shows the script as Ovvi carries it.
 - **Cause (lost rings).** A ring that came while the events stream opened again (any agent starting or stopping)
-  had no event, so the command exited 3. **Fix:** `oriel-req` is read off each snapshot too, once per id.
+  had no event, so the command exited 3. **Fix:** `ovvi-req` is read off each snapshot too, once per id.
 - **Cause (lost edits).** An agent's reload checked for edits before the build and reloaded every card after it.
   **Fix:** `Plugin.reload(keepEdits:)` keeps a card that got edits during the build, and the agent gets `dirty`.
 - **Decisions.** One in-view set (`HostStore.inView`, the shown tab of each visible window's page in view, plus the
-  floats; a zoomed card hides its tab's others) feeds `oriel-shown` and `open`, `reveal`, `card` and `shown`, and a
+  floats; a zoomed card hides its tab's others) feeds `ovvi-shown` and `open`, `reveal`, `card` and `shown`, and a
   zoom marks again. `plugins --for` reads a folder off the disk, as `open` does. A reused card stays
   where it is with `--float`. `agent` tells a bad name or `--replace` before a bad place.
 - **Decisions (Mac safety).** A `file:` URL from a remote pane is `bad_argument` for every kind, not only the
   browser. An agent's trust prompt with no window left fails instead of running a modal alert. An agent's failed
   float shows no warning in the user's window.
-- **For the user.** Start or stop an agent in a session while another agent runs `oriel` in a loop: no call exits 3.
+- **For the user.** Start or stop an agent in a session while another agent runs `ovvi` in a loop: no call exits 3.

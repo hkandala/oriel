@@ -38,7 +38,7 @@ closes and pane motion, floating panes, and the overview that replaces the tab p
 
 ### Lane F3 (items 10–14)
 
-- **Cause, item 14.** herdr 0.9.5 gives Oriel nothing to open: a popup has no pane or terminal id in the API
+- **Cause, item 14.** herdr 0.9.5 gives Ovvi nothing to open: a popup has no pane or terminal id in the API
   and sends no event (probed on a throwaway server). Not built; the upstream ask is in Future work.
 - **Fix.** `FloatReader` sizes a new window over its main window; the traffic-light placement moved into a
   `TrafficLights` base class both windows use; one `PaneInfo` view serves the title row and the placeholder.

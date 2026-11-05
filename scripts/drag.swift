@@ -1,7 +1,7 @@
 // A mouse drag through several points, for the drag tests that need two legs (a tab held over the
 // workspace button opens its menu, then drops on a row there): XCUITest drags to one point only. Presses at x y (screen
 // points, top left) for 0.3 s, then moves to each next point over 0.3 s and holds there for its seconds, then lets go.
-// Posted to the HID system, as scripts/swipe.swift does. Only from an Oriel window: never into another app.
+// Posted to the HID system, as scripts/swipe.swift does. Only from an Ovvi window: never into another app.
 // Usage: swift scripts/drag.swift <x> <y> (<x> <y> <hold>)...
 import CoreGraphics
 import Foundation
@@ -20,8 +20,8 @@ let front = windows.first { window in
 let frame = (front?[kCGWindowBounds as String] as? NSDictionary)
     .flatMap { CGRect(dictionaryRepresentation: $0 as CFDictionary) } ?? .null
 
-guard front?[kCGWindowOwnerName as String] as? String == "Oriel", points.allSatisfy({ frame.contains($0) })
-else { fatalError("not all of \(points) in the Oriel window at \(start)") }
+guard front?[kCGWindowOwnerName as String] as? String == "Ovvi", points.allSatisfy({ frame.contains($0) })
+else { fatalError("not all of \(points) in the Ovvi window at \(start)") }
 
 func post(_ type: CGEventType, _ point: CGPoint) {
     CGEvent(mouseEventSource: nil, mouseType: type, mouseCursorPosition: point, mouseButton: .left)?

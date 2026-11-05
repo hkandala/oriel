@@ -2,7 +2,7 @@
 
 Goal: the shared parts of the window look like Rex's in size, spacing and finish, in light and dark,
 Glass and Classic. The user found the tab bar, the pane cards (glass), the sidebar and the traffic
-lights "a bit off". This phase compares Rex and Oriel side by side and closes the gaps. It changes looks
+lights "a bit off". This phase compares Rex and Ovvi side by side and closes the gaps. It changes looks
 only: no new features, no new settings.
 
 ## Build
@@ -12,10 +12,10 @@ only: no new features, no new settings.
    driving Rex, never touching the user's Rex session. Pick, for each look (Glass dark, Glass light,
    Classic dark, Classic light), the Rex picture closest to it. Note the desktop behind Glass pictures:
    compare Glass on the same wallpaper or by the elements that do not depend on it (sizes, strokes, text).
-2. **Oriel set.** The same scenes in Oriel at the same window size and scale (2x): one tab, three tabs
+2. **Ovvi set.** The same scenes in Ovvi at the same window size and scale (2x): one tab, three tabs
    with a blocked and a working agent, three splits, sidebar open and collapsed, zoomed card, light and
    dark, Glass and Classic. Take them from e2e attachments (keepAlways) so they can be re-taken on CI.
-3. **Compare.** For each element, put Rex and Oriel side by side (one composite image per element and
+3. **Compare.** For each element, put Rex and Ovvi side by side (one composite image per element and
    look, cropped to the element) and measure in points, in sRGB (see [lessons.md](../lessons.md),
    "Convert a screenshot to sRGB"):
    - title row: height, traffic light position (inset from the left and the top), item gaps, button
@@ -27,7 +27,7 @@ only: no new features, no new settings.
    - sidebar: width, page header, row height (one and two lines), row insets, selected pill, state icon
      size, branch line font and color, worktree indent and guide, footer field and button;
    - window background and the tint in each look; text colors (primary, secondary) on each surface.
-   Write the deltas as a table in this file's Findings: element, look, Rex, Oriel, change.
+   Write the deltas as a table in this file's Findings: element, look, Rex, Ovvi, change.
 4. **Traffic lights and title row height.** Rex places the traffic lights inside a taller bar (rex-internals
    §3.1, a private window API). Find the closest public way first (for example a unified window toolbar,
    which makes the title bar taller and centers the traffic lights), measure it against Rex, and use it if
@@ -40,7 +40,7 @@ only: no new features, no new settings.
    handle live, so the first tab capsule starts where the strip's cards start. With the sidebar collapsed the
    row stays as it is. e2e: the first capsule's minX equals the first card's minX (± 1 pt), also after a resize.
 6. **Re-take and compare again** until the table has no open row. Put the final side-by-side composites
-   in `/tmp/oriel-shots/22/compare/` and list them in the report.
+   in `/tmp/ovvi-shots/22/compare/` and list them in the report.
 7. **Docs.** Update `docs/content/docs/ui/theme-and-accessibility.mdx` (token table),
    `docs/content/docs/ui/window.mdx` (sizes and the title row height) and
    decisions D42 / D44 where values change.
@@ -50,7 +50,7 @@ only: no new features, no new settings.
 ### Deviations
 
 - **Classic dark keeps phase 10's keyboard card** (orchestrator): Rex's `classic-untinted.jpg` shows no difference
-  between the keyboard card and the others (both `#222`, no visible stroke); Oriel keeps the darker fill and the
+  between the keyboard card and the others (both `#222`, no visible stroke); Ovvi keeps the darker fill and the
   0.8 pt stroke, which the fade backs up.
 - **Classic light has no card shadow**, as Rex's System light material (phase 10 had a faint one).
 - **No Rex picture for Classic light, working dots or ×**: compared with Rex's material file and the recovered

@@ -1,7 +1,7 @@
 # Phase 40: Tenth feedback: two-row headers, browser polish, chat sessions and reading
 
 Goal: browser and agent cards get a two-row header (the title and the pane buttons, then the kind's controls),
-agents show their own session titles, a pane started without Oriel's flags can turn its chat on, and the chat
+agents show their own session titles, a pane started without Ovvi's flags can turn its chat on, and the chat
 reads better: a growing reply box, quieter tool calls, roomier Markdown. Then one review of the whole browser
 and chat code for simplicity.
 
@@ -15,7 +15,7 @@ The header, for both kinds (a terminal card keeps its one row):
 browser  row 1: [favicon] Page Title ······························ [state] [pane buttons: hover or active only]
          row 2: [‹] [›] [↻] [ address field ································ ] [Web Inspector]
 agent    row 1: Session title ······································ [state] [pane buttons: hover or active only]
-         row 2: [logo] Claude Code ~/code/oriel ················ [Show: Replies ▾] [Chat | Terminal]
+         row 2: [logo] Claude Code ~/code/ovvi ················ [Show: Replies ▾] [Chat | Terminal]
                 (no chat flags: [Enable Chat] where the switch is)
 ```
 
@@ -31,7 +31,7 @@ agent    row 1: Session title ·························
 3. **Brighter back and forward.** "back and forward buttons are bit too light especially in dark mode making it
    almost invisible". The same weight as the other header buttons; dimmed only when disabled.
 4. **Titles.** "tab title should show something like Browser | page title, same with floating pane title as
-   well". As terminal tabs show `zsh oriel`: `Browser` then the page title dimmed.
+   well". As terminal tabs show `zsh ovvi`: `Browser` then the page title dimmed.
 5. **No path for plugins in a floating window.** "in the floating pane breadcrumb we still show path and zsh?
    better not to show it for any plugins in general, only for terminal or agents we show it".
 6. **The address field on hover.** "when we hover address bar can we show text caret mouse icon and then
@@ -72,7 +72,7 @@ agent    row 1: Session title ·························
 ## Track D: simplify the browser and chat code (item 17), after A–C merge
 17. "let's do review of entire browser component and chat view components code, and let's elminate unnecesary
    code comments, let's avoid unnecessary complexities and refactor if needed to make the code overall simple
-   and more readable". A read-only review of `Oriel/Browser`, `Oriel/Chat` and their HerdrKit parts, then the
+   and more readable". A read-only review of `Ovvi/Browser`, `Ovvi/Chat` and their HerdrKit parts, then the
    refactor, no behavior change.
 
 ## Findings
@@ -95,7 +95,7 @@ agent    row 1: Session title ·························
 - **Decisions:** the state capsule sits in row 1 for any agent card (the chat's own capsule for a chat card,
   herdr's state for others). A floated card in its tab keeps one row. In a floating window the chat's
   switch and Show menu sit in the title row, right of the place, and Show shows only while the chat does. A
-  floated plugin pane (any `oriel:` label) shows no place and no divider. The browser tab and the floating
+  floated plugin pane (any `ovvi:` label) shows no place and no divider. The browser tab and the floating
   window read `Browser` and the page dimmed; a browser card's row 1 shows the page alone.
 - **Decisions (item 2):** the ports chip, `Exec.listeners()` and their tests are gone; the remote browser
   test still checks the proxy's localhost and its refusal.

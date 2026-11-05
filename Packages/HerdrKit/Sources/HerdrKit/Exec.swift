@@ -57,7 +57,7 @@ extension Exec {
         return await channel.exit().status == 0
     }
 
-    /// Copies the file to a new folder of its own in `oriel-drops-<uid>` in the machine's temporary folder and gives
+    /// Copies the file to a new folder of its own in `ovvi-drops-<uid>` in the machine's temporary folder and gives
     /// back its path there, as herdr's remote client does with a dropped image (`herdr-clipboard-images-<uid>`): the
     /// folder is the user's alone (0700), and each copy removes the folders older than a day. The bytes go as base64
     /// lines, which the relay's line protocol carries.
@@ -80,7 +80,7 @@ extension Exec {
     /// shared folder must be the user's own, not a link another user made.
     static var uploadScript: String {
         #"""
-        umask 077; r=${TMPDIR:-/tmp}; r=${r%/}/oriel-drops-$(id -u)
+        umask 077; r=${TMPDIR:-/tmp}; r=${r%/}/ovvi-drops-$(id -u)
         mkdir -p "$r" && [ ! -h "$r" ] && [ -O "$r" ] && chmod 700 "$r" || exit 1
         find "$r" -mindepth 1 -maxdepth 1 -mtime +0 -exec rm -rf {} + 2>/dev/null
         d=$(mktemp -d "$r/XXXXXXXX") && base64 -d >"$d/$1" && echo "$d"
@@ -173,7 +173,7 @@ public final class ProcessExec: Exec {
     /// A GUI app does not get the shell's environment, so ask the login shell, in one run, for its
     /// variables and for herdr.
     static func loginShell(_ env: [String: String]) async -> (vars: [String: String], herdr: String?) {
-        let marker = "oriel-env-\(UUID().uuidString)"
+        let marker = "ovvi-env-\(UUID().uuidString)"
         guard let channel = try? spawn(
             [env["SHELL"] ?? "/bin/zsh", "-lic",
              "echo \(marker); /usr/bin/env; echo \(marker); command -v herdr; echo \(marker)"],
@@ -308,7 +308,7 @@ public final class ProcessExec: Exec {
         let status = Task { await ended.first { _ in true } ?? -1 }
         let input = stdin.fileHandleForWriting
         // A full pipe blocks this queue, never the caller (keystrokes come from the main actor).
-        let writes = DispatchQueue(label: "oriel.exec.stdin")
+        let writes = DispatchQueue(label: "ovvi.exec.stdin")
         return Channel(
             lines: lines,
             write: { line in writes.async { try? input.write(contentsOf: Data((line + "\n").utf8)) } },

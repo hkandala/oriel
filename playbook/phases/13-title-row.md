@@ -92,7 +92,7 @@ The row stays 40 pt (no private API for a taller one). Its items are 8 pt apart.
 18. **Content.** The tab's overlapping program icons (phase 12, up to 5), then the title. One line.
     When the title does not fit, the end fades out over 16 pt (a mask), no ellipsis. The title is the
     herdr tab label; when the label is herdr's default (a bare number), the title is the keyboard
-    card's program and folder ("zsh ~", "pi oriel", D65). The folder part is in secondary text. Then
+    card's program and folder ("zsh ~", "pi ovvi", D65). The folder part is in secondary text. Then
     a trailing status slot (× now; phase 15 adds working dots).
 18b. **Icons of tabs never shown.** Phase 12 asks herdr for a pane's program the first time its card
     shows, so a tab that was never shown keeps the `terminal` icon while a program with no agent or title
@@ -142,7 +142,7 @@ The row stays 40 pt (no private API for a taller one). Its items are 8 pt apart.
 - **The machine menu rows show no icons on this Mac.** The items carry them (`Label` with the machine's symbol,
   `plus`), but macOS 27.0.1 draws no item images in an app's menus: an AppKit `NSMenu` whose `NSMenuItem.image` is
   set showed none either (tried, then removed). The button itself shows the icon; the menu has the checkmark.
-- **The tab title's folder is the folder's name** ("zsh tmp", "pi oriel"; `~` for home), as the phase's examples
+- **The tab title's folder is the folder's name** ("zsh tmp", "pi ovvi"; `~` for home), as the phase's examples
   show; the card header keeps the full path. A narrow tab shows the program first.
 - **A label made only of digits counts as herdr's default**, so a tab the user renamed to "3" shows its program
   and folder too. herdr's own default labels are renumbered on a move, so there is no better test.

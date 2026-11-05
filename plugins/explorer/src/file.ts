@@ -120,10 +120,10 @@ const hanging = ViewPlugin.fromClass(
 )
 
 export async function show(place: Place): Promise<Reveal> {
-  const { oriel, arg, trail } = place
+  const { ovvi, arg, trail } = place
   /** The breadcrumbs, then the scopes around the caret after `{}`. */
   const jump = (scope: string) =>
-    oriel.controls.set("jump", { value: [...trail, ...(scope ? [scope] : [])], symbol: scope ? "curlybraces" : "" })
+    ovvi.controls.set("jump", { value: [...trail, ...(scope ? [scope] : [])], symbol: scope ? "curlybraces" : "" })
   let last = ""
   const shown = await editor(place, [
     code,

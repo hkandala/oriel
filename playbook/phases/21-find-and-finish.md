@@ -86,7 +86,7 @@ and Dock touches, and a final pass over the whole UI against the Rex references 
   or when it is new (phase 13). Ask once per pane on the first snapshot too (same ask and counter).
 - **Restore without the system setting.** Window restore (phase 16) works only when macOS keeps windows
   on quit, which is off by default. Register `NSQuitAlwaysKeepsWindows = true` in the app's own defaults
-  (`UserDefaults.standard.register`), so Oriel restores its windows and pages after a normal quit.
+  (`UserDefaults.standard.register`), so Ovvi restores its windows and pages after a normal quit.
 ## Findings
 
 ### Deviations
@@ -96,7 +96,7 @@ and Dock touches, and a final pass over the whole UI against the Rex references 
   bar, notices, states). The docs site's mock-ups (`docs/components/design/`, `docs/public/overview/index.html`) are
   the next task once phase 22's look settles. The light/dark × Glass/Classic shots next to Rex are phase 22's
   `VisualTests` (`testScenesGlassDark` and the others) attachments in the full run, kept in
-  `/tmp/oriel-shots/21/final/`.
+  `/tmp/ovvi-shots/21/final/`.
 - **Find highlights are built** (user, mid-phase), not left out as the phase file had it: one overlay view per card
   draws rectangles from herdr's visible text after each scroll (`pane.read visible` plus `pane.get`'s
   `scroll.offset_from_bottom` to pick the selected match's row), and again 100 ms after frames come
@@ -141,7 +141,7 @@ and Dock touches, and a final pass over the whole UI against the Rex references 
   `scroll.offset_from_bottom` (`PaneScroll`); `startServer(within:)` takes the timeout.
 - **Tones:** error `look.error` with `xmark.octagon.fill`, warning `look.needsYou` with
   `exclamationmark.triangle.fill`, info `look.working` with `info.circle.fill`; no new tokens.
-- **A sixth e2e session** (`ORIEL_SESSION6`), made by the app in the failed-start test and cleaned up like four.
+- **A sixth e2e session** (`OVVI_SESSION6`), made by the app in the failed-start test and cleaned up like four.
 - **Dock drop:** `application(_:open:)` queues the folders (`WindowPages.folders`); the last key window's page in view
   makes a workspace per folder once it is live, and the last one is selected when it appears
   (`Page.newWorkspace(cwd:)` sets `arriving`). A drop that starts the app opens no window by itself

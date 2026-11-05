@@ -3,20 +3,20 @@ title: "Chat view"
 description: "An agent pane drawn as messages with a reply box: launch flags, the transcript followers, sending, waiting, messages and tool calls"
 ---
 
-An agent pane that Oriel started can show its agent as messages with a reply
+An agent pane that Ovvi started can show its agent as messages with a reply
 box, in place of its terminal. The agent keeps running in its herdr pane. The
 chat is a second way to look at the same process, so a switch ends nothing.
 It works the same on This Mac and on remote machines, for Claude Code, Codex,
 Pi and OpenCode. What is not built yet is in
 [Future work](/docs/future-work#smaller-items). Research:
-[`chat-view.md`](https://github.com/hkandala/oriel/blob/main/resources/research/ui/chat-view.md)
+[`chat-view.md`](https://github.com/hkandala/ovvi/blob/main/resources/research/ui/chat-view.md)
 and
-[`agents/`](https://github.com/hkandala/oriel/tree/main/resources/research/agents).
+[`agents/`](https://github.com/hkandala/ovvi/tree/main/resources/research/agents).
 
 ## Which panes have it
 
 - Agents that the [New pane](/docs/ui/new-pane#agent) chooser, Start Agent
-  Here or [Relaunch with Chat](#relaunch-with-chat) started with Oriel's
+  Here or [Relaunch with Chat](#relaunch-with-chat) started with Ovvi's
   flags ([Launch flags](#launch-flags)). The second row of their card header
   has the Chat | TUI switch ([Switching views](#switching-views)).
 - The app knows such a pane by a marker in the argv of its foreground
@@ -32,8 +32,8 @@ and
 - **The bare-command fallback.** If the shell is in front again at once after
   the launch line (two checks in a row, from 1 s on), the chooser types the
   bare command once more, for every agent. An agent build that refuses
-  Oriel's flags then starts with no chat, not with no agent.
-- **MetaCode**, the company's OpenCode build, ignores Oriel's plugin and
+  Ovvi's flags then starts with no chat, not with no agent.
+- **MetaCode**, the company's OpenCode build, ignores Ovvi's plugin and
   sends no state line. After 15 s the chat says "OpenCode has not reported
   its session" and the card flips to its terminal, once. The header shows
   Error only while the card shows the chat. A late line (a slow first plugin
@@ -44,12 +44,12 @@ and
 
 ### Relaunch with Chat
 
-An agent that runs without Oriel's flags can start again with them, in the
+An agent that runs without Ovvi's flags can start again with them, in the
 same session. The **Relaunch with Chat** button sits where Chat | TUI sits,
 with the help tag "Restart ‹Agent› with chat, in the same session". It
 shows when herdr reports the agent and its session (`agent_session`, of the
 same agent), the pane's processes carry no marker, and the agent takes that
-session value. An agent in another pane runs it with `oriel chat <pane>`,
+session value. An agent in another pane runs it with `ovvi chat <pane>`,
 which never asks: it refuses a working or waiting agent with `busy`
 ([CLI](/docs/agent-control/cli#agent-chat-and-view)).
 
@@ -92,10 +92,10 @@ and no backslash.
 
 | Agent | Written first | The launch line | Marker |
 |---|---|---|---|
-| Claude Code | nothing | `claude --session-id T --settings '<json>'`: inline hooks. A SessionStart hook appends the session's JSON (with `transcript_path`) to `hooks.jsonl`. A PermissionRequest hook for AskUserQuestion only waits for the chat's answer ([Waiting](#waiting)) | the hooks' folder `/.cache/oriel/chat/T` in the `--settings` value |
-| Codex | nothing | `codex -c 'hooks.SessionStart=[…]' -c 'hooks.state={…}'`: a SessionStart hook that appends the session's JSON to `hooks.jsonl`, and that hook's trust hash | `/.cache/oriel/chat/T/` inside a `hooks.SessionStart=` argument |
-| Pi | `~/.cache/oriel/pi-oriel-<sha8>.ts` | `pi -e ~/.cache/oriel/pi-oriel-<sha8>.ts --oriel ~/.cache/oriel/chat/T/pi.jsonl` | that `--oriel` path, in the argv of `pi` or `pi.real` |
-| OpenCode | `~/.cache/oriel/opencode/oriel-tui.js` and its `tui.json`; the launch's password file `chat/T/pw` | `ORIEL_OC_STATE=…/state.jsonl OPENCODE_TUI_CONFIG=…/tui.json OPENCODE_SERVER_PASSWORD=$(cat "…/pw") opencode --port 0 --hostname 127.0.0.1 -- oriel-T` | `-- oriel-T` after `--port` (opencode ignores what follows `--`), and the state line's `pid` is a marked process's |
+| Claude Code | nothing | `claude --session-id T --settings '<json>'`: inline hooks. A SessionStart hook appends the session's JSON (with `transcript_path`) to `hooks.jsonl`. A PermissionRequest hook for AskUserQuestion only waits for the chat's answer ([Waiting](#waiting)) | the hooks' folder `/.cache/ovvi/chat/T` in the `--settings` value |
+| Codex | nothing | `codex -c 'hooks.SessionStart=[…]' -c 'hooks.state={…}'`: a SessionStart hook that appends the session's JSON to `hooks.jsonl`, and that hook's trust hash | `/.cache/ovvi/chat/T/` inside a `hooks.SessionStart=` argument |
+| Pi | `~/.cache/ovvi/pi-ovvi-<sha8>.ts` | `pi -e ~/.cache/ovvi/pi-ovvi-<sha8>.ts --ovvi ~/.cache/ovvi/chat/T/pi.jsonl` | that `--ovvi` path, in the argv of `pi` or `pi.real` |
+| OpenCode | `~/.cache/ovvi/opencode/ovvi-tui.js` and its `tui.json`; the launch's password file `chat/T/pw` | `OVVI_OC_STATE=…/state.jsonl OPENCODE_TUI_CONFIG=…/tui.json OPENCODE_SERVER_PASSWORD=$(cat "…/pw") opencode --port 0 --hostname 127.0.0.1 -- ovvi-T` | `-- ovvi-T` after `--port` (opencode ignores what follows `--`), and the state line's `pid` is a marked process's |
 
 - Before the line, one run on the pane's machine writes what the line needs
   (Pi and OpenCode), each file whole (a temporary file, then a rename). If
@@ -107,8 +107,8 @@ and no backslash.
   not at launch. The trust hash in `hooks.state` is the one Codex keeps for
   that hook, so Codex shows no "Hooks need review" picker
   ([Security](#security)).
-- **pi-oriel** is a small pi extension that ships inside the app. Its file
-  is named by its content, so two versions of Oriel never fight over one. It
+- **pi-ovvi** is a small pi extension that ships inside the app. Its file
+  is named by its content, so two versions of Ovvi never fight over one. It
   appends one JSON line to the state file per change: `session {path}`,
   `tree {leaf, at}`, `blocked`, `unblocked`, `working`, `idle` and
   `shutdown`. Only a TUI session reports. While an extension dialog is open,
@@ -141,7 +141,7 @@ and no backslash.
     all the lines that came since it last looked at once, so a burst (a long
     turn written at once) draws the chat once, not once per line.
   - **The line filter.** awk drops the lines that the agent's parser skips
-    (an awk pattern next to each parser) and prints `oriel-skip <bytes>` in
+    (an awk pattern next to each parser) and prints `ovvi-skip <bytes>` in
     their place, so the mark still counts the file's bytes. On a remote
     machine only the lines the chat reads cross the relay. Claude Code: the
     records that write another `type` first (`api-request-*`, …) and
@@ -211,7 +211,7 @@ and no backslash.
 
 ## The adapter interface
 
-One protocol, `ChatAdapter` in `Oriel/Chat/ChatAdapter.swift`, fits every
+One protocol, `ChatAdapter` in `Ovvi/Chat/ChatAdapter.swift`, fits every
 agent. `ChatAdapters.all` lists the four.
 
 ```swift
@@ -253,7 +253,7 @@ working, the adapter reads the pane's last 8 lines every 0.5 s
 
 ### Pi's tree
 
-pi writes nothing to its transcript on `/tree`. pi-oriel writes a `tree`
+pi writes nothing to its transcript on `/tree`. pi-ovvi writes a `tree`
 line with the new leaf and `at`, the transcript's size at the move.
 
 - The leaf moves when the transcript is read up to `at`. A move that the
@@ -486,7 +486,7 @@ A run is one quiet line with no card: its summary and a chevron.
     between rows, each column aligned as written.
   - Links open only for `http`, `https` and `mailto`. Bare `http://`,
     `https://` and `www.` addresses are links too (`NSDataDetector`:
-    swift-markdown has no autolinks), names such as `Oriel.app` are not.
+    swift-markdown has no autolinks), names such as `Ovvi.app` are not.
   - An image shows as its description, linked to its address. The chat never
     fetches it: a reply could send what the agent read to any server.
   - Footnotes read as written (`[^1]`): swift-markdown has none.
@@ -521,8 +521,8 @@ A run is one quiet line with no card: its summary and a chevron.
   terminal interface.
 - A card of a marked pane opens on its TUI; the user switches to Chat. After
   [Relaunch with Chat](#relaunch-with-chat), and for an agent that an agent
-  started with `oriel agent`, it opens on the chat. An agent flips it with
-  `oriel view` ([CLI](/docs/agent-control/cli#agent-chat-and-view)). The
+  started with `ovvi agent`, it opens on the chat. An agent flips it with
+  `ovvi view` ([CLI](/docs/agent-control/cli#agent-chat-and-view)). The
   choice is kept in memory per pane, for every window of the session. The card keeps
   the keyboard across a switch: the reply box or the terminal.
 - A floated chat pane shows its chat in its floating window, with Chat | TUI
@@ -577,9 +577,9 @@ user's own on a shared machine.
 
 | File | Written by |
 |---|---|
-| `~/.cache/oriel/chat/T/` (0700) | the launch: `hooks.jsonl`, `ask`, `answer` (Claude Code), `hooks.jsonl` (Codex), `pi.jsonl` (Pi), `state.jsonl` and `pw` (OpenCode) |
-| `~/.cache/oriel/pi-oriel-<sha8>.ts` | the app, before a Pi launch |
-| `~/.cache/oriel/opencode/oriel-tui.js`, `tui.json` | the app, rewritten before each OpenCode launch |
+| `~/.cache/ovvi/chat/T/` (0700) | the launch: `hooks.jsonl`, `ask`, `answer` (Claude Code), `hooks.jsonl` (Codex), `pi.jsonl` (Pi), `state.jsonl` and `pw` (OpenCode) |
+| `~/.cache/ovvi/pi-ovvi-<sha8>.ts` | the app, before a Pi launch |
+| `~/.cache/ovvi/opencode/ovvi-tui.js`, `tui.json` | the app, rewritten before each OpenCode launch |
 
 **The 30-day sweep.** Each launch deletes side files untouched for 30 days,
 then empty folders more than a minute old, so a folder that a launch just

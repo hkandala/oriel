@@ -1,5 +1,5 @@
 {
-  "name": "@oriel/git",
+  "name": "@ovvi/git",
   "version": "1.8.1",
   "private": true,
   "description": "Changes and history",
@@ -18,12 +18,12 @@
     "typescript": "7.0.2"
   },
   "peerDependencies": {
-    "@oriel/plugin-api": "*"
+    "@ovvi/plugin-api": "*"
   },
   "peerDependenciesMeta": {
-    "@oriel/plugin-api": { "optional": true }
+    "@ovvi/plugin-api": { "optional": true }
   },
-  "oriel": {
+  "ovvi": {
     "id": "git",
     "name": "Git",
     "api": 2,

@@ -1,6 +1,6 @@
 # How we work
 
-The one way of working for Oriel, for every agent. Read it with [lessons.md](lessons.md) before you start.
+The one way of working for Ovvi, for every agent. Read it with [lessons.md](lessons.md) before you start.
 The design in `docs/content/docs/` wins on any conflict about what the app does.
 
 ## Pick the size of the job
@@ -57,8 +57,8 @@ paraphrase.
 
 ### Worktrees, branches and merging
 
-- **One worktree per agent:** `git fetch origin && git worktree add ../oriel-NN<track> origin/main -b
-  wt-NN<track>`. Work and commit there. When done, `git worktree remove ../oriel-NN<track>` and
+- **One worktree per agent:** `git fetch origin && git worktree add ../ovvi-NN<track> origin/main -b
+  wt-NN<track>`. Work and commit there. When done, `git worktree remove ../ovvi-NN<track>` and
   `git branch -D wt-NN<track>`. Never run git in a checkout another agent uses.
 - **Tracks and features commit on their local branch.** No remote branches, no PRs, no push before the
   review.
@@ -73,7 +73,7 @@ paraphrase.
   `git checkout <file>` to drop debug lines in a dirty tree (it reverts your other work in that file).
 - **Code that moves between two owners' files** is one atomic commit by one agent. Tracks can agree on a
   shared API directly with each other (`agent_send`). One owner writes it.
-- **Own DerivedData per worktree:** `DERIVED_DATA=/tmp/oriel-dd-NN<track>` (the Makefile honors it).
+- **Own DerivedData per worktree:** `DERIVED_DATA=/tmp/ovvi-dd-NN<track>` (the Makefile honors it).
   Never build into the DerivedData a running test suite uses.
 - **Commits:** small and atomic, one logical change with its tests. `type(scope): summary`, imperative,
   ≤ 72 characters (`feat`, `fix`, `chore`, `test`, `docs`, `refactor`, `perf`, `ci`, `build`). The hooks in
@@ -88,9 +88,9 @@ XCUITest and manual runs take over the real mouse and keyboard of the Mac the us
 drives the GUI at a time ([more slots in VMs](ci.md#more-gui-slots-not-set-up)):
 
 ```sh
-( mkdir /tmp/oriel-gui.lock || exit 1; trap 'rm -rf /tmp/oriel-gui.lock' EXIT
-  echo "<your agent name> $(date +%H:%M)" > /tmp/oriel-gui.lock/owner
-  make e2e DERIVED_DATA=/tmp/oriel-dd-NN<track> ONLY=… )
+( mkdir /tmp/ovvi-gui.lock || exit 1; trap 'rm -rf /tmp/ovvi-gui.lock' EXIT
+  echo "<your agent name> $(date +%H:%M)" > /tmp/ovvi-gui.lock/owner
+  make e2e DERIVED_DATA=/tmp/ovvi-dd-NN<track> ONLY=… )
 ```
 
 - Run UI tests locally only when the run is quick: one test, under about 2 minutes, and the lock is free.
@@ -102,22 +102,22 @@ drives the GUI at a time ([more slots in VMs](ci.md#more-gui-slots-not-set-up)):
   Never remove someone else's lock. A lock older than 10 minutes whose owner is not `user` and whose agent is
   gone (`agent_list` with `scope: "all"`) is stale: the orchestrator removes it.
 - When the user tests on the Mac, the orchestrator holds the lock for them
-  (`mkdir /tmp/oriel-gui.lock && echo user > /tmp/oriel-gui.lock/owner`; `rm -rf /tmp/oriel-gui.lock` to
+  (`mkdir /tmp/ovvi-gui.lock && echo user > /tmp/ovvi-gui.lock/owner`; `rm -rf /tmp/ovvi-gui.lock` to
   release). Then all UI tests run on CI.
 - RemoteTests skip on a local run (they need CI's sshd): run them in a chosen-tests CI run.
-- Never send keys with `osascript` or System Events: when Oriel loses focus, the keys land in the user's
+- Never send keys with `osascript` or System Events: when Ovvi loses focus, the keys land in the user's
   apps. Keys go through XCUITest only.
 - Screenshots: `screencapture -x -l <windowid>`, the xcresult's attachments, or frames of a CI recording.
-  Put the ones you report in `/tmp/oriel-shots/`.
+  Put the ones you report in `/tmp/ovvi-shots/`.
 
 ### herdr safety
 
 - The user's sessions (`default` and any other in `herdr session list`) are read only: no writes, no
   `control` streams, no `--takeover`, no running the app against them. Look with
   `herdr --session <s> terminal session observe …` or `herdr --session <s> pane read …`.
-- Writes go only to throwaway sessions `oriel-e2e-*` (tests) and `oriel-dev-*` (by hand), made with
-  `scripts/herdr-session.sh up|down oriel-dev-<name>` and deleted when done. Run the app by hand with
-  `make run SESSION=oriel-dev-<name>`.
+- Writes go only to throwaway sessions `ovvi-e2e-*` (tests) and `ovvi-dev-*` (by hand), made with
+  `scripts/herdr-session.sh up|down ovvi-dev-<name>` and deleted when done. Run the app by hand with
+  `make run SESSION=ovvi-dev-<name>`.
 - Every herdr argv carries `--session`. Never call focus methods (`*.focus`). Creates pass `focus:false`.
 - Remote machines: tests use CI's sshd on localhost (`scripts/ci-sshd.sh`). Never connect to the user's
   hosts.
@@ -219,16 +219,16 @@ back goes to [lessons.md](lessons.md), not into the phase.
 
 ## Briefs
 
-**Track agent.** "You are the agent for track ‹X, items› of phase NN of Oriel. Read `AGENTS.md` and
+**Track agent.** "You are the agent for track ‹X, items› of phase NN of Ovvi. Read `AGENTS.md` and
 `playbook/workflow.md` and follow the track loop. Build everything in your section of
-`playbook/phases/NN-*.md`. The design pages win. Worktree `../oriel-NN<track>`, branch `wt-NN<track>`,
-`DERIVED_DATA=/tmp/oriel-dd-NN<track>`. Your files: ‹list›; ‹owner of shared files›. Commit on your branch
+`playbook/phases/NN-*.md`. The design pages win. Worktree `../ovvi-NN<track>`, branch `wt-NN<track>`,
+`DERIVED_DATA=/tmp/ovvi-dd-NN<track>`. Your files: ‹list›; ‹owner of shared files›. Commit on your branch
 and do not push until I say merge. Start your code reviewer yourself. Decide open points yourself. Write
 Findings under `### Track X`. Reply when the branch is reviewed and fixed, with what you fixed, the causes,
 the tests, and anything the user must decide or check by hand."
 
 **Code reviewer.** "Read-only code review of ‹track› at ‹sha›, in a clean copy
-(`git worktree add --detach /tmp/oriel-rev-<name> <sha>`, `DERIVED_DATA=/tmp/oriel-dd-rev-<name>`, removed
+(`git worktree add --detach /tmp/ovvi-rev-<name> <sha>`, `DERIVED_DATA=/tmp/ovvi-dd-rev-<name>`, removed
 after), against the phase file, the design pages and `playbook/workflow.md`. Cover every side: bugs, races,
 leaks, error paths, edge cases; does it do what the user asked; what can be deleted or made simpler (the
 ponytail-review skill); herdr safety; accessibility identifiers; tests that assert nothing real, sleep,
@@ -273,7 +273,7 @@ concurrency). The rest:
 - **herdr in code.** Never patch local state after a write: read the snapshot again (the one exception is
   `Ahead`, which shows a new tab, split or close before herdr answers). Every long-running child ends when
   its stdin closes; the one fallback kill signals by pid, never by process group.
-- **Tests.** UI tests first: XCUITest in `OrielUITests` against a throwaway herdr session with a known
+- **Tests.** UI tests first: XCUITest in `OvviUITests` against a throwaway herdr session with a known
   layout, asserting through accessibility identifiers and herdr (`pane.read`, `session.snapshot`), not
   pixels. Unit tests (`swift test` in `Packages/HerdrKit`) only for logic with branches, with recorded herdr
   JSON next to them. App logic no UI test can drive gets a small check script that `make test` runs. No

@@ -1,31 +1,31 @@
-# Does Oriel's model fit other multiplexers?
+# Does Ovvi's model fit other multiplexers?
 
 ## Answer
 
-Oriel's model fits all three multiplexers that we looked at, each with an adapter. No multiplexer
+Ovvi's model fits all three multiplexers that we looked at, each with an adapter. No multiplexer
 fits as-is, and none is ruled out.
 
-- tmux fits with an adapter. Nothing in Oriel is impossible on tmux, but the adapter is the largest.
+- tmux fits with an adapter. Nothing in Ovvi is impossible on tmux, but the adapter is the largest.
 - Rex fits with an adapter. Two things cannot work: a pane cannot move to another workspace, and the
   pane viewport has no shared scroll offset.
 - tuios fits with an adapter, and it is the closest to herdr. It already serves herdr's socket API.
-  Its best path for Oriel is a hidden bridge with no stability promise.
+  Its best path for Ovvi is a hidden bridge with no stability promise.
 
 The four levels under the machine exist in every tool: something like a server, a workspace, a tab
-and a pane. So Oriel does not need a smaller common model. The weak level is Oriel's "session" (one
+and a pane. So Ovvi does not need a smaller common model. The weak level is Ovvi's "session" (one
 herdr server). Rex has one server per user. tmux and tuios have named servers, but users seldom run
 more than one.
 
 Recommendation: keep herdr as the only backend for now, and keep the five-level model. When a second
 backend is chosen, make the `Multiplexer` seam in HerdrKit neutral first (option 2 below). If the user
 wants one more backend, take tmux for reach, or tuios for the lowest cost. See
-[Options for Oriel](#options-for-oriel).
+[Options for Ovvi](#options-for-ovvi).
 
 ## The reports
 
 | File | Tool | Verdict |
 |---|---|---|
-| [herdr.md](herdr.md) | herdr 0.9.x | The backend Oriel uses: the baseline |
+| [herdr.md](herdr.md) | herdr 0.9.x | The backend Ovvi uses: the baseline |
 | [tmux.md](tmux.md) | tmux 3.8 | Fits with an adapter |
 | [rex.md](rex.md) | Rex, API revision 5 | Fits with an adapter |
 | [tuios.md](tuios.md) | tuios 0.10 | Fits with an adapter |
@@ -33,15 +33,15 @@ wants one more backend, take tmux for reach, or tuios for the lowest cost. See
 
 ## Mapping table
 
-Each cell names the concept in that tool and how well it fits. "Adapter" means Oriel's adapter must
+Each cell names the concept in that tool and how well it fits. "Adapter" means Ovvi's adapter must
 fake or store it. Each report has the sources and the gaps.
 
-| Oriel level or feature | herdr | tmux | Rex | tuios |
+| Ovvi level or feature | herdr | tmux | Rex | tuios |
 |---|---|---|---|---|
 | machine | host, through `Exec` (local or SSH) | host, through `Exec` | host (`server.status`, `hosts.list`) | host, through `Exec` |
 | session (sidebar page) | herdr server, `--session NAME` | server, `-L NAME` socket. List the socket folder | the one server per user. Weak: `sessions()` returns one entry | daemon, default or `--server NAME`. List the socket folder |
-| workspace | workspace | tmux session `$N`. No order: adapter stores it (`@oriel_order`) | Rex session. Ordered, labeled | tuios session. No reorder: Oriel stores the order |
-| workspace git info, worktree groups | `worktree` on the workspace, plus Oriel's own `git` | none. Oriel runs git. Groups in a session option | none. Oriel runs git. No groups | branch and repo in the bridge. No groups |
+| workspace | workspace | tmux session `$N`. No order: adapter stores it (`@ovvi_order`) | Rex session. Ordered, labeled | tuios session. No reorder: Ovvi stores the order |
+| workspace git info, worktree groups | `worktree` on the workspace, plus Ovvi's own `git` | none. Ovvi runs git. Groups in a session option | none. Ovvi runs git. No groups | branch and repo in the bridge. No groups |
 | tab | tab | window `@N` | window | numbered workspace slot, at most 9 by default |
 | pane | pane, plus a terminal id | pane `%N`. Id survives every move | block. Id survives moves inside its session | window. PTY id survives moves |
 | split tree with ratios | `layouts` with binary splits and ratios | adapter: converts the n-ary cell layout to a binary tree. One-cell borders | tiled layout: binary, ratios, stable split ids. Floating and detached blocks fall outside | bridge only: binary tree with ratios, for the `bsp` layout. The herdr socket sends no splits |
@@ -50,12 +50,12 @@ fake or store it. Each report has the sources and the gaps.
 | drag a pane to another tab | `pane.move` | `join-pane`, with left and top drops too | `session.move_block` | `move-window`. A drop beside a pane only through the bridge |
 | drag a pane to another workspace | `pane.move`, new pane id | `join-pane` across sessions. Id stays | cannot: blocks never leave their session | `move-window` across sessions |
 | drag a pane to a new workspace | `pane.move` `new_workspace` | adapter: 2 to 3 commands | cannot | adapter: 2 steps |
-| rename | workspace, tab and pane labels | session and window names. Pane label in `@oriel_label` | labels. A block label cannot be cleared | names on all three levels |
+| rename | workspace, tab and pane labels | session and window names. Pane label in `@ovvi_label` | labels. A block label cannot be cleared | names on all three levels |
 | terminal stream | herdr's own rendering of the screen, as frames | raw PTY bytes (`%output`). Seed with `capture-pane` | raw PTY bytes after a GHOSTSNP snapshot. One stream per block per client | raw PTY bytes after a VT snapshot (`stream-pane` or the bridge) |
 | control hand-off between windows and devices | `control` and `observe` streams, takeover | adapter: client flags `read-only` and `ignore-size`, size per window | block owner (`own_block`). Stale owners need `take` | adapter: size leases. No exclusive owner |
 | find, read pane text | `pane.read` | `capture-pane` | `terminal.format` (screen and scrollback together) | `capture-pane`, herdr `pane.read` |
-| shared scroll offset | `pane.scroll` | none. Oriel scrolls its own surface | none | none |
-| focus | Oriel never calls focus. `pane.swap` moves it | no forced focus | create calls need `focus: false`. Swap and move can move it | current workspace is shared state. The bridge must move it to place a pane |
+| shared scroll offset | `pane.scroll` | none. Ovvi scrolls its own surface | none | none |
+| focus | Ovvi never calls focus. `pane.swap` moves it | no forced focus | create calls need `focus: false`. Swap and move can move it | current workspace is shared state. The bridge must move it to place a pane |
 | `Multiplexer.swift` methods | all (the only conformer) | 16 direct, 14 adapter, 2 local, 0 impossible | 22 direct, 8 adapter, 2 impossible | 25 direct or bridge, 3 partly, 2 not available |
 
 Note: the method counts differ a little (30 to 32) because each report counted overloads its own way.
@@ -64,7 +64,7 @@ Note: the method counts differ a little (30 to 32) because each report counted o
 
 ### tmux: fits with an adapter
 
-tmux has every level and every move that Oriel needs. Pane ids survive moves across windows and
+tmux has every level and every move that Ovvi needs. Pane ids survive moves across windows and
 sessions, and `%output` carries the raw PTY bytes, which suits libghostty better than herdr's frames.
 
 The adapter must store or fake these things: the workspace order, pane labels, agent status, worktree
@@ -75,7 +75,7 @@ pane's tty).
 The costs:
 
 - A control client sees output and layout events only for its own tmux session. So the adapter runs
-  one control client per workspace that Oriel shows.
+  one control client per workspace that Ovvi shows.
 - tmux sizes windows, not panes. The cards of a tab must add up to one window size, with one cell per
   divider.
 - tmux has no agent model. Status needs agent hooks that set a pane option, or polling.
@@ -91,11 +91,11 @@ and "new workspace" must not show for Rex. Rex also has no shared scroll offset.
 
 Things an adapter must handle ([rex.md](rex.md)):
 
-- One Rex client can open only one data stream per block. Two Oriel windows on one block need a
+- One Rex client can open only one data stream per block. Two Ovvi windows on one block need a
   shared stream or two Rex clients.
 - A block made by a short-lived CLI keeps its dead creator as owner. The adapter must check
   `client.list` and use `take`.
-- A floated block leaves the tiled layout, so it disappears from Oriel's strip.
+- A floated block leaves the tiled layout, so it disappears from Ovvi's strip.
 
 ### tuios: fits with an adapter
 
@@ -106,10 +106,10 @@ raw program bytes after a snapshot, with sequence numbers and resume.
 The gaps on the herdr socket: `splits` is always empty, and `layout.set_split_ratio`,
 `workspace.move_block`, `pane.scroll` and `terminal.attach` answer `unsupported`. Swap, resize and
 split need an attached tuios client. The hidden `tuios gui-bridge` fills these gaps over stdio, which
-fits Oriel's `Exec.run`. But it has no stability promise, and the project changes fast (746 commits
+fits Ovvi's `Exec.run`. But it has no stability promise, and the project changes fast (746 commits
 in one week after v0.10.1). A tuios session has 9 tab slots by default.
 
-## Options for Oriel
+## Options for Ovvi
 
 The `Multiplexer` protocol (design D49, `Packages/HerdrKit/Sources/HerdrKit/Multiplexer.swift`)
 already keeps herdr's JSON and argv out of the views. But the types and a few files still assume
@@ -124,17 +124,17 @@ Where the code assumes herdr today:
 | `Packages/HerdrKit/Sources/HerdrKit/Exec.swift` | `Exec.herdr()` finds herdr's path. `Channel` gives stdout as UTF-8 lines, not bytes. |
 | `Packages/HerdrKit/Sources/HerdrKit/HerdrClient.swift` | `HerdrError` is the error type of `Update.error`. Its messages name herdr. |
 | `Packages/HerdrKit/Sources/HerdrKit/Seen.swift` | Finish detection uses `completionSeq`. |
-| `Oriel/Store/HostStore.swift` | `State.failed(HerdrError)`. Makes `HerdrClient`. |
-| `Oriel/App/OrielApp.swift`, `Oriel/Views/OpenSession.swift` | Make `HerdrClient` directly. |
-| `Oriel/Store/PaneWrites.swift` | Throws `HerdrError` with herdr's name in the text. |
-| `Oriel/Terminal/PaneTerminal.swift` | Draws herdr's frames. The observe and takeover rules follow herdr's `control`/`observe`. |
-| `Oriel/Views/FindBar.swift` | Uses the shared scroll offset (`pane.scroll`). |
-| `Oriel/Store/HostModels.swift`, `Oriel/Views/WorkspaceRow.swift` | Worktree groups from herdr's `worktree`. |
-| `Oriel/Views/Sidebar.swift`, `Oriel/Views/ListDrops.swift`, `Oriel/App/CommandList.swift` | Offer "move to a new workspace" without a check. Rex cannot do it. |
+| `Ovvi/Store/HostStore.swift` | `State.failed(HerdrError)`. Makes `HerdrClient`. |
+| `Ovvi/App/OvviApp.swift`, `Ovvi/Views/OpenSession.swift` | Make `HerdrClient` directly. |
+| `Ovvi/Store/PaneWrites.swift` | Throws `HerdrError` with herdr's name in the text. |
+| `Ovvi/Terminal/PaneTerminal.swift` | Draws herdr's frames. The observe and takeover rules follow herdr's `control`/`observe`. |
+| `Ovvi/Views/FindBar.swift` | Uses the shared scroll offset (`pane.scroll`). |
+| `Ovvi/Store/HostModels.swift`, `Ovvi/Views/WorkspaceRow.swift` | Worktree groups from herdr's `worktree`. |
+| `Ovvi/Views/Sidebar.swift`, `Ovvi/Views/ListDrops.swift`, `Ovvi/App/CommandList.swift` | Offer "move to a new workspace" without a check. Rex cannot do it. |
 
 ### Option 1: keep herdr only (recommended now)
 
-Cost: none. The `Multiplexer` protocol stays as it is, with one conformer. This follows Oriel's rule
+Cost: none. The `Multiplexer` protocol stays as it is, with one conformer. This follows Ovvi's rule
 of no code "for later". The research shows that the model is not a trap: when a second backend
 comes, the five-level UI stays.
 
@@ -153,9 +153,9 @@ backend. The work, in order:
 4. A neutral error in place of `HerdrError` (`HerdrClient.swift`, `HostStore.swift`,
    `PaneWrites.swift`).
 5. One factory for the backend per machine, in place of the `HerdrClient(...)` calls
-   (`HostStore`, `HostModels`, `OrielApp`, `OpenSession`).
+   (`HostStore`, `HostModels`, `OvviApp`, `OpenSession`).
 6. A capability value that the views read: cross-workspace move (Rex: no), workspace reorder (tuios:
-   no, Oriel stores it), many sessions per machine (Rex: no, so the Open Session panel hides), worktree
+   no, Ovvi stores it), many sessions per machine (Rex: no, so the Open Session panel hides), worktree
    groups, tab limit (tuios: 9).
 7. A neutral finish marker in place of `completionSeq` (`Seen.swift`): a counter or a timestamp that
    the backend gives.
@@ -182,13 +182,13 @@ recommended.
 
 ## Decision: stay herdr only
 
-Oriel stays herdr only. These facts settled it:
+Ovvi stays herdr only. These facts settled it:
 
-- **Agent status is part of Oriel's model.** Each pane in the snapshot carries an agent with a status and a
+- **Agent status is part of Ovvi's model.** Each pane in the snapshot carries an agent with a status and a
   finish counter (`completion_seq`). The agents list, dots, notifications and the Dock badge come from it.
   herdr finds agents itself.
 - **tmux has no agent model.** A tmux backend must make the status itself: agent hooks that set a pane
-  option (`tmux set -p -t "$TMUX_PANE" @oriel_status working`, read with `refresh-client -B`, up to 1 s
+  option (`tmux set -p -t "$TMUX_PANE" @ovvi_status working`, read with `refresh-client -B`, up to 1 s
   late), or detection by polling the pane's program, title and screen text, as herdr does. See
   [tmux.md](tmux.md) section 3.9. Rex gets status only from programs that send OSC 7501. tuios finds agents
   itself.
@@ -196,17 +196,17 @@ Oriel stays herdr only. These facts settled it:
   Rex is a separate app, and tuios a separate binary.
 - **Bundling herdr would remove it** (in [Future work](../../../docs/content/docs/future-work/index.mdx)). herdr
   is Apache-2.0 (ship its license and NOTICE) and is one 22 MB arm64 binary with no other dependencies:
-  - Oriel uses a herdr found on the PATH, else the copy inside `Oriel.app`. The setup screen with the
+  - Ovvi uses a herdr found on the PATH, else the copy inside `Ovvi.app`. The setup screen with the
     install command goes away for this Mac.
-  - On first connect to an SSH machine without herdr, Oriel copies a herdr build to `~/.local/bin` there,
+  - On first connect to an SSH machine without herdr, Ovvi copies a herdr build to `~/.local/bin` there,
     as VS Code Remote installs its server. Linux machines need herdr's Linux build.
-  - Costs: about 22 MB more app, and a new herdr needs a new Oriel release, unless Oriel prefers a newer
+  - Costs: about 22 MB more app, and a new herdr needs a new Ovvi release, unless Ovvi prefers a newer
     herdr already on the PATH.
 
 ## Assumptions
 
-- "Fits" means that Oriel's current UI (`docs/content/docs/ui/window.mdx`) works with the tool, with any missing
-  data kept by the adapter or by Oriel. It does not mean that every herdr call has a twin.
-- The cost guesses assume one developer who knows the Oriel code.
+- "Fits" means that Ovvi's current UI (`docs/content/docs/ui/window.mdx`) works with the tool, with any missing
+  data kept by the adapter or by Ovvi. It does not mean that every herdr call has a twin.
+- The cost guesses assume one developer who knows the Ovvi code.
 - The tmux facts are for tmux 3.8. Older servers on remote machines lack JSON layouts and floating
   panes, so an adapter must read `#{version}`.

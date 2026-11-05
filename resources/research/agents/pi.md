@@ -1,17 +1,17 @@
 # pi: chat view research
 
-> Two spikes in throwaway herdr panes for the [chat view](../ui/chat-view.md). The second one settled the reliable core below; spike scripts and samples lived in `/tmp/oriel-research/` and were not kept.
+> Two spikes in throwaway herdr panes for the [chat view](../ui/chat-view.md). The second one settled the reliable core below; spike scripts and samples lived in `/tmp/ovvi-research/` and were not kept.
 
 Agent: `/usr/local/bin/pi` (company launcher) → `pi_cli/pi.real`, upstream `@earendil-works/pi-coding-agent` 1.4.0.
-Tests ran in herdr session `oriel-dev-research-pi2` (removed). Panes were started the way the chooser starts
+Tests ran in herdr session `ovvi-dev-research-pi2` (removed). Panes were started the way the chooser starts
 them: `herdr pane run <pane> "<command>"` types the command and Return into the pane's shell.
 
 ## Summary
 
 | Feature | Mechanism | Rating | Evidence |
 |---|---|---|---|
-| Launch flags | `pi -e <oriel-pi.ts> --oriel <state.jsonl>`. The extension file is written once by a relay run | **RELIABLE** | The launcher passed both flags through to `pi.real`. The user's 22–24 extensions, herdr integration and settings stayed active |
-| Recognize an Oriel pane | `--oriel <path>` in the argv from `pane.process_info`. This works after an Oriel relaunch too | **RELIABLE** | Both `pi` and `pi.real` show the argv |
+| Launch flags | `pi -e <ovvi-pi.ts> --ovvi <state.jsonl>`. The extension file is written once by a relay run | **RELIABLE** | The launcher passed both flags through to `pi.real`. The user's 22–24 extensions, herdr integration and settings stayed active |
+| Recognize an Ovvi pane | `--ovvi <path>` in the argv from `pane.process_info`. This works after an Ovvi relaunch too | **RELIABLE** | Both `pi` and `pi.real` show the argv |
 | Ready for input | The first `session` line in the state file (pi runs `session_start` in TUI mode) | **RELIABLE** | herdr already says `idle` about 1 s after launch, before the TUI is up. A prompt sent then was typed into the editor, and its Enter was lost |
 | Transcript discovery | The last `session` line in the state file gives `path`. herdr's `agent_session` gives the same path when the herdr integration is installed | **RELIABLE** | startup, /new, /fork, /resume tested. Both sources agreed every time |
 | Follow /tree | A `tree` line gives the new leaf, because pi writes nothing to the transcript on /tree | **RELIABLE** | `{"type":"tree","leaf":"07f07f41"}`, while the file's last entry was still `37364911` |
@@ -30,41 +30,41 @@ them: `herdr pane run <pane> "<command>"` types the command and Return into the 
 
 ## Launch command
 
-Before the first launch on a machine, Oriel does one relay run. The extension has no `'`, so it fits in single quotes:
+Before the first launch on a machine, Ovvi does one relay run. The extension has no `'`, so it fits in single quotes:
 
 ```sh
-d="${XDG_CACHE_HOME:-$HOME/.cache}/oriel"; mkdir -p "$d/state" && chmod 700 "$d" &&
+d="${XDG_CACHE_HOME:-$HOME/.cache}/ovvi"; mkdir -p "$d/state" && chmod 700 "$d" &&
 f="$d/pi-<sha8>.ts"; [ -f "$f" ] || { printf '%s' '<file text>' > "$f.tmp" && mv "$f.tmp" "$f"; }
 ```
 
-Then Oriel types this into the pane's shell (it keeps the user's alias for `pi`, if any):
+Then Ovvi types this into the pane's shell (it keeps the user's alias for `pi`, if any):
 
 ```sh
-pi -e ~/.cache/oriel/pi-<sha8>.ts --oriel ~/.cache/oriel/state/<uuid>.jsonl
+pi -e ~/.cache/ovvi/pi-<sha8>.ts --ovvi ~/.cache/ovvi/state/<uuid>.jsonl
 ```
 
-- Use a per-user 0700 folder, not a shared `/tmp/oriel`: anyone who can write the folder can run code in pi.
-  Name the file by content hash, so two Oriel versions don't fight and the write is idempotent.
+- Use a per-user 0700 folder, not a shared `/tmp/ovvi`: anyone who can write the folder can run code in pi.
+  Name the file by content hash, so two Ovvi versions don't fight and the write is idempotent.
 - **The file must exist.** If `-e` names a missing file, pi exits at once with `Failed to load extension … Extension
-  path does not exist` and `Unknown option: --oriel` (tested). The chooser's failure rule then shows the terminal.
+  path does not exist` and `Unknown option: --ovvi` (tested). The chooser's failure rule then shows the terminal.
 - No `-ne`, no `--session-dir`, no `--session-id`. pi still loads the user's settings, packages and extensions, and
   herdr's integration (`agent_session` and states were still reported). Sessions stay in the user's normal folder, so
   `/resume` works as usual.
 - `--session-id <uuid>` would fix only the first file name (`<ts>_<uuid>.jsonl`), not /new or /fork. It is not needed.
 - `--session <path>` with a path that does not exist uses that exact path (pi source `_setSessionFile`). It is not needed either.
 - Not inline: pi needs a real `.ts` path, and `/reload` reads the file again. A pipe (`<(…)`) cannot be read twice.
-- Lost on resume: herdr's resume and pi's exit hint (`pi --session-dir … --session <id>`) start pi without Oriel's
-  flags. That pane then has no `--oriel` in its argv, so it is shown as a terminal only. That is the intended rule.
+- Lost on resume: herdr's resume and pi's exit hint (`pi --session-dir … --session <id>`) start pi without Ovvi's
+  flags. That pane then has no `--ovvi` in its argv, so it is shown as a terminal only. That is the intended rule.
 
-**Recognize the pane after an Oriel relaunch:** `pane.process_info` returns `foreground_processes[].argv`. It held
-`["/usr/local/bin/pi","-e",".../oriel-pi.ts","--oriel",".../state/e5ae….jsonl",…]`, and `pi.real` showed the
-same args after the launcher's own `--extension …`. Find `--oriel`, take the next arg, and read the state file. Oriel
+**Recognize the pane after an Ovvi relaunch:** `pane.process_info` returns `foreground_processes[].argv`. It held
+`["/usr/local/bin/pi","-e",".../ovvi-pi.ts","--ovvi",".../state/e5ae….jsonl",…]`, and `pi.real` showed the
+same args after the launcher's own `--extension …`. Find `--ovvi`, take the next arg, and read the state file. Ovvi
 keeps no other state. The `pid` in each `session` line matches `pi.real`'s pid in `process_info`. Delete the state
 file when the pane closes.
 
-## The extension (`oriel-pi.ts`)
+## The extension (`ovvi-pi.ts`)
 
-It appends to `--oriel`, only in TUI mode:
+It appends to `--ovvi`, only in TUI mode:
 `session {reason,path,pid}`, `blocked {kind,title}`, `unblocked`, `tree {leaf}`, `working`, `idle`, `shutdown`.
 On `ui_prompt_start` and `ui_prompt_end` it emits `pi.events "herdr:blocked"` `{active}`.
 
@@ -76,7 +76,7 @@ Why it is robust:
   extension's `select/confirm/input/editor/custom`. Nested prompts give one start/end pair.
 - Version floor: `ui_prompt_*` is in pi **0.84.4+**, `agent_settled` 0.80.4+, `ctx.mode` about 0.7x, and
   `session_start.reason` long before that. On an older pi, unknown `pi.on` names simply never fire: the `session`
-  lines still work, and `blocked` lines are just missing. Oriel can check `pi --version` (the last line; the launcher
+  lines still work, and `blocked` lines are just missing. Ovvi can check `pi --version` (the last line; the launcher
   prints a banner first) in the same relay run.
 - It writes to herdr only through `herdr:blocked`, so herdr's own integration (installed on this Mac) does the
   reporting. Without that integration (for example on a remote machine), the state file alone still drives the chat.
@@ -84,13 +84,13 @@ Why it is robust:
 ## Details
 
 ### 1. Launch: tests
-- Pane `w1:p1`, launched with Oriel's flags plus `--session-dir`/`--model`/`--thinking low` and the stand-ins (the
+- Pane `w1:p1`, launched with Ovvi's flags plus `--session-dir`/`--model`/`--thinking low` and the stand-ins (the
   extra flags only keep the test out of the user's session folder and cheap). The state file got
   `{"type":"session","reason":"startup","path":".../2026-10-28T07-35-46-023Z_e5aefd15-….jsonl","pid":74269}`.
   `pane get` showed the same path as `agent_session {kind:"path",source:"herdr:pi"}`.
 - `~/.pi/agent` top-level files, compared before and after: only `meta-muse-model-catalog.json` changed (00:35, at
   the first pi start). That is the company build refreshing its model catalog cache, as on every pi start. It is
-  not from Oriel's flags. No `trust.json` was written. I did not use `/reload`, which writes it.
+  not from Ovvi's flags. No `trust.json` was written. I did not use `/reload`, which writes it.
 
 ### 2. Transcript discovery: tests
 
@@ -187,7 +187,7 @@ Reasoned out; I did not start a test sshd.
 - **Send, keys, interrupt:** herdr one-shots.
 - **Blocked:** the state file works even when the herdr pi integration is not installed on the remote. Then
   `agent.prompt` is not refused, so the chat must check the state line itself.
-- The only file Oriel installs is `~/.cache/oriel/pi-<sha8>.ts`. No daemon, no socket, no port.
+- The only file Ovvi installs is `~/.cache/ovvi/pi-<sha8>.ts`. No daemon, no socket, no port.
 
 ### 8. Everything else
 | Item | Rating | Note |
@@ -206,20 +206,20 @@ Option (b) costs 31 lines and one cached file, and closes all three gaps. **Reco
 
 ## Source
 
-The extension as tested (31 lines). Oriel writes it to `~/.cache/oriel/pi-<sha8>.ts` before the first launch on a machine.
+The extension as tested (31 lines). Ovvi writes it to `~/.cache/ovvi/pi-<sha8>.ts` before the first launch on a machine.
 
 ```ts
-// Oriel chat helper for pi. Load per run: pi -e <this file> --oriel <state.jsonl>
+// Ovvi chat helper for pi. Load per run: pi -e <this file> --ovvi <state.jsonl>
 // Appends one JSON line per change: the live transcript path, and whether a ctx.ui dialog is open.
 // Also tells the herdr pi integration (if installed) that pi is blocked, so herdr agent.prompt refuses.
 // @ts-nocheck
 import { appendFileSync } from "node:fs";
 
 export default function (pi) {
-	pi.registerFlag("oriel", { type: "string", description: "Oriel: state file to append to" });
+	pi.registerFlag("ovvi", { type: "string", description: "Ovvi: state file to append to" });
 	let ui = false; // a TUI session is live
 	const w = (o) => {
-		const f = pi.getFlag("oriel");
+		const f = pi.getFlag("ovvi");
 		if (ui && f) try { appendFileSync(f, JSON.stringify({ ts: Date.now(), ...o }) + "\n"); } catch {}
 	};
 	pi.on("session_start", (e, ctx) => {

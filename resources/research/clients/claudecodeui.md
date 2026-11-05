@@ -46,10 +46,10 @@ allow/deny lists are matched first.
 
 Server about 70k lines with tests; the client chat module about 23k lines, the whole client about 72k.
 
-## For Oriel
+## For Ovvi
 
 - Copy: a file watcher over the agents' own session folders is enough to keep a chat current with a terminal
-  session; that is what Oriel plans.
+  session; that is what Ovvi plans.
 - Copy: skip `subagents/` and `tool-results/` files when indexing Claude sessions; they repeat the parent id.
 - Avoid: sending chat turns through a second headless process while a TUI may run on the same session.
 - Avoid: choosing the transcript by scan order. Take the path from the agent (hook) or pick by newest write.

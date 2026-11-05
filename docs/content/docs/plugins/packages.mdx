@@ -3,8 +3,8 @@ title: "Packages and installs"
 description: "Where plugins come from: npm, git or a local path, the Plugins panel, and the default plugins as packages"
 ---
 
-A plugin is a package, as a pi package is. Oriel installs it,
-lists it in `~/.config/oriel/settings.json`, and can update, reload and
+A plugin is a package, as a pi package is. Ovvi installs it,
+lists it in `~/.config/ovvi/settings.json`, and can update, reload and
 remove it. The app ships no package manager. It uses the npm, pnpm or bun on
 the user's login `PATH`.
 
@@ -16,8 +16,8 @@ entry is a source string, or an object with a `source` (pi's form):
 ```json
 {
   "packages": [
-    "npm:@acme/oriel-csv@1.2.0",
-    "git:github.com/acme/oriel-kanban@v1",
+    "npm:@acme/ovvi-csv@1.2.0",
+    "git:github.com/acme/ovvi-kanban@v1",
     "~/code/my-plugin"
   ]
 }
@@ -25,15 +25,15 @@ entry is a source string, or an object with a `source` (pi's form):
 
 | Source | What it is | Where it goes |
 |---|---|---|
-| `npm:<spec>` | an npm package: `npm:@scope/name@1.2.0`, `npm:name`, or a tarball's path | `~/.config/oriel/plugins/<name>/`: `npm pack`, then the tarball unpacked. Needs npm |
-| `git:<repository>[@ref]` | a git repository: `git:github.com/x/y@v1`, an `https://` or `ssh://` URL, `git@host:x/y`, or a local repository's path | `~/.config/oriel/plugins/<repository name>/`: a clone at the ref |
+| `npm:<spec>` | an npm package: `npm:@scope/name@1.2.0`, `npm:name`, or a tarball's path | `~/.config/ovvi/plugins/<name>/`: `npm pack`, then the tarball unpacked. Needs npm |
+| `git:<repository>[@ref]` | a git repository: `git:github.com/x/y@v1`, an `https://` or `ssh://` URL, `git@host:x/y`, or a local repository's path | `~/.config/ovvi/plugins/<repository name>/`: a clone at the ref |
 | a path that starts with `/`, `~` or `.` | a package on this Mac | nowhere: it loads in place. A relative path is from the folder of `settings.json` |
 
 - A versioned spec stays at its version. **Update** fetches the same source
   again, so it gets the newest version that the spec allows.
 - A local path is never installed or changed. Its dependencies are its
   author's: run `npm install` and `npm run build` in its folder.
-- A folder that the user or an agent puts in `~/.config/oriel/plugins/` by
+- A folder that the user or an agent puts in `~/.config/ovvi/plugins/` by
   hand also loads. It is not in `settings.json`.
 - `hideInNewPane` lists the ids of the plugins that the
   [New pane](/docs/ui/new-pane) chooser leaves out, for example
@@ -67,7 +67,7 @@ The install commands:
 
 - No install script of a dependency runs (`--ignore-scripts`). Only the
   package's own `build` script runs, and only after the user trusts it.
-- No peer dependency installs. `@oriel/plugin-api` is the app's, and it is
+- No peer dependency installs. `@ovvi/plugin-api` is the app's, and it is
   not on the npm registry ([Types](/docs/plugins/api#types)).
 - A command that runs over 10 minutes stops. A failure shows its last 20
   lines, and the plugin's log has the whole output.
@@ -76,7 +76,7 @@ The install commands:
 
 ## The Plugins panel
 
-**Oriel ▸ Plugins…** and ⌘K **Plugins…** open the Plugins panel: a glass
+**Ovvi ▸ Plugins…** and ⌘K **Plugins…** open the Plugins panel: a glass
 panel over the window, like Open Session. Esc or a click outside closes it.
 
 - **The field** takes a source (`npm:package`, `git:repository` or a
@@ -84,7 +84,7 @@ panel over the window, like Open Session. Esc or a click outside closes it.
   "Installing…" take the Install button's place while it runs. A failure
   shows on a red notice, with **Retry** when running it again can help.
 - **A row per plugin:** its icon, its name and version, and its source under
-  it: "Comes with Oriel", the `npm:` or `git:` source, the local path, or the
+  it: "Comes with Ovvi", the `npm:` or `git:` source, the local path, or the
   folder. A source in `settings.json` whose folder is missing shows "Not
   installed" with an install button.
 - **Show in New Pane:** a switch on the row of each plugin whose manifest
@@ -104,7 +104,7 @@ panel over the window, like Open Session. Esc or a click outside closes it.
 - **New Plugin…** asks for a name, then makes a plugin from the template
   ([Build a plugin](/docs/plugins/building#start-from-the-template)).
 - **An agent's work** shows in the panel too: an agent on This Mac makes,
-  reloads and installs plugins with the `oriel` command
+  reloads and installs plugins with the `ovvi` command
   ([CLI](/docs/agent-control/cli#plugins)), and the panel shows Creating…,
   Installing… and any failure, as for its own.
 - **Reload Plugins** reads every package again and reloads every plugin
@@ -122,7 +122,7 @@ package of an id wins, in this order:
 2. The default plugins: their installed copies in the plugins folder, or the
    app's own manifest while a copy is not installed yet.
 3. The local paths in `settings.json`.
-4. Every folder in `~/.config/oriel/plugins/` but hidden ones and
+4. Every folder in `~/.config/ovvi/plugins/` but hidden ones and
    `node_modules`.
 
 A package that is left out (a bad manifest, a taken id, a listed path with no

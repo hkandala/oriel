@@ -89,15 +89,15 @@ function copied(view: EditorView) {
 }
 
 export async function show(place: Place): Promise<Reveal> {
-  const { oriel, arg, keep, root } = place
-  const outline = Object.assign(document.createElement("nav"), { className: "oriel-sidebar" })
+  const { ovvi, arg, keep, root } = place
+  const outline = Object.assign(document.createElement("nav"), { className: "ovvi-sidebar" })
   const pane = document.createElement("main")
   // Shown once the file is: not beside the info view. Closed until the outline is on, then it slides.
   outline.hidden = true
   outline.toggleAttribute("data-closed", true)
   root.append(outline, pane)
   // The card's mode: as another Markdown page left it, else as row 2 kept it (a relaunch).
-  const kept = oriel.controls.get("mode") as Mode, first = cardMode ?? (MODES.includes(kept) ? kept : "read")
+  const kept = ovvi.controls.get("mode") as Mode, first = cardMode ?? (MODES.includes(kept) ? kept : "read")
   let mode: Mode = "read"
   /** Every mode but Read edits; ⌘E goes back to the last one. */
   let edit = false
@@ -135,9 +135,9 @@ export async function show(place: Place): Promise<Reveal> {
     outline.toggleAttribute("data-closed", !outlined)
     if (outlined) list(view, all(view.state))
     focus(view)
-    oriel.controls.set("mode", { value: mode })
-    oriel.controls.set("outline", { value: outlined })
-    oriel.controls.set("edit-mode", { enabled: true, checked: edit })
+    ovvi.controls.set("mode", { value: mode })
+    ovvi.controls.set("outline", { value: outlined })
+    ovvi.controls.set("edit-mode", { enabled: true, checked: edit })
   }
 
   /** An edit mode's editor takes the keyboard; Read's page, so the keys scroll it. */
@@ -151,7 +151,7 @@ export async function show(place: Place): Promise<Reveal> {
     const now = found.length > 0
     if (now !== titled) {
       titled = now
-      oriel.controls.set("outline", { hidden: !titled })
+      ovvi.controls.set("outline", { hidden: !titled })
       if (!titled && outlined) present(view, mode, false)
     }
     if (outlined) list(view, found)
@@ -198,25 +198,25 @@ export async function show(place: Place): Promise<Reveal> {
       })
       if (heading) view.dispatch({ effects: EditorView.scrollIntoView(heading.from, { y: "start" }) })
     } else if (/^https?:/i.test(target)) {
-      open(oriel, target, event.altKey ? "side" : "tab")
+      open(ovvi, target, event.altKey ? "side" : "tab")
     } else if (target && !/^[a-z][a-z\d+.-]*:/i.test(target)) {
       const base = `file://${arg.split("/").map(encodeURIComponent).join("/")}`
-      open(oriel, decodeURIComponent(new URL(target, base).pathname), how(event))
+      open(ovvi, decodeURIComponent(new URL(target, base).pathname), how(event))
     }
     return true
   }
 
   // The outline closed until the file shows.
-  oriel.controls.set("mode", { value: first })
-  oriel.controls.set("outline", { value: false })
-  oriel.controls.set("edit-mode", { enabled: true, checked: false })
-  symbols(oriel, ["chevron.left", "chevron.right"])
+  ovvi.controls.set("mode", { value: first })
+  ovvi.controls.set("outline", { value: false })
+  ovvi.controls.set("edit-mode", { enabled: true, checked: false })
+  symbols(ovvi, ["chevron.left", "chevron.right"])
   let shown: Editor
   /** The saves of Read's ticks, one after the other: a save under way skips a second one. */
   let ticks = Promise.resolve()
   // Before the editor's own: ⌘F, ⌘G and ⇧⌘G in Read show the last edit mode, where the search panel is; ⌥⌘F too.
   const finding = () => shown && !edit && present(shown.view, lastEdit, outlined)
-  for (const name of ["find", "findNext", "findPrevious"] as const) oriel.on(name, finding)
+  for (const name of ["find", "findNext", "findPrevious"] as const) ovvi.on(name, finding)
   const replacing = (event: KeyboardEvent) =>
     place.shown() && event.code === "KeyF" && event.metaKey && event.altKey && finding()
   addEventListener("keydown", replacing)
@@ -250,8 +250,8 @@ export async function show(place: Place): Promise<Reveal> {
 
   // None when the file is too large to show: the info view is there instead, and Edit Mode does nothing.
   if (!shown) {
-    oriel.controls.set("edit-mode", { enabled: false })
-    oriel.controls.set("mode", { hidden: true })
+    ovvi.controls.set("edit-mode", { enabled: false })
+    ovvi.controls.set("mode", { hidden: true })
     return undefined
   }
   const { view, land } = shown
@@ -265,7 +265,7 @@ export async function show(place: Place): Promise<Reveal> {
   }
   document.addEventListener("copy", copy)
   keep(() => document.removeEventListener("copy", copy))
-  oriel.on("control", ({ id, value }) => {
+  ovvi.on("control", ({ id, value }) => {
     if (id === "mode" && MODES.includes(value as Mode)) present(view, value as Mode, outlined)
     else if (id === "outline") present(view, mode, value === true)
     else if (id === "edit-mode") present(view, edit ? "read" : lastEdit, outlined)
@@ -274,7 +274,7 @@ export async function show(place: Place): Promise<Reveal> {
   // A linked open at a line (a diff's): an edit mode, with the caret there (`editor`). Back's landing is a path.
   present(view, Number(place.at) >= 1 && first === "read" ? lastEdit : first, false)
   // A kept page shown again (Back, Forward, a link) takes the card's mode.
-  oriel.on("place", () => cardMode && present(view, cardMode, outlined))
+  ovvi.on("place", () => cardMode && present(view, cardMode, outlined))
   // The app gives the card the keyboard: after the editor's own handler, Read's page takes it.
   const take = () => place.shown() && focus(view)
   addEventListener("focus", take)

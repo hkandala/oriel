@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # CI only (it writes ~/.ssh and adds a user): an sshd on 127.0.0.1:2222 for the remote-host tests, and two hosts in
 # ~/.ssh/config, as a user would have them:
-# - oriel-key: this user with a key and a known host key, so nothing asks; its herdr sessions are the e2e ones.
-# - oriel-pw: a password user without herdr, behind a host key alias ssh does not know yet, so ssh asks both.
+# - ovvi-key: this user with a key and a known host key, so nothing asks; its herdr sessions are the e2e ones.
+# - ovvi-pw: a password user without herdr, behind a host key alias ssh does not know yet, so ssh asks both.
 # Two sessions per connection, as a strict server allows: the app carries everything over one.
 set -euo pipefail
 [ "${CI:-}" = true ] || { echo "CI only: it writes ~/.ssh and adds a user" >&2 && exit 2; }
-d=/tmp/oriel-sshd
+d=/tmp/ovvi-sshd
 mkdir -p "$d" ~/.ssh
 chmod 700 ~/.ssh
 ssh-keygen -q -t ed25519 -N '' -f "$d/host_key"
-ssh-keygen -q -t ed25519 -N '' -f ~/.ssh/oriel_e2e
-cp ~/.ssh/oriel_e2e.pub "$d/authorized_keys"
+ssh-keygen -q -t ed25519 -N '' -f ~/.ssh/ovvi_e2e
+cp ~/.ssh/ovvi_e2e.pub "$d/authorized_keys"
 cat >"$d/sshd_config" <<CONFIG
 Port 2222
 ListenAddress 127.0.0.1
@@ -31,38 +31,38 @@ echo "Authorized users only. Usage is subject to monitoring." >"$d/banner"
 # The helper counts connections in the log: this user owns it, root's sshd appends.
 touch "$d/sshd.log"
 sudo /usr/sbin/sshd -f "$d/sshd_config" -E "$d/sshd.log"
-sudo sysadminctl -addUser oriel-pw -password oriel-e2e-pw -home /Users/oriel-pw 2>&1
-sudo createhomedir -c -u oriel-pw >/dev/null 2>&1 || true
+sudo sysadminctl -addUser ovvi-pw -password ovvi-e2e-pw -home /Users/ovvi-pw 2>&1
+sudo createhomedir -c -u ovvi-pw >/dev/null 2>&1 || true
 # A login shell as slow as a busy dev machine's: the app looks for herdr in one, and Connecting shows meanwhile.
-sudo mkdir -p /Users/oriel-pw
-echo 'sleep 2' | sudo tee /Users/oriel-pw/.zshrc >/dev/null
+sudo mkdir -p /Users/ovvi-pw
+echo 'sleep 2' | sudo tee /Users/ovvi-pw/.zshrc >/dev/null
 # Remote Login may admit only this group's members.
-sudo dseditgroup -o edit -a oriel-pw -t user com.apple.access_ssh 2>/dev/null || true
+sudo dseditgroup -o edit -a ovvi-pw -t user com.apple.access_ssh 2>/dev/null || true
 cat >>~/.ssh/config <<CONFIG
-Host oriel-key
+Host ovvi-key
   HostName 127.0.0.1
   Port 2222
   User $(id -un)
-  IdentityFile ~/.ssh/oriel_e2e
+  IdentityFile ~/.ssh/ovvi_e2e
   IdentitiesOnly yes
-Host oriel-pw
+Host ovvi-pw
   HostName 127.0.0.1
   Port 2222
-  User oriel-pw
+  User ovvi-pw
   PubkeyAuthentication no
-  HostKeyAlias oriel-pw
+  HostKeyAlias ovvi-pw
 CONFIG
 for _ in $(seq 50); do
     ssh-keyscan -p 2222 127.0.0.1 2>/dev/null >>~/.ssh/known_hosts && grep -q 2222 ~/.ssh/known_hosts && break
     sleep 0.1
 done
 # Both hosts as the tests expect them: no prompt for one, a password for the other.
-ssh -o BatchMode=yes oriel-key true
-if ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null oriel-pw true 2>/dev/null; then
-    echo "oriel-pw got in without a password" >&2 && exit 1
+ssh -o BatchMode=yes ovvi-key true
+if ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ovvi-pw true 2>/dev/null; then
+    echo "ovvi-pw got in without a password" >&2 && exit 1
 fi
-printf '#!/bin/sh\necho oriel-e2e-pw\n' >"$d/password"
+printf '#!/bin/sh\necho ovvi-e2e-pw\n' >"$d/password"
 chmod +x "$d/password"
 SSH_ASKPASS="$d/password" SSH_ASKPASS_REQUIRE=force \
-    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null oriel-pw true </dev/null ||
-    { echo "oriel-pw's password does not get in:" >&2 && sudo tail -30 "$d/sshd.log" >&2 && exit 1; }
+    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ovvi-pw true </dev/null ||
+    { echo "ovvi-pw's password does not get in:" >&2 && sudo tail -30 "$d/sshd.log" >&2 && exit 1; }

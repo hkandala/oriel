@@ -1,6 +1,6 @@
 # Phase 16: several windows
 
-Goal: the user can open several Oriel windows. Each window shows one machine and its own open session
+Goal: the user can open several Ovvi windows. Each window shows one machine and its own open session
 pages. Windows that show the same session share its live data, keep their own selection, and agree on
 one controller per session (D66): the window where the user last typed or clicked in a terminal
 controls; the other watches and offers Take Back. Windows come back after a relaunch.
@@ -13,7 +13,7 @@ Phase 14 already built the store registry (a dictionary by session name), the pe
 
 ### Windows
 
-1. **Scene.** Replace the single `Window("Oriel", id: "main")` with `WindowGroup(id: "main")`, same
+1. **Scene.** Replace the single `Window("Ovvi", id: "main")` with `WindowGroup(id: "main")`, same
    size, toolbar style, resizability and commands. Keep `allowsAutomaticWindowTabbing = false` (no
    window tabs). File ▸ New Window ⌘N: an entry in phase 13's command list whose action calls
    `openWindow(id: "main")`, shown in the `.newItem` group (that group is replaced today, so SwiftUI's
@@ -50,7 +50,7 @@ Phase 14 already built the store registry (a dictionary by session name), the pe
    centered on the strip, 30 pt above the bottom) says "Controlled in another window" with a
    **Take Back** button. Take Back, or a key press or a click in one of its terminal cards, makes this
    window the controller; the key press is then sent. The capsule shows only while the page in view
-   is watched. Cards watched because another Oriel window controls the session show no per-card
+   is watched. Cards watched because another Ovvi window controls the session show no per-card
    "In use elsewhere · Take Back"; that stays for other devices.
 9. **Hand-off on close.** When the controlling window closes or closes the page, it leaves `windows`,
    and the next window in the list becomes the controller. The new controller calls `takeBack()` on its
@@ -63,7 +63,7 @@ Phase 14 already built the store registry (a dictionary by session name), the pe
 
 ### Restore
 
-11. Remove `window.isRestorable = false` (`FullScreenReader`, `OrielApp.swift`), or macOS never
+11. Remove `window.isRestorable = false` (`FullScreenReader`, `OvviApp.swift`), or macOS never
     restores a window. Handle the full-screen title-bar case another way (for example, leave full
     screen in `windowWillClose` or at quit, so a window never restores in full screen). Record what you
     chose. `@SceneStorage` per window: the open page names and the page in view (phase 14),
@@ -83,7 +83,7 @@ Phase 14 already built the store registry (a dictionary by session name), the pe
 
 ### Deviations
 
-- **The control capsule is in `Detail`, built on a new `Notice` view** (`Oriel/Views/Detail.swift`): the failed-write
+- **The control capsule is in `Detail`, built on a new `Notice` view** (`Ovvi/Views/Detail.swift`): the failed-write
   notice and the capsule are the same capsule (text, optional action, glass), stacked 30 pt above the strip's bottom,
   so phase 21's restyle covers both. The old notice sat 16 pt above; the design says 30.
 - **Control moves every stream of the session, not only the shown ones.** On a control change the new controller's
@@ -137,5 +137,5 @@ Phase 14 already built the store registry (a dictionary by session name), the pe
 - **Window close:** `NSWindow.willCloseNotification` in the window reader (now `WindowReader`, which also hands the
   window to `WindowPages.window`), not `onDisappear`.
 - **⌥-click:** the This Mac toggle's setter reads `NSEvent.modifierFlags`; a plain click does nothing, as before.
-- **Files:** `WindowPages` moved to `Oriel/Store/WindowPages.swift` and `Detail` to `Oriel/Views/Detail.swift`, and
+- **Files:** `WindowPages` moved to `Ovvi/Store/WindowPages.swift` and `Detail` to `Ovvi/Views/Detail.swift`, and
   `PaneTerminal`'s font statics to an extension: SwiftLint's file and type length limits.

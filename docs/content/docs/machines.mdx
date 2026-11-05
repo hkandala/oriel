@@ -44,8 +44,8 @@ description: "What a machine is, its sessions, the SSH connection, the health ch
   ssh -M -N -f -o ControlPersist=10m -o ServerAliveInterval=5 \
       -o ServerAliveCountMax=3 -o ConnectTimeout=10 \
       -o ForwardAgent=no -o ForwardX11=no -o ClearAllForwardings=yes \
-      -o LogLevel=ERROR -o BatchMode=yes -S ~/Library/Caches/oriel/<h8> <target>
-  ssh -F /dev/null -S ~/Library/Caches/oriel/<h8> -O check <target>   # its pid
+      -o LogLevel=ERROR -o BatchMode=yes -S ~/Library/Caches/ovvi/<h8> <target>
+  ssh -F /dev/null -S ~/Library/Caches/ovvi/<h8> -O check <target>    # its pid
   ```
   - With `-f`, ssh goes to the background once it is authenticated and the
     socket serves, so the start's exit status says whether it worked. Its
@@ -57,7 +57,7 @@ description: "What a machine is, its sessions, the SSH connection, the health ch
     connection to ‹target› closed".
   - The relay's session (below), which carries every later run, uses
     `-F /dev/null -o ControlMaster=no -o BatchMode=yes
-    -o ProxyCommand=/usr/bin/false -S ~/Library/Caches/oriel/<h8>`. Without a
+    -o ProxyCommand=/usr/bin/false -S ~/Library/Caches/ovvi/<h8>`. Without a
     master it fails at once instead of opening their own connection and
     prompting again. They send none of the user's configured forwards to the
     master. With a master, ssh never reads the target's config, so an alias
@@ -104,8 +104,8 @@ description: "What a machine is, its sessions, the SSH connection, the health ch
   - When its stdin ends (the app quit, the connection dropped) it exits, and
     every run's stdin closes with it, so every run ends as before.
   - Perl is on nearly every Unix (Debian's `perl-base` is essential, macOS has
-    it). The relay greets with `oriel-relay 1` within 10 s. On a machine where
-    it does not, every run fails with "Oriel needs Perl on ‹target›: its relay
+    it). The relay greets with `ovvi-relay 1` within 10 s. On a machine where
+    it does not, every run fails with "Ovvi needs Perl on ‹target›: its relay
     did not start", and the next run tries again. The page shows Reconnecting
     with that text under it.
   - herdr's own transports do not fit: `herdr --remote` runs one
@@ -165,7 +165,7 @@ description: "What a machine is, its sessions, the SSH connection, the health ch
   system events ([Remote machines](/docs/plugins/default-plugins#remote-machines)).
 - **Chat panes** of a remote machine work as on This Mac: the launch line,
   the side files and every follower run on the machine, over the relay
-  ([Chat view](/docs/ui/chat-view)). The relay passes lines, so pi-oriel goes
+  ([Chat view](/docs/ui/chat-view)). The relay passes lines, so pi-ovvi goes
   as one base64 line. OpenCode's chat needs `curl` on the machine. The others
   need only POSIX tools.
 - **Local Network privacy:** an `ssh` started by the app counts as the app,
@@ -226,15 +226,15 @@ One loop per open session checks that it answers.
      alone. The app starts the
      server as a one-shot launchd job (D47). launchd, not the app, is the
      server's parent and "responsible process": macOS privacy prompts never
-     name Oriel, the server has its own process group, and it outlives the app.
+     name Ovvi, the server has its own process group, and it outlives the app.
      - `launchctl bootstrap gui/<uid>` (the user's GUI domain) loads the job
-       `dev.hkandala.oriel.herdr.<S>`, which runs
+       `dev.ovvi.app.herdr.<S>`, which runs
        `<herdr path> --session <S> server` (the path from the login shell).
      - `RunAtLoad` without `KeepAlive`: once `herdr session stop` ends the
        server, launchd never runs it again (`launchctl submit` restarted it).
      - `ProcessType Interactive`: launchd's default throttles the CPU and I/O
        of the server and every agent in it.
-     - stderr goes to `~/Library/Logs/Oriel/<S>.log`.
+     - stderr goes to `~/Library/Logs/Ovvi/<S>.log`.
      - The job gets the user's environment keys from the login shell (`PATH`,
        `HOME`, `SSH_AUTH_SOCK`, `XDG_*`;
        [herdr on each machine](/docs/talking-to-herdr#herdr-on-each-machine),

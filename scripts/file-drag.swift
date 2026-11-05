@@ -36,7 +36,7 @@ final class Source: NSView, NSDraggingSource {
 let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
 let height = NSScreen.screens[0].frame.height, size = 64.0
-// Non-activating: the app under test stays the active one. Floating: drag.swift still finds Oriel's window under it.
+// Non-activating: the app under test stays the active one. Floating: drag.swift still finds Ovvi's window under it.
 let panel = NSPanel(
     contentRect: NSRect(x: args[0] - size / 2, y: height - args[1] - size / 2, width: size, height: size),
     styleMask: [.borderless, .nonactivatingPanel],
@@ -50,7 +50,7 @@ source.layer?.contents = NSWorkspace.shared.icon(forFile: url.path)
 panel.contentView = source
 panel.orderFrontRegardless()
 /// "up" once the window server shows the panel: the helper drags once this line comes, and a press before then lands
-/// on Oriel's window under it and starts no drag. `orderFrontRegardless` returns before the panel is on screen.
+/// on Ovvi's window under it and starts no drag. `orderFrontRegardless` returns before the panel is on screen.
 func announce() {
     let shown = (CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String: Any]] ?? [])
         .contains { $0[kCGWindowNumber as String] as? Int == panel.windowNumber }

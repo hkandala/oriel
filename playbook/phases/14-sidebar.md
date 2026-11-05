@@ -104,7 +104,7 @@ button, which opens the Open Session sheet. Tabs are no longer sidebar rows.
     `SessionPicker` with its title-row button.
 
 18. **Empty page.** A session with no workspace shows only a New Workspace button in the strip and on the
-    page (today `OrielApp.swift` says "No workspaces. Create one in herdr:"). The user never needs herdr
+    page (today `OvviApp.swift` says "No workspaces. Create one in herdr:"). The user never needs herdr
     ("Never send the user to herdr", now on the docs' index page). Add a SwiftLint custom rule that fails on a
     user-visible string literal telling the user to run herdr (for example `"herdr ` or `in herdr` inside
     `Text(`, `Label(`, `message(`, `Button(`), so it cannot come back.
@@ -181,7 +181,7 @@ button, which opens the Open Session sheet. Tabs are no longer sidebar rows.
 
 - **Types:** `Page` (one session's page in a window: its store, the selection, zoom, the strip offset, keyboard cards,
   `arriving`) and `WindowPages` (the ordered pages, the one in view, the window's one `PaneViewRegistry`) in
-  `Oriel/Store/Page.swift`. The store registry is a private static dictionary in `HostStore` (`named(_:start:)`,
+  `Ovvi/Store/Page.swift`. The store registry is a private static dictionary in `HostStore` (`named(_:start:)`,
   `disconnect()`). After each snapshot the store calls `onSnapshot`; the window settles that page's selection and
   shows the terminals. Phase 16 makes it a list for several windows.
 - **Ids:** `sidebar`, `sidebar.header` (a static text; XCUITest gives its text as the value), `sidebar.new-workspace`,
