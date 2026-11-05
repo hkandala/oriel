@@ -126,6 +126,7 @@ struct PaneCard: View {
                 .accessibilityActions { PaneActions(page: page, pane: pane) }
                 .contextMenu { PaneItems(page: page, pane: pane) }
         }
+        .overlay { ActiveBorder(id: id, shown: lit && shown.count > 1 && page.zoomedPaneID == nil) }
         .opacity(page.dragging == .pane(id) ? 0.4 : 1)
         .overlay(alignment: .topLeading) {
             if let zone, page.dragging != nil {
@@ -211,8 +212,7 @@ struct PaneCard: View {
         .frame(height: page.headerHeight(pane), alignment: .top)
         .fontWeight(.medium)
         // Rex's glyph sits 13.5 pt in and its title 30.5 pt.
-        .padding(.leading, 11)
-        .padding(.trailing, 8)
+        .padding(.leading, 11).padding(.trailing, 8)
         // A card narrower than its header cuts the header (the card clips) instead of growing.
         .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
         // Behind the header, so its buttons still take their own clicks.
@@ -377,6 +377,21 @@ private struct PaneActions: View {
         }
         ForEach(Array(commands.enumerated()), id: \.offset) { _, command in
             Button(command.0, action: command.1)
+        }
+    }
+}
+
+/// The keyboard card's border among two or more shown cards (ui/window), at once: no fade as the keyboard moves.
+private struct ActiveBorder: View {
+    let id: String
+    let shown: Bool
+    @Environment(\.look) private var look
+
+    var body: some View {
+        if shown {
+            CardSurface.shape.strokeBorder(look.activeBorder, lineWidth: 1).allowsHitTesting(false)
+                .transition(.identity)
+                .testValue("pane.\(id).border", "Active", "", shown: SettlingHost.record)
         }
     }
 }

@@ -29,5 +29,12 @@ extension OrielUITests {
         // Four cards came and three went: none for a closed split's pane.
         let counts = "\(before[0] + 4) \(before[1] + 3)"
         XCTAssertTrue(cards.has(\.stringValue, counts, within: 2), "came went: \(cards.stringValue)")
+        // The active pane's border: on the keyboard card of two, at once; none when one card shows.
+        XCTAssertTrue(element("pane.\(panes[1]).border").exists)
+        element("terminal.\(first)").click()
+        XCTAssertTrue(element("pane.\(first).border").exists(within: 1))
+        XCTAssertFalse(element("pane.\(panes[1]).border").exists)
+        app.typeKey(.return, modifierFlags: [.command, .shift])
+        XCTAssertTrue(element("pane.\(first).border").vanishes(within: 2))
     }
 }
