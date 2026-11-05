@@ -398,3 +398,21 @@ CI runs and on-demand) at about 2–3 h.
   tells how to copy it to a remote machine.
 - **Runs.** The first chosen-tests run (41961078819) failed the new palette check. At the end of the list, the lazy
   stack no longer held the row the query used to find the list. The test now reads the list's frame first.
+
+### Track F
+
+- **Fix, commits (20).** A plain click selects a commit (the accent at 24 %, as File Explorer's rows); the second click
+  of a double-click, Return on the selected row and a VoiceOver press open it; ⌘- and ⌥-click still open in a new tab
+  or to the side. ↑ and ↓ move the selection, the first arrow takes the first commit (↑ the last), and the ring shows
+  from an arrow key until the next click, with File Explorer's `data-keys` rule. A redraw (after every write and every
+  change in the work tree) keeps the selection without a scroll and takes the keyboard only if the row had it.
+- **Fix, file list (21).** A diff starts with its file list closed; the card keeps the user's choice once changed.
+- **Cause, red buttons (25).** `role: .destructive` draws nothing on `.glass` or `.glassProminent`, and AppKit draws an
+  alert's destructive button red only while it is not the default button. **Fix:** `Toast.Action` carries a role; a
+  destructive main button takes `.tint(look.error)` and a destructive other button a red label (a red fill would read
+  as a second default). The plugin API's toast gets `{ destructive: true }` for its main button (folded into API 2, which
+  has no release yet). Git's Revert and Revert All use it, and so does the app's Discard. The Remove Plugin and Replace
+  alerts mark their button destructive and drop its Return key, so AppKit draws it red; Return still clicks it in a
+  sheet (`NSWindow.confirm`).
+- **Decisions (25).** File Explorer's "changed on disk" toasts (Reload, Keep Mine; Overwrite, Reload) are choices in a
+  conflict, not confirmations of a delete or a discard, so they stay plain.
