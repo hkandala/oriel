@@ -9,9 +9,10 @@ extension OrielUITests {
     /// opens it; a double-click opens a commit's diff in the card, and Back and Forward walk between the home and the
     /// diff; Revert and Revert All put the changes back; the branch menu switches the branch. The diff: a commit's
     /// subject is its title, and its Parent opens in the card; the working tree from a change follows the work tree,
-    /// also in a file it shows; Open File opens the file in a new tab at the end; Viewed folds the file; Next Change
-    /// scrolls to a change the page has not drawn; ⌘-click on a line opens the file at the line, in Unified and in Side
-    /// by Side; Word Wrap toggles in Unified only; the file list starts closed and opens.
+    /// also in a file it shows, and a file growing above the one in view does not move it; Open File opens the file
+    /// in a new tab at the end; Viewed folds the file; Next Change scrolls to a change the page has not drawn; ⌘-click
+    /// on a line opens the file at the line, in Unified and in Side by Side; Word Wrap toggles in Unified only; the
+    /// file list starts closed and opens.
     func testGitCardCommitsPushesAndOpensDiffs() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, left) = try await newTab("git")
@@ -126,18 +127,37 @@ extension OrielUITests {
         XCTAssertTrue(page.buttons["Open a.txt"].exists(within: 10))
         XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, "Working Tree", within: 3))
         // It follows the work tree.
-        try await send("echo new >c.txt\r", to: left)
+        try await send("seq 300 | sed 's/^/new /' >c.txt\r", to: left)
         XCTAssertTrue(page.buttons["Open c.txt"].exists(within: 10))
         // A file already shown draws its new text.
         try await send("sed -i '' 's/^changed 200$/live 200/' a.txt\r", to: left)
         XCTAssertTrue(page.staticTexts.matching(NSPredicate(format: "value CONTAINS 'live 200'")).firstMatch
             .exists(within: 10))
+        try await holdsItsPlace(page, card: card, shell: left)
 
         // Row 2's Working Tree opens it too, from the home.
         element("pane.\(card).diff.home").click()
         try await expect("back home") { try await paneLabel(card).hasSuffix("e2egit \(root)/") }
         element("pane.\(card).git.working").click()
         try await expect("Working Tree from row 2") { try await paneLabel(card).hasSuffix(" \(root)/ uncommitted") }
+    }
+
+    /// Scrolled into c.txt from the file list, a new change in a.txt above it does not move it.
+    private func holdsItsPlace(_ page: XCUIElement, card: String, shell left: String) async throws {
+        let list = element("pane.\(card).diff.file-list")
+        list.click()
+        XCTAssertTrue(page.buttons["c.txt"].has(\.isHittable, true, within: 3))
+        page.buttons["c.txt"].click()
+        // By its header's Open File: at the top of the view, and below it once the box moves down.
+        let header = page.buttons["Open c.txt"]
+        XCTAssertTrue(header.exists(within: 3))
+        let top = header.frame.minY
+        XCTAssertLessThan(top, page.frame.minY + 50, "c.txt is not at the top: \(top), page \(page.frame)")
+        try await send("sed -i '' 's/^line 250$/x250/' a.txt\r", to: left)
+        // a.txt's second hunk draws.
+        XCTAssertTrue(page.staticTexts.matching(NSPredicate(format: "value == 'x250'")).firstMatch.exists(within: 10))
+        XCTAssertEqual(header.frame.minY, top, accuracy: 2, "c.txt moved")
+        list.click()
     }
 
     /// Revert puts a.txt back after a question; Revert All then deletes the untracked c.txt and d.txt, which its
