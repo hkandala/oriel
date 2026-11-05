@@ -8,7 +8,7 @@ extension OvviUITests {
     /// script goes as base64: the runner is sandboxed, and a shell of the session writes it.
     func serveWho(_ port: Int, from pane: String) async throws {
         let script = """
-        import http.server, subprocess, sys
+        import http.server, socketserver, subprocess, sys
         class Who(http.server.BaseHTTPRequestHandler):
             def do_GET(self):
                 end = "127.0.0.1:%d->" % self.client_address[1]
@@ -26,8 +26,9 @@ extension OvviUITests {
                 self.send_header("Content-Length", str(len(body)))
                 self.end_headers()
                 self.wfile.write(body)
-        # Threads: WebKit keeps a spare connection open, which held a one-thread server's next page for 30 s.
-        server = http.server.ThreadingHTTPServer(("127.0.0.1", int(sys.argv[1])), Who)
+        # Threads: WebKit keeps a spare connection open, which held a one-thread server's next page for 30 s. Not
+        # HTTPServer: its getfqdn() lookup raised the Local Network prompt on CI, over the next tests' windows.
+        server = socketserver.ThreadingTCPServer(("127.0.0.1", int(sys.argv[1])), Who)
         print("ovvi-who-ready", flush=True)
         server.serve_forever()
         """

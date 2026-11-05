@@ -39,7 +39,11 @@ extension OvviUITests {
         XCTAssertTrue(hasKeyboard(address))
         app.typeKey(.escape, modifierFlags: [])
 
-        try await send("python3 -m http.server \(port) --bind 127.0.0.1 -d /tmp/ovvi-e2e-browser\r", to: left)
+        // Not `python3 -m http.server`: its getfqdn() lookup raised the Local Network prompt on CI.
+        try await send("python3 -c 'import functools, http.server as h, socketserver as s; "
+            + "t = s.ThreadingTCPServer((\"127.0.0.1\", \(port)), "
+            + "functools.partial(h.SimpleHTTPRequestHandler, directory=\"/tmp/ovvi-e2e-browser\")); "
+            + "print(\"Serving HTTP\", flush=True); t.serve_forever()'\r", to: left)
         // The first python3 on CI starts slowly (xcrun).
         try await waitFor(left, times: 300) { $0.contains("Serving HTTP") }
         element("browser.\(browser).retry").click()
