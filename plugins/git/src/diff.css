@@ -16,18 +16,28 @@
   /* As the Git home's and the File Explorer's letters. */
   .letter { width: 1.5ch; text-align: right; font-weight: 600; color: var(--needs-you) }
   .letter.A, .letter.R { color: var(--finished) } .letter.D { color: var(--error) }
-  .diff { flex: 1; min-width: 0; overflow: auto }
+  /* A stacking context: WebKit draws a scroll's overlay scroll bar under its descendants' z-index layers unless the
+     scroll is one, so the sticky headers stay under the scroll bar. The browser's scroll anchoring is off: `steady` in
+     diff.ts keeps the place. */
+  .diff { flex: 1; min-width: 0; overflow: auto; overflow-anchor: none; isolation: isolate }
+  /* The boxes 8 pt apart and from the sides; the page ends 24 pt under the last. */
+  .content { padding: 0 8px 24px }
   .failure { position: fixed; inset: 0; margin: auto; height: fit-content; text-align: center; color: var(--dim) }
   /* In the middle, over nothing it would block: an empty commit's facts stay usable. */
   > .placeholder { position: fixed; inset: 0; margin: auto; height: fit-content; pointer-events: none }
-  /* A file's header: a flat 32 pt row the width of its diff, a hairline under it, on the opaque band pierre keeps
-     sticky. */
-  .file { box-sizing: border-box; display: flex; align-items: center; gap: 6px; height: 32px; padding: 0 8px 0 6px;
-    white-space: nowrap; font: 13px system-ui; color: var(--text);
-    background: color-mix(in srgb, var(--text) 4%, transparent); border-bottom: 0.5px solid var(--divider) }
-  /* The copy of the top file's header (`stuck` in diff.ts): sticky under the files' own (before them, no z-index), after
-     a commit's facts, taking no room. */
-  .stuck { position: sticky; top: 0; height: 32px; margin-bottom: -32px; background: var(--card) }
+  /* A file: a box with 8 pt corners and a 1 px border in the divider's color, 8 pt under the one before. Its header is
+     sticky in its box, in CSS alone, and draws the box's top: its face's border and its top corners, on a square of
+     the card's color, so no line shows in the corners while it sticks. Its lines draw the sides and the bottom. */
+  .box { margin-bottom: 8px }
+  .file { position: sticky; top: 0; z-index: 1; box-sizing: border-box; display: flex; align-items: center; gap: 6px;
+    height: 32px; padding: 0 8px 0 6px; white-space: nowrap; font: 13px system-ui; color: var(--text);
+    background: var(--card) }
+  .file::before { content: ""; position: absolute; inset: 0; z-index: -1; border: 1px solid var(--divider);
+    border-bottom-width: 0.5px; border-radius: 8px 8px 0 0; background: color-mix(in srgb, var(--text) 4%, transparent) }
+  .folded > .file::before { border-bottom-width: 1px; border-radius: 8px }
+  /* pierre's own layers stay inside the lines. */
+  .box > diffs-container { isolation: isolate; overflow: clip; border: 1px solid var(--divider); border-top: 0;
+    border-radius: 0 0 8px 8px }
   .file > .name { font-weight: 600 }
   .file > .actions { margin-left: auto }
   .disclosure, .open, .hash { all: unset; color: var(--dim); border-radius: 5px; padding: 1px 6px }
@@ -37,7 +47,7 @@
   .actions { display: flex; align-items: center; gap: 10px; margin-left: 10px; font: 12px system-ui;
     color: var(--dim) }
   /* A commit's subject, body and facts, above its files. */
-  .about:not(:empty) { padding: 14px 16px 10px; border-bottom: 0.5px solid var(--divider); font: 13px system-ui;
+  .about:not(:empty) { padding: 6px 8px 14px; font: 13px system-ui;
     color: var(--text); user-select: text; -webkit-user-select: text; cursor: auto }
   .about h1 { margin: 0 0 6px; font-size: 15px; font-weight: 600; line-height: 1.35 }
   .about .body { margin: 0 0 10px; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.45; color: var(--dim) }

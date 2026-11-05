@@ -649,8 +649,8 @@ The changes of one source in one scroll (`@pierre/diffs`).
   untracked changes against `HEAD` (against the empty tree before the first
   commit), up to 16 MB of patch. It is a live view: while the card shows,
   each change under the root (an agent's edits) asks for the patch again.
-  Only the files whose text changed draw again: CodeView keeps every other
-  file, and the scroll stays where it was. With no changes it shows
+  Only the files whose text changed draw again: every other file keeps its
+  box, and the scroll stays where it was. With no changes it shows
   `checkmark.circle` and "No changes" in the middle, as the home does, with
   no file list and its button off, and fills as files change. **A commit** shows against its first
   parent.
@@ -661,25 +661,34 @@ The changes of one source in one scroll (`@pierre/diffs`).
   the card's and the tab's title (`document.title`), and VoiceOver reads it
   as the card's name. The text can be
   selected.
-- **The scroll.** Each file has a sticky header: a flat 32 pt row the width
-  of its diff, joined to it, with a hairline under it, opaque in the card's
-  color (`--card`, `Look.cardSolid`, no blur) under a faint fill: a
-  disclosure, the file's icon, the file's name in semibold, its folder in secondary ("from ‹old
-  path›" for a rename), `+n −m` in the finished and error colors, its
-  letter, a **Viewed** box and **Open File** (not on a deleted file). In a
-  card under 480 pt the folder and the counts give way. Viewed folds the file and dims its row in
-  the list. A refresh keeps each file's fold and Viewed while its text is
-  the same. A Viewed file whose text changed opens again. A file new to the
-  card with over 2,000 changed lines starts folded. Changes inside a line
-  are marked by word. Added lines use the finished color at 10 %, removed
-  lines the error color, and word marks 28 %.
-- **A fast scroll** never loses the header at the top. CodeView draws only
-  the lines near the view, and a fast scroll can run past them for a few
-  frames. A copy of the top file's header sits under the file's own header,
-  sticky in CSS, so the system keeps it in place without script. It starts
-  below a commit's facts. When the file's own header is drawn, it covers
-  the copy, also while the next file's header pushes it up. The lines can
-  be blank for those frames, but the header stays.
+- **The scroll.** Each file is a box with 8 pt corners and a 1 px border in
+  the divider's color, 8 pt from the next box and from the sides. The box's
+  header is a 32 pt row with a hairline under it, opaque in the card's color
+  (`--card`, `Look.cardSolid`, no blur) under a faint fill: a disclosure,
+  the file's icon, the file's name in semibold, its folder in secondary
+  ("from ‹old path›" for a rename), `+n −m` in the finished and error
+  colors, its letter, a **Viewed** box and **Open File** (not on a deleted
+  file). In a card under 480 pt the folder and the counts give way. Viewed
+  folds the file and dims its row in the list. A folded file shows its
+  header alone, with all four corners round; a fold whose header sticks at
+  the top scrolls back to the box's top. A refresh keeps each file's fold
+  and Viewed while its text is the same. A Viewed file whose text changed
+  opens again. A file new to the card with over 2,000 changed lines starts
+  folded. Changes inside a line are marked by word. Added lines use the
+  finished color at 10 %, removed lines the error color, and word marks
+  28 %.
+- **The sticky header** stays at the top of the view while its file is in
+  view, and the next file's header pushes it up. It is `position: sticky`
+  inside its box, so the system moves it as it scrolls and no script does.
+  While it sticks it keeps the box's round top corners, on a square of the
+  card's color, so no line shows in the corners. Each file's lines draw only
+  near the view (`@pierre/diffs`' `Virtualizer` and `VirtualizedFileDiff`),
+  but the box keeps the whole file's height. A box more than about 1,500 pt
+  from the view takes an estimated height (20 pt a row) until it comes near.
+  When a box above the view changes height (a refresh, a box that comes
+  near), the file in view stays where it is. In a very fast scroll the lines
+  can be blank for a frame; the header never moves. The scroll bar draws
+  over the sticky header.
 - **The file list** is a column at the left (28 % of the card, 160 to
   260 pt) in the home's row style: a title with the file count, then one row
   per file with its icon, its name, its folder in secondary, `+n −m` and its letter

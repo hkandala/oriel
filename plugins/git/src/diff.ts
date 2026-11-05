@@ -1,29 +1,25 @@
-// A Git card's diff, a page of its own (`oriel.pages`): a source's patch in @pierre/diffs' CodeView, one scroll with a
-// sticky header per file, and the file list beside it; a commit's subject, body and facts above its files. Row 2 has
-// Git Home, the layout, the wrap, the list and previous / next change.
+// A Git card's diff, a page of its own (`oriel.pages`): a source's patch in one scroll, each file a box with a sticky
+// header and its lines in @pierre/diffs' VirtualizedFileDiff, and the file list beside it; a commit's subject, body and
+// facts above its files. Row 2 has Git Home, the layout, the wrap, the list and previous / next change.
 import type { Page } from "@oriel/plugin-api"
 import {
-  CodeView,
-  type CodeViewDiffItem,
-  type CodeViewOptions,
   type FileDiffMetadata,
+  type FileDiffOptions,
   parsePatchFiles,
+  preloadHighlighter,
+  VirtualizedFileDiff,
+  Virtualizer,
 } from "@pierre/diffs"
 import { element, failed as toast, fileIcon, home, type How, how, keep, nameAndFolder, open, oriel } from "./lib"
 
+/** How near the view a file's box makes its view. */
+const MARGIN = 1500
 const letters = { change: "M", "rename-pure": "R", "rename-changed": "R", new: "A", deleted: "D" }
-/**
- * A file's header controls, made once per file diff (`draw` keeps an unchanged file's) for CodeView and once for the copy
- * on top (`stuck`): pierre asks for them at every render of the file (a scroll, the highlighter's answer), and a click
- * whose press and release land on two different nodes does nothing.
- */
-const headers = new WeakMap<FileDiffMetadata, HTMLElement>()
-const tops = new WeakMap<FileDiffMetadata, HTMLElement>()
-function header(diff: FileDiffMetadata, make: (diff: FileDiffMetadata) => HTMLElement, cache = headers) {
-  const node = cache.get(diff) ?? make(diff)
-  cache.set(diff, node)
-  return node
-}
+
+/** A file in the scroll: a box with its header, sticky in CSS inside the box, then its lines, drawn once it opens. */
+type Box = { diff: FileDiffMetadata; node: HTMLElement; row: HTMLElement; lines: HTMLElement; folded: boolean
+  /** Near the view once: its lines' view is made. */
+  near?: boolean; view?: VirtualizedFileDiff<undefined> }
 
 /** "3 hours ago", "yesterday", "in 2 days": the nearest unit. */
 function ago(date: Date) {
@@ -106,6 +102,8 @@ export async function make(place: Page, root: string, source: string) {
   // The file list slides in and out as every plugin's sidebar (card.css).
   const nav = element("nav", "list oriel-sidebar")
   const main = element("main", "diff")
+  /** What scrolls: a commit's facts, then a box per file. */
+  const content = element("div", "content")
   /** git's message when the first read failed. */
   const failure = element("p", "failure")
   /** No changes: the home's placeholder, in the middle; the file list gives way. */
@@ -114,25 +112,51 @@ export async function make(place: Page, root: string, source: string) {
   clean.innerHTML = `<span class="symbol" style="--symbol: var(--sf-checkmark-circle)"></span><h2>No changes</h2>`
   /** A commit's subject, body and facts, at the top of the scroll; empty for the working tree. */
   const about = element("header", "about")
+  content.append(about)
+  main.append(content)
   page.append(nav, main, failure, clean)
   place.element.append(page)
 
   /** The patch drawn, "" before the first; a failed read is undefined. */
   let patch: string | undefined
   let files: FileDiffMetadata[] = []
+  /** Each file's box, by its name. */
+  let boxes = new Map<string, Box>()
   // Each change block's first line, in order, for previous / next; the last one stepped to, or half a step before
   // the next one after a pick in the list.
   let changes: { id: string; lineNumber: number; side: "additions" | "deletions" }[] = []
   let change = -1
   /** The files marked Viewed, with their text then: a file that changes since drops the mark. */
   const viewed = new Map<string, string>()
-  // Side by Side and the wrap as the header has them, then the page's own; the file list as the card keeps it.
+  // Side by Side and the wrap as the header has them, then the page's own; the file list as the card keeps it, closed
+  // until the user opens it.
   let split = api.controls.get("diff.layout") === "split"
   let wrap = api.controls.get("diff.wrap") === true
   let list = oriel.state.get<{ list?: boolean }>()?.list ?? false
   nav.toggleAttribute("data-closed", !list)
 
-  const options: CodeViewOptions<undefined, undefined> = {
+  // Each file's lines draw only near the view; its box keeps the whole file's height, so its header is sticky in CSS
+  // alone and no script moves it.
+  const virtualizer = new Virtualizer()
+  virtualizer.setup(main, content)
+  // A file's view is made once its box comes near the view: each costs about 1.5 ms (pierre puts its icons in each
+  // box), 1.5 s for 1,000 files at once. Until then its box takes its estimated height.
+  const owners = new WeakMap<Element, Box>()
+  const nearby = new IntersectionObserver((entries) => steady(() => {
+    for (const entry of entries) {
+      const box = owners.get(entry.target)
+      if (!entry.isIntersecting || !box || box.near) continue
+      box.near = true
+      show(box)
+    }
+  }), { root: main, rootMargin: `${MARGIN}px 0px` })
+  place.keep(() => {
+    nearby.disconnect()
+    for (const box of boxes.values()) box.view?.cleanUp()
+    virtualizer.cleanUp()
+  })
+
+  const options: FileDiffOptions<undefined, undefined> = {
     theme: { dark: "pierre-dark", light: "pierre-light" },
     themeType: oriel.theme.dark ? "dark" : "light",
     diffStyle: split ? "split" : "unified",
@@ -140,13 +164,9 @@ export async function make(place: Page, root: string, source: string) {
     lineDiffType: "word",
     // `N unmodified lines`, not expandable: that needs each file's whole text.
     hunkSeparators: "line-info-basic",
-    stickyHeaders: true,
-    // Clicks right after Next Change or a pick in the list (CodeView drops them while it scrolls).
-    pointerEventsOnScroll: true,
-    layout: { paddingTop: 0, paddingBottom: 24, gap: 0 },
-    // The file header's row (`.file` in diff.css).
-    itemMetrics: { diffHeaderHeight: 32 },
-    // The card's fill shows through; the sticky header is opaque in the card's color, with a line under it.
+    // The box has its own header (`fileRow`).
+    disableFileHeader: true,
+    // The card's fill shows through.
     unsafeCSS: `
       :host {
         --diffs-light-bg: transparent !important;
@@ -169,25 +189,28 @@ export async function make(place: Page, root: string, source: string) {
         background-color: color-mix(in srgb, var(--error) 28%, transparent) !important;
       }
       [data-separator] { border-block: 0.5px solid var(--divider) }
-      [data-separator-content] { background: none !important; color: var(--dim) }
-      [data-diffs-header] { height: 32px; background: var(--card); cursor: default; }`,
-    renderCodeViewHeader: () => about,
-    // The file's own row, as the card's rows: the disclosure, its icon, name and folder, its counts and letter, then
-    // Viewed and Open File. A diff item's file is its diff.
-    renderCustomHeader: (file) => fresh(header(file as FileDiffMetadata, fileRow), file as FileDiffMetadata),
-    // ⌘-click: the file at the line in a new tab (⌥-click: to the side), or for a removed line at the one after it.
-    onLineClick: (line, context) => {
-      const { event, lineNumber } = line, file = files.find((file) => file.name === context.item.id)
-      if ((event.metaKey || event.altKey) && file && file.type !== "deleted") {
-        const added = "annotationSide" in line && line.annotationSide === "additions"
-        openFile(file.name, added ? lineNumber : newLine(file, lineNumber), how(event))
-      }
-    },
+      [data-separator-content] { background: none !important; color: var(--dim) }`,
   }
-  function fileRow(diff: FileDiffMetadata) {
-    const row = element("div", "file"), disclosure = element("button", "disclosure", "›")
+
+  /** A file's options: the page's, and ⌘-click on a line opens the file at the line in a new tab (⌥-click: to the
+   *  side), or for a removed line at the one after it. */
+  function fileOptions(box: Box): FileDiffOptions<undefined, undefined> {
+    return {
+      ...options,
+      onLineClick: ({ event, lineNumber, annotationSide }) => {
+        if ((event.metaKey || event.altKey) && box.diff.type !== "deleted") {
+          openFile(box.diff.name, annotationSide === "additions" ? lineNumber : newLine(box.diff, lineNumber), how(event))
+        }
+      },
+    }
+  }
+
+  /** The file's own row, as the card's rows: the disclosure, its icon, name and folder, its counts and letter, then
+   *  Viewed and Open File. */
+  function fileRow(box: Box) {
+    const diff = box.diff, row = element("div", "file"), disclosure = element("button", "disclosure", "›")
     disclosure.ariaLabel = "Show or hide the file"
-    disclosure.onclick = () => collapse(diff.name, !item(diff.name).collapsed)
+    disclosure.onclick = () => collapse(diff.name, !box.folded)
     const [base, dir] = nameAndFolder(diff.name)
     const name = element("span", "name", base)
     // A rename names its old path in the folder's place.
@@ -195,13 +218,6 @@ export async function make(place: Page, root: string, source: string) {
     row.title = diff.name
     row.append(disclosure, fileIcon(diff.name), name, folder, ...counts(diff), letter(diff), actions(diff))
     return row
-  }
-
-  /** A file's header row with its fold and Viewed as they are now. */
-  function fresh(node: HTMLElement, diff: FileDiffMetadata) {
-    node.querySelector(".disclosure")!.classList.toggle("shut", Boolean(item(diff.name)?.collapsed))
-    node.querySelector("input")!.checked = viewed.has(diff.name)
-    return node
   }
 
   /** Viewed, and Open File but on a deleted file. */
@@ -229,46 +245,34 @@ export async function make(place: Page, root: string, source: string) {
     return box
   }
 
-  // A copy: CodeView compares each `setOptions` with the object it holds, which must not change under it.
-  const viewer = new CodeView({ ...options })
-  viewer.setup(main)
-  place.keep(() => viewer.cleanUp())
-
-  /**
-   * A copy of the header of the file at the top, sticky in the diff's scroll after a commit's facts, so the compositor
-   * keeps it in place: CodeView draws only the lines near the view, in a box it moves from script, and a fast scroll
-   * outran it, so the file's own header went blank with the lines. The file's own header covers this one whenever it
-   * is drawn (also while the next file's pushes it up); a scroll only changes which file this one names. Inert: the
-   * file's own header has the controls.
-   */
-  const stuck = element("div", "stuck")
-  stuck.inert = true
-  stuck.hidden = true
-  place.keep(viewer.subscribeToScroll(stick))
-  // CodeView puts the facts' box in once its highlighter is ready, which can come after the files.
-  const resized = new ResizeObserver(() => stick())
-  resized.observe(about)
-  place.keep(() => resized.disconnect())
-
-  /** Names the last file whose top is at or above the view's; the first when the view is above them all. After new
-   *  files, on the next frame: CodeView lays them out on it, asked first. */
-  function stick() {
-    // After the facts' box, which CodeView makes on its first render. This rests on pierre 1.6's order in its
-    // container (the header host, then its sticky offset and box): a bump of @pierre/diffs checks it again.
-    const host = viewer.getHeaderElement()
-    if (host && stuck.previousElementSibling !== host) host.after(stuck)
-    const top = viewer.getScrollTop()
-    let low = 0, high = files.length - 1
-    while (low < high) {
-      const middle = (low + high + 1) >> 1
-      if ((viewer.getTopForItem(files[middle].name) ?? 0) <= top) low = middle
-      else high = middle - 1
+  /** A file's box as its fold has it: folded, or with no lines (binary, a mode change, a pure rename), its header
+   *  alone; open, its lines, drawn the first time it opens near the view, and till then their estimated height (20 pt
+   *  a row, 32 pt a hunk's gap, 8 pt above and below; the wrap is made up when it draws). */
+  function show(box: Box) {
+    const bare = box.folded || !box.diff.hunks.length
+    box.node.classList.toggle("folded", bare)
+    box.lines.hidden = bare
+    box.row.querySelector(".disclosure")!.classList.toggle("shut", box.folded)
+    if (bare || box.view) return
+    if (!box.near) {
+      box.lines.style.height = `${(split ? box.diff.splitLineCount : box.diff.unifiedLineCount) * 20 + box.diff.hunks.length * 32 + 16}px`
+      return
     }
-    const file = files[low]
-    stuck.hidden = !file
-    if (!file) return
-    const node = fresh(header(file, fileRow, tops), file)
-    if (stuck.firstChild !== node) stuck.replaceChildren(node)
+    box.lines.style.height = ""
+    box.view = new VirtualizedFileDiff(fileOptions(box), virtualizer)
+    box.view.render({ fileDiff: box.diff, fileContainer: box.lines })
+  }
+
+  /** Runs work that sizes boxes, and keeps the first box in view where it was: a box above it that changes height
+   *  would move it. pierre's own anchor comes a frame later, after the move (WebKit's `overflow-anchor` is off: it would
+   *  move it twice). At the very top, a file new above shows. */
+  function steady(work: () => void) {
+    if (!main.scrollTop) return work()
+    const view = main.getBoundingClientRect().top
+    const anchor = [...boxes.values()].find((box) => box.node.getBoundingClientRect().bottom > view)
+    const offset = anchor ? top(anchor.node) - main.scrollTop : 0
+    work()
+    if (anchor?.node.isConnected) main.scrollTop = top(anchor.node) - offset
   }
 
   /** A commit's subject (also the card's title), its body, and its author, date, hash and parents; none for the working
@@ -305,36 +309,70 @@ export async function make(place: Page, root: string, source: string) {
   }
 
   /**
-   * Draws a new patch. A file keeps its place, its fold and its Viewed while its text is the same, and draws nothing new:
-   * CodeView draws a kept item again only for a new `version`. A Viewed file that changed opens again. A file new to the
-   * card with over 2,000 changed lines starts folded.
+   * Draws a new patch. A file keeps its box, its place, its fold and its Viewed while its text is the same, and draws
+   * nothing new. A Viewed file that changed opens again. A file new to the card with over 2,000 changed lines starts
+   * folded.
    */
   function draw(next: string) {
     patch = next
     files = parsePatchFiles(patch).flatMap((parsed) => parsed.files)
-      .map((file) => {
-        const was = item(file.name)?.fileDiff
-        return was && text(was) === text(file) && was.type === file.type && was.prevName === file.prevName ? was : file
-      })
-    const changed = new Set<string>()
-    for (const [name, was] of viewed) {
-      const file = files.find((file) => file.name === name)
-      if (!file || text(file) !== was) {
-        viewed.delete(name)
-        changed.add(name)
-      }
-    }
-    viewer.setItems(files.map((fileDiff) => {
-      const { added, removed } = sums(fileDiff), was = item(fileDiff.name)
-      const folded = was ? was.collapsed && !changed.has(fileDiff.name) : added + removed > 2000
-      const collapsed = viewed.has(fileDiff.name) || folded
-      // The same file folded the same: the same version, so nothing draws.
-      const version = was && (was.fileDiff !== fileDiff || was.collapsed !== collapsed) ? (was.version ?? 0) + 1 : was?.version
-      return { id: fileDiff.name, type: "diff", fileDiff, collapsed, version }
-    }))
+    steady(() => put(files))
     changes = files.flatMap(blocks)
     shown()
-    // As the Git home's lists: a title, its count after it.
+    listFiles(files)
+  }
+
+  /** Each file in its box, in the patch's order. */
+  function put(files: FileDiffMetadata[]) {
+    const was = boxes, drawn: Box[] = []
+    boxes = new Map()
+    for (const file of files) {
+      let box = was.get(file.name)
+      was.delete(file.name)
+      if (!box) {
+        const { added, removed } = sums(file), node = element("section", "box")
+        box = { diff: file, node, row: node, lines: document.createElement("diffs-container"), folded: added + removed > 2000 }
+        owners.set(node, box)
+        nearby.observe(node)
+      } else if (text(box.diff) !== text(file) || box.diff.type !== file.type || box.diff.prevName !== file.prevName) {
+        box.diff = file
+        if (viewed.delete(file.name)) box.folded = false
+        drawn.push(box)
+      } else {
+        boxes.set(file.name, box)
+        continue
+      }
+      // A new header: its counts, its letter, its Viewed.
+      box.row = fileRow(box)
+      box.node.replaceChildren(box.row, box.lines)
+      boxes.set(file.name, box)
+    }
+    for (const [name, box] of was) {
+      viewed.delete(name)
+      nearby.unobserve(box.node)
+      box.view?.cleanUp()
+    }
+    // In the patch's order, moved only when it changed: a move lays the box out again.
+    const order = [about, ...[...boxes.values()].map((box) => box.node)]
+    if (order.some((node, index) => content.children[index] !== node) || content.children.length !== order.length) {
+      content.replaceChildren(...order)
+    }
+    // Once in place: a file's lines draw by where its box sits. The boxes near the view draw now, not a frame later.
+    for (const box of boxes.values()) show(box)
+    const { top: from, bottom: to } = main.getBoundingClientRect()
+    const near = [...boxes.values()].filter((box) => {
+      const { top, bottom } = box.node.getBoundingClientRect()
+      return !box.near && bottom > from - MARGIN && top < to + MARGIN
+    })
+    for (const box of near) {
+      box.near = true
+      show(box)
+    }
+    for (const box of drawn) box.view?.render({ fileDiff: box.diff, fileContainer: box.lines })
+  }
+
+  /** The file list: as the Git home's lists, a title with its count, then a row per file. */
+  function listFiles(files: FileDiffMetadata[]) {
     const title = element("header", "title")
     title.append(element("h2", "", "Files"), element("span", "count", files.length ? String(files.length) : ""))
     nav.replaceChildren(title)
@@ -361,26 +399,53 @@ export async function make(place: Page, root: string, source: string) {
     nav.hidden = !files.length
     clean.hidden = Boolean(files.length) || patch === undefined
     api.controls.set("diff.file-list", { enabled: files.length > 0 })
-    requestAnimationFrame(stick)
   }
 
   function openFile(name: string, line: number | undefined, how: How) {
     open(`${root}/${name}`, { how, at: line ? String(line) : undefined })
   }
 
+  /** Where a node starts in the scroll. */
+  function top(node: HTMLElement) {
+    return node.getBoundingClientRect().top - main.getBoundingClientRect().top + main.scrollTop
+  }
+
+  /** The user's scrolls so far. */
+  let wheels = 0
+  main.addEventListener("wheel", () => wheels++, { passive: true })
+
+  /** A change block in the middle of the view; its file opens first. Wrapped lines take their heights once drawn,
+   *  a frame later: then once more. */
+  function scrollToChange(block: (typeof changes)[number]) {
+    const box = boxes.get(block.id)
+    if (!box) return
+    if (box.folded) collapse(block.id, false)
+    box.near = true
+    show(box)
+    const aim = () => {
+      const line = box.view?.getLinePosition(block.lineNumber, block.side)
+      if (line) main.scrollTop = top(box.lines) + line.top + line.height / 2 - main.clientHeight / 2
+    }
+    aim()
+    // Not after another step or the user's scroll meanwhile (pierre's own fixes of the scroll still aim again).
+    const was = { change, wheels }
+    if (options.overflow === "wrap") {
+      requestAnimationFrame(() => requestAnimationFrame(() => change === was.change && wheels === was.wheels && aim()))
+    }
+  }
+
   /** Another layout or width gives the lines other heights: back to the change last stepped to, not wherever the old
    * offset now falls. */
   function keepChange() {
-    if (changes[change]) viewer.scrollTo({ type: "line", ...changes[change], align: "center" })
+    if (changes[change]) scrollToChange(changes[change])
   }
 
-  function item(id: string) {
-    return viewer.getItem(id) as CodeViewDiffItem<undefined>
-  }
-
-  function collapse(id: string, collapsed: boolean) {
-    const old = item(id)
-    viewer.updateItem({ ...old, collapsed, version: (old.version ?? 0) + 1 })
+  /** Folds or opens a file; a fold whose header stuck at the top keeps its box's top in view. */
+  function collapse(id: string, folded: boolean) {
+    const box = boxes.get(id)!
+    box.folded = folded
+    show(box)
+    if (folded && top(box.node) < main.scrollTop) main.scrollTop = top(box.node)
   }
 
   function row(id: string) {
@@ -388,8 +453,9 @@ export async function make(place: Page, root: string, source: string) {
   }
 
   function reveal(id: string) {
-    if (item(id).collapsed) collapse(id, false)
-    viewer.scrollTo({ type: "item", id, align: "start" })
+    const box = boxes.get(id)!
+    if (box.folded) collapse(id, false)
+    main.scrollTop = top(box.node)
     const order = (name: string) => files.findIndex((file) => file.name === name)
     const next = changes.findIndex((block) => order(block.id) >= order(id))
     change = (next < 0 ? changes.length : next) - 0.5
@@ -397,7 +463,7 @@ export async function make(place: Page, root: string, source: string) {
 
   api.on("theme", (theme) => {
     options.themeType = theme.dark ? "dark" : "light"
-    viewer.setOptions({ ...options })
+    for (const box of boxes.values()) box.view?.setThemeType(options.themeType)
   })
 
   // One patch at a time; a change during one asks again after it.
@@ -446,8 +512,12 @@ export async function make(place: Page, root: string, source: string) {
     api.controls.set("diff.wrap", { enabled: !split })
     options.diffStyle = split ? "split" : "unified"
     options.overflow = overflow()
-    viewer.setOptions({ ...options })
-    keepChange()
+    for (const box of boxes.values()) {
+      if (box.view) box.view.setOptions(fileOptions(box))
+      else show(box)
+    }
+    // Once the files have their new heights: pierre lays them out on the next frame.
+    requestAnimationFrame(() => requestAnimationFrame(keepChange))
   }
 
   function toggleList() {
@@ -455,7 +525,7 @@ export async function make(place: Page, root: string, source: string) {
     nav.toggleAttribute("data-closed", !list)
     keep({ list })
     api.controls.set("diff.file-list", { title: list ? "Hide File List" : "Show File List" })
-    // Once the viewer has its new width: Side by Side wraps lines to it. With Reduce Motion there is no slide.
+    // Once the diff has its new width: Side by Side wraps lines to it. With Reduce Motion there is no slide.
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) requestAnimationFrame(() => requestAnimationFrame(keepChange))
   }
   // After the slide: once, not for each of its properties.
@@ -465,9 +535,7 @@ export async function make(place: Page, root: string, source: string) {
     if (!changes.length) return
     const next = by > 0 ? Math.floor(change) + 1 : Math.ceil(change) - 1
     change = Math.min(Math.max(next, 0), changes.length - 1)
-    const block = changes[change]
-    if (item(block.id).collapsed) collapse(block.id, false)
-    viewer.scrollTo({ type: "line", ...block, align: "center" })
+    scrollToChange(changes[change])
   }
 
   api.on("control", ({ id, value }) => {
@@ -485,10 +553,12 @@ export async function make(place: Page, root: string, source: string) {
   api.controls.set("diff.file-list", { title: list ? "Hide File List" : "Show File List" })
   api.controls.set("diff.wrap", { enabled: !split })
   // Read first, then draw all of it in one go: the page before (the home, or the diff a Parent leaves) stays until
-  // then, with no blank page while git answers.
+  // then, with no blank page while git answers. The themes first too: a file draws, and takes its height, only once
+  // they are in (its words colored once its language is).
   const [next, facts] = await Promise.all([read(), source === "uncommitted"
     ? undefined
-    : oriel.git.show(root, source).catch(() => undefined)])
+    : oriel.git.show(root, source).catch(() => undefined),
+  preloadHighlighter({ themes: [...new Set(Object.values(options.theme!))], langs: [] }).catch(console.error)])
   describe(facts)
   apply(next)
   if (place.at && files.some((file) => file.name === place.at)) reveal(place.at)
