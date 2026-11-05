@@ -232,19 +232,17 @@ extension OrielUITests {
         let tabs = try await newWorkspace("row", tabs: 8).tabs
         let capsules = tabs.map { element("tab.\($0)") }, first = capsules[0], last = capsules[7]
         let fades = element("tabs.fades"), rowEnd = element("titlebar.agents").frame.minX - 8
-        XCTAssertTrue(last.exists(within: 3))
-        for tab in [first, last] {
-            XCTAssertEqual(tab.frame.width, 220, accuracy: 1)
-        }
+        XCTAssertTrue(first.exists(within: 3))
+        XCTAssertEqual(first.frame.width, 220, accuracy: 1)
         // ⌘ and + keep their place in the window; the tabs past the row's end are out of view, and faded at that end.
         XCTAssertLessThan(element("titlebar.new-tab").frame.maxX, app.windows.firstMatch.frame.maxX)
-        XCTAssertGreaterThan(last.frame.minX, rowEnd)
         XCTAssertTrue(fades.has(\.stringValue, "trailing", within: 2))
         keepScreenshot("eight tabs")
 
         // ⇧⌘[ from the first goes round to the last: the row shows it at once, faded at the start only.
         app.typeKey("[", modifierFlags: [.command, .shift])
         XCTAssertTrue(last.has(\.isSelected, true, within: 2))
+        XCTAssertEqual(last.frame.width, 220, accuracy: 1)
         XCTAssertLessThanOrEqual(last.frame.maxX, rowEnd + 1)
         XCTAssertTrue(fades.has(\.stringValue, "leading", within: 2))
         keepScreenshot("scrolled to the last tab")
@@ -252,8 +250,9 @@ extension OrielUITests {
         // A tab and a half back with a sideways scroll: tabs are cut off at both ends.
         try await swipe(last, by: 330, until: fades, \.stringValue, "leading, trailing")
         // A click on the one cut off at the end selects it where it is: no scroll.
-        let cut = try XCTUnwrap(capsules.first { $0.frame.minX < rowEnd - 20 && $0.frame.maxX > rowEnd },
-                                "\(capsules.map(\.frame.minX)) to \(rowEnd)")
+        let inView = capsules.filter(\.exists)
+        let cut = try XCTUnwrap(inView.first { $0.frame.minX < rowEnd - 20 && $0.frame.maxX > rowEnd },
+                                "\(inView.map(\.frame.minX)) to \(rowEnd)")
         let start = cut.frame.minX
         XCTAssertFalse(cut.isSelected)
         cut.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0.5)).withOffset(CGVector(dx: 10, dy: 0)).click()

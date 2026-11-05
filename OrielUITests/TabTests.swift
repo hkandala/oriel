@@ -166,10 +166,10 @@ extension OrielUITests {
     /// scroll), so it goes past the tabs that were in view.
     func testHoldingADraggedTabAtTheRowsEndScrollsTheRow() async throws {
         let tabs = try await newWorkspace("far", tabs: 8).tabs
-        let first = element("tab.\(tabs[0])"), last = element("tab.\(tabs[7])")
+        let first = element("tab.\(tabs[0])")
         let rowEnd = element("titlebar.agents").frame.minX - 8
-        XCTAssertTrue(last.exists(within: 3))
-        XCTAssertGreaterThan(last.frame.minX, rowEnd)
+        // The row overflows: faded at its end.
+        XCTAssertTrue(element("tabs.fades").has(\.stringValue, "trailing", within: 2))
         let from = first.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
         // 5 pt inside the row's end. Without a scroll it lands third.
         during(from, to: from.withOffset(CGVector(dx: rowEnd - 5 - first.frame.midX, dy: 0)), hold: 6)
@@ -259,5 +259,25 @@ extension OrielUITests {
         element("sidebar.dot.\(two)").click()
         XCTAssertTrue(element("sidebar.header").has(\.stringValue, two, within: 2))
         XCTAssertFalse(capsule.label.contains("needs you"), capsule.label)
+    }
+}
+
+extension OrielUITests {
+    /// A workspace switch makes only the capsules near the row's view, whatever its tab count (item 39): of 24 tabs, at
+    /// most the ones that fit the row twice over (SwiftUI's lazy stack makes a view's width ahead), with none made
+    /// after it settles. The bar made all 24 before.
+    func testAWorkspaceSwitchMakesOnlyTheCapsulesInView() async throws {
+        relaunch(one, ["-recordMotion", "YES"])
+        let tabs = try await newWorkspace("many", tabs: 24).tabs
+        let first = element("tab.\(tabs[0])"), beta = element("workspace.w2"), made = element("tabs.made")
+        let fit = Int((element("titlebar.agents").frame.minX - 8 - first.frame.minX) / (220 + 1)) + 1
+        beta.click()
+        XCTAssertTrue(beta.has(\.isSelected, true, within: 3))
+        let before = Int(made.stringValue) ?? 0
+        element("workspace.\(workspace(of: tabs[0]))").click()
+        XCTAssertTrue(first.has(\.isSelected, true, within: 3))
+        let count = { (Int(made.stringValue) ?? 0) - before }
+        XCTAssertFalse(until(1) { count() > 2 * fit + 2 }, "\(count()) capsules made for 24 tabs, \(fit) fit")
+        XCTAssertGreaterThan(count(), 0)
     }
 }

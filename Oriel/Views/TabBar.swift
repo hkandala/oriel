@@ -31,6 +31,8 @@ struct TabBar: View {
     @State private var visible: ClosedRange<CGFloat> = 0 ... .infinity
     /// ⌘ held for 0.7 s: keycaps on the first nine tabs.
     @State private var hints = false
+    /// e2e (`-recordMotion YES`): the capsules made so far.
+    @State private var made = 0
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.look) private var look
 
@@ -41,7 +43,9 @@ struct TabBar: View {
         let selected = page.selectedIndex(in: workspace)
         ScrollViewReader { proxy in
             ScrollView(.horizontal) {
-                HStack(spacing: 0) {
+                // Lazy: a workspace switch makes only the capsules in and near the row's view (SwiftUI makes about a
+                // view's width ahead), so many tabs cost no more than a full row: each costs about 3 ms of the switch.
+                LazyHStack(spacing: 0) {
                     ForEach(Array(tabs.enumerated()), id: \.element.id) { index, tab in
                         // One view per tab, so a scroll to its id shows the tab, not the divider before it.
                         HStack(spacing: 0) {
@@ -64,6 +68,11 @@ struct TabBar: View {
                                 .scaleEffect(pulsing == tab.id ? 1.04 : 1)
                                 .opacity(page.dragging == .tab(tab.id) ? 0.4 : 1)
                                 .offset(x: shift(index))
+                        }
+                        .onAppear {
+                            if SettlingHost.record {
+                                made += 1
+                            }
                         }
                     }
                 }
@@ -132,6 +141,9 @@ struct TabBar: View {
         .frame(height: Self.height + 10)
         .testValue("tabs.fades", "Tab Fades", [hidden.leading ? "leading" : nil, hidden.trailing ? "trailing" : nil]
             .compactMap(\.self).joined(separator: ", "))
+        // The tests' count: the lazy row has no element for a tab out of view.
+        .testValue("tabs.count", "Tab Count", "\(tabs.count)")
+        .testValue("tabs.made", "Tabs Made", "\(made)", shown: SettlingHost.record)
         .keycapHints(.command, shown: $hints)
         .onDisappear { spring?.cancel() }
     }

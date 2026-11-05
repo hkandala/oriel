@@ -197,7 +197,7 @@ extension OrielUITests {
         for index in 0 ..< count {
             let (tab, pane) = try await createTab(in: "w1")
             closeAfter("tab", tab)
-            XCTAssertTrue(element("tab.\(tab)").exists(within: 3))
+            XCTAssertTrue(element("tabs.count").has(\.stringValue, "\(index + 3)", within: 3))
             app.typeKey("\(index + 3)", modifierFlags: .command)
             XCTAssertTrue(element("pane.\(pane)").exists(within: 3))
         }

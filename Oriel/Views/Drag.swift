@@ -31,9 +31,10 @@ final class DragSource: NSObject, NSDraggingSource {
     private static let shared = DragSource()
     private weak var page: Page?
 
-    /// From a `DragGesture`'s change: starts the drag once (the session takes the mouse from there). `frame`: the
-    /// dragged view in the window (SwiftUI's global space), snapshotted as the preview.
-    static func begin(_ item: Dragged, page: Page, frame: CGRect) {
+    /// From a `DragGesture`'s change: starts the drag once (the session takes the mouse from there). The preview is
+    /// the dragged view's snapshot: `size` from its top left, which is `grabbed` (the pointer in the view) away from
+    /// the pointer.
+    static func begin(_ item: Dragged, page: Page, grabbed: CGPoint, size: CGSize) {
         // The gesture runs while SwiftUI handles the drag event.
         // Not on a stopped session's last rows and cards: a drop could not write.
         guard page.dragging == nil, page.store.state == .live, let event = NSApp.currentEvent,
@@ -42,11 +43,11 @@ final class DragSource: NSObject, NSDraggingSource {
         let pasteboard = NSPasteboardItem()
         pasteboard.setString("", forType: NSPasteboard.PasteboardType(UTType.orielDrag.identifier))
         let dragging = NSDraggingItem(pasteboardWriter: pasteboard)
-        let rect = view.isFlipped ? frame : NSRect(x: frame.minX, y: view.bounds.height - frame.maxY,
-                                                   width: frame.width, height: frame.height)
+        let pointer = view.convert(event.locationInWindow, from: nil)
+        let rect = NSRect(x: pointer.x - grabbed.x, y: view.isFlipped ? pointer.y - grabbed.y
+            : pointer.y + grabbed.y - size.height, width: size.width, height: size.height)
         if case .pane = item, let card = snapshot(view, rect) {
-            let lifted = lift(card, from: rect, under: view.convert(event.locationInWindow, from: nil),
-                              flipped: view.isFlipped)
+            let lifted = lift(card, from: rect, under: pointer, flipped: view.isFlipped)
             dragging.setDraggingFrame(lifted.frame, contents: lifted.image)
         } else {
             dragging.setDraggingFrame(rect, contents: snapshot(view, rect))
@@ -301,14 +302,15 @@ private struct DragSourceModifier: ViewModifier {
     let item: Dragged
     let page: Page
     let previewSize: CGSize?
-    @State private var frame = CGRect.zero
+    /// Its size, not its frame in the window: that one changes as its row scrolls, and every tab capsule wrote it to
+    /// its state at each layout (a second update of each capsule a workspace switch made).
+    @State private var size = CGSize.zero
 
     func body(content: Content) -> some View {
         content
-            .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame = $0 }
-            .simultaneousGesture(DragGesture(minimumDistance: 4).onChanged { _ in
-                let preview = CGRect(origin: frame.origin, size: previewSize ?? frame.size)
-                DragSource.begin(item, page: page, frame: preview)
+            .onGeometryChange(for: CGSize.self, of: \.size) { size = $0 }
+            .simultaneousGesture(DragGesture(minimumDistance: 4).onChanged { value in
+                DragSource.begin(item, page: page, grabbed: value.location, size: previewSize ?? size)
             })
     }
 }

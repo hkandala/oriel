@@ -290,7 +290,10 @@ extension OrielUITests {
         let row = element("workspace.\(workspace)")
         XCTAssertTrue(row.exists(within: 3))
         row.click()
-        XCTAssertTrue(element("tab.\(tabs[count - 1])").exists(within: 3))
+        // Shown (its first tab is the selected one), with every tab, by the count: the bar makes only the capsules
+        // in view.
+        XCTAssertTrue(element("tab.\(tabs[0])").exists(within: 3))
+        XCTAssertTrue(element("tabs.count").has(\.stringValue, "\(count)", within: 3))
         return (tabs, pane)
     }
 
