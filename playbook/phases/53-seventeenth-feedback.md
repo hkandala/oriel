@@ -366,7 +366,7 @@ what differs unless a card needs it otherwise, and give the reason in Findings.
     - New Pane never waits for the check.
     - A UI test with a stand-in `PATH` where one agent is missing. A picture of the disabled rows, dark and light.
 
-## Research, plans only (items 34–38, 42)
+## Research, plans only (items 34–38, 42, 43)
 
 No code changes. Each report is one self-contained HTML file in `/tmp/oriel-research/`, copied to
 `~/Downloads/oriel-research/`, written in plain English.
@@ -406,6 +406,10 @@ No code changes. Each report is one self-contained HTML file in `/tmp/oriel-rese
 42. **New Pane redesign.** "can you give me multiple design mockups for the redesign of current new pane, invoke an
     agent to work on it, its quite simple at the moment, i want it to be simple but may be some improvements to ui
     overall, give me like 5 alternative ui mockups for it". Report: `new-pane-mockups.html`, five alternatives.
+43. **Notifications.** "can you also work on another research report similar to other 5 we already worked on, i want
+    to have notifications support for our app, specifically for the agent notifications, and may be new app updates or
+    any other notifications that makes sense, investigate everything, what notifications we would need, how we will
+    implement it, describe it in the html report cleanly". Report: `notifications-plan.html`.
 
 ## Order and estimates
 
