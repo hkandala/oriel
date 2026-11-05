@@ -87,10 +87,10 @@ struct SettingsWindow: View {
                 }
             }
             .searchable(text: $search, placement: .sidebar)
-            .navigationSplitViewColumnWidth(215)
             // As System Settings: the sidebar always shows.
             .toolbar(removing: .sidebarToggle)
             .accessibilityIdentifier("settings.sidebar")
+            .navigationSplitViewColumnWidth(215)
         } detail: {
             NavigationStack(path: $route.path) {
                 SettingsPageView(page: route.page ?? .general)

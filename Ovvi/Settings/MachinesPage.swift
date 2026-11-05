@@ -103,14 +103,18 @@ struct MachinePage: View {
         Form {
             if draft.isRemote || saved == nil {
                 Section {
-                    TextField("Name", text: $draft.name, prompt: Text(target))
-                        .accessibilityIdentifier("settings.machine.name")
-                    TextField(text: $draft.target) {
+                    // Fields of a set width: a form's text field asks for all the room, which narrowed the sidebar.
+                    LabeledContent("Name") {
+                        TextField("Name", text: $draft.name, prompt: Text(target)).labelsHidden().frame(width: 200)
+                            .accessibilityIdentifier("settings.machine.name")
+                    }
+                    LabeledContent {
+                        TextField("SSH target", text: $draft.target).labelsHidden().frame(width: 200)
+                            .accessibilityIdentifier("settings.machine.target")
+                    } label: {
                         Text("SSH target")
                         Text("A host from ~/.ssh/config works too.")
                     }
-                    .font(.system(size: 13).monospaced())
-                    .accessibilityIdentifier("settings.machine.target")
                     LabeledContent("Icon") { IconPicker(icon: $draft.icon) }
                 } footer: {
                     HStack {
