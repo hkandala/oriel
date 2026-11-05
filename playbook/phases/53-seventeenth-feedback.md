@@ -779,3 +779,32 @@ CI runs and on-demand) at about 2–3 h.
   3. In a workspace with more tabs than fit, drag a tab to the row's end and hold: the row scrolls; check that the
      dimmed capsule and the drop place look right as it scrolls.
   4. With VoiceOver on, move through the tab row: it reads the tabs in view; ⌘1–9 reach the others.
+
+### Final review fixes
+
+- **Docs pass.** The design pages already had most of the phase from the tracks. It added: a Git home commit opens on a
+  double-click or Return (a click selects), the tab row makes only the capsules near its view, Markdown's Side by Side
+  follows the side last scrolled, clicked or typed in, ⌘E names the four modes, only Working agents show a time, and
+  ⌘F names the find bars.
+- **Review.** No blockers. The change dots (a): pierre counts every git status as a change of the folders above it,
+  `ignored` included, and has no option to stop it. Leaving the ignored entries out would mean copying pierre's ignored
+  look (the dim color, the icon's opacity, the folder's rows inheriting it) into our CSS: the same size, so the style
+  stays, with its `ponytail:` drop condition. It now rewrites only when the dots change. The diff rewrite (b), the ⌘W
+  stand-ins and the lazy tab row with its pointer-placed drag preview (c) were clean.
+- **Cause, the warning check (d).** It still catches warnings that Swift lets through (a `nonisolated` taken off), but
+  it matched `$(CURDIR)`, the real path, while the compiler prints a symlinked one (`/tmp` copies): the build passed.
+  And a rerun passed, because Xcode prints a warning only when its file compiles. **Fix:** it matches the path inside
+  the repo, and touches each warned file, so the next build fails again (checked: two runs red, then green).
+- **Cause, Unified ↔ Side by Side.** A switch gave the boxes far above the view new estimated heights with nothing
+  holding the file in view, so it moved. **Fix:** the switch runs under `steady`, as a refresh does. Git is 1.8.1.
+- **The tree's find bar.** Track D and Track E built two "terminal ⌘F" bars in parallel. The tree's now uses the
+  editor's `find.css` and `symbols()`, and floats at the tree's top right as a compact capsule, as the user asked ("why
+  the ehck the filter input is taking all the width"): the rows no longer move under it. File Explorer is 1.9.1.
+  Pictures: before `/tmp/oriel-shots/t53d/after-{dark,light}-find.png`, after
+  `/tmp/oriel-shots/p53f/after-{dark,light}-find.png`.
+- **Nits.** `WindowBackground` has its own file. The quick-close step back before a question gets a `ponytail:` note:
+  a cancelled question leaves the earlier card lit. Left: the capsule width in the lazy-row test stays a constant (the
+  bound is twice the fit, and a width change shows in the tab tests); the change-dot pixel check stays Mac-only.
+- **For the user.** Open File Explorer's Filter (or type a letter): a small capsule at the top right, the rows stay
+  put; Esc closes it. In a long commit diff, scroll down without stepping changes, switch Unified and Side by Side: the
+  file in view stays.
