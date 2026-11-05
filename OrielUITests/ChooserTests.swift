@@ -118,8 +118,14 @@ extension OrielUITests {
 
     /// An agent's pick types its command into the shell and shows the loader until herdr reports the agent; one whose
     /// command ends shows the terminal with what it printed. CI has no agents: the test defines stand-ins in the
-    /// pane's shell, which the app's typed commands run.
+    /// pane's shell, which the app's typed commands run. An agent the login shell does not find is greyed out, and the
+    /// keys skip it.
     func testPickingAnAgentStartsItBehindTheLoader() async throws {
+        // A login shell with no profile, whose PATH has claude, pi and opencode but no codex.
+        let herdr = try URL(filePath: env("ORIEL_HERDR")).deletingLastPathComponent().path
+        app.launchEnvironment["SHELL"] = "\(Self.agents)/login-shell"
+        app.launchEnvironment["PATH"] = "\(Self.agents):\(herdr):/usr/bin:/bin"
+        relaunch()
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         element("workspace.w2").click()
         XCTAssertTrue(element("pane.w2:p1").has(\.isHittable, true, within: 2))
@@ -142,6 +148,16 @@ extension OrielUITests {
         app.typeKey("2", modifierFlags: [])
         XCTAssertTrue(element("pane.\(agent).chooser.claude").has(\.isSelected, true, within: 2))
         XCTAssertEqual(element("pane.\(agent).chooser.agent").stringValue, "expanded")
+        let codex = element("pane.\(agent).chooser.codex")
+        XCTAssertTrue(codex.has(\.stringValue, "Not installed", within: 3), codex.debugDescription)
+        XCTAssertFalse(codex.isEnabled)
+        keepScreenshot("agent not installed")
+        // ↓ and its number key skip it.
+        app.typeKey(.downArrow, modifierFlags: [])
+        XCTAssertTrue(element("pane.\(agent).chooser.pi").has(\.isSelected, true, within: 2))
+        app.typeKey("2", modifierFlags: [])
+        app.typeKey(.upArrow, modifierFlags: [])
+        XCTAssertTrue(element("pane.\(agent).chooser.claude").has(\.isSelected, true, within: 2))
         app.typeKey(.return, modifierFlags: [])
         let loader = element("pane.\(agent).loader")
         XCTAssertTrue(loader.exists(within: 2))

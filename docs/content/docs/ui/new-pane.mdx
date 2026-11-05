@@ -66,6 +66,9 @@ no title and no key hint. While the chooser shows, the card's header says
   | Pi | `pi` |
   | OpenCode | `opencode` |
 
+  An agent that is not on the machine has a dimmed row. "Not installed" in
+  11 pt secondary text takes the place of its number key
+  ([Agents that are not installed](#agents-that-are-not-installed)).
 - **Selection.** The palette's accent pill
   ([Command palette](/docs/ui/window#command-palette)), with the row's text
   and symbol on the accent. It moves in the same frame, with no fade.
@@ -84,12 +87,14 @@ The chooser has the keyboard as soon as it shows: its card is the keyboard
 card. The app sends the chooser its keys before any terminal, so a fast ⌘T
 and Return never reaches the old card's shell.
 - ↑ and ↓ move the selection. ↑ on the first row goes to the last row, and ↓
-  on the last row goes to the first row.
+  on the last row goes to the first row. They skip an agent that is not
+  installed.
 - Return picks the selected row. On Agent it opens or closes the agents,
-  and open selects the first agent.
+  and open selects the first installed agent.
 - → on Agent opens it. ← and Esc close it again, with Agent selected.
 - Esc on a closed list picks Terminal.
-- 1 to 5 pick the top rows. While Agent is open, 1 to 4 pick the agents.
+- 1 to 5 pick the top rows. While Agent is open, 1 to 4 pick the agents. The
+  key of an agent that is not installed does nothing.
 - A held key moves on, but picks only once.
 - The pointer selects a row once it moves, as in the palette. A click picks.
   A click beside the list gives the card the keyboard.
@@ -113,8 +118,7 @@ command with Oriel's chat flags, so the pane gets a
 [chat view](/docs/ui/chat-view). For Pi and OpenCode, one run on the pane's
 machine first writes the files the line needs
 ([Launch flags](/docs/ui/chat-view#launch-flags)). On a remote machine the
-shell and the agent run on that machine. All four agents always show. The app
-does not look for which agents are installed. An agent in a pane starts
+shell and the agent run on that machine. An agent in a pane starts
 another the same way, loader included, with `oriel agent <name>`
 ([CLI](/docs/agent-control/cli#agent-chat-and-view)).
 
@@ -141,6 +145,27 @@ another the same way, loader included, with `oriel agent <name>`
   (the command failed or ended), or after 10 s with no ready status, the
   terminal shows the same way, with what the command printed (for example
   "command not found: opencode"). No other message.
+
+## Agents that are not installed
+
+All four agents always show. An agent that the machine does not have is
+dimmed and takes no pick.
+
+- **The check.** Each window checks its machine one time, when the window
+  opens. One command runs on the machine through the window's connection:
+  `$SHELL -ilc 'for c in claude codex pi opencode; do command -v "$c" >/dev/null && echo "$c"; done'`.
+  The login shell runs the user's startup files, so the shell's `PATH` and
+  aliases count. The check stops after 3 s.
+- **Unknown means installed.** Until the check answers, and when it fails,
+  stops or cannot run the loop (fish), every agent is enabled. So no row turns grey and back. A check that
+  failed runs again when the window connects to its remote machine.
+- **Kept for the window.** The answer stays on the window until it closes.
+  The app does not save it and does not check again. To see an agent that
+  you installed after the window opened, open a new window.
+- **New Pane never waits** for the check.
+- **The row.** A click does nothing, and the pointer does not select it. Its
+  hover tip gives the install command, for example "Install Codex: npm
+  install -g @openai/codex".
 
 ## Browser
 
@@ -196,7 +221,8 @@ the palette. They have no shortcut.
   option ("Terminal", "Agent", "Browser", "File Explorer", "Git", "Claude
   Code", …), with the
   selected trait on the selected one. Agent's value is "expanded" or
-  "collapsed".
+  "collapsed". The row of an agent that is not installed is dimmed, and its
+  value is "Not installed".
 - When the chooser shows, VoiceOver moves to the selected row. The loader
   reads "Starting ‹agent›" or "Opening ‹kind›".
 - Identifiers sit on the leaf elements, after the card's `pane.‹id›`:
@@ -207,7 +233,4 @@ the palette. They have no shortcut.
 
 ## Later
 
-- Flags per agent, set by the user (for example a permission mode), and only
-  the agents installed on the machine: the `integration.list` entries with
-  `available: true` (the command is on the herdr server's `PATH`), read each
-  time the list opens.
+- Flags per agent, set by the user (for example a permission mode).

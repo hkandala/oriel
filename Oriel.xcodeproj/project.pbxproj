@@ -42,6 +42,11 @@
 		3C9E5A1B7D2F4E6081A3C5DC /* Exceptions for "OrielUITests" folder in "OrielUITests" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Fixtures/agents/claude,
+				Fixtures/agents/codex/codex,
+				"Fixtures/agents/login-shell",
+				Fixtures/agents/opencode,
+				Fixtures/agents/pi,
 				"Fixtures/csv-table/src/main.ts",
 				"Fixtures/csv-table/package-lock.json",
 				"Fixtures/csv-table/package.json",

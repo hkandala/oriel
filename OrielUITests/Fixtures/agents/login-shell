@@ -1,0 +1,4 @@
+#!/bin/sh
+# The agent test's login shell: runs its script (`-ilc <script>`) with the PATH it gets and no profile, so only the
+# stand-ins it puts on that PATH are agents.
+exec /bin/sh -c "$2"

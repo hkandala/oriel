@@ -24,6 +24,8 @@ final class WindowPages {
     /// The page in view; nil until the first page opens, and after the window closed.
     private(set) var current: Page?
     let terminals = PaneViewRegistry()
+    /// The coding agents on the window's machine, by command (`findAgents`); nil while unknown.
+    var agents: Set<String>?
     /// The window is visible (its scene is active): its page in view shows git status.
     var visible = false
     /// The overview is open (D70): its tiles laid out (`overviewTabs`, by page, the latest last), up to a cap,
@@ -87,6 +89,7 @@ final class WindowPages {
         if !Self.windows.contains(where: { $0 === self }) {
             Self.windows.append(self)
         }
+        findAgents()
         if let early = Self.early {
             Self.early = nil
             early()

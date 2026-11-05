@@ -84,11 +84,7 @@ struct NewPane: View {
 
     private func row(_ row: Chooser.Row, details: Bool) -> some View {
         let selected = chooser.selected == row, (name, detail) = row.labels
-        let agent = if case .start = row {
-            true
-        } else {
-            false
-        }
+        let agent = row.agent, missing = Chooser.missing(row, page.terminals.pages?.agents)
         // Readable on the accent pill.
         let dim = selected ? AnyShapeStyle(Look.onAccent.opacity(0.75))
             : look.contrast ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tertiary)
@@ -100,35 +96,42 @@ struct NewPane: View {
             page.store.pick(chooser, row, page: page)
         } label: {
             HStack(spacing: 8) {
-                icon(row, selected: selected)
-                Text(name).lineLimit(1)
-                if row == .agent {
-                    Image(systemName: chooser.open ? "chevron.down" : "chevron.right")
-                        .font(.system(size: 9, weight: .semibold)).foregroundStyle(dim)
+                Group {
+                    icon(row, selected: selected)
+                    Text(name).lineLimit(1)
+                    if row == .agent {
+                        Image(systemName: chooser.open ? "chevron.down" : "chevron.right")
+                            .font(.system(size: 9, weight: .semibold)).foregroundStyle(dim)
+                    }
+                    Spacer(minLength: 4)
+                    if details {
+                        Text(detail).font(.system(size: 12, design: agent != nil ? .monospaced : .default))
+                            .foregroundStyle(dim).lineLimit(1)
+                    }
                 }
-                Spacer(minLength: 4)
-                if details {
-                    Text(detail).font(.system(size: 12, design: agent ? .monospaced : .default)).foregroundStyle(dim)
-                        .lineLimit(1)
-                }
-                if let number = chooser.number(row) {
+                .opacity(missing ? 0.45 : 1)
+                if missing {
+                    Text("Not installed").font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
+                } else if let number = chooser.number(row) {
                     Text("\(number)").font(.system(size: 11)).monospacedDigit().foregroundStyle(dim)
                 }
             }
             .foregroundStyle(selected ? AnyShapeStyle(Look.onAccent) : AnyShapeStyle(.primary))
             // An agent sits under Agent.
-            .padding(.leading, agent ? 28 : 8)
+            .padding(.leading, agent != nil ? 28 : 8)
             .padding(.trailing, 8)
             .frame(height: Self.row)
         }
         .buttonStyle(ChromeStyle(selected: selected, tint: .accentColor))
+        .disabled(missing)
+        .help(missing ? "Install \(name): \(agent?.install ?? "")" : "")
         .onContinuousHover { phase in
-            if case .active = phase, NSEvent.mouseLocation != pointer {
+            if case .active = phase, !missing, NSEvent.mouseLocation != pointer {
                 chooser.selected = row
             }
         }
         .accessibilityLabel(name)
-        .accessibilityValue(row == .agent ? chooser.open ? "expanded" : "collapsed" : "")
+        .accessibilityValue(row == .agent ? chooser.open ? "expanded" : "collapsed" : missing ? "Not installed" : "")
         .accessibilityAddTraits(selected ? .isSelected : [])
         .accessibilityFocused($focus, equals: row)
         .accessibilityIdentifier("pane.\(cardID).chooser.\(row.id)")

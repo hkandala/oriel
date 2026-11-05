@@ -224,8 +224,14 @@ extension OrielUITests {
             + args
         // The default plugins install from npm's cache (`make web` fills it), never the network.
         app.launchEnvironment["npm_config_offline"] = "true"
+        // New Pane's agents are installed (ui/new-pane#agent): CI has none, so stand-ins go on the login shell's PATH.
+        app.launchEnvironment["PATH"] = app.launchEnvironment["PATH"]
+            ?? "\(Self.agents):\(Self.agents)/codex:" + (ProcessInfo.processInfo.environment["PATH"] ?? "/usr/bin:/bin")
         app.launch()
     }
+
+    /// Stand-ins for New Pane's check of the agents: `claude`, `pi` and `opencode`, and `codex` in its own folder.
+    static let agents = URL(filePath: #filePath).deletingLastPathComponent().appending(path: "Fixtures/agents").path
 
     /// A config folder of the tests' own: the app installs its default plugins there, never in the user's.
     static let noConfig = ["-configFolder", "/tmp/oriel-e2e-no-config"]

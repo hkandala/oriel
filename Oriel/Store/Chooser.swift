@@ -8,15 +8,23 @@ import Observation
 /// card is a new tab's or split's stand-in until herdr made the pane, then the pane's terminal, which a move keeps.
 @MainActor @Observable
 final class Chooser {
-    /// An agent it starts: its name, and its command, which is its program icon's id too.
+    /// An agent it starts: its name, its command, which is its program icon's id too, and how to install it.
     struct Agent: Equatable {
-        let name: String, command: String
+        let name: String, command: String, install: String
     }
 
     static let agents = [
-        Agent(name: "Claude Code", command: "claude"), Agent(name: "Codex", command: "codex"),
-        Agent(name: "Pi", command: "pi"), Agent(name: "OpenCode", command: "opencode"),
+        Agent(name: "Claude Code", command: "claude", install: "npm install -g @anthropic-ai/claude-code"),
+        Agent(name: "Codex", command: "codex", install: "npm install -g @openai/codex"),
+        Agent(name: "Pi", command: "pi", install: "npm install -g @mariozechner/pi-coding-agent"),
+        Agent(name: "OpenCode", command: "opencode", install: "npm install -g opencode-ai"),
     ]
+
+    /// An agent the window's machine does not have (`WindowPages.agents`, nil while unknown): no pick, no key.
+    static func missing(_ row: Row, _ installed: Set<String>?) -> Bool {
+        guard let agent = row.agent, let installed else { return false }
+        return !installed.contains(agent.command)
+    }
 
     /// A row of the list: `start` is an agent's, by its place in `agents`; `plugin` a registry kind's, by its id.
     enum Row: Hashable {
@@ -62,6 +70,14 @@ final class Chooser {
 }
 
 extension Chooser.Row {
+    var agent: Chooser.Agent? {
+        if case let .start(index) = self {
+            Chooser.agents[index]
+        } else {
+            nil
+        }
+    }
+
     /// Its name, and the line on its right.
     var labels: (name: String, detail: String) {
         switch self {
@@ -137,14 +153,17 @@ extension HostStore {
         // A held key moves on, but picks once: a held 2 would open Agent, then start Codex.
         guard chooser.starting == nil, chooser.opening == nil,
               !event.isARepeat || [125, 126].contains(event.keyCode) else { return }
-        let rows = chooser.rows, index = rows.firstIndex(of: chooser.selected) ?? 0
+        let installed = page?.terminals.pages?.agents
+        let rows = chooser.rows.filter { !Chooser.missing($0, installed) },
+            index = rows.firstIndex(of: chooser.selected) ?? 0
         switch event.keyCode {
         case 125, 126: chooser.selected = rows[(index + (event.keyCode == 125 ? 1 : rows.count - 1)) % rows.count]
         // → on a closed Agent opens it; ← and Esc close an open one.
         case 124 where chooser.selected == .agent && !chooser.open, 123 where chooser.open, 53 where chooser.open:
             pick(chooser, .agent, page: page)
         case 53: drop(chooser)
-        case 36, 76: pick(chooser, chooser.selected, page: page)
+        case 36 where rows.contains(chooser.selected), 76 where rows.contains(chooser.selected):
+            pick(chooser, chooser.selected, page: page)
         default:
             let number = Int(event.charactersIgnoringModifiers ?? "")
             if let row = rows.first(where: { number != nil && chooser.number($0) == number }) {
@@ -153,12 +172,16 @@ extension HostStore {
         }
     }
 
-    /// Agent opens with its first agent selected, or closes with itself selected. `page`: where it was picked.
+    /// Agent opens with its first installed agent selected, or closes with itself selected. `page`: where it was
+    /// picked.
     func pick(_ chooser: Chooser, _ row: Chooser.Row, page: Page?) {
         switch row {
         case .agent:
             chooser.open.toggle()
-            chooser.selected = chooser.open ? .start(0) : .agent
+            let installed = page?.terminals.pages?.agents
+            chooser.selected = chooser.open
+                ? Chooser.agents.indices.map(Chooser.Row.start).first { !Chooser.missing($0, installed) } ?? .agent
+                : .agent
         case let .start(index): start(Chooser.agents[index], chooser)
         case let .plugin(id):
             if let plugin = Registry.plugin(id) {
@@ -220,6 +243,25 @@ extension HostStore {
                     }
                 }
                 try? await Task.sleep(for: .milliseconds(250))
+            }
+        }
+    }
+}
+
+extension WindowPages {
+    /// The window's one check for the agents on its machine (ui/new-pane#agent), in its login shell so its `PATH` and
+    /// aliases count. Kept for the window's life: a new window sees an agent installed since. One that failed (a
+    /// remote machine not connected yet, a shell that cannot run the loop) is asked again when the window connects.
+    func findAgents() {
+        guard agents == nil else { return }
+        let commands = Chooser.agents.map(\.command)
+        let loop = "for c in \(commands.joined(separator: " ")); do command -v \"$c\" >/dev/null && echo \"$c\"; done"
+        Task {
+            let lines = try? await machine.exec().output(["sh", "-c", #"exec "${SHELL:-sh}" -ilc "$1""#, "sh",
+                                                          loop + "; echo oriel-end"], timeout: .seconds(3))
+                .split(separator: "\n").map(String.init)
+            if let lines, lines.last == "oriel-end" {
+                agents = Set(lines).intersection(commands)
             }
         }
     }

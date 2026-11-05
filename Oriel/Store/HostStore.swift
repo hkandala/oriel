@@ -138,6 +138,8 @@ final class HostStore {
             failure = error
         }
         connecting = false
+        // Its first check failed when the machine was not connected yet.
+        pages.findAgents()
         // The read's answer ends Connecting now; the notice's 4 s do not hold it.
         await client?.refresh()
         if let failure {
