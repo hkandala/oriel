@@ -216,6 +216,9 @@ everything end to end, and test and review everything".
   default". **Fix:** each page symbol is white on one 22 pt grey rounded tile (5.5 pt corners), in the sidebar and
   the search results: the user's pick of seven options rendered in the real sidebar (plain symbols in one box,
   fitted symbols, tiles, circles). A first try with circles drew badly: the sidebar draws a Label's icon at a large
-  image scale and makes a label style such as `.quaternary` heavy, so the tile uses fixed colors and `.imageScale`. General ▸ Open at
+  image scale and makes a label style such as `.quaternary` heavy, so the tile uses fixed colors and `.imageScale`.
+  The user then asked for System Settings' own General grey and a tile that a selection leaves alone: the fill is
+  that tile's gradient, measured (sRGB 156,155,161 to 139,139,144) under a #F2F2F2 symbol, drawn as one layer; a
+  selected, an unselected and an inactive row measure the same. General ▸ Open at
   login is `SMAppService.mainApp`, read again each time the app comes forward; a run with its own config folder (the
   UI tests) only flips the switch, so no test build becomes a login item.

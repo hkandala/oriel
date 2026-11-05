@@ -44,14 +44,21 @@ struct ProgramTile: View {
 }
 
 /// A page's symbol on its tile, as System Settings draws its rows but grey for every page (the user's pick): the same
-/// tile gives symbols of different shapes (a gear, a rectangle, a hand) one outline.
+/// tile gives symbols of different shapes (a gear, a rectangle, a hand) one outline. The colors are System Settings'
+/// General tile, measured (its icons are the same in light and dark), and stay as they are in a selected row: fixed
+/// colors drawn as one layer, which the sidebar's selection does not tint.
 struct SettingsIcon: View {
     let page: SettingsPage
 
     var body: some View {
         Image(systemName: page.symbol).font(.system(size: 11, weight: .medium)).imageScale(.medium)
-            .foregroundStyle(.white)
-            .frame(width: 22, height: 22).background(Color.gray, in: .rect(cornerRadius: 5.5, style: .continuous))
+            .foregroundStyle(Color(white: 0xF2 / 255))
+            .frame(width: 22, height: 22)
+            .background(LinearGradient(colors: [Color(red: 156 / 255, green: 155 / 255, blue: 161 / 255),
+                                                Color(red: 139 / 255, green: 139 / 255, blue: 144 / 255)],
+                                       startPoint: .top, endPoint: .bottom),
+                        in: .rect(cornerRadius: 5.5, style: .continuous))
+            .compositingGroup()
     }
 }
 
