@@ -81,7 +81,7 @@ ON_DEMAND := testHundredsOfPanesStayQuick testOverviewOfManyTabsStaysBounded tes
 	testOverviewCostsAndLetsGoAfter testSessionSwipeIntoManyTabsDrawsThemWithTheSidebar \
 	testATabComesIntoViewWithoutAFlicker testACardNeverShowsTheOverviewsSmallSnapshot \
 	testScenesGlassDark testScenesGlassLight testScenesClassicDark testScenesClassicLight \
-	testKeptCardsCost testManyKeptCardsCost
+	testKeptCardsCost testManyKeptCardsCost testSettingsScenes
 ifdef ON_DEMAND_ONLY
 SHARD ?= 0/1
 endif
