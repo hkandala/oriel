@@ -4,6 +4,8 @@ Ovvi is a native macOS app for [herdr](https://github.com/herdrdev/herdr), the t
 coding agents. herdr keeps the workspaces, tabs and panes; Ovvi shows them as live terminal cards in a
 Liquid Glass window and lets you drive them with the mouse, the trackpad and the keyboard.
 
+Website and docs: [ovvi.dev](https://ovvi.dev).
+
 ## What it does
 
 - Sessions of This Mac and of remote machines over SSH, each session a page in the sidebar; several windows.
