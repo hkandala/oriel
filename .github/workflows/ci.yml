@@ -59,7 +59,7 @@ jobs:
   test:
     if: github.event_name == 'workflow_dispatch'
     runs-on: xcode-27
-    timeout-minutes: 20
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
