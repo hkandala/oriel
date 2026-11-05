@@ -12,9 +12,13 @@ extension OrielUITests {
         element("tab.\(tab)").click()
         element("terminal.\(first)").click()
         XCTAssertTrue(hasKeyboard("terminal.\(first)"))
+        // One card: no border.
+        XCTAssertTrue(element("pane.\(first)").exists)
+        XCTAssertFalse(element("pane.\(first).border").exists)
         let cards = element("cards.\(tab)")
         XCTAssertTrue(cards.exists(within: 2))
         let before = cards.stringValue.split(separator: " ").compactMap { Int($0) }
+        XCTAssertEqual(before.count, 2, cards.stringValue)
         for key in ["d", "d", "d", "w", "w", "w", "d"] {
             app.typeKey(key, modifierFlags: .command)
         }

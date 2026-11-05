@@ -22,7 +22,7 @@ extension Ahead {
     }
 
     /// `cards` after a show: the new panes still there, and the ones that just took replaced panes' places.
-    mutating func keepCards(_ ids: [String]) {
+    mutating func keepCards(_ ids: Set<String>) {
         cards = cards.filter { ids.contains($0.key) }.merging(replaced.compactMap { old, new in
             new.made.map { ($0.id, old) }
         }) { $1 }

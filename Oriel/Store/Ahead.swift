@@ -90,10 +90,8 @@ struct Ahead {
     }
 
     mutating func show(_ snapshot: Snapshot) -> Shown {
-        let ids = snapshot.workspaces.map(\.id) + snapshot.tabs.map(\.id) + snapshot.panes.map(\.id)
-        closing = closing.filter { ids.contains($0) || split != nil && Self.isStandIn($0) }
-        fresh.formIntersection(ids)
-        fresh.formUnion(splitPanes.values.filter(ids.contains))
+        let ids = Set(snapshot.workspaces.map(\.id) + snapshot.tabs.map(\.id) + snapshot.panes.map(\.id))
+        forget(ids)
         arrived = [:]
         replaced = replacing.filter { !ids.contains($0.key) }
         keepCards(ids)
@@ -148,7 +146,18 @@ struct Ahead {
         return Shown(workspaces: workspaces, tabs: tabs, panes: panes, trees: trees)
     }
 
+    /// What the snapshot no longer has, but split stand-ins closed early and a split's panes while a split shows:
+    /// a pane closed as herdr made it is in no snapshot read before the split.
+    private mutating func forget(_ ids: Set<String>) {
+        let made = Set(splitPanes.values)
+        closing = closing.filter { ids.contains($0) || split != nil && (Self.isStandIn($0) || made.contains($0)) }
+        fresh.formIntersection(ids)
+        fresh.formUnion(made.filter(ids.contains))
+    }
+
     /// The tabs in the asked order, until herdr's matches it or a tab of the workspace came or went.
+    /// ponytail: a tab that comes before herdr's answer (a ⌘T's) ends it early, and a redraw counts as a snapshot
+    /// (`after`): the old order can show until herdr's answer. Keep the asked order for its tabs if that shows.
     private mutating func ordered(_ tabs: [Tab]) -> [Tab] {
         guard let order else { return tabs }
         let mine = tabs.indices.filter { tabs[$0].workspaceID == order.workspaceID }

@@ -66,7 +66,8 @@ struct TrackDrop: DropDelegate {
             if let from = tabs.firstIndex(where: { $0.id == id }), over != from, over != from + 1 {
                 // The new order shows in this same update, as the drag's slide ends: no slide back first.
                 page.store.move(tab: id, to: over)
-                // The drag's dimmed capsule too: the session's end comes a frame or more later.
+                // The drag's dimmed capsule too, before the drag session's end: the mouse is up, so no new drag
+                // starts before that end.
                 page.dragging = nil
             }
         default:
