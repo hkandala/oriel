@@ -103,3 +103,61 @@ private func error(_ ovvi: String, package: String = #""version": "0.1.0""#) -> 
     #expect(try rank(["public.data"], "/x/main.rs") == nil)
     #expect(try rank(["*.md", "*"], "/x/a.md") == ext)
 }
+
+@Test func `settings: each type with its default, read in order`() throws {
+    let plugin = try manifest(base + #", "settings": [{"id": "hidden", "type": "toggle", "title": "Show hidden","#
+        + #""default": false, "description": "Dot files.", "section": "Tree"},"#
+        + #"{"id": "mode", "type": "choice", "title": "Mode", "default": "a","#
+        + #""options": [{"value": "a", "title": "A"}, {"value": "b", "title": "B"}]},"#
+        + #"{"id": "rows", "type": "number", "title": "Rows", "default": 500, "min": 100, "max": 5000, "step": 100},"#
+        + #"{"id": "name", "type": "text", "title": "Name", "default": "", "placeholder": "Ada"},"#
+        + #"{"id": "home", "type": "path", "title": "Home", "default": "~/x", "kind": "folder"}]"#)
+    #expect(plugin.settings.map(\.id) == ["hidden", "mode", "rows", "name", "home"])
+    #expect(plugin.settings[0].default == .bool(false) && plugin.settings[0].section == "Tree")
+    #expect(plugin.settings[2].default == .number(500) && plugin.settings[2].max == 5000)
+    #expect(plugin.settings[1].fits(.text("b")) && !plugin.settings[1].fits(.text("c")))
+    #expect(!plugin.settings[2].fits(.number(5100)) && !plugin.settings[2].fits(.text("500")))
+    #expect(!plugin.settings[0].fits(.number(1)) && !plugin.settings[4].fits(.text("x")))
+    #expect(try manifest(base).settings.isEmpty)
+    // From settings.json: a JSON boolean is an NSNumber too.
+    #expect(PluginSetting.Value(json: true) == .bool(true) && PluginSetting.Value(json: 1) == .number(1))
+    #expect(PluginSetting.Value(json: [1]) == nil)
+}
+
+@Test func `a wrong setting names its field and leaves the plugin out`() {
+    func setting(_ json: String) -> String? {
+        error(base + #", "settings": [\#(json)]"#)
+    }
+    let toggle = #"{"id": "a", "type": "toggle", "title": "A", "default": true}"#
+    #expect(setting(toggle) == nil)
+    #expect(setting(#"{"id": "a", "type": "toggle", "title": "A"}"#) == "ovvi.settings.0.default is missing")
+    #expect(setting(#"{"id": "a", "type": "toggle", "title": "A", "default": "yes"}"#)
+        == "ovvi.settings.0.default does not fit the type, options or range")
+    #expect(setting(#"{"id": "A", "type": "toggle", "title": "A", "default": true}"#)
+        == "ovvi.settings.0.id must be 1 to 64 of a-z, 0-9 and -, starting with a letter or digit")
+    #expect(setting(#"{"id": "a", "type": "slider", "title": "A", "default": 1}"#)
+        == "ovvi.settings.0.type must be toggle, choice, number, text or path")
+    #expect(setting(
+        #"{"id": "a", "type": "toggle", "title": "\#(String(repeating: "x", count: 61))", "default": true}"#,
+    )
+        == "ovvi.settings.0.title must be 1 to 60 characters")
+    #expect(setting(
+        #"{"id": "a", "type": "choice", "title": "A", "default": "x", "options": [{"value": "x", "title": "X"}]}"#,
+    )
+        == "ovvi.settings.0.options must be 2 to 12 options, each with its own value and a title")
+    let fit = "ovvi.settings.0.default does not fit the type, options or range"
+    #expect(setting(#"{"id": "a", "type": "number", "title": "A", "default": 1, "min": 5, "max": 2}"#)
+        == "ovvi.settings.0.min must be under max, and step over 0")
+    #expect(setting(#"{"id": "a", "type": "number", "title": "A", "default": 9, "max": 2}"#) == fit)
+    #expect(setting(#"{"id": "a", "type": "path", "title": "A", "default": "", "kind": "disk"}"#)
+        == "ovvi.settings.0.kind must be file or folder")
+    #expect(setting(#"{"id": "a", "type": "path", "title": "A", "default": "~x"}"#) == fit)
+    #expect(setting(#"{"id": "a", "type": "text", "title": "A", "default": "\#(String(repeating: "x", count: 1025))"}"#)
+        == fit)
+    let long = String(repeating: "x", count: 61)
+    #expect(setting(#"{"id": "a", "type": "toggle", "title": "A", "default": true, "section": "\#(long)"}"#)
+        == "ovvi.settings.0.section must be 0 to 60 characters")
+    #expect(setting(toggle + ", " + toggle) == "ovvi.settings.1.id is taken")
+    #expect(setting(Array(repeating: toggle, count: 17).joined(separator: ", ")) ==
+        "ovvi.settings has over 16 settings")
+}

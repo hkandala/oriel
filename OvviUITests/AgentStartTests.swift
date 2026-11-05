@@ -38,8 +38,8 @@ extension OvviUITests {
         }
     }
 
-    /// One notification per pane every 10 s, none while Notifications ▸ From Agents is off. A banner cannot be read or
-    /// clicked from a test: only the answers are.
+    /// One notification per pane every 10 s, none while Settings ▸ Agents ▸ When an agent sends one is off. A banner
+    /// cannot be read or clicked from a test: only the answers are.
     func testNotifyIsOncePerPaneEveryTenSecondsAndFollowsItsSwitch() async throws {
         let (_, pane) = try await newTab("notify")
         try await waitForPrompt(pane)

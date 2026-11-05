@@ -1,4 +1,4 @@
-// The plugin API, version 2 (plugins/api): the object a plugin's entry gets. The app ships it as the host
+// The plugin API, version 3 (plugins/api): the object a plugin's entry gets. The app ships it as the host
 // types package `@ovvi/plugin-api`; a plugin lists that in `peerDependencies` as "*" and imports only its types:
 //
 //   import type { Ovvi } from "@ovvi/plugin-api"
@@ -17,6 +17,8 @@ export interface Ovvi {
   readonly theme: Theme
   /** @since 2 */
   readonly pages: Pages
+  /** @since 3 */
+  readonly settings: Settings
   /** Needs `clipboard`. */
   readonly clipboard: { write(text: string): Promise<void> }
   /** The native context menu at the pointer. Resolves with the picked item's value, or undefined. */
@@ -57,6 +59,21 @@ export interface Ovvi {
   on(event: "save" | "find" | "findNext" | "findPrevious", fn: () => void): Off
   on(event: "visible" | "keyboard", fn: (yes: boolean) => void): Off
   on(event: "theme", fn: (theme: Theme) => void): Off
+  /** @since 3. The user changed settings of this plugin on its page in Settings: the new values by id. Every open card
+   *  of the plugin hears it, hidden ones too. */
+  on(event: "settings", fn: (changed: Record<string, SettingValue>) => void): Off
+}
+
+/** A toggle's value is a boolean, a number's a number, a choice's, a text's and a path's a string. */
+export type SettingValue = boolean | number | string
+
+/** @since 3. The values of the manifest's `settings`, which the user sets on the plugin's page in Settings. Read only:
+ *  a card keeps its own choices in `state`. */
+export interface Settings {
+  /** The value the user set, else the manifest's default. There at the page's first load, with no wait. */
+  get<T extends SettingValue>(id: string): T
+  /** Opens Settings at this plugin's page. */
+  open(): void
 }
 
 /** Stops the handler or the watch. Every one ends with the page. */

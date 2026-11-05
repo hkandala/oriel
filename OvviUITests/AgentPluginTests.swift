@@ -49,7 +49,7 @@ extension OvviUITests {
             + "'^explorer.*default'", in: pane, "folder", 0, "1")
         try await run("\(ovvi) plugins --json | grep -c '\"log\":\"\(config)/logs/plugins/ovvi-e2e-csv-table.log\"'",
                       in: pane, "log", 0, "1")
-        // Again is an Update: the user's, in the Plugins panel.
+        // Again is an Update: the user's, on the Plugins page.
         try await run(install, in: pane, "again", 1, "ovvi: \(csv) is installed")
     }
 

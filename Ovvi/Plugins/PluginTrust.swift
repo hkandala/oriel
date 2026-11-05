@@ -29,9 +29,38 @@ final class PluginTrust {
         }
     }
 
+    /// Forget Trust (its page in Settings, Remove): its open cards show the trust prompt again, and their pages' calls
+    /// fail (`Bridge.call`) and their watches stop.
     func forget(_ id: String) {
         trusted[id] = nil
         save()
+        for card in Plugin.cards where card.manifest.id == id {
+            card.web.bridge?.reset()
+        }
+    }
+
+    /// Bumped as plugin cards come and go, so `waiting` is read again.
+    var cards = 0
+
+    /// The plugins with a card that waits for an answer: the Settings sidebar's badge, and Needs review.
+    var waiting: Set<String> {
+        _ = cards
+        return Set(Plugin.cards.filter { $0.web.bridge?.failure == nil && !allows($0.manifest) }.map(\.manifest.id))
+    }
+
+    /// Don't Allow on its page: its waiting cards close, as the card's button closes its pane.
+    func deny(_ id: String) {
+        for window in WindowPages.windows {
+            let cards = window.terminals.plugins.values.filter { $0.manifest.id == id && !allows($0.manifest) }
+            for page in window.list + window.floatOnly {
+                // Never `closePane(nil)`: it closes the lit pane.
+                for card in cards where card.web.store === page.store {
+                    if let pane = page.store.pane(card.paneID) {
+                        page.closePane(pane)
+                    }
+                }
+            }
+        }
     }
 
     private func save() {
@@ -95,7 +124,8 @@ struct TrustPrompt: View {
             .multilineTextAlignment(.center)
             .frame(maxWidth: 360)
             if manifest.chooser != nil {
-                NewPaneSwitch(manifest: manifest).toggleStyle(.checkbox).accessibilityIdentifier("\(id).new-pane")
+                NewPaneSwitch(manifest: manifest).toggleStyle(.checkbox).font(.system(size: 11))
+                    .foregroundStyle(.secondary).accessibilityIdentifier("\(id).new-pane")
             }
             HStack(spacing: 8) {
                 Button("Don’t Allow") { page.closePane(page.store.pane(plugin.paneID)) }

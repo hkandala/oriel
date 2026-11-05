@@ -83,6 +83,28 @@ final class MachineList {
         }
     }
 
+    /// Add Remote Host's or Settings' Add or Save: the name is the target when empty. A new machine opens in a new
+    /// window, which connects.
+    func keep(_ draft: Machine, target: String) -> Machine {
+        var machine = draft
+        let name = machine.name.trimmingCharacters(in: .whitespaces)
+        machine.name = name.isEmpty ? target : name
+        machine.target = target
+        if list.contains(where: { $0.id == machine.id }) {
+            save(machine)
+        } else {
+            list.append(machine)
+            WindowPages.open(machine: machine, connect: true)
+        }
+        return machine
+    }
+
+    /// Off the list, with its browser data and approvals.
+    func remove(_ machine: Machine) {
+        list.removeAll { $0.id == machine.id }
+        Browser.forget(machine)
+    }
+
     func machine(_ id: String) -> Machine? {
         id == Machine.thisMac.id ? .thisMac : list.first { $0.id == id }
     }

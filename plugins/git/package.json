@@ -1,6 +1,6 @@
 {
   "name": "@ovvi/git",
-  "version": "1.8.1",
+  "version": "1.9.0",
   "private": true,
   "description": "Changes and history",
   "keywords": ["diff", "changes", "commit", "uncommitted", "history"],
@@ -26,13 +26,21 @@
   "ovvi": {
     "id": "git",
     "name": "Git",
-    "api": 2,
+    "api": 3,
     "entry": "dist/main.js",
     "icon": "source.branch",
     "opens": { "git": true },
     "chooser": "Git",
     "permissions": ["files:read", "git", "clipboard"],
     "history": true,
+    "settings": [
+      { "id": "diff-layout", "type": "choice", "title": "Diff layout", "default": "unified",
+        "options": [{ "value": "unified", "title": "Unified" }, { "value": "split", "title": "Side by Side" }] },
+      { "id": "wrap", "type": "toggle", "title": "Wrap long lines", "default": false },
+      { "id": "file-list", "type": "toggle", "title": "Show the file list when a diff opens", "default": false },
+      { "id": "commits", "type": "number", "title": "Commits in the history", "default": 500, "min": 100,
+        "max": 5000, "step": 100 }
+    ],
     "header": [
       { "type": "menu", "id": "git.branch", "symbol": "source.branch", "title": "—", "label": "Branch",
         "enabled": false, "hidden": true },

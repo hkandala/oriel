@@ -131,6 +131,29 @@ private func package(_ folder: URL, version: String, extra: [String: Any] = [:])
     #expect(json?["theme"] as? String == "x")
 }
 
+@Test func `plugin values: set, taken out one by one, and all of a plugin's at once`() throws {
+    let scratch = try scratchFolder()
+    defer { try? FileManager.default.removeItem(at: scratch) }
+    let settings = scratch.appending(path: "ovvi/settings.json")
+    try PluginPackages.list("npm:a", in: settings, add: true)
+    try PluginPackages.store(true, "hidden-files", of: "explorer", in: settings)
+    try PluginPackages.store(300, "commits", of: "git", in: settings)
+    try PluginPackages.store("split", "layout", of: "git", in: settings)
+    #expect(PluginPackages.values(of: "explorer", in: settings)["hidden-files"] as? Bool == true)
+    #expect(PluginPackages.values(of: "git", in: settings)["commits"] as? Int == 300)
+    try PluginPackages.store(nil, "commits", of: "git", in: settings)
+    #expect(PluginPackages.values(of: "git", in: settings).keys.sorted() == ["layout"])
+    try PluginPackages.store(nil, nil, of: "git", in: settings)
+    try PluginPackages.store(nil, "hidden-files", of: "explorer", in: settings)
+    let json = try JSONSerialization.jsonObject(with: Data(contentsOf: settings)) as? [String: Any]
+    #expect(json?["plugins"] == nil && PluginPackages.sources(settings) == ["npm:a"])
+    // A hand edit with a typo is never written over.
+    try Data("{oops".utf8).write(to: settings)
+    #expect(throws: HerdrError.self) { try PluginPackages.store(true, "a", of: "git", in: settings) }
+    #expect(throws: HerdrError.self) { try PluginPackages.list("npm:b", in: settings, add: true) }
+    #expect(try String(contentsOf: settings, encoding: .utf8) == "{oops")
+}
+
 /// A package whose `build` script copies its entry into `dist`, or fails.
 private func buildable(_ folder: URL, build: String = "mkdir -p dist && cp main.js dist/main.js && echo built-ok")
     throws

@@ -3,8 +3,8 @@ import HerdrKit
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// The page's calls that the app answers itself: opens, the toast, the native menu, Choose Folder…, SF Symbols and
-/// the clipboard.
+/// The page's calls that the app answers itself: opens, the toast, the native menu, Choose Folder…, SF Symbols, its
+/// page in Settings and the clipboard.
 extension Bridge {
     func card(_ name: String, _ args: [String: Any], _ plugin: Plugin) async throws -> Any? {
         switch name {
@@ -25,6 +25,9 @@ extension Bridge {
                 throw PluginError("notFound", "No symbol \(name)")
             }
             return url
+        // Only from a card in view: a hidden one cannot pull the window up.
+        case "settings.open" where visible: SettingsRoute.shared.open(.plugins, .plugin(plugin.manifest.id))
+        case "settings.open": throw PluginError("failed", "The card is hidden")
         case "clipboard.write":
             NSPasteboard.general.clearContents()
             NSPasteboard.general.setString(args["text"] as? String ?? "", forType: .string)

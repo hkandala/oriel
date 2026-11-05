@@ -25,6 +25,11 @@ export type Place = {
   trail: string[]
 }
 
+/** The card's own choices in its header, kept in its state: they win over the settings, which start new cards. */
+export type Own = { hiddenFiles?: boolean; mode?: string }
+export const own = (ovvi: Ovvi) => ovvi.state.get<Own>() ?? {}
+export const choose = (ovvi: Ovvi, change: Own) => ovvi.state.set({ ...ovvi.state.get<object>(), ...change })
+
 /** A file's extension, lowercased; "" for none, also for a dotfile's name (as `NSString.pathExtension`). */
 export const extension = (path: string) => (/[^/]\.([^./]+)$/.exec(path)?.[1] ?? "").toLowerCase()
 

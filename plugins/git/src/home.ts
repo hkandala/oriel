@@ -64,8 +64,8 @@ export async function make(place: Page, root: string) {
   let unstaged: Change[] = []
   /** git's error when the root is no repository (or git cannot run). */
   let failure: string | undefined
-  /** The history's length asked for: Show More adds 500. */
-  let limit = 500
+  /** The history's length asked for, from the setting: Show More adds 500. */
+  let limit = ovvi.settings.get<number>("commits")
   let branches: { name: string; remote: boolean; current: boolean }[] = []
   /** The writes with a spinner (fetch, pull, push, switch, commit) in the order they run: the app runs a card's writes
    *  one at a time. */
@@ -375,6 +375,12 @@ export async function make(place: Page, root: string) {
     return [node]
   }
 
+  // A new history length from Settings.
+  api.on("settings", ({ commits }) => {
+    if (typeof commits !== "number") return
+    limit = commits
+    void load()
+  })
   // The header's picks on the home: a branch, Working Tree, Fetch, Pull, Push.
   api.on("control", ({ id, value }) => {
     if (id === "git.working") ovvi.card.go(`${home(root)} uncommitted`)

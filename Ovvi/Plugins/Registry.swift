@@ -11,6 +11,13 @@ enum Registry {
     static let browser = PluginManifest(
         id: "browser", name: "Browser", icon: "globe", description: "Web page", keywords: ["web", "url", "localhost"],
         opens: .init(urls: ["http://*", "https://*", "file://*"]), chooser: "Browser",
+        settings: [.init(id: "network", type: "choice", title: "Web pages on remote machines load through",
+                         default: .text("machine"),
+                         description: "For new cards. The machine chip in a card switches it.",
+                         options: [
+                             .init(value: "machine", title: "The Machine"),
+                             .init(value: "mac", title: "This Mac"),
+                         ])],
     )
 
     /// The browser, the default plugins, then the user's, each group by id: the chooser's order.
@@ -35,19 +42,25 @@ enum Registry {
     static func reload() {
         current.loaded = load()
         current.hidden = hidden()
+        PluginSettings.shared.reload()
     }
 
-    /// Whether the New Pane chooser has a row for it: it declares one, and the user did not turn it off (the Plugins
-    /// panel, the trust prompt).
+    /// Whether the New Pane chooser has a row for it: it declares one, and the user did not turn it off (its page in
+    /// Settings, the trust prompt).
     static func inNewPane(_ manifest: PluginManifest) -> Bool {
         manifest.chooser != nil && !current.hidden.contains(manifest.id)
+    }
+
+    /// An id (a plugin's, or an agent's command) the user turned off in New Pane.
+    static func hiddenInNewPane(_ id: String) -> Bool {
+        current.hidden.contains(id)
     }
 
     static func show(_ id: String, inNewPane: Bool) {
         do {
             try PluginPackages.list(id, in: settings, add: !inNewPane, key: hideKey)
         } catch {
-            // The Plugins panel's notice; the switch reads the file again, so it shows what is saved.
+            // The Plugins page's notice; the switch reads the file again, so it shows what is saved.
             PluginInstalls.shared.failure = ("Could not save settings.json: \(error.localizedDescription)", nil)
         }
         current.hidden = hidden()

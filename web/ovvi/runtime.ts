@@ -2,7 +2,7 @@
 // page at document start, before the plugin's code runs. Its messages are the app's own (Ovvi/Plugins/Bridge.swift):
 // `{ call, args }` to the app, answered with JSON or rejected with "<code>: <text>"; `ovvi_receive(name, data)` from
 // it.
-import type { Card, Controls, MenuItem, Off, Ovvi, OvviError, Page, RunResult, Theme } from "./ovvi"
+import type { Card, Controls, MenuItem, Off, Ovvi, OvviError, Page, RunResult, SettingValue, Theme } from "./ovvi"
 
 type Context = {
   api: number
@@ -17,6 +17,7 @@ type Context = {
   state?: unknown
   controls: Record<string, string | boolean | string[]>
   theme: Theme
+  settings: Record<string, SettingValue>
   /** The entry's built file, from the page's folder. */
   entry: string
 }
@@ -78,6 +79,9 @@ window.ovvi_receive = (name, data: any) => {
       break
     case "theme":
       context.theme = data
+      break
+    case "settings":
+      Object.assign(context.settings, data)
       break
   }
   handlers.get(name)?.forEach((fn) => fn(data))
@@ -176,6 +180,10 @@ const ovvi: Ovvi = {
   get theme() {
     return context.theme
   },
+  settings: {
+    get: <T extends SettingValue>(id: string) => context.settings[id] as T,
+    open: () => tell("settings.open"),
+  },
   clipboard: { write: (text) => call("clipboard.write", { text }) },
   menu: { show: (items: MenuItem[]) => call("menu.show", { items }) },
   pick: { folder: (from) => call("pick.folder", { from }) },
@@ -226,7 +234,7 @@ type Kept = {
 const same = (a?: Record<string, unknown>, b?: Record<string, unknown>) =>
   JSON.stringify(a && Object.entries(a).sort()) === JSON.stringify(b && Object.entries(b).sort())
 /** The events a hidden page hears too. */
-const always = new Set(["theme", "visible"])
+const always = new Set(["theme", "visible", "settings"])
 /** The pages drawn and being drawn, the last shown last. */
 let pages: Kept[] = []
 let current: Kept | undefined

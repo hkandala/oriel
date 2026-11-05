@@ -149,6 +149,7 @@ final class Plugin {
         web = WebCard(plugin: manifest.id, arg: label.place, place: place, store: store)
         header = Header(manifest: manifest)
         name()
+        Self.counted()
         web.bridge = Bridge(plugin: self)
         web.view.step = { [weak self] back in
             guard let self, back ? canGoBack : canGoForward else { return false }
@@ -159,6 +160,16 @@ final class Plugin {
             }
             return true
         }
+    }
+
+    isolated deinit {
+        Self.counted()
+    }
+
+    /// The waiting plugins are read again (`PluginTrust.waiting`). Later: a card is made in a view's update and can go
+    /// in one, and a change of observed state there stops the app.
+    private static func counted() {
+        Task { PluginTrust.shared.cards += 1 }
     }
 
     /// The page's identifier names its plugin, a File Explorer's its place: `git.<pane>.page`, `file.<pane>.page`.
@@ -370,9 +381,14 @@ extension HostStore {
         Task { await machine.exec().succeeds(#"kill -WINCH "$@""#, pids) }
     }
 
-    /// A new plugin pane's label, its iid unique in the session.
+    /// A new plugin pane's label, its iid unique in the session. A new browser card on a remote machine starts on the
+    /// network its setting names (ui/browser#this-macs-network).
     func newLabel(_ plugin: PluginManifest, arg: String = "") -> PaneLabel {
         let taken = Set(panes.compactMap { PaneLabel($0.label)?.iid })
-        return PaneLabel(plugin: plugin.id, iid: PaneLabel.newIID(taken: taken), arg: arg)
+        let label = PaneLabel(plugin: plugin.id, iid: PaneLabel.newIID(taken: taken), arg: arg)
+        if plugin.id == Registry.browser.id {
+            Browser.start(label, self)
+        }
+        return label
     }
 }

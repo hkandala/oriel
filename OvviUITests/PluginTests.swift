@@ -151,19 +151,24 @@ extension OvviUITests {
         try await send("rm -rf \(config)\r", to: pane)
     }
 
-    /// The Plugins panel's Show in New Pane, turned off: the chooser has no Kanban row, and settings.json says so.
+    /// Show in New Pane on Kanban's page in Settings, turned off: the chooser has no Kanban row, and settings.json says
+    /// so.
     private func hidesFromNewPane(_ shell: String, config: String) async throws {
         app.menuBars.menuBarItems["Ovvi"].click()
         app.menuBars.menuItems["Plugins…"].click()
+        let row = element("plugins.kanban")
+        XCTAssertTrue(row.exists(within: 5))
+        row.click()
         let toggle = element("plugins.kanban.new-pane")
-        XCTAssertTrue(toggle.exists(within: 5))
-        XCTAssertTrue(element("plugins.explorer.new-pane").exists)
-        keepScreenshot("plugins panel new pane switches")
+        XCTAssertTrue(toggle.exists(within: 3))
+        keepScreenshot("plugin page new pane switch")
         toggle.click()
         try await send("clear; tr -d ' \\n' < \(config)/settings.json | grep -q '\"hideInNewPane\":\\[\"kanban\"\\]' "
             + "&& echo hidden-$((6*7))\r", to: shell)
         try await waitFor(shell) { $0.contains("hidden-42") }
-        app.typeKey(.escape, modifierFlags: [])
+        app.windows["com_apple_SwiftUI_Settings_window"].buttons["_XCUI:CloseWindow"].click()
+        // The main window takes the keys again.
+        element("terminal.\(shell)").click()
         let before = try await tabIDs()
         closeNew("tab", besides: before)
         app.typeKey("t", modifierFlags: .command)

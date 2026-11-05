@@ -215,11 +215,16 @@ extension OvviUITests {
 
     /// Launches the app on the session (one by default) with no window state from earlier runs and none of the user's
     /// plugins; `launch` ends a running one first.
-    func relaunch(_ session: String? = nil, _ args: [String] = []) {
+    /// `pin`: the settings as they ship, whatever the user's Ovvi has (the defaults are shared); off for a test that
+    /// changes them in the Settings window, where a pinned key cannot change.
+    func relaunch(_ session: String? = nil, _ args: [String] = [], pin: Bool = true) {
         let config = args.contains("-configFolder") ? [] : Self.noConfig
-        // The notification switches as they ship, whatever the user's Ovvi has (the defaults are shared).
-        let notify = ["notifyNeedsYou", "notifyFinished", "notifyFromAgents"].filter { !args.contains("-\($0)") }
-            .flatMap { ["-\($0)", "YES"] }
+        let shipped = ["notifyNeedsYou": "YES", "notifyFinished": "YES", "notifyFromAgents": "YES",
+                       "terminalFont": "", "cursorStyle": "block", "cursorBlink": "YES", "optionKey": "characters",
+                       "copyOnSelect": "NO", "agentView": "terminal", "agentArguments.claude": "",
+                       "agentArguments.codex": "", "agentArguments.pi": "", "agentArguments.opencode": ""]
+        let notify = pin ? shipped.sorted { $0.key < $1.key }.filter { !args.contains("-\($0.key)") }
+            .flatMap { ["-\($0.key)", $0.value] } : []
         app.launchArguments = ["-session", session ?? one, "-ApplePersistenceIgnoreState", "YES"] + config + notify
             + args
         // The default plugins install from npm's cache (`make web` fills it), never the network.

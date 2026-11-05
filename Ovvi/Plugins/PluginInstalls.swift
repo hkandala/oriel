@@ -1,7 +1,7 @@
 import AppKit
 import HerdrKit
 
-/// The Plugins panel's work (plugins/packages): install, update and remove of `npm:`, `git:` and local
+/// The Plugins page's work (plugins/packages): install, update and remove of `npm:`, `git:` and local
 /// path sources, the `packages` list of `settings.json`, and the trust prompt before a package's dependencies install.
 @MainActor @Observable
 final class PluginInstalls {
@@ -60,7 +60,7 @@ final class PluginInstalls {
                 }
             }
         } catch {
-            // The agent has its answer; a Retry from the panel would show the agent's prompt as the user's.
+            // The agent has its answer; a Retry from the page would show the agent's prompt as the user's.
             if agent != nil {
                 failure?.retry = nil
             }
@@ -88,6 +88,8 @@ final class PluginInstalls {
         guard await ask("Remove “\((row.manifest?.name ?? row.id).shown)”?", text, button: "Remove", destructive: true)
         else { return }
         try? await run(row.id, "Removing…") {
+            // First: a settings.json that does not read stops the removal before anything goes.
+            try PluginPackages.store(nil, nil, of: row.id, in: Registry.settings)
             if case let .installed(text) = row.kind {
                 try PluginPackages.list(text, in: Registry.settings, add: false)
             }
@@ -262,7 +264,7 @@ final class PluginInstalls {
         return await alert.beginSheetModal(for: window) == .alertFirstButtonReturn
     }
 
-    /// The panel's notice for a refusal before any work, as an error for an agent.
+    /// The page's notice for a refusal before any work, as an error for an agent.
     private func refuse(_ text: String) -> HerdrError {
         failure = (text, nil)
         return .failed(text)

@@ -233,7 +233,7 @@ public enum PluginPackages {
     }
 
     private static func package(_ folder: URL) -> [String: Any] {
-        read(folder.appending(path: "package.json"))
+        (try? read(folder.appending(path: "package.json"))) ?? [:]
     }
 
     // MARK: settings.json
@@ -241,14 +241,14 @@ public enum PluginPackages {
     /// A list of `settings.json`: the `packages`, strings or objects with their `source` (pi's form); or
     /// `hideInNewPane`, the ids of the plugins the New Pane chooser leaves out.
     public static func sources(_ settings: URL, key: String = "packages") -> [String] {
-        (read(settings)[key] as? [Any] ?? []).compactMap {
+        ((try? read(settings))?[key] as? [Any] ?? []).compactMap {
             $0 as? String ?? ($0 as? [String: Any])?["source"] as? String
         }
     }
 
     /// Adds the entry (a source, or a plugin's id) to the list (once), or takes it out; the file's other keys stay.
     public static func list(_ source: String, in settings: URL, add: Bool, key: String = "packages") throws {
-        var json = read(settings)
+        var json = try read(settings)
         var packages = (json[key] as? [Any] ?? []).filter {
             ($0 as? String ?? ($0 as? [String: Any])?["source"] as? String) != source
         }
@@ -256,6 +256,28 @@ public enum PluginPackages {
             packages.append(source)
         }
         json[key] = packages
+        try write(json, to: settings)
+    }
+
+    /// A plugin's values in `settings.json`'s `plugins` (plugins/manifest#settings), by setting id.
+    public static func values(of id: String, in settings: URL) -> [String: Any] {
+        ((try? read(settings))?["plugins"] as? [String: Any])?[id] as? [String: Any] ?? [:]
+    }
+
+    /// Sets a plugin's value, or takes it out (nil); with no setting, takes out all of the plugin's values. An empty
+    /// object goes too. The file's other keys stay.
+    public static func store(_ value: Any?, _ setting: String?, of id: String, in settings: URL) throws {
+        var json = try read(settings), plugins = json["plugins"] as? [String: Any] ?? [:]
+        var values = setting == nil ? [:] : plugins[id] as? [String: Any] ?? [:]
+        if let setting {
+            values[setting] = value
+        }
+        plugins[id] = values.isEmpty ? nil : values
+        json["plugins"] = plugins.isEmpty ? nil : plugins
+        try write(json, to: settings)
+    }
+
+    private static func write(_ json: [String: Any], to settings: URL) throws {
         try FileManager.default.createDirectory(at: settings.deletingLastPathComponent(),
                                                 withIntermediateDirectories: true)
         try JSONSerialization.data(withJSONObject: json, options: [.prettyPrinted, .sortedKeys,
@@ -263,8 +285,13 @@ public enum PluginPackages {
             .write(to: settings, options: .atomic)
     }
 
-    private static func read(_ settings: URL) -> [String: Any] {
-        (try? Data(contentsOf: settings)).flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
-            ?? [:]
+    /// The file's keys; none while it is missing. A file there that is no JSON object throws, so a write never
+    /// replaces a hand edit with a typo in it.
+    private static func read(_ settings: URL) throws -> [String: Any] {
+        guard let data = try? Data(contentsOf: settings) else { return [:] }
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw HerdrError.failed("\(settings.lastPathComponent) is not a JSON object")
+        }
+        return json
     }
 }

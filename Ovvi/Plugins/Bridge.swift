@@ -49,7 +49,7 @@ final class Bridge {
     @ObservationIgnored private var loaded = false
 
     /// The API version this app gives pages.
-    static let api = 2
+    static let api = 3
 
     init(plugin: Plugin) {
         self.plugin = plugin
@@ -82,7 +82,7 @@ final class Bridge {
             "plugin": ["id": plugin.manifest.id, "version": plugin.manifest.version],
             "machine": ["id": machine.id, "name": machine.name, "remote": machine.isRemote],
             "cwd": store.pane(plugin.paneID)?.cwd ?? "/", "visible": visible, "keyboard": keyboard,
-            "controls": plugin.header.values, "theme": theme,
+            "controls": plugin.header.values, "theme": theme, "settings": PluginSettings.shared.values(plugin.manifest),
             "entry": plugin.manifest.entryName + ".js",
         ]
         context["at"] = plugin.web.place
@@ -173,6 +173,9 @@ final class Bridge {
         let name = message["call"] as? String ?? "", args = message["args"] as? [String: Any] ?? [:]
         do {
             guard let plugin, failure == nil || name == "card.failed" else { throw PluginError("closed", "Closed") }
+            // A page still open after Forget Trust, under the prompt again: it can do nothing more.
+            guard PluginTrust.shared.allows(plugin.manifest)
+            else { throw PluginError("denied", "\(name): not trusted") }
             try PluginCalls.check(name, plugin.manifest.permissions)
             let reply = try await answer(name, args, plugin)
             guard let reply else { return (nil, nil) }

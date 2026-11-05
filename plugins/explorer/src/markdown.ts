@@ -12,7 +12,7 @@ import { Compartment, EditorState, Prec } from "@codemirror/state"
 import { EditorView } from "@codemirror/view"
 import { code, type Editor, editor } from "./editor"
 import { containers, editing, live, referenceField, ticked } from "./live"
-import { how, open, type Place, type Reveal, symbols } from "./place"
+import { choose, how, open, own, type Place, type Reveal, symbols } from "./place"
 import { sideBySide } from "./split"
 
 type Mode = "read" | "live" | "source" | "split"
@@ -96,8 +96,9 @@ export async function show(place: Place): Promise<Reveal> {
   outline.hidden = true
   outline.toggleAttribute("data-closed", true)
   root.append(outline, pane)
-  // The card's mode: as another Markdown page left it, else as row 2 kept it (a relaunch).
-  const kept = ovvi.controls.get("mode") as Mode, first = cardMode ?? (MODES.includes(kept) ? kept : "read")
+  // The card's mode: as another Markdown page left it, else as the card's own choice (a relaunch), else the setting.
+  const kept = (own(ovvi).mode ?? ovvi.settings.get("markdown")) as Mode
+  const first = cardMode ?? (MODES.includes(kept) ? kept : "read")
   let mode: Mode = "read"
   /** Every mode but Read edits; ⌘E goes back to the last one. */
   let edit = false
@@ -266,9 +267,16 @@ export async function show(place: Place): Promise<Reveal> {
   document.addEventListener("copy", copy)
   keep(() => document.removeEventListener("copy", copy))
   ovvi.on("control", ({ id, value }) => {
-    if (id === "mode" && MODES.includes(value as Mode)) present(view, value as Mode, outlined)
-    else if (id === "outline") present(view, mode, value === true)
-    else if (id === "edit-mode") present(view, edit ? "read" : lastEdit, outlined)
+    if (id === "outline") return present(view, mode, value === true)
+    const picked = id === "mode" && MODES.includes(value as Mode) ? value as Mode
+      : id === "edit-mode" ? edit ? "read" : lastEdit : undefined
+    if (!picked) return
+    choose(ovvi, { mode: picked })
+    present(view, picked, outlined)
+  })
+  // A new setting, while the card has no choice of its own.
+  ovvi.on("settings", ({ markdown }) => {
+    if (MODES.includes(markdown as Mode) && own(ovvi).mode === undefined) present(view, markdown as Mode, outlined)
   })
   titles(view, all(view.state))
   // A linked open at a line (a diff's): an edit mode, with the caret there (`editor`). Back's landing is a path.

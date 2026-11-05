@@ -3,7 +3,8 @@ import HerdrKit
 
 extension AgentCommand {
     /// The plugin registry for agents (agent-control, Plugins): the list, and for a pane on This Mac New Plugin, Reload
-    /// Plugin(s) and Install, through the Plugins panel's own code. Remove and Update stay the user's, in the panel.
+    /// Plugin(s) and Install, through the Plugins page's own code. Remove and Update stay the user's, on the plugin's
+    /// page in Settings.
     static let plugins = AgentCommand(
         name: "plugins", usage: "plugins [--for <path or URL> | new <name> | reload [<id>] | install <source>]",
         summary: "Lists the kinds an agent can open; makes, reloads and installs plugins",
@@ -84,9 +85,12 @@ extension AgentCommand {
                 message: "\(typed) is not npm:<package>, git:<repository> or a folder",
             )
         }
-        // Again would be an Update, which asks only when the permissions grew: the user's, in the Plugins panel.
+        // Again would be an Update, which asks only when the permissions grew: the user's, on the plugin's page.
         guard !PluginPackages.sources(Registry.settings).contains(source) else {
-            throw AgentError(code: "bad_argument", message: "\(source) is installed; Update is in the Plugins panel")
+            throw AgentError(
+                code: "bad_argument",
+                message: "\(source) is installed; Update is on its page in Settings ▸ Plugins",
+            )
         }
         guard let window = call.store.windows.first?.window else { throw AgentError.noWindow(call.store.session) }
         let asker = Asker(name: "\(call.agent) in pane \(call.pane)", window: window)
@@ -173,7 +177,7 @@ extension AgentCommand {
     }
 }
 
-/// A plugin as `ovvi plugins` tells it: its manifest's fields as written, and its Plugins panel row's source.
+/// A plugin as `ovvi plugins` tells it: its manifest's fields as written, and its Plugins page row's source.
 @MainActor
 private struct AgentPluginRows {
     let sources: [String: String]

@@ -65,6 +65,13 @@ extension Browser {
         UserDefaults.standard.stringArray(forKey: "browserViaMac.\(machine.id)") ?? []
     }
 
+    /// A new remote card starts on the network its setting names (ui/browser#this-macs-network).
+    static func start(_ label: PaneLabel, _ store: HostStore) {
+        guard store.machine.isRemote, let network = Registry.browser.settings.first(where: { $0.id == "network" }),
+              PluginSettings.shared.value(network, of: Registry.browser.id) == .text("mac") else { return }
+        keep(true, "\(store.session)/\(label.iid)", store.machine)
+    }
+
     static func keep(_ viaMac: Bool, _ card: String, _ machine: Machine) {
         let cards = viaMacCards(machine).filter { $0 != card } + (viaMac ? [card] : [])
         UserDefaults.standard.set(Array(cards.suffix(200)), forKey: "browserViaMac.\(machine.id)")

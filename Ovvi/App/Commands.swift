@@ -129,6 +129,15 @@ extension CommandList {
     static var keyWindow: [Command]? {
         KeyWindowList.Holder.all.allObjects.first { $0.window?.isKeyWindow == true }?.commands?.menuBarList
     }
+
+    /// Brings the frontmost main window forward and runs its command of that title (Settings' Show Shortcuts).
+    static func runInMainWindow(_ title: String) {
+        let holders = KeyWindowList.Holder.all.allObjects.filter { $0.commands?.floating == nil }
+        guard let holder = NSApp.orderedWindows.lazy.compactMap({ window in holders.first { $0.window === window } })
+            .first else { return }
+        holder.window?.makeKeyAndOrderFront(nil)
+        holder.commands?.menuBarList.first { $0.title == title }?.action()
+    }
 }
 
 extension [Command] {
@@ -158,18 +167,6 @@ private struct KeyWindowList: NSViewRepresentable {
         static let all = NSHashTable<Holder>.weakObjects()
         var commands: CommandList?
     }
-}
-
-/// The menu bar's settings (D62), for the command list.
-struct AppSettings: DynamicProperty {
-    @AppStorage("appearance") var appearance = Appearance.dark
-    @AppStorage("interfaceStyle") var style = InterfaceStyle.glass
-    @AppStorage("fontSize") var fontSize = PaneTerminal.fontSize
-    @AppStorage("focusFollowsMouse") var followMouse = false
-    /// The notifications' switches (status#notifications), all on by default.
-    @AppStorage(Notifications.needsYou) var notifyNeedsYou = true
-    @AppStorage(Notifications.finished) var notifyFinished = true
-    @AppStorage(Notifications.fromAgents) var notifyFromAgents = true
 }
 
 /// One command (D48). The menu bar and the palette read the one list of them (`CommandList`).
@@ -251,12 +248,13 @@ struct Command {
 struct AppCommands: Commands {
     @FocusedValue(\.commands) private var commands
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
     private var settings = AppSettings()
 
     var body: some Commands {
-        // Every main window opens through it. `_ =` is no statement in a builder.
+        // Every main window opens through it, and Settings from an action. `_ =` is no statement in a builder.
         // swiftlint:disable:next redundant_discardable_let
-        let _ = (WindowPages.openWindow = openWindow)
+        let _ = (WindowPages.openWindow = openWindow, SettingsRoute.openSettings = openSettings)
         // A key runs the key window's command for it, whichever window's list the menu bar holds; behind a sheet,
         // none. With no window: New Window and the settings.
         let list = (commands?.menu ?? CommandList(settings: settings).menuBarList).map { command in

@@ -74,9 +74,11 @@ export function fileIcon(path: string) {
   return node
 }
 
-/** The card's state: the commit message typed, and the diff's file list shown. */
-export const keep = (change: { draft?: string; list?: boolean }) =>
-  ovvi.state.set({ ...ovvi.state.get<object>(), ...change })
+/** The card's state: the commit message typed, and the diff's file list, layout and wrap as the user chose them in
+ *  the card, which win over the settings. */
+export type Kept = { draft?: string; list?: boolean; layout?: string; wrap?: boolean }
+export const kept = () => ovvi.state.get<Kept>() ?? {}
+export const keep = (change: Kept) => ovvi.state.set({ ...ovvi.state.get<object>(), ...change })
 
 /** git's message in the card's toast, on one line, with Copy for the whole of it. */
 export async function failed(error: Error) {

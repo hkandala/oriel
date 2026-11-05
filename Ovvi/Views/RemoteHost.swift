@@ -41,8 +41,7 @@ struct HostDialog: View {
             HStack {
                 if editing {
                     Button("Remove", role: .destructive) {
-                        MachineList.shared.list.removeAll { $0.id == draft.id }
-                        Browser.forget(draft)
+                        MachineList.shared.remove(draft)
                         pages.hostDialog = nil
                     }
                     .buttonStyle(.glass)
@@ -52,32 +51,21 @@ struct HostDialog: View {
                 Button("Cancel") { pages.hostDialog = nil }
                     .keyboardShortcut(.cancelAction)
                     .buttonStyle(.glass)
-                Button(editing ? "Save" : "Add") { save(target) }
-                    .keyboardShortcut(.defaultAction)
-                    .buttonStyle(.glassProminent)
-                    .disabled(!SSHExec.isValidTarget(target))
-                    .accessibilityIdentifier("host.save")
+                Button(editing ? "Save" : "Add") {
+                    pages.hostDialog = nil
+                    _ = MachineList.shared.keep(draft, target: target)
+                }
+                .keyboardShortcut(.defaultAction)
+                .buttonStyle(.glassProminent)
+                .disabled(!SSHExec.isValidTarget(target))
+                .accessibilityIdentifier("host.save")
             }
-        }
-    }
-
-    private func save(_ target: String) {
-        var machine = draft
-        let name = machine.name.trimmingCharacters(in: .whitespaces)
-        machine.name = name.isEmpty ? target : name
-        machine.target = target
-        pages.hostDialog = nil
-        if editing {
-            MachineList.shared.save(machine)
-        } else {
-            MachineList.shared.list.append(machine)
-            WindowPages.open(machine: machine, connect: true)
         }
     }
 }
 
 /// The icon, as a button; its popover is a grid of SF Symbols with a search by symbol name.
-private struct IconPicker: View {
+struct IconPicker: View {
     @Binding var icon: String
     @State private var open = false
     @State private var filter = ""

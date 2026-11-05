@@ -20,6 +20,28 @@ final class Chooser {
         Agent(name: "OpenCode", command: "opencode", install: "npm install -g opencode-ai"),
     ]
 
+    /// The agents the user did not turn off in New Pane (Settings ▸ Agents), as rows.
+    static var shownAgents: [Row] {
+        agents.indices.filter { !Registry.hiddenInNewPane(agents[$0].command) }.map(Row.start)
+    }
+
+    /// The defaults key of an agent's extra arguments (Settings ▸ Agents).
+    static func argumentsKey(_ command: String) -> String {
+        "agentArguments.\(command)"
+    }
+
+    /// The extra arguments as they go into the typed line, after a space; "" with none.
+    static func arguments(_ command: String) -> String {
+        let text = allowed(UserDefaults.standard.string(forKey: argumentsKey(command)) ?? "")
+            .trimmingCharacters(in: .whitespaces)
+        return text.isEmpty ? "" : " " + text
+    }
+
+    /// The text without a line break, a quote or a backslash: they go into a typed line, as the hooks' rule (D76).
+    static func allowed(_ text: String) -> String {
+        text.filter { !"\"'\\".contains($0) && !$0.isNewline }
+    }
+
     /// An agent the window's machine does not have (`WindowPages.agents`, nil while unknown): no pick, no key.
     static func missing(_ row: Row, _ installed: Set<String>?) -> Bool {
         guard let agent = row.agent, let installed else { return false }
@@ -62,7 +84,8 @@ final class Chooser {
     }
 
     var rows: [Row] {
-        [.terminal, .agent] + (open ? Self.agents.indices.map(Row.start) : []) + Self.plugins
+        let agents = Self.shownAgents
+        return [.terminal] + (agents.isEmpty ? [] : [.agent]) + (open ? agents : []) + Self.plugins
     }
 
     func made(_ pane: HerdrKit.Pane) {
@@ -72,7 +95,7 @@ final class Chooser {
 
     /// Its number key: the top rows', or the agents' while Agent is open.
     func number(_ row: Row) -> Int? {
-        let numbered = open ? Self.agents.indices.map(Row.start) : [.terminal, .agent] + Self.plugins
+        let numbered = open ? Self.shownAgents : rows.filter { $0.agent == nil }
         return numbered.firstIndex(of: row).map { $0 + 1 }
     }
 }
@@ -189,7 +212,7 @@ extension HostStore {
             chooser.open.toggle()
             let installed = page?.terminals.pages?.agents
             chooser.selected = chooser.open
-                ? Chooser.agents.indices.map(Chooser.Row.start).first { !Chooser.missing($0, installed) } ?? .agent
+                ? Chooser.shownAgents.first { !Chooser.missing($0, installed) } ?? .agent
                 : .agent
         case let .start(index): start(Chooser.agents[index], chooser)
         case let .plugin(id):
@@ -238,11 +261,14 @@ extension HostStore {
                         line = next
                         sent = clock.now
                         chooser.typed = true
+                        opensOnChat(id)
                         continue
                     }
                     if let pane = try? await client.pane(id), pane.agent != nil,
                        pane.agentStatus.map({ $0 != .unknown }) == true
                     {
+                        // Again: a new tab's pane may have been missing from the snapshot as its line went in.
+                        opensOnChat(id)
                         // Its launch marker before the loader goes, so a chat pane shows its chat at once.
                         await askProgram(id, soon: true)
                         return
@@ -260,6 +286,16 @@ extension HostStore {
                 }
                 try? await Task.sleep(for: .milliseconds(250))
             }
+        }
+    }
+}
+
+extension HostStore {
+    /// A new agent's card opens on its chat when Settings ▸ Agents says so, as after Relaunch with Chat. Set as its
+    /// line goes in: no card makes the chat while the chooser is there.
+    private func opensOnChat(_ paneID: String) {
+        if AppSettings().agentView == .chat {
+            pane(paneID)?.relaunched = true
         }
     }
 }

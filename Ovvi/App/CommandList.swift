@@ -10,7 +10,6 @@ struct CommandList {
     var agents: Binding<Bool>?
     var openSession: Binding<Bool>?
     var shortcuts: Binding<Bool>?
-    var plugins: Binding<Bool>?
     let settings: AppSettings
     /// A floating window's list (D50): only what applies to it.
     var floating: Floating?
@@ -39,19 +38,7 @@ struct CommandList {
         let file = [
             Command(section: .app, title: "Plugins…", group: .plugins, symbol: Registry.missing,
                     keywords: "install update remove packages npm git settings",
-                    enabled: plugins != nil) { plugins?.wrappedValue = true },
-            Command(section: .app, title: "Notifications", symbol: "bell", keywords: "alerts banners agents",
-                    menu: [
-                        Command(section: .app, title: "Needs You", checked: settings.notifyNeedsYou) {
-                            settings.notifyNeedsYou.toggle()
-                        },
-                        Command(section: .app, title: "Finished", checked: settings.notifyFinished) {
-                            settings.notifyFinished.toggle()
-                        },
-                        Command(section: .app, title: "From Agents", checked: settings.notifyFromAgents) {
-                            settings.notifyFromAgents.toggle()
-                        },
-                    ]),
+                    action: { SettingsRoute.shared.open(.plugins) }),
             Command(section: .file, title: "New Window", key: .init("n"), symbol: "macwindow.badge.plus") {
                 WindowPages.open(machine: pages?.machine ?? .thisMac)
             },
@@ -119,8 +106,16 @@ struct CommandList {
             .browser(browser, chooser: page?.keyCardID.flatMap { page?.store.chooser($0) })
             + view + paneKeys
             + palette(page) + window(page, pages)
-        return list + Self.plugin(page?.keyboardPane?.terminalID.flatMap { page?.terminals.builtPlugin($0) },
-                                  besides: list)
+        let all = list + Self.plugin(page?.keyboardPane?.terminalID.flatMap { page?.terminals.builtPlugin($0) },
+                                     besides: list)
+        guard pages == nil else { return all }
+        // No main window's list (Settings or About is key, or no window): ⌘W closes the key window. A disabled Close
+        // Pane would swallow it.
+        return all.map { command in
+            var command = command
+            command.key = command.title == "Close Window" ? .closePane : command.key == .closePane ? nil : command.key
+            return command
+        }
     }
 
     private var view: [Command] {
@@ -210,6 +205,19 @@ struct CommandList {
                     key: .init("f", modifiers: [.command, .control]),
                     symbol: "arrow.up.left.and.arrow.down.right") { NSApp.keyWindow?.toggleFullScreen(nil) },
             Self.reloadPlugins,
+            // The app menu's Settings… (⌘,) is the system's.
+            Command(section: .palette, title: "Settings…", symbol: "gearshape", keywords: "preferences options",
+                    action: { SettingsRoute.openSettings?() }),
+            // Settings ▸ Agents has the switches; the palette keeps a command for each (D48).
+            Command(section: .palette, title: "Notifications When an Agent Needs You", symbol: "bell",
+                    keywords: "alerts banners", checked: settings.notifyNeedsYou, setting: true,
+                    action: { settings.notifyNeedsYou.toggle() }),
+            Command(section: .palette, title: "Notifications When an Agent Finishes", symbol: "bell",
+                    keywords: "alerts banners done", checked: settings.notifyFinished, setting: true,
+                    action: { settings.notifyFinished.toggle() }),
+            Command(section: .palette, title: "Notifications From Agents", symbol: "bell",
+                    keywords: "alerts banners notify", checked: settings.notifyFromAgents, setting: true,
+                    action: { settings.notifyFromAgents.toggle() }),
         ]
     }
 

@@ -3,7 +3,7 @@
 A starting point for an Ovvi plugin: a package whose `ovvi` key in `package.json` is its manifest, built from `src/`
 into `dist/` by its own `build` script.
 
-In Ovvi, Plugins ▸ New Plugin… does steps 1 and 2 for you.
+In Ovvi, Settings ▸ Plugins ▸ New Plugin… does steps 1 and 2 for you.
 
 1. Copy this folder to `~/.config/ovvi/plugins/<id>/` and set `name` and the `ovvi` key's `id` and `name`.
 2. `npm install`, then `npm run build` (or `npm run dev` to build on every save). Ovvi needs Node.js for this.

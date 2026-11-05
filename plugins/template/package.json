@@ -21,11 +21,12 @@
   "ovvi": {
     "id": "my-plugin",
     "name": "My Plugin",
-    "api": 1,
+    "api": 3,
     "entry": "dist/main.js",
     "icon": "doc.plaintext",
     "opens": { "files": ["*.txt"], "priority": "option" },
     "header": [{ "id": "lines", "type": "text", "style": "dim" }],
+    "settings": [{ "id": "wrap", "type": "toggle", "title": "Wrap long lines", "default": true }],
     "permissions": ["files:read"]
   }
 }

@@ -5,7 +5,7 @@ import XCTest
 /// and reports its state to herdr.
 extension OvviUITests {
     /// In this checkout, which the pane's shell reads (the runner itself is sandboxed).
-    private static let scripts = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+    static let scripts = URL(filePath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
         .appending(path: "scripts")
 
     /// Sends, stops, every message with its tool calls folded, slash text to the terminal, and "Not sent", on This Mac.

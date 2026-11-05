@@ -13,7 +13,7 @@ struct OvviApp: App {
         // Windows, not window tabs: no tab bar or tab menu items of AppKit's own.
         NSWindow.allowsAutomaticWindowTabbing = false
         // Before any surface exists, so none starts at libghostty's default size.
-        PaneTerminal.setFontSize(settings.fontSize)
+        PaneTerminal.configure()
         // Second shortcuts (⇧⌘P, ⌃⇥, ⌃⇧⇥, ⌘=) run their first's command. A monitor sees them before any view: an
         // invisible button's shortcut kept its first action. Return in a red confirmation clicks it. A new pane's
         // chooser takes its keys before the terminal under it.
@@ -45,7 +45,7 @@ struct OvviApp: App {
         .commands { AppCommands() }
         // A folder dropped on the Dock icon opens a workspace (AppDelegate), not a window.
         .handlesExternalEvents(matching: [])
-        .onChange(of: settings.fontSize) { PaneTerminal.setFontSize(settings.fontSize) }
+        .onChange(of: settings.terminal) { PaneTerminal.configure() }
         // A floated pane (D50). Its main window saves and opens it, so SwiftUI does not restore it.
         WindowGroup(id: "float", for: Floating.self) { $floating in
             if let floating {
@@ -68,6 +68,8 @@ struct OvviApp: App {
             .restorationBehavior(.disabled)
             .commandsRemoved()
             .handlesExternalEvents(matching: [])
+        // Ovvi ▸ Settings… (⌘,), from the system.
+        Settings { SettingsWindow() }
     }
 }
 
@@ -220,7 +222,7 @@ private struct WindowContent: View {
     @Binding var sidebar: Bool
     @Binding var agents: Bool
     @Binding var sidebarWidth: Double
-    /// The one floating panel open: the workspace menu, the palette, Open Session, Keyboard Shortcuts or Plugins.
+    /// The one floating panel open: the workspace menu, the palette, Open Session or Keyboard Shortcuts.
     @State private var panel: Panel?
     @State private var workspaceButtonX: CGFloat = 0
     @State private var fullScreen = false
@@ -236,8 +238,7 @@ private struct WindowContent: View {
         let style = settings.style, appearance = settings.appearance
         let look = Look(style: style, dark: colorScheme == .dark, contrast: colorSchemeContrast == .increased)
         let commands = CommandList(pages: pages, palette: open(.palette), sidebar: $sidebar, agents: $agents,
-                                   openSession: open(.openSession), shortcuts: open(.shortcuts),
-                                   plugins: open(.plugins), settings: settings)
+                                   openSession: open(.openSession), shortcuts: open(.shortcuts), settings: settings)
         // The page's and the sidebar's 4 pt top room (for the cards' strokes) lies under the title row, so the
         // cards start at its bottom edge, as in Rex; the row stays on top for its clicks and window drags.
         VStack(spacing: -4) {
@@ -301,9 +302,6 @@ private struct WindowContent: View {
                 Palette(pages: pages, page: page, commands: commands, open: open(.palette), height: height)
                     .padding(.top, 96).floatingPanel(open: open(.palette), alignment: .top)
             }
-            if panel == .plugins {
-                PluginsPanel().padding(.top, 96).floatingPanel(open: open(.plugins), alignment: .top)
-            }
             if panel == .shortcuts {
                 Shortcuts(commands: commands.all).floatingPanel(open: open(.shortcuts), alignment: .center)
             }
@@ -362,7 +360,7 @@ private struct WindowContent: View {
     }
 
     enum Panel {
-        case workspaces, palette, openSession, shortcuts, plugins
+        case workspaces, palette, openSession, shortcuts
     }
 
     /// Whether this panel is the open one; opening it closes the other.

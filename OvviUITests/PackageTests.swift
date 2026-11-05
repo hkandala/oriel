@@ -5,7 +5,7 @@ import XCTest
 /// script) as a local path, its dependencies installed from npm's cache as its author would. Its first card asks for
 /// trust, then says it is not built; Build runs its build script and the page loads. An edit that imports a dependency
 /// from the package's own `node_modules` shows after Reload Plugin (⌥⌘R) with the header's values kept; a failed build
-/// keeps the page and says so, and the log has it. Then the Plugins panel installs the same package from a local git
+/// keeps the page and says so, and the log has it. Then Settings ▸ Plugins installs the same package from a local git
 /// repository at a tag, which installs its dependencies and builds it.
 extension OvviUITests {
     func testAPluginPackageAsksForTrustBuildsAndReloads() async throws {
@@ -119,9 +119,9 @@ extension OvviUITests {
         XCTAssertTrue(text("CSV Table two").exists(within: 10))
     }
 
-    /// Ovvi ▸ Plugins… installs the fixture from a local git repository at its tag, after the trust prompt, with its
-    /// dependencies and its build; the row shows the tag's version and its source. New Plugin… makes one from the
-    /// template.
+    /// Ovvi ▸ Plugins… opens Settings ▸ Plugins, which installs the fixture from a local git repository at its tag,
+    /// after the trust prompt, with its dependencies and its build; the row shows the tag's version and its source, and
+    /// its page has Update. New Plugin… makes one from the template.
     private func installFromGit(_ fixture: String, config: String, shell: String) async throws {
         let repo = "/tmp/ovvi-e2e-csv-repo", git = "git -C \(repo) -c user.name=e2e -c user.email=e2e@e2e"
         try await send(
@@ -142,20 +142,26 @@ extension OvviUITests {
         let allow = app.sheets.buttons["Install"]
         XCTAssertTrue(allow.exists(within: 10))
         allow.click()
-        XCTAssertTrue(element("plugins.ovvi-e2e-csv-git.version").has(\.stringValue, "0.1.0", within: 30))
-        XCTAssertEqual(element("plugins.ovvi-e2e-csv-git.source").stringValue, "git:\(repo)@v1")
-        XCTAssertTrue(element("plugins.ovvi-e2e-csv-git.update").exists)
-        XCTAssertEqual(element("plugins.ovvi-e2e-csv-table.source").stringValue, "/tmp/ovvi-e2e-csv")
+        let installed = element("plugins.ovvi-e2e-csv-git")
+        XCTAssertTrue(installed.has(\.label, "CSV Git, 0.1.0, git:\(repo)@v1", within: 30), installed.label)
+        XCTAssertTrue(element("plugins.ovvi-e2e-csv-table").label.hasSuffix(", /tmp/ovvi-e2e-csv"))
+        installed.click()
+        XCTAssertTrue(element("plugins.ovvi-e2e-csv-git.update").exists(within: 3))
+        // Back to the list: a click on the selected row changes nothing.
+        element("settings.page.general").click()
+        element("settings.page.plugins").click()
         // New Plugin… makes one from the template, installed and built.
         element("plugins.new").click()
         let name = app.sheets.textFields.firstMatch
         XCTAssertTrue(name.exists(within: 5))
         name.typeText("Ovvi E2E Lines")
         app.sheets.buttons["Create"].click()
-        XCTAssertTrue(element("plugins.ovvi-e2e-lines.version").has(\.stringValue, "0.1.0", within: 30))
-        keepScreenshot("plugins panel")
-        app.typeKey(.escape, modifierFlags: [])
-        XCTAssertFalse(source.exists)
+        let lines = element("plugins.ovvi-e2e-lines")
+        XCTAssertTrue(lines.has(\.label, "Ovvi E2E Lines, 0.1.0, \(config)/plugins/ovvi-e2e-lines", within: 30),
+                      lines.label)
+        keepScreenshot("plugins page")
+        app.windows["com_apple_SwiftUI_Settings_window"].buttons["_XCUI:CloseWindow"].click()
+        XCTAssertTrue(source.vanishes(within: 2))
         try await send("clear; test -f \(config)/plugins/ovvi-e2e-csv-repo/dist/main.js && test -f "
             + "\(config)/plugins/ovvi-e2e-lines/dist/main.js && echo built-$((6*7))\r", to: shell)
         try await waitFor(shell) { $0.contains("built-42") }

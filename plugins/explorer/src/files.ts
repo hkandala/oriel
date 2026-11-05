@@ -4,7 +4,7 @@ import { FileTree, type FileTreeBatchOperation, type FileTreeDirectoryHandle, ty
   type GitStatus } from "@pierre/trees"
 import type { Change } from "@ovvi/plugin-api"
 import { footer } from "./footer"
-import { how, menu, open, type Place, type Reveal, symbols } from "./place"
+import { choose, how, menu, open, own, type Place, type Reveal, symbols } from "./place"
 
 const STATUS: Record<string, GitStatus> = {
   M: "modified", T: "modified", C: "modified", A: "added", D: "deleted", R: "renamed", U: "untracked",
@@ -87,8 +87,10 @@ export async function show(place: Place): Promise<Reveal> {
     }
     ovvi.card.go(root === "/" ? "/" : `${root}/`)
   }
-  /** Hidden files show: row 2's eye, kept with the card's controls. */
-  let dotfiles = ovvi.controls.get("hidden-files") === true
+  /** Hidden files show: row 2's eye as the card has it, else the setting. Git's ignored files dim with the setting. */
+  let dotfiles = own(ovvi).hiddenFiles ?? ovvi.settings.get<boolean>("hidden-files")
+  let dim = ovvi.settings.get<boolean>("ignored")
+  ovvi.controls.set("hidden-files", { value: dotfiles })
 
   /** Each folder's entries as the tree has them: `""` is the root, and a folder's path ends in `/`, as the tree's. */
   const children = new Map<string, Set<string>>()
@@ -261,7 +263,7 @@ export async function show(place: Place): Promise<Reveal> {
     const letters = repository ? changes : []
     const status = [
       ...letters.flatMap(({ letter, path }) => (STATUS[letter] ? [{ path, status: STATUS[letter] }] : [])),
-      ...[...ignored].map((path) => ({ path, status: "ignored" as const })),
+      ...(dim ? [...ignored] : []).map((path) => ({ path, status: "ignored" as const })),
     ]
     tree.setGitStatus(status)
     results.setGitStatus(status)
@@ -335,6 +337,7 @@ export async function show(place: Place): Promise<Reveal> {
     // A dotfile shows only with the hidden files: the eye turns on (Show in File Explorer on `.gitignore`).
     if (!dotfiles && dotted(relative)) {
       dotfiles = true
+      choose(ovvi, { hiddenFiles: true })
       ovvi.controls.set("hidden-files", { value: true })
       await refresh()
     }
@@ -371,13 +374,30 @@ export async function show(place: Place): Promise<Reveal> {
     } else if (id === "root") {
       void move(value === undefined ? undefined : String(value))
     } else if (id === "hidden-files") {
-      dotfiles = value === true
-      run(refresh).catch(console.error)
-      // The filter's paths again, with the dotfiles or without.
-      paths = filter ? run(loadPaths).catch(() => {}) : undefined
-      void (paths ?? queue).then(match).catch(console.error)
+      choose(ovvi, { hiddenFiles: value === true })
+      showDotfiles(value === true)
     }
   })
+  // A new setting: the eye follows it unless the card has its own choice.
+  ovvi.on("settings", (changed) => {
+    if ("ignored" in changed) {
+      dim = changed.ignored === true
+      showStatus()
+    }
+    if ("hidden-files" in changed && own(ovvi).hiddenFiles === undefined) {
+      const yes = changed["hidden-files"] === true
+      ovvi.controls.set("hidden-files", { value: yes })
+      showDotfiles(yes)
+    }
+  })
+
+  function showDotfiles(yes: boolean) {
+    dotfiles = yes
+    run(refresh).catch(console.error)
+    // The filter's paths again, with the dotfiles or without.
+    paths = filter ? run(loadPaths).catch(() => {}) : undefined
+    void (paths ?? queue).then(match).catch(console.error)
+  }
   ovvi.on("find", () => openFind())
 
   /** The find bar at the top right (row 2's Filter, ⌘F, or a letter typed in the tree) takes the keyboard; `text` in

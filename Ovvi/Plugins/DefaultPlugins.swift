@@ -6,7 +6,7 @@ import HerdrKit
 /// (`Resources/web/defaults/<id>`, no `node_modules`) and installs each one into the plugins folder on first launch,
 /// a copy and then `npm ci` from its lockfile. An app with a newer version replaces an unedited copy; an edited copy,
 /// or one the app has other source for at the same version (a build of the repository), stays until the user picks
-/// Update to Version or Reset to Default in the Plugins panel.
+/// Update to Version or Reset to Default on its page in Settings.
 @MainActor @Observable
 final class DefaultPlugins {
     static let shared = DefaultPlugins()
@@ -15,7 +15,7 @@ final class DefaultPlugins {
     /// Try Again).
     private(set) var installing: Set<String> = []
     private(set) var failures: [String: PluginProblem] = [:]
-    /// What the panel offers per default: the app's newer version (Update to Version), or nil for its other source
+    /// What its page offers per default: the app's newer version (Update to Version), or nil for its other source
     /// or the user's edits (Reset to Default).
     private(set) var offers: [String: String?] = [:]
     @ObservationIgnored private var tasks: [String: Task<Void, Never>] = [:]
@@ -71,7 +71,7 @@ final class DefaultPlugins {
         await check()
     }
 
-    /// What the panel offers for each installed default.
+    /// What the pages offer for each installed default.
     func check() async {
         let records = Self.read()
         var offers: [String: String?] = [:]

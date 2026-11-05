@@ -10,7 +10,7 @@ import {
   VirtualizedFileDiff,
   Virtualizer,
 } from "@pierre/diffs"
-import { element, failed as toast, fileIcon, home, type How, how, keep, nameAndFolder, open, ovvi } from "./lib"
+import { element, failed as toast, fileIcon, home, type How, how, keep, kept, nameAndFolder, open, ovvi } from "./lib"
 
 /** How near the view a file's box makes its view. */
 const MARGIN = 1500
@@ -128,11 +128,11 @@ export async function make(place: Page, root: string, source: string) {
   let change = -1
   /** The files marked Viewed, with their text then: a file that changes since drops the mark. */
   const viewed = new Map<string, string>()
-  // Side by Side and the wrap as the header has them, then the page's own; the file list as the card keeps it, closed
-  // until the user opens it.
-  let split = api.controls.get("diff.layout") === "split"
-  let wrap = api.controls.get("diff.wrap") === true
-  let list = ovvi.state.get<{ list?: boolean }>()?.list ?? false
+  // Side by Side, the wrap and the file list as the user chose them in the card, else as the settings say.
+  const own = kept()
+  let split = (own.layout ?? ovvi.settings.get("diff-layout")) === "split"
+  let wrap = own.wrap ?? ovvi.settings.get<boolean>("wrap")
+  let list = own.list ?? ovvi.settings.get<boolean>("file-list")
   nav.toggleAttribute("data-closed", !list)
 
   // Each file's lines draw only near the view; its box keeps the whole file's height, so its header is sticky in CSS
@@ -522,10 +522,11 @@ export async function make(place: Page, root: string, source: string) {
     requestAnimationFrame(() => requestAnimationFrame(keepChange))
   }
 
-  function toggleList() {
+  /** `chosen`: the user's, kept with the card; else the setting's. */
+  function toggleList(chosen = true) {
     list = !list
     nav.toggleAttribute("data-closed", !list)
-    keep({ list })
+    if (chosen) keep({ list })
     api.controls.set("diff.file-list", { title: list ? "Hide File List" : "Show File List" })
     // Once the diff has its new width: Side by Side wraps lines to it. With Reduce Motion there is no slide.
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) requestAnimationFrame(() => requestAnimationFrame(keepChange))
@@ -542,9 +543,13 @@ export async function make(place: Page, root: string, source: string) {
 
   api.on("control", ({ id, value }) => {
     if (id === "diff.home") ovvi.card.go(home(root))
-    else if (id === "diff.layout") layout({ split: value === "split" })
-    else if (id === "diff.wrap") layout({ wrap: value === true })
-    else if (id === "diff.file-list") toggleList()
+    else if (id === "diff.layout") {
+      keep({ layout: String(value) })
+      layout({ split: value === "split" })
+    } else if (id === "diff.wrap") {
+      keep({ wrap: value === true })
+      layout({ wrap: value === true })
+    } else if (id === "diff.file-list") toggleList()
     else if (id === "diff.previous") step(-1)
     else if (id === "diff.next") step(1)
   })
@@ -553,7 +558,21 @@ export async function make(place: Page, root: string, source: string) {
   // A change while it draws calls once when it shows.
   api.files.watch(root, () => (source === "uncommitted" || patch === undefined) && void refresh())
   api.controls.set("diff.file-list", { title: list ? "Hide File List" : "Show File List" })
-  api.controls.set("diff.wrap", { enabled: !split })
+  api.controls.set("diff.wrap", { enabled: !split, value: wrap })
+  api.controls.set("diff.layout", { value: split ? "split" : "unified" })
+  // A new setting: what the user did not choose in the card follows it.
+  api.on("settings", (changed) => {
+    const own = kept()
+    if ("diff-layout" in changed && own.layout === undefined) {
+      api.controls.set("diff.layout", { value: String(changed["diff-layout"]) })
+      layout({ split: changed["diff-layout"] === "split" })
+    }
+    if ("wrap" in changed && own.wrap === undefined) {
+      api.controls.set("diff.wrap", { value: changed.wrap === true })
+      layout({ wrap: changed.wrap === true })
+    }
+    if ("file-list" in changed && own.list === undefined && (changed["file-list"] === true) !== list) toggleList(false)
+  })
   // Read first, then draw all of it in one go: the page before (the home, or the diff a Parent leaves) stays until
   // then, with no blank page while git answers. The themes first too: a file draws, and takes its height, only once
   // they are in (its words colored once its language is).

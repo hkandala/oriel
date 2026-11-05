@@ -169,9 +169,9 @@ extension Browser {
         else { return false }
         approve(url)
         let label = store.newLabel(Registry.browser, arg: url.absoluteString)
-        // On the network of the card it came from.
-        if viaMac {
-            Self.keep(true, "\(store.session)/\(label.iid)", store.machine)
+        // On the network of the card it came from, whatever the setting for new cards.
+        if store.machine.isRemote {
+            Self.keep(viaMac, "\(store.session)/\(label.iid)", store.machine)
         }
         Task {
             await store.write {

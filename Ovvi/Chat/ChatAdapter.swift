@@ -273,11 +273,18 @@ enum ChatAdapters {
 
     /// The line the chooser types for an agent with a chat; nil when it has none or its run on the machine failed.
     /// `resume`: herdr's session of the agent, for Relaunch with Chat (nil also when the agent does not take it).
-    static func launch(_ command: String, resume: String? = nil, on exec: any Exec) async -> String? {
+    /// `arguments`: the user's extra ones (`Chooser.arguments`), after the command and before Ovvi's flags, as
+    /// OpenCode ignores what follows its `--`.
+    static func launch(_ command: String, resume: String? = nil, arguments: String = "",
+                       on exec: any Exec) async -> String?
+    {
         guard let adapter = adapter(command) else { return nil }
-        let arguments = resume.flatMap(adapter.resume)
-        guard resume == nil || arguments != nil else { return nil }
-        return await adapter.prepare(UUID().uuidString.lowercased(), resume: arguments, on: exec)
+        let resumed = resume.flatMap(adapter.resume)
+        guard resume == nil || resumed != nil else { return nil }
+        let token = UUID().uuidString.lowercased(), flags = adapter.flags(token, resume: resumed)
+        // Every `prepare` ends with the command and its flags.
+        return await adapter.prepare(token, resume: resumed, on: exec)?
+            .replacing(command + " " + flags, with: command + arguments + " " + flags)
     }
 
     static func adapter(_ command: String?) -> (any ChatAdapter.Type)? {

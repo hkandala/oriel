@@ -1,6 +1,6 @@
 {
   "name": "@ovvi/explorer",
-  "version": "1.9.1",
+  "version": "1.10.0",
   "private": true,
   "description": "Files and folders",
   "keywords": ["files", "tree", "folder", "finder"],
@@ -46,7 +46,7 @@
   "ovvi": {
     "id": "explorer",
     "name": "File Explorer",
-    "api": 2,
+    "api": 3,
     "entry": "dist/main.js",
     "icon": "folder",
     "opens": { "folders": true, "files": ["*"] },
@@ -84,6 +84,14 @@
           { "value": "source", "title": "Source", "symbol": "chevron.left.forwardslash.chevron.right" },
           { "value": "split", "title": "Side by Side", "symbol": "rectangle.split.2x1" }] },
       { "type": "openWith", "id": "open-with", "hidden": true }
+    ],
+    "settings": [
+      { "id": "hidden-files", "type": "toggle", "title": "Show hidden files",
+        "description": "Names that start with a dot.", "default": false },
+      { "id": "ignored", "type": "toggle", "title": "Dim files that Git ignores", "default": true },
+      { "id": "markdown", "type": "choice", "title": "Markdown opens in", "default": "read",
+        "options": [{ "value": "read", "title": "Read" }, { "value": "live", "title": "Live Edit" },
+          { "value": "source", "title": "Source" }, { "value": "split", "title": "Side by Side" }] }
     ],
     "commands": [
       { "id": "edit-mode", "title": "Edit Mode", "menu": "view", "key": "cmd+e", "symbol": "pencil",

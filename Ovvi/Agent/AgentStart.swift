@@ -10,7 +10,7 @@ extension AgentCommand {
         summary: "Posts a notification on the Mac; a click shows the pane",
         help: """
         A click shows this pane, or --pane's, and brings Ovvi to the front. One per pane every 10 s. None while the \
-        user turned off Notifications ▸ From Agents ("notified": false).
+        user turned off Settings ▸ Agents ▸ When an agent sends one ("notified": false).
         """,
     ) { call in
         let target = try call.value("--pane").map(call.target)

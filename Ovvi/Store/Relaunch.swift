@@ -14,12 +14,15 @@ extension HostStore {
         start(agent, chooser, resume: session)
     }
 
-    /// The agent's line with Ovvi's flags (Relaunch with Chat's, made before its agent quit), else its command.
+    /// The agent's line with Ovvi's flags (Relaunch with Chat's, made before its agent quit), else its command; with
+    /// its extra arguments either way.
     func firstLine(_ agent: Chooser.Agent, _ resumed: String?) async -> String {
         if let resumed {
             return resumed
         }
-        return await ChatAdapters.launch(agent.command, on: machine.exec()) ?? agent.command
+        let arguments = Chooser.arguments(agent.command)
+        return await ChatAdapters.launch(agent.command, arguments: arguments, on: machine.exec())
+            ?? agent.command + arguments
     }
 
     /// Relaunch with Chat's launch line, made first so a failed run on the machine leaves the agent running, once the
@@ -27,7 +30,8 @@ extension HostStore {
     func restart(_ agent: Chooser.Agent, _ chooser: Chooser, _ session: String?) async -> String? {
         guard let session else { return nil }
         guard let id = chooser.paneID,
-              let line = await ChatAdapters.launch(agent.command, resume: session, on: machine.exec())
+              let line = await ChatAdapters.launch(agent.command, resume: session,
+                                                   arguments: Chooser.arguments(agent.command), on: machine.exec())
         else {
             await show(Notice(text: "\(agent.name) could not start with chat"))
             return nil
