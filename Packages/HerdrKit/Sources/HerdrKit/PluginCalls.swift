@@ -43,7 +43,7 @@ public struct PluginCalls: Sendable {
     /// The permission a call needs (plugins/manifest#permissions); nil for none.
     public static func permission(_ call: String) -> String? {
         switch call {
-        case "files.write": "files:write"
+        case "files.write", "files.move": "files:write"
         case "run": "run"
         case "clipboard.write": "clipboard"
         default: call.hasPrefix("files.") ? "files:read" : call.hasPrefix("git.") ? "git" : nil
@@ -120,6 +120,9 @@ public struct PluginCalls: Sendable {
         case "files.write":
             let data = try args.base64.flatMap { Data(base64Encoded: $0) } ?? Data(args.need(\.text, "text").utf8)
             return try await ["hash": Files.save(data, to: path, replacing: args.over, exec: exec)]
+        case "files.move":
+            _ = try await exec.checkedOutput(["sh", "-c", Self.moveScript, "sh", path, args.path(\.target, "target")])
+            return nil
         default:
             throw PluginError("failed", "No call \(name)")
         }
@@ -129,6 +132,16 @@ public struct PluginCalls: Sendable {
     static let infoScript = #"""
     if [ -d "$1" ]; then echo d; elif [ -e "$1" ]; then wc -c <"$1" && cksum <"$1"
     else echo "No such file" >&2; exit 1; fi
+    """#
+
+    /// A rename that never replaces: fails when something is there already, also a dangling link, unless it is the
+    /// same file under a name that differs only in case (`a.txt` to `A.txt` on a case-blind disk).
+    static let moveScript = #"""
+    lower() { printf %s "$1" | tr '[:upper:]' '[:lower:]'; }
+    if { [ -e "$2" ] || [ -L "$2" ]; } && ! { [ "$1" -ef "$2" ] && [ "$(lower "$1")" = "$(lower "$2")" ]; }; then
+      echo "\"${2##*/}\" already exists" >&2; exit 1
+    fi
+    mv -- "$1" "$2"
     """#
 
     /// The repository a folder is in, for the filter's paths.
@@ -249,7 +262,7 @@ public struct PluginCalls: Sendable {
 /// A call's arguments, each call's own: a path is absolute (so never an option). `JSONDecoder`, not
 /// `JSONSerialization`, which drops a byte order mark from a string.
 private struct Args: Decodable {
-    let path, folder, root, cwd: String?
+    let path, target, folder, root, cwd: String?
     let text, base64, over, source, message, branch, stdin: String?
     let paths, argv: [String]?
     let limit, timeout: Int?

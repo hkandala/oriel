@@ -1,6 +1,6 @@
 {
   "name": "@oriel/explorer",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "private": true,
   "description": "Files and folders",
   "keywords": ["files", "tree", "folder", "finder"],
@@ -56,7 +56,8 @@
     "history": true,
     "header": [
       { "type": "field", "id": "root", "style": "path", "symbol": "folder", "label": "Root", "hidden": true },
-      { "type": "field", "id": "filter", "placeholder": "Filter", "hidden": true },
+      { "type": "toggle", "id": "filter", "symbol": "magnifyingglass", "title": "Filter", "value": false,
+        "hidden": true },
       { "type": "button", "id": "collapse", "symbol": "rectangle.compress.vertical", "title": "Collapse All",
         "hidden": true },
       { "type": "toggle", "id": "hidden-files", "symbol": "eye", "title": "Show Hidden Files", "value": false,

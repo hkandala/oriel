@@ -607,3 +607,56 @@ CI runs and on-demand) at about 2–3 h.
   folder, the file selected. ⌘F in a code card, then ⌥⌘F: the capsule, the toggles, Replace and All. In Markdown,
   pick each mode; in Side by Side scroll each half (the other follows), tick a box in the preview (the source
   changes, the dot shows), fold and unfold the preview. Check the task box size on the Retina screen.
+
+### Track D
+
+- **Cause of the stray dots (16).** `@pierre/trees` counts every git status entry as a change of the folders above
+  it, `ignored` ones too. A folder lists which of its own names git ignores, so opening `docs` added
+  `docs/node_modules/` as ignored, and `docs` got the dot. Root-level ignored names have no folder above them, which
+  is why it looked random. **Fix:** each tree's shadow root gets one style that hides pierre's dot and shows it only on
+  the folders above a path in `git status`; the dimming of ignored names stays pierre's.
+- **Cause of the sticky `..` (17).** `..` was a button above the tree, outside its scroll view. **Fix:** `..` is the
+  tree's first row (a folder with no entries, `../`), so it scrolls away, and a click selects it, a double-click goes
+  up and its menu works (8) with no code of its own; pierre's `stickyFolders` keeps the open folders above the view at
+  its top. The old `..` keys (↑ from the first row, ↓ back) went: they are the tree's own now.
+- **History keys (10)** live in the runtime: in the capture phase, before a page's own keys (pierre takes ⌘← as ←),
+  unless a text field has the keyboard. A `card.step` bridge call runs the app's Back or Forward. ⌘↑ is the tree's
+  (the parent folder), as in the Finder.
+- **Decisions.** The find bar (6) is HTML in the page, styled as the terminal's ⌘F bar (a capsule, the count, ×):
+  row 2 is native and has no second row. Its filter is the page's, so a kept tree keeps it with no header value. The
+  selection (7) goes on a click on no row or on a row 2 button; while the tree lacks the keyboard (the path field,
+  the find bar, another card) it shows in gray, as the Finder's does, rather than going. Return renames (11) through
+  pierre's inline rename and a new `files.move` call (`files:write`, never replaces), so a remote machine renames too.
+  The match list renames as well: both trees and the folders' entries follow the move, and a failure moves it back
+  with a toast.
+- **Gaps (11).** ⌘⌫ (Trash): the plugin API has no Trash, and a remote Linux machine has no standard one. ⌘D
+  (Duplicate) is the app's Split Right. Space does nothing: there is no preview card. The table of keys against the
+  Finder is in default-plugins.mdx.
+- **The Git bar (12)** reads `git status` and `git.head` of the repository the root is in, in the tree's own refresh,
+  with no polling: one more git process per refresh (`status --branch --untracked-files=no`, 0.07 s on this repo).
+  A root below the repository's root counts the whole repository's changes. Its button opens Git's home in a new tab
+  at the end.
+- **Limits.** Accessibility sees a tree row as one button, so the change dot is checked by its pixels (needs-you
+  orange at the row's end) and the sticky folders only by picture. VoiceOver reads `..` as "dot dot": pierre labels a
+  row with its name. A case-only rename (`a.txt` to `A.txt`) works on a case-blind disk.
+- **Runs.** Chosen-tests runs 41960833327 (item 10, 2 tests), 41964834494 and 41971911545 (the File Explorer tests, a file card and web drags, 8 tests on the landed head) green. The
+  first runs on the new code went red where the tests expected the old `..` button and the old first row. The dot's
+  pixel check runs only on a Mac (CI's screenshots draw no web content, so there it is skipped): locally it is red
+  with the dots style taken out ("a clean folder shows a change dot") and green with it.
+- **Pictures** in `/tmp/oriel-shots/t53d/`: `before-*` and `after-*`, dark and light, of the tree, the tree scrolled
+  (sticky folders) and the find bar.
+- **For the user.**
+  1. In a File Explorer card, row 2 shows Back, Forward, the path (wide), then Filter, Collapse All and the eye. Click
+     Filter: the find bar opens under row 2 with the keyboard; type, then Esc: it closes and the tree is whole again.
+     Type a letter on the tree: the bar opens with it.
+  2. Click a folder, then empty space under the rows: the highlight goes. Click a folder, then Collapse All: the same.
+     Click the path field: the selection turns gray.
+  3. Click `..`: it highlights like a folder. Double-click it, or press ⌘O: the parent becomes the root. ⌘↑ does the
+     same from any row; ⌘← and ⌘→ go Back and Forward (also in Git).
+  4. Select a file and press Return: its name, without the extension, is selected for a rename. Type, press Return:
+     the file is renamed on disk. A name in use shows a toast and keeps the old name.
+  5. In a clean repository, open `docs`, `plugins` and `web` (folders with `node_modules` inside): no yellow dot.
+     Touch a file in one of them: that folder gets the dot.
+  6. Scroll a long open folder: its folder rows stay stuck at the top, nested; `..` scrolls away.
+  7. The bar at the bottom shows the branch, "N changes" and ↑/↓ when ahead or behind; the branch button opens Git
+     in a new tab. A folder outside a repository has no bar.

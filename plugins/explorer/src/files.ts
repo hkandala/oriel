@@ -1,13 +1,20 @@
-// The File Explorer's home: the root's tree, each folder listed as it opens, git's letters, and row 2's filter over
-// every path. A file opens in the card, a new tab or a pane to the side.
-import { FileTree, type FileTreeBatchOperation, type FileTreeDirectoryHandle, type GitStatus } from "@pierre/trees"
+// The File Explorer's home: the root's tree, each folder listed as it opens, git's letters, the find bar's filter over
+// every path, and the Git status bar. A file opens in the card, a new tab or a pane to the side.
+import { FileTree, type FileTreeBatchOperation, type FileTreeDirectoryHandle, type FileTreeRenameEvent,
+  type GitStatus } from "@pierre/trees"
 import type { Change } from "@oriel/plugin-api"
+import { footer } from "./footer"
 import { how, menu, open, type Place, type Reveal } from "./place"
 
 const STATUS: Record<string, GitStatus> = {
   M: "modified", T: "modified", C: "modified", A: "added", D: "deleted", R: "renamed", U: "untracked",
 }
 const parent = (path: string) => path.slice(0, path.lastIndexOf("/", path.length - 2) + 1)
+/** `..`, the tree's first row: a folder with no entries, so it scrolls with the rows and takes their clicks, keys and
+ *  menu. The tree's own sort puts it first.
+ *  ponytail: a name at the root that starts with a character before `.` (`-`, `(`, `#`) sorts above it; a comparator
+ *  of our own if that matters. */
+const UP = "../"
 
 /** As Finder's list and Xcode's navigator draw them: a thin disclosure chevron (the tree turns it), `folder.fill` in
  *  the Finder's folder blue (files.css); files take the tree's own icons by type. */
@@ -21,6 +28,8 @@ const sprite = `<svg data-icon-sprite aria-hidden="true" width="0" height="0">
 const look = {
   // A folder with one folder in it is two rows, as in the Finder.
   flattenEmptyDirectories: false,
+  // The open folders above the view stay at its top, nested, as in Xcode's navigator.
+  stickyFolders: true,
   icons: {
     set: "complete" as const,
     spriteSheet: sprite,
@@ -43,12 +52,17 @@ const look = {
     --trees-git-added-color-override: var(--finished); --trees-git-untracked-color-override: var(--finished);
     --trees-git-renamed-color-override: var(--finished);
   }
+  /* As the Finder's list: the selection in gray while the tree does not have the keyboard. */
+  :host(:not(:focus-within)) { --trees-selected-bg-override: color-mix(in srgb, var(--text) 12%, transparent); }
+  [data-file-tree-sticky-overlay-content] { background-color: var(--card); }
   [data-item-contains-git-change="true"] > [data-item-section="git"] { opacity: 1; }
   [data-type="item"] > [data-item-section="icon"] { width: 34px; justify-content: flex-end; color: var(--dim); }
   [data-item-type="folder"] > [data-item-section="icon"] { justify-content: space-between; }
   [data-item-type="folder"] > [data-item-section="icon"]::after { content: ""; flex: none; width: 16px; height: 16px;
     background: var(--folder-blue); -webkit-mask: var(--folder) center / 16px no-repeat; }
+  [data-item-path="${UP}"] > [data-item-section="icon"] > svg { visibility: hidden; }
   [data-item-selected="true"] > [data-item-section="icon"] { color: var(--dim); }
+  [data-item-rename-input] { border-radius: 4px; background: var(--card); outline: 1.5px solid var(--accent); }
   :host(:not([data-keys])) [data-type="item"]::before { outline: none !important; }`,
 }
 /** Whether a name is a dotfile's, which the tree hides unless row 2's Hidden Files is on. */
@@ -82,38 +96,42 @@ export async function show(place: Place): Promise<Reveal> {
   const unlisted = new Set<string>()
   const ignored = new Set<string>()
   let changes: Change[] = []
-  /** Row 2's filter, every path of the root that it searches (loaded at its first letter), and how many match. */
+  /** The find bar's filter, every path of the root that it searches (loaded at its first letter), and how many match. */
   let filter = ""
   let paths: Promise<void> | undefined
   let matched = 0
   /** The root's last listing failed. */
   let failed = false
 
-  /** Whether git's state shows: the root is a repository's root, and git runs. Asked with each listing of the root,
-   *  so a `git init` in the tree shows git's letters. */
+  /** The repository the root is in, and whether git's letters show: the root is that repository's root. Asked with
+   *  each listing of the root, so a `git init` in the tree shows git's letters and the status bar. */
+  let repo: string | null = null
   let repository = false
-  const rooted = () => oriel.git.root(top).then((found) => found === top, () => false)
+  const rooted = () => oriel.git.root(top).catch(() => null)
 
-  root.innerHTML = `<button id="up" aria-label="Parent Folder" hidden><span class="icon"></span>..</button>
-    <div id="message" hidden><span class="symbol"></span><p></p></div><div id="tree"></div><div id="matches" hidden></div>`
-  const tree = new FileTree({ paths: [], ...look })
-  const results = new FileTree({ paths: [], ...look })
+  root.innerHTML = `<div id="find" hidden><input placeholder="Filter" aria-label="Filter" spellcheck="false"><span
+    class="count"></span><button aria-label="Close Filter" title="Close"></button></div><div id="message" hidden><span
+    class="symbol"></span><p></p></div><div id="tree"></div><div id="matches" hidden></div><footer hidden></footer>`
+  const renaming = (own: () => FileTree) => ({
+    canRename: (item: { path: string }) => item.path !== UP.slice(0, -1),
+    onRename: (event: FileTreeRenameEvent) => void renamed(event, own()),
+    // A name in use in the tree, empty, or with a `/`: the row keeps its name.
+    onError: (error: string) => void oriel.toast(error),
+  })
+  const tree = new FileTree({ paths: above ? [UP] : [], ...look, renaming: renaming(() => tree) })
+  const results = new FileTree({ paths: [], ...look, renaming: renaming(() => results) })
   const host = root.querySelector<HTMLElement>("#tree")!
   const message = root.querySelector<HTMLElement>("#message")!
   const matches = root.querySelector<HTMLElement>("#matches")!
-  // The parent folder as the root, on a double-click of `..`; none at `/`, nor while the filter has text.
-  const up = root.querySelector<HTMLElement>("#up")!
-  up.hidden = !above
-  // A double-click's second click, or a press (Return, VoiceOver: no clicks counted).
-  up.onclick = (event) => event.detail !== 1 && oriel.card.go(above === "/" ? "/" : `${above}/`)
-  // ↓ from `..`: the first row.
-  up.onkeydown = (event) => {
-    if (event.key !== "ArrowDown") return
-    event.preventDefault()
-    take(tree.getVisibleRows(0, 0)[0]?.path)
-  }
+  const find = root.querySelector<HTMLElement>("#find")!
+  const field = find.querySelector("input")!
+  const count = find.querySelector<HTMLElement>(".count")!
+  const status = footer(oriel, root.querySelector("footer")!)
   tree.render({ containerWrapper: host })
   results.render({ containerWrapper: matches })
+  // pierre counts an ignored path as a change of the folders above it: their dot shows only for git's changes.
+  // ponytail: a style per tree in its shadow root; drop it when pierre leaves ignored paths out of its counts.
+  const dots = [tree, results].map((each) => each.getFileTreeContainer()!.shadowRoot!.appendChild(document.createElement("style")))
   keep(() => {
     tree.cleanUp()
     results.cleanUp()
@@ -123,21 +141,6 @@ export async function show(place: Place): Promise<Reveal> {
     root.toggleAttribute("data-keys", on)
     for (const each of [tree, results]) each.getFileTreeContainer()?.toggleAttribute("data-keys", on)
   }
-  root.addEventListener("keydown", (event) => {
-    // Before a key moved it, the row with the keyboard shows nothing: the first ↓ goes to the first row (`..` when
-    // shown), the first ↑ to the last, rather than one past the row nobody sees.
-    const shown = filter ? results : tree, vertical = event.key === "ArrowDown" || event.key === "ArrowUp"
-    const plain = !event.shiftKey && !event.metaKey && !event.altKey && !event.ctrlKey
-    if (vertical && plain && !root.hasAttribute("data-keys") && document.activeElement !== up
-      && !shown.getSelectedPaths().length) {
-      event.preventDefault()
-      event.stopPropagation()
-      if (event.key === "ArrowUp") shown.focusLastItem()
-      else if (up.hidden) shown.focusFirstItem()
-      else up.focus()
-    }
-    if (event.key.startsWith("Arrow")) ring(true)
-  }, true)
   root.addEventListener("pointerdown", () => ring(false), true)
 
   /** One at a time: two listings of a folder at once would add its entries twice. None once the place left. */
@@ -172,8 +175,8 @@ export async function show(place: Place): Promise<Reveal> {
   }
 
   /** The folder's entries from the machine, in place of what the tree had in it; `rooted` is asked meanwhile, as
-   *  whether the root is a repository's (the first listing). */
-  async function list(at: string, rooted?: Promise<boolean>) {
+   *  the repository the root is in (the first listing). */
+  async function list(at: string, rooted?: Promise<string | null>) {
     unlisted.delete(at)
     let entries: { name: string; folder: boolean; ignored: boolean }[]
     try {
@@ -183,12 +186,15 @@ export async function show(place: Place): Promise<Reveal> {
       children.clear()
       unlisted.clear()
       ignored.clear()
-      tree.resetPaths([])
+      tree.resetPaths(above ? [UP] : [])
       failed = true
       show()
       return
     } finally {
-      if (rooted) repository = await rooted
+      if (rooted) {
+        repo = await rooted
+        repository = repo === top
+      }
     }
     if (!at) failed = false
     // An empty folder too: a refresh lists it again.
@@ -237,9 +243,9 @@ export async function show(place: Place): Promise<Reveal> {
       [...set].filter((path) => !path.endsWith("/") && (dotfiles || !dotted(path)) && named(path)),
     ).slice(0, 5000)
     matched = found.length
+    count.textContent = filter ? String(matched) : ""
     host.hidden = Boolean(filter)
     matches.hidden = !filter
-    up.hidden = !above || Boolean(filter)
     results.resetPaths(filter ? found : [], { initialExpandedPaths: [...new Set(found.flatMap(folders))] })
     show()
   }
@@ -251,12 +257,22 @@ export async function show(place: Place): Promise<Reveal> {
   }
 
   function showStatus() {
+    const letters = repository ? changes : []
     const status = [
-      ...changes.flatMap(({ letter, path }) => (STATUS[letter] ? [{ path, status: STATUS[letter] }] : [])),
+      ...letters.flatMap(({ letter, path }) => (STATUS[letter] ? [{ path, status: STATUS[letter] }] : [])),
       ...[...ignored].map((path) => ({ path, status: "ignored" as const })),
     ]
     tree.setGitStatus(status)
     results.setGitStatus(status)
+    const changed = [...new Set(letters.flatMap((change) => folders(change.path)))]
+    // As specific as the rule that hides them, and after it: it wins.
+    const shown = changed.map((path) =>
+      `[data-item-path="${CSS.escape(path)}"]:not([data-item-git-status]) > [data-item-section="git"]`)
+    for (const style of dots) {
+      style.textContent = `[data-item-contains-git-change]:not([data-item-git-status]) > [data-item-section="git"] {
+        visibility: hidden; }
+        ${shown.length ? `${shown.join(", ")} { visibility: visible; }` : ""}`
+    }
   }
 
   /** git's letters and the open folders again, after a change on the machine. A closed folder lists when it opens. */
@@ -270,10 +286,44 @@ export async function show(place: Place): Promise<Reveal> {
     }
   }
 
-  /** The root's changes from git, for the letters; none when the root is no repository's root. */
+  /** The repository's changes and its branch from git: the root's letters, when it is the repository's root, and
+   *  the status bar. */
   async function git() {
-    changes = repository ? await oriel.git.status(top).catch(() => []) : []
+    const at = repo
+    const [now, head] = at ? await Promise.all([oriel.git.status(at).catch(() => []), oriel.git.head(at).catch(() => null)])
+      : [[], null]
+    changes = now
     showStatus()
+    status(at, changes.length, head)
+  }
+
+  /** A row's rename (Return, as in the Finder) on the machine. The tree moved its row already, and moves it back when
+   *  the rename fails; the other tree and the folders' entries follow it. */
+  async function renamed(event: FileTreeRenameEvent, own: FileTree) {
+    const slash = event.isFolder ? "/" : "", from = event.sourcePath + slash, to = event.destinationPath + slash
+    rekey(from, to)
+    const other = own === tree ? results : tree
+    if (other.getItem(from)) other.move(from, to)
+    try {
+      await oriel.files.move(`${base}/${event.sourcePath}`, `${base}/${event.destinationPath}`)
+    } catch (error) {
+      rekey(to, from)
+      for (const each of [tree, results]) if (each.getItem(to)) each.move(to, from)
+      void oriel.toast(String((error as Error).message ?? error))
+    }
+  }
+
+  /** A rename in the folders' entries: the path, and for a folder every path in it. */
+  function rekey(from: string, to: string) {
+    const swap = (path: string) =>
+      path === from || (from.endsWith("/") && path.startsWith(from)) ? to + path.slice(from.length) : path
+    for (const [at, set] of [...children]) {
+      children.delete(at)
+      children.set(swap(at), new Set([...set].map(swap)))
+    }
+    for (const set of [unlisted, ignored]) {
+      for (const path of [...set]) set.delete(path) && set.add(swap(path))
+    }
   }
 
   /** A path under the root (absolute, as the app sends it) shown: its folders listed and open, its row selected, in the
@@ -310,10 +360,11 @@ export async function show(place: Place): Promise<Reveal> {
   }))
 
   oriel.on("control", ({ id, value }) => {
+    // A click on row 2 leaves the tree with no selection.
+    clear()
     if (id === "filter") {
-      filter = String(value ?? "")
-      paths ??= filter ? run(loadPaths).catch(() => {}) : undefined
-      void (paths ?? queue).then(match).catch(console.error)
+      if (value === true) openFind()
+      else closeFind()
     } else if (id === "collapse") {
       for (const at of children.keys()) if (at) folder(at)?.collapse()
     } else if (id === "root") {
@@ -326,8 +377,49 @@ export async function show(place: Place): Promise<Reveal> {
       void (paths ?? queue).then(match).catch(console.error)
     }
   })
-  // ⌘F: the filter takes the keyboard.
-  oriel.on("find", () => oriel.controls.set("filter", { focus: true }))
+  oriel.on("find", () => openFind())
+
+  /** The find bar under row 2 (row 2's Filter, ⌘F, or a letter typed in the tree) takes the keyboard; `text` in place
+   *  of its text. */
+  function openFind(text?: string) {
+    find.hidden = false
+    oriel.controls.set("filter", { value: true })
+    if (text !== undefined) {
+      field.value = text
+      filtered()
+    } else {
+      field.select()
+    }
+    field.focus()
+  }
+
+  /** Esc, its close button or row 2's Filter again: the bar goes, with its filter, and the tree takes the keyboard. */
+  function closeFind() {
+    find.hidden = true
+    oriel.controls.set("filter", { value: false })
+    if (field.value) {
+      field.value = ""
+      filtered()
+    }
+    take()
+  }
+
+  function filtered() {
+    filter = field.value
+    paths ??= filter ? run(loadPaths).catch(() => {}) : undefined
+    void (paths ?? queue).then(match).catch(console.error)
+  }
+  field.oninput = filtered
+  // Esc closes the bar; Return and ↓ go to the matches.
+  field.onkeydown = (event) => {
+    if (event.key === "Escape") closeFind()
+    else if (event.key === "Enter" || event.key === "ArrowDown") take()
+    else return
+    event.preventDefault()
+  }
+  const close = find.querySelector("button")!
+  close.onclick = closeFind
+  void oriel.symbol("xmark", 11).then((url) => close.style.setProperty("--symbol", `url(${url})`), () => {})
 
   // After each change under the root, and once when the card shows again.
   oriel.files.watch(top, () => {
@@ -351,13 +443,13 @@ export async function show(place: Place): Promise<Reveal> {
     tree.batch(operations)
   }
 
-  /** The row's absolute path, its id in the tree, and whether it is a folder's. */
+  /** The row's id in the tree, the place it opens (`..`: the parent folder) and whether it is a folder's. */
   const row = (event: Event) => {
     const node = event.composedPath().find((n): n is HTMLElement => n instanceof HTMLElement && Boolean(n.dataset.itemPath))
     const id = node?.dataset.itemPath
-    return id === undefined ? undefined
-      : { path: `${base}/${id.replace(/\/$/, "")}`, id, folder: node!.dataset.itemType === "folder" }
+    return id === undefined ? undefined : { id, arg: arg(id), folder: node!.dataset.itemType === "folder" }
   }
+  const arg = (id: string) => id === UP ? (above === "/" ? "/" : `${above}/`) : `${base}/${id}`
   /** The click is on a folder's chevron, at the left of its icon. */
   const chevron = (event: MouseEvent) => {
     const icon = event.composedPath().find((n): n is HTMLElement => n instanceof HTMLElement && n.dataset.itemSection === "icon")
@@ -366,21 +458,22 @@ export async function show(place: Place): Promise<Reveal> {
   }
 
   for (const trees of [host, matches]) {
-    // A file: double-click or Return in the card, ⌘-click in a new tab, ⌥-click to the side; a folder the same way
-    // as the root. As in the Finder, a click on a folder's name only selects it: its chevron, → and Return open it, so
-    // a double-click never shows it open first. In the capture phase, before the tree's own click (⌘ adds to its
-    // selection, a click toggles a folder).
+    // A file: double-click in the card, ⌘-click in a new tab, ⌥-click to the side; a folder the same way as the root.
+    // As in the Finder, a click on a folder's name only selects it: its chevron and → open it, so a double-click never
+    // shows it open first, and a click on no row clears the selection. In the capture phase, before the tree's own
+    // click (⌘ adds to its selection, a click toggles a folder).
     trees.addEventListener(
       "click",
       (event) => {
         const at = row(event)
-        if (!at) return
+        if (!at) return clear()
         // A ⌘- or ⌥-double-click opens once.
         if (event.detail > 1 && (event.metaKey || event.altKey)) return event.stopPropagation()
         const toggle = at.folder && chevron(event)
-        if (event.metaKey || event.altKey || (event.detail >= 2 && !toggle)) {
+        // VoiceOver's press on `..` (no clicks counted) goes up.
+        if (event.metaKey || event.altKey || (event.detail >= 2 && !toggle) || (at.id === UP && !event.detail)) {
           event.stopPropagation()
-          open(oriel, at.folder ? `${at.path}/` : at.path, how(event))
+          open(oriel, at.arg, how(event))
         } else if (at.folder && !toggle && event.detail === 1 && !event.shiftKey && !event.ctrlKey) {
           event.stopPropagation()
           only(filter ? results : tree, at.id)
@@ -389,29 +482,67 @@ export async function show(place: Place): Promise<Reveal> {
       },
       true,
     )
-    trees.addEventListener("keydown", (event) => {
-      const at = event.key === "Enter" ? row(event) : undefined
-      if (at && !at.folder) open(oriel, at.path, how(event))
-    })
+    trees.addEventListener("keydown", keys, true)
     // The app's menu: Open (Open as Root on a folder), Open in New Tab, Open to the Side.
     trees.addEventListener("contextmenu", (event) => {
       const at = row(event)
-      if (at) void menu(oriel, event, at.folder ? `${at.path}/` : at.path)
+      if (at) void menu(oriel, event, at.arg)
       else event.preventDefault()
     })
   }
 
-  // ↑ on the first row: `..` (hidden while the filter has text).
-  host.addEventListener("keydown", (event) => {
-    if (event.key !== "ArrowUp" || up.hidden || tree.getFocusedPath() !== tree.getVisibleRows(0, 0)[0]?.path) return
+  /** The tree's keys, as the Finder's list has them, before the tree's own: Return renames the selected row, ⌘O and
+   *  ⌘↓ open it, ⌘↑ goes to the parent folder, a letter filters, Space does nothing (Quick Look's key: no preview card
+   *  here). The first ↓ or ↑ before a key moved the keyboard goes to the first or last row, not one past the row
+   *  nobody sees. ↑↓→← are the tree's. */
+  function keys(event: KeyboardEvent) {
+    // The rename's field has its own.
+    if (event.composedPath()[0] instanceof HTMLInputElement) return
+    const shown = filter ? results : tree, key = event.key
+    const plain = !event.shiftKey && !event.metaKey && !event.altKey && !event.ctrlKey
+    const command = event.metaKey && !event.shiftKey && !event.altKey && !event.ctrlKey
+    const moved = root.hasAttribute("data-keys"), selected = shown.getSelectedPaths().length > 0
+    // The row the user sees: selected, or with the ring.
+    const at = moved || selected ? shown.getFocusedPath() : null
+    if (key.startsWith("Arrow")) ring(true)
+    if (plain && key === "Enter") {
+      if (at && shown.startRenaming(at)) stem(shown, at)
+    } else if (command && (key === "o" || key === "ArrowDown")) {
+      if (at) open(oriel, arg(at), "card")
+    } else if (command && key === "ArrowUp") {
+      if (above) oriel.card.go(arg(UP))
+    } else if (plain && key === "Escape" && !find.hidden) {
+      closeFind()
+    } else if (key.length === 1 && key !== " " && !event.metaKey && !event.ctrlKey && !event.altKey) {
+      openFind(filter + key)
+    } else if (plain && (key === "ArrowDown" || key === "ArrowUp") && !moved && !selected) {
+      if (key === "ArrowUp") shown.focusLastItem()
+      else shown.focusFirstItem()
+    } else if (!(plain && key === " ")) {
+      return
+    }
     event.preventDefault()
     event.stopPropagation()
-    up.focus()
-  }, true)
+  }
+
+  /** A file's rename starts with its name selected but its extension, as in the Finder: once the tree selected the
+   *  whole name, a frame later. */
+  function stem(shown: FileTree, at: string) {
+    requestAnimationFrame(() => {
+      const field = shown.getFileTreeContainer()?.shadowRoot?.querySelector<HTMLInputElement>("[data-item-rename-input]")
+      const dot = field?.value.lastIndexOf(".") ?? 0
+      if (field && dot > 0 && !at.endsWith("/")) field.setSelectionRange(0, dot)
+    })
+  }
+
+  /** No row selected, in either tree. */
+  function clear() {
+    for (const each of [tree, results]) for (const at of each.getSelectedPaths()) each.getItem(at)?.deselect()
+  }
 
   /** The row alone selected: a kept tree still has the row it opened before. */
   function only(shown: FileTree, path: string) {
-    for (const at of shown.getSelectedPaths()) shown.getItem(at)?.deselect()
+    clear()
     shown.getItem(path)?.select()
   }
 
@@ -427,17 +558,19 @@ export async function show(place: Place): Promise<Reveal> {
     shown.focusPath(path)
   }
   // The app gives the card the keyboard (also as it opens, from main.ts); a frame later, so a click that gave a row
-  // the keyboard keeps it (else the tree scrolls to its old row between the press and the release).
+  // the keyboard keeps it (else the tree scrolls to its old row between the press and the release). The find bar
+  // keeps it while it has it.
   const given = () => requestAnimationFrame(() => {
-    if (place.shown() && document.activeElement !== up && !(filter ? results : tree).getFileTreeContainer()?.shadowRoot?.activeElement) {
+    if (place.shown() && document.activeElement !== field
+      && !(filter ? results : tree).getFileTreeContainer()?.shadowRoot?.activeElement) {
       take()
     }
   })
   addEventListener("focus", given)
   keep(() => removeEventListener("focus", given))
 
-  // Whether the root is a repository's with the first listing, so it dims what git ignores (one wait for both, as
-  // each starts a process); a landing's row before the tree shows; then git's letters.
+  // The repository the root is in with the first listing, so it dims what git ignores (one wait for both, as each
+  // starts a process); a landing's row before the tree shows; then git's letters and the status bar.
   await run(() => list("", rooted()))
   if (place.at) await run(() => reveal(place.at!))
   run(git)

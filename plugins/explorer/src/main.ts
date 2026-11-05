@@ -44,7 +44,7 @@ export default async function main(oriel: Oriel) {
     // A new tree starts with no filter; a kept one keeps its own.
     for (const id of ALL) {
       const hidden = !CONTROLS[place].includes(id)
-      scoped.controls.set(id, id === "filter" ? { hidden, value: "" } : { hidden })
+      scoped.controls.set(id, id === "filter" ? { hidden, value: false } : { hidden })
     }
     scoped.controls.set("open-with", { value: place === "files" ? "" : arg })
     if (place !== "markdown") scoped.controls.set("edit-mode", { enabled: false, checked: false })

@@ -136,6 +136,7 @@ const oriel: Oriel = {
     paths: (path) => call("files.paths", { path }),
     write: (path, data, options) =>
       call("files.write", { path, over: options?.over, ...(typeof data === "string" ? { text: data } : { base64: data.toBase64() }) }),
+    move: (path, to) => call("files.move", { path, target: to }),
     watch(path, fn) {
       const id = ++next
       watches.set(id, fn)

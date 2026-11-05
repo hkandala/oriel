@@ -31,6 +31,7 @@ private func failure(_ name: String, _ args: [String: Any], _ calls: PluginCalls
         ("files.list", "files:read"),
         ("files.watch", "files:read"),
         ("files.write", "files:write"),
+        ("files.move", "files:write"),
         ("git.status", "git"),
         ("git.commit", "git"),
         ("run", "run"),
@@ -69,6 +70,18 @@ private func failure(_ name: String, _ args: [String: Any], _ calls: PluginCalls
     #expect(bytes["type"] as? String == "image/png")
     _ = try await call("files.write", ["path": png, "base64": "AQID"])
     #expect(try Data(contentsOf: URL(filePath: png)) == Data([1, 2, 3]))
+
+    // A rename moves; it never replaces what is there.
+    let moved = folder.appending(path: "c.png").path
+    #expect(try await call("files.move", ["path": png, "target": moved]) is NSNull)
+    #expect(FileManager.default.fileExists(atPath: moved) && !FileManager.default.fileExists(atPath: png))
+    #expect(await failure("files.move", ["path": moved, "target": file]) == "failed")
+    #expect(try String(contentsOfFile: file, encoding: .utf8) == "two")
+    #expect(await failure("files.move", ["path": moved, "target": "c.png"]) == "failed")
+    // Only the case changes: the same file, renamed.
+    let upper = folder.appending(path: "C.png").path
+    #expect(try await call("files.move", ["path": moved, "target": upper]) is NSNull)
+    #expect(try FileManager.default.contentsOfDirectory(atPath: folder.path).contains("C.png"))
 
     #expect(await failure("files.read", ["path": folder.appending(path: "none").path]) == "notFound")
     #expect(await failure("files.read", ["path": "a.txt"]) == "failed")

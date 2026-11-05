@@ -85,7 +85,7 @@ apply:
 
 | Gesture | Where it opens |
 |---|---|
-| a click, or a double-click in the tree, or Return | in the card itself, as its next place ([Back and Forward](#back-and-forward)) |
+| a click, or a double-click or ⌘O in the tree | in the card itself, as its next place ([Back and Forward](#back-and-forward)) |
 | ⌘-click | in a new herdr tab at the end of the card's workspace, in the background |
 | ⌥-click | in a pane to the side of the card, in the background |
 
@@ -110,8 +110,8 @@ apply:
 
 | From | Gesture | Opens |
 |---|---|---|
-| the tree: a file | double-click or Return | the file, with its page |
-| the tree: a folder | double-click, ⌘-click, ⌥-click, or Open as Root | the tree rooted there |
+| the tree: a file | double-click, ⌘O or ⌘↓ | the file, with its page |
+| the tree: a folder | double-click, ⌘O, ⌘↓, ⌘-click, ⌥-click, or Open as Root | the tree rooted there |
 | a file's **Show in File Explorer** | click | the tree of the file's folder, with the file selected |
 | the Git home: a change | click | the Working Tree diff, scrolled to that file |
 | the Git home: **Working Tree** | click | the Working Tree diff |
@@ -291,8 +291,9 @@ Xcode's navigator: a thin disclosure chevron, folders in the Finder's folder
 blue (the same in light and dark), files with an icon for their type in its
 color (TypeScript, Swift, Markdown, JSON, images, and so on), 24 pt rows, the
 selection in the accent at 24 %. A 6 pt gap sits under the header.
-- **Row 2:** Back and Forward, the root, the filter field ("Filter"), then
-  **Collapse All** and **Show Hidden Files** (`eye`).
+- **Row 2:** Back and Forward, the root (it takes the rest of the row), then
+  three icon buttons: **Filter** (`magnifyingglass`, in the accent while the
+  find bar shows), **Collapse All** and **Show Hidden Files** (`eye`).
 - **The root** is a path field, like the browser's address. At rest it shows
   the root's path with the home as `~`, cut at the start when it is long
   (`…ode/oriel`). A click shows the whole path, selected. Return goes there,
@@ -303,42 +304,79 @@ selection in the accent at 24 %. A 6 pt gap sits under the header.
   `src` or `..` works, and an empty one is the root. The folder icon before the path is **Choose Folder…**: the folder
   panel on This Mac, a "Go to Folder" field on a remote machine (`~` is the
   home folder there). A folder's own menu has **Open as Root**.
-- **`..`** is a row above the tree, except at `/`. A double-click or a press (Return, VoiceOver) on it
-  makes the parent folder the root. ↑ on the tree's first row moves the keyboard to `..`, and ↓ moves it back.
-  The first ↓ on a tree with no selected row goes to the first row (`..` when it shows), and the first ↑ to the
-  last row.
-  `..` hides while the filter has text.
+- **`..`** is the tree's first row, except at `/`. It is a folder row like
+  the others: a click selects it, a double-click (or ⌘O, or a VoiceOver press)
+  makes the parent folder the root, and its menu has **Open as Root**. It
+  scrolls away with the rows, and hides while the filter has text.
+- **Sticky folders.** When the tree scrolls, each open folder above the view
+  stays at its top, nested, until its last row scrolls past, as in Xcode's
+  navigator. So the folders the rows are in always show.
 - **The tree** shows the root's listing first and lists a folder only when
   it opens. `.git` is hidden, and links to folders are folders. Files and
   folders whose name starts with `.` show only while Show Hidden Files is on.
   Its value stays with the card. Git's letters come after the first rows,
   from one `git status`, so a folder never opened still shows a dot for a
-  change inside. A listing asks git only which of its own names git ignores
-  (`git check-ignore`), and those are dimmed. Modified is the needs-you color,
-  added, untracked and renamed the finished color, and deleted the error
-  color. A root inside a repository, but not its root, shows no letters.
+  change inside. A folder shows the dot only for a change in `git status`
+  under it, never for the files git ignores. A listing asks git only which
+  of its own names git ignores (`git check-ignore`), and those are dimmed.
+  Modified is the needs-you color, added, untracked and renamed the finished
+  color, and deleted the error color. A root inside a repository, but not its
+  root, shows no letters.
 - **An empty folder** shows a folder icon and "This folder is empty" in the middle of the card.
+- **The find bar** sits under row 2, as the terminal's ⌘F bar does: a
+  rounded field ("Filter"), the number of matches, and a close button. It
+  opens with row 2's Filter, with ⌘F, or when the user types a letter in the
+  tree, which goes into the field. Esc, the close button or a second click on
+  Filter closes it and clears the filter. Return or ↓ in the field moves the
+  keyboard to the matches.
 - **The filter** matches file names, case blind, and shows the matches with
   their folders open, at most 5,000. The first letter loads every path under
   the root: in a repository the files git does not ignore (`git ls-files`),
   else every file, up to 8 MB of names. When none match, the middle of the
   card shows a magnifying glass and "No matching files". A tree that draws
-  anew starts with no filter. A kept one keeps its filter, and when it shows
-  again the field does not take the keyboard. ⌘F over the tree gives the
-  filter the keyboard.
-- **Opening.** A double-click or Return on a file shows it in the card. As in
+  anew starts with no filter. A kept one keeps its find bar and filter, and
+  when it shows again the field does not take the keyboard.
+- **Opening.** A double-click on a file shows it in the card. As in
   the Finder, a click on a folder's name only selects it, and a click on its
   chevron opens or closes it. So a double-click on a folder makes it the root,
   and the folder does not open first. ⌘ and ⌥ open as in
   [Opening](#opening).
+- **The selection.** A click on no row clears the selection, and so does a
+  click on a row 2 button. While the tree does not have the keyboard (the
+  path field, the find bar or another card has it), the selection shows in
+  gray, as in the Finder.
 - **Keys.** The tree has the keyboard when the card opens or gets the
-  keyboard, never by itself (a refresh, a tab shown again). ↑ and ↓ move, →
-  opens a folder, ← closes it or goes to the parent, Return opens a file or
-  opens and closes a folder. The row with the keyboard has a ring in the
-  accent from the first arrow key on. A click hides the ring again.
+  keyboard, never by itself (a refresh, a tab shown again). The row with the
+  keyboard has a ring in the accent from the first arrow key on. A click
+  hides the ring again. The keys follow Finder's list view:
+
+  | Key | Does | Finder |
+  |---|---|---|
+  | ↑ ↓ | move; the first ↓ on a tree with no selected row goes to the first row, the first ↑ to the last | the same |
+  | → ← | open and close a folder; ← on a closed row goes to its folder | the same |
+  | Return | renames the selected row in place, its name selected without the extension: Return saves, Esc cancels. A name in use, an empty one or one with `/` keeps the old name and says why in a toast | the same |
+  | ⌘O, ⌘↓ | open the selected row: a folder becomes the root, a file shows in the card | the same |
+  | ⌘↑ | the parent folder becomes the root | the same |
+  | ⌘← ⌘→, ⌘[ ⌘] | Back and Forward | ⌘[ ⌘] |
+  | a letter | opens the find bar with that letter | jumps to the first name with it |
+  | Space | nothing: there is no preview card | Quick Look |
+  | ⌘⌫ | nothing: the plugin API has no Trash | Move to Trash |
+  | ⌘D | Split Right, the app's key | Duplicate |
+  | Esc | closes the find bar | the same in the search field |
+  | ⇧↑ ⇧↓ | extend the selection | the same |
+  | ⌘-click | opens in a new tab ([Opening](#opening)) | adds to the selection |
+
 - The tree and the letters update after each change under the root while
   the card shows. The open folders list again. A root that cannot be listed
   shows "Can't list ‹root›" in the middle of the card, under a folder icon.
+- **The Git status bar.** A one-line bar under the tree, only while the root
+  is inside a Git repository: the branch, the number of changes in the
+  repository (in the needs-you color, none when it has none), then ↑2 ↓1 when
+  the branch is ahead of or behind its upstream. At its right end, **Open in
+  Git** (`source.branch`) opens Git's home on that repository in a new tab at
+  the end of the workspace. It updates with the tree's letters, after each
+  change under the root, with no polling of its own. A folder outside a
+  repository has no bar.
 
 ### File
 
@@ -685,7 +723,7 @@ over the card that uses it, because a disabled menu item swallows its key.
 | ⌘[ ⌘] | Back, Forward in the card | while the card has a place that way. Else they select a pane |
 | ⌘← ⌘→ | Back, Forward in the card | while no text field in the page has the keyboard: there they move the caret |
 | ⌘S | Save (File menu): the editor's text to disk | only while File or Markdown has the keyboard |
-| ⌘F | Find… (Edit menu): the editor's find bar | on File and Markdown. Disabled on the tree, Preview, the Git home and a diff |
+| ⌘F | Find… (Edit menu): the editor's find bar; on the tree, its find bar | on File, Markdown and the tree. Disabled on Preview, the Git home and a diff |
 | ⌥⌘F | Find and Replace: the find bar with its Replace row (the page's own key) | on File and Markdown, in a file that is not read only |
 | ⌘G | Find Next (Edit menu) | always. Over a terminal it steps the find bar |
 | ⇧⌘G | Find Previous (Edit menu) | only while File or Markdown has the keyboard. Elsewhere ⇧⌘G is Go to Directory |

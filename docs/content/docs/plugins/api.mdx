@@ -168,6 +168,9 @@ export interface Files {
   /** Writes a new file beside the old one and moves it over. With `over`, fails with `changed` if the file's hash
    *  differs. Needs `files:write`. */
   write(path: string, data: string | Uint8Array, options?: { over?: string }): Promise<{ hash: string }>
+  /** @since 2. Renames or moves a file or a folder; never replaces: fails when something is at `to`. Needs
+   *  `files:write`. */
+  move(path: string, to: string): Promise<void>
   /** Calls fn after a change under path, only while the card shows, and once on showing again. */
   watch(path: string, fn: () => void): Off
 }
