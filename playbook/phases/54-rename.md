@@ -1,38 +1,38 @@
-# Phase 54: rename the app to Ovvi
+# Phase 54: the name Ovvi everywhere
 
 Goal: the app, the repository and every file in it use the name Ovvi. The website is
-[ovvi.dev](https://ovvi.dev). Behavior does not change, and nothing that worked before breaks: the app, the `ovvi`
+[ovvi.dev](https://ovvi.dev). Behavior does not change, and nothing breaks: the app, the `ovvi`
 command, the plugin runtime and pi-hkandala still agree on every name they share.
 
-The user's words: "we are rebranding the app [...] to ovvi, i am buying a domain name ovvi.dev, so let's make
-sure to update everywhere to use this new name, make sure no refreences to [it] at all, don't even reference saying
-that's the old name or anything, grep throug entire repo and update at all files including old research files etc and
-update the name to ovvi. and we should rename repo as well to ovvi, make sure to udpate readme, and link ovvi.dev
-wherever necessary" and "during the rename, review all renames, don't blindly do grep and replace it, you can do for
-certain places find and replace, but we need to make sure nothing breaks it".
+The user's words: "[...] i am buying a domain name ovvi.dev, so let's make sure to update everywhere to use this new
+name, [...] grep throug entire repo and update at all files including [...] research files etc and update the name to
+ovvi. and we should rename repo as well to ovvi, make sure to udpate readme, and link ovvi.dev wherever necessary" and
+"[...] review all renames, don't blindly do grep and replace it, you can do for certain places find and replace, but
+we need to make sure nothing breaks it".
 
 Decided with the user:
 - The bundle id is `dev.ovvi.app`.
 - Git history stays as it is.
-- Screenshots that show the old name in their pixels stay as they are.
+- Screenshots stay as they are, whatever their pixels show.
 - The user sets up the domain's DNS.
-- The repository has no migration code and no mention of the old name. One-off steps on the user's Mac (settings,
-  folders, herdr labels, the GitHub rename) run once, from a script outside the repository.
+- The repository has no migration code and names only Ovvi. One-off steps on the user's Mac (settings, folders,
+  browser data, herdr labels, the installed app, the GitHub rename) run once, from a script outside the repository.
 
 ## How
 
 1. **A script for the mechanical part.** It changes the text of every tracked file and then every path, with
-   `git mv`. The specific forms go first: the old docs address becomes `https://ovvi.dev`, and the old bundle id
+   `git mv`. The specific forms go first: the docs address becomes `https://ovvi.dev`, and the bundle id
    becomes `dev.ovvi.app` (with its suffixes `.uitests`, `.drag`, `.herdr.<session>`, `.plugin-log` and
-   `.savedState`). Then the three cases of the bare word become `Ovvi`, `ovvi` and `OVVI`. It runs `swiftformat`,
+   `.savedState`). Then the three cases of the app's word become `Ovvi`, `ovvi` and `OVVI`. It runs `swiftformat`,
    and it puts the columns in Markdown code blocks back where they were. It fails when a rule matches nothing or
-   when any old name is left. The script lives outside the repository, so the rename can be built again on the
-   latest main.
+   when any previous identifier is left. The script lives outside the repository, so the rename can be built
+   again on the latest main.
 2. **Hand fixes, one commit each,** for what a replace cannot see (the table below).
 
 ## Classes
 
-Every distinct form of the old name, found case-insensitive in the contents and the paths of every tracked file.
+Every distinct form of the previous identifiers, found case-insensitive in the contents and the paths of every
+tracked file.
 
 | Class | Examples (new form) | How | Must change in step |
 |---|---|---|---|
@@ -55,12 +55,13 @@ Every distinct form of the old name, found case-insensitive in the contents and 
 | The repository | `github.com/hkandala/ovvi`, `~/code/ovvi` | script | the GitHub rename and the checkout's move (one-off steps) |
 | Columns after a shorter name | wrapped Swift arguments, comment and box columns in Markdown code blocks | script (`swiftformat`, a realign step) | none |
 | Pictures | `resources/branding/ovvi-*.png`; the icon contact sheet's title | `git mv`; the sheet rendered again by hand | `resources/branding/README.md` |
-| Words that explain the old name | none found | | |
+| Hex in a fixed id | This Mac's website data store `6F767669-…` | by hand | the one-off steps move the store's folder |
+| The test times | `scripts/test-times.tsv` stays sorted by time, then name | script | none |
 | Links to the website | the README's first lines, the `ovvi` script's header | by hand | `cli.mdx` (it holds the script) |
 
 ## Checks
 
-- No old name: `git grep -i` on the contents and on `git ls-files` finds nothing. `grep -rail` over the tree
+- No previous identifier: `git grep -i` on the contents and on `git ls-files` finds nothing. `grep -rail` over the tree
   (without `.git`, `node_modules` and build output) finds nothing, binary files (the project file, the plists, the
   PNGs) included.
 - `make lint build build-tests test`, with npm offline. `make web` builds the plugins. `cd docs && pnpm build`.
@@ -72,19 +73,17 @@ Every distinct form of the old name, found case-insensitive in the contents and 
 ## Findings
 
 - **Cause.** A replace cannot see code that counts characters: four parsers dropped a fixed number of characters
-  for a prefix that is now one shorter. A test hash over a command that names a folder changed too.
-- **Cause.** The new test names changed how ties sort into shards, and two old test bugs showed. Python's
-  `http.server` looks up the host's name at bind, and macOS then asks for the local network: the prompt stayed over
-  the window and failed the shard's later hovers and clicks. The scroll test left its pane scrolled up, and a later
-  test read the old view.
+  for a prefix that is now one shorter. A test hash over a command that names a folder changed too, and a fixed UUID
+  spelled the app's word in hex.
+- **Cause.** The new test names changed how ties sort into shards, and two test bugs showed. Python's `http.server`
+  looks up the host's name at bind, and macOS then asks for the local network: the prompt stayed over the window and
+  failed the shard's later hovers and clicks. The scroll test left its pane scrolled up, and a later test read that
+  view instead of its command's output.
 - **Fix.** The test servers bind with `socketserver.ThreadingTCPServer` (as `e2e-helper.py` does), and the scroll
   test scrolls back down.
-- **Decisions.** The old phase files keep their history with the new name. Herdr's presence tokens of the old app
-  expire 30 s after it quits, so the one-off steps rename only labels.
-- **Runs.** `git grep -ai` and the paths find nothing; `make lint build build-tests test` (npm offline), the plugins
-  and `pnpm build` pass; the key check passes and fails on the script's commit alone. The on-demand suite passed.
-  Full runs this day take about 1.5 times the listed test times: a shard can pass every test and still meet the
-  job's 20-minute limit, on main too.
-- **For the user.** The installed app keeps the old name until the new build is installed. Its settings, folders
-  and herdr labels move with the one-off steps. Chat-view agents that the old app started run with paths under the
-  old folder: relaunch them with Chat.
+- **Decisions.** Earlier phase files tell their history with the name Ovvi. Herdr's presence tokens live 30 s, so
+  the one-off steps rename only labels.
+- **Runs.** RUNS
+- **For the user.** Install the new build (`make install`): the one-off steps then move its settings, folders,
+  browser logins and herdr labels, and put the previous build in the Trash. macOS asks again for Notifications and the
+  local network. Chat-view agents started before the steps keep their launch paths: relaunch them with Chat.
