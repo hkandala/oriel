@@ -171,17 +171,18 @@ everything end to end, and test and review everything".
 - **Fix:** the glass stays, untinted, and a plain black 0.5 layer over it gives the darkness its tint gave. The active
   window reads as Track G's to the level (sidebar 30.7 and 35.3, card 33.9 and 42.1 over the wallpaper and a white
   text page, against 30.6, 35.3, 33.7, 42.1), with the same spread over the text page (35–36). Inactive, the
-  untinted glass still darkens a little: 0.9 to 1.8 levels, at most 3 at one pixel (Track G: 18 to 26 lighter).
+  untinted glass still darkens a little: 0.9 to 1.8 levels, at most 3 at one pixel (Track G: 18 to 26 lighter). Its
+  narrower inactive blur still hides the page behind: the sidebar's spread over the text page is 34–35.
   Light Glass and Classic never changed. Before Track G (no glass) both states matched, but the window was lighter
-  over a white page (47) and the page's text showed through as streaks (spread 13 over the wallpaper against 5).
+  over a white page (47) and less even over the wallpaper (a spread of 13 levels in a probe, against 5 with the glass).
 - **Decisions.** A first fix (dd929c4f) swapped the glass for a within-window `NSVisualEffectView`: it matched to the
   pixel, but the user wants the window to stay glass, so this fix reverts that swap and moves only the tint. Black
   0.5 matched Track G best of 0.4, 0.5 and 0.6 in a probe. The selected tab and row capsules stay the system glass and
   still dim in an inactive window, as the user chose. The cost is Track G's: the same glass layer.
 - **Runs.** The new test reads an unselected workspace row with the window key, then with Settings key: red on Track
   G's code locally (26, then 40), green on the fix (26, then 24: the glass's own step; the test allows 4).
-- **For the user.** With Reduce Transparency on, the blur and the glass turn opaque as before (not toggled here: it is
-  a setting of the whole Mac).
+- **For the user.** Reduce Transparency is not checked: it is a setting of the whole Mac. The blur and the glass
+  should turn opaque as before, as nothing in that path changed.
 - **The Settings window's look.** The user's words: "very shoddy job on the settings window, it looks like mess so many
   alignment issues, spacing issues, including the ttraffic light button is to fully corner, looks like you haven't done
   any basic ui checks at all by taking screenshots, so invoke an agent let it take screenshots of every setting page and

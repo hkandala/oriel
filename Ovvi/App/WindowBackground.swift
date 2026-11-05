@@ -9,8 +9,6 @@ struct WindowBackground: View {
         if look.style == .glass {
             Frosted().overlay(look.backdrop.blendMode(BlendMode.overlay))
                 .overlay {
-                    // A plain shade, not the glass's own tint: macOS draws that tint grey and faint in an inactive
-                    // window, so the window would turn lighter and greyer.
                     if let shade = look.glassShade {
                         Color.clear.glassEffect(.regular, in: .rect).overlay(shade)
                     }
