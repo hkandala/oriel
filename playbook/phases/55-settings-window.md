@@ -230,3 +230,7 @@ everything end to end, and test and review everything".
   file in a `TemporaryItems` folder is copied into a new `ovvi-*` folder in `$TMPDIR`, with its name, and the copy's
   path is pasted; other paths paste as they are. **Decisions:** not every drop is copied: a repo file or a folder
   must keep its real path.
+- **Runs.** The extended drop test red on the old code at its copy check (42131470067: the TemporaryItems path pasted)
+  and green with the remote drop test on 47f96d29 (42131922057, Executed 2).
+- **For the user:** drag a screenshot's floating thumbnail onto an agent's card: it reads the image. Once on a
+  remote machine's card too (untried with a real thumbnail).
