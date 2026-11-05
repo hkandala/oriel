@@ -145,7 +145,7 @@ final class Latency {
     }
 
     /// The sidebar's pages after a swipe's lift: their offset at each frame for 0.8 s, in ms from the lift; first the
-    /// ms to the last change, last the ms to the session's show (-1: none): "swipe 230ms 0:145,8:152,… 190".
+    /// ms to the last change, last the ms to the session's show (-1: none): "swipe 230ms 0:145.0,8:152.4,… 190".
     func lifted(_ offset: Double) {
         guard Self.isOn else { return }
         lifted = ProcessInfo.processInfo.systemUptime
@@ -154,7 +154,7 @@ final class Latency {
         slid(offset)
         Task {
             try? await Task.sleep(for: .seconds(0.8))
-            let path = slide.map { "\($0.0):\(Int($0.1.rounded()))" }.joined(separator: ",")
+            let path = slide.map { "\($0.0):\(($0.1 * 10).rounded() / 10)" }.joined(separator: ",")
             record("swipe \(slide.last?.0 ?? 0)ms \(path) \(shownAt)")
             lifted = nil
         }

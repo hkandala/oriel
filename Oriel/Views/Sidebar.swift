@@ -332,17 +332,15 @@ extension Sidebar {
 
     /// A swipe's lift, with the fingers' speed in points a second: the pages slide on from that speed to the next
     /// page that way, or to the nearest one when slow, with the session spring; the window shows that session as
-    /// the slide ends. The pages are the app's own, not a scroll view's: a scroll view's paging snap took about
-    /// 0.4 s, and a slide asked of it on a quick flick stood still until a timeout, then snapped back
-    /// while the window showed the other session.
+    /// the pages arrive. The pages are the app's own: a scroll view's paging snap took about 0.4 s, and on a quick
+    /// flick stood still until a timeout, then snapped back while the window showed the other session.
     private func lift(_ speed: Double) {
         let width = max(width - gap, 1), page = swipe.slide
         let index = Swipe.landing(page, speed: speed, count: pages.list.count)
         guard pages.list.indices.contains(index) else { return }
         let target = pages.list[index]
         Latency.shared.lifted(page * width)
-        // Shown once the slide looks done, not in its long tail; first drawn at the lift, the session held the
-        // slide's first frames.
+        // Shown once the pages arrive; shown at the lift, the session held the slide's first frames.
         let still = reduceMotion && !Animation.forceMotion
         slide(to: index, with: still ? nil : .session(speed: speed / width, distance: Double(index) - page)) {
             if target !== pages.current {
@@ -364,15 +362,17 @@ extension Sidebar {
             then()
             return
         }
-        let slide = {
-            withAnimation(animation, completionCriteria: .logicallyComplete) {
-                swipe.slide = Double(index)
-            } completion: {
-                if swipe.moves == move {
-                    swipe.moving = false
-                    then()
-                }
+        // Once drawn on their place (`Slid`): logically complete, a slow lift's pages were up to 3 pt short, and the
+        // show's 100 ms of main thread held them there, then they jumped. `.removed`: a window that draws no frame.
+        let arrive = {
+            if swipe.moves == move, swipe.moving {
+                swipe.moving = false
+                then()
             }
+        }
+        let slide = {
+            swipe.arrived = arrive
+            withAnimation(animation, completionCriteria: .removed, { swipe.slide = Double(index) }, completion: arrive)
         }
         guard swipe.moving else {
             // The other pages first, in an update of their own: in the slide's, their offset from rest would too.

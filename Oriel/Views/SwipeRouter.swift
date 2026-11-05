@@ -218,6 +218,8 @@ final class Swipe {
     var moving = false
     /// Counts the moves, so only the latest one's end sets the pages at rest.
     @ObservationIgnored var moves = 0
+    /// A slide's end, run once the pages are drawn on their place (`Slid`).
+    @ObservationIgnored var arrived: (() -> Void)?
 
     /// The page of `count` that a lift at `page` (from the first) lands on, from the fingers' `speed` in points a
     /// second: the next one that way, or the nearest when slow.
@@ -235,7 +237,8 @@ struct Pager<Content: View>: View {
 
     var body: some View {
         // At rest it holds only the page in view.
-        content.modifier(Slid(offset: swipe.moving ? swipe.slide * width : 0, swipe: swipe))
+        let offset = swipe.moving ? swipe.slide * width : 0
+        content.modifier(Slid(offset: offset, target: offset, swipe: swipe))
             .frame(width: width, alignment: .leading)
             .frame(maxHeight: .infinity)
             .clipped()
@@ -245,6 +248,8 @@ struct Pager<Content: View>: View {
 /// The pages' offset, animatable, so a test can read it at each frame of a slide.
 private struct Slid: ViewModifier, Animatable {
     var offset: Double
+    /// Where the offset goes: not animated.
+    let target: Double
     let swipe: Swipe
     var animatableData: Double {
         get { offset }
@@ -255,6 +260,11 @@ private struct Slid: ViewModifier, Animatable {
         if swipe.moving {
             swipe.drawn = offset
             Latency.shared.slid(offset)
+            // On its place within a pixel: the slide ends after this frame commits.
+            if abs(offset - target) < 0.5, let arrived = swipe.arrived {
+                swipe.arrived = nil
+                Task { arrived() }
+            }
         }
         return content.offset(x: -offset)
     }

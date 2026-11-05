@@ -165,6 +165,16 @@ extension OrielUITests {
         try await Task.sleep(for: .seconds(1))
         XCTAssertEqual(header, two)
         XCTAssertEqual(name.frame.minX, place, accuracy: 1)
+
+        // Slowly past half a page, a rest, a lift: the spring from rest is logically complete still about 1.4 % of its
+        // way short (1.2 pt here). The session shows only once the pages are drawn on their place: shown before, its
+        // 100 ms of main thread held them short, then they jumped.
+        try await Self.post("\(one)/swipe", Data("\(center) \(-2 * forward) 70 200".utf8))
+        try await Task.sleep(for: .seconds(1.5))
+        XCTAssertEqual(header, one)
+        let (slow, slowPath, slowShown) = try XCTUnwrap(swipes().last, "no swipe moved")
+        XCTAssertGreaterThan(slowShown, 0, slow)
+        XCTAssertEqual(slowPath.last { $0[0] < slowShown }?[1] ?? -1, 0, accuracy: 0.5, slow)
     }
 
     /// A quick flick between sessions: the fingers on the pad for 48 ms, then momentum. The pages slide on

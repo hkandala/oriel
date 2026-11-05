@@ -1027,3 +1027,36 @@ CI runs and on-demand) at about 2–3 h.
   (`lookingTabID`). Closing a window needs no code: the next key window, main or floating, or the page switch, sets the pane again.
 - **For the user.** Open a done agent from the Agents view, switch to another app and back (still Done), then open
   another agent: the first moves to Idle.
+
+### Track M
+
+- **What the capture shows.** Both sessions' cards are terminals (Claude Code and pi TUIs, glow), not chat cards: the
+  shift between keyframes 2 and 3 is Claude Code's own redraw (its tool output lost a line), not Oriel. Frame by frame
+  at 240 fps, every session swipe ends the same way. The sidebar's page comes to about 2 pt short of its place. Then
+  no frame is drawn for 83–125 ms. Then the window shows the new session with the page still 1.5 pt short, and the
+  next frame jumps it onto its place. Nothing in a card moves, apart from a TUI's timer updating as its stream comes
+  back.
+- **Cause.** The window showed the session when the slide's spring was *logically* complete. That is at its 0.2 s,
+  where a spring from rest is still about 1.4 % of its way short. So a slow swipe, one that rests before the lift,
+  ended 1–3 pt short. The show takes about 100 ms of main thread (it builds the new session's page). That froze the
+  slide's last frames short of the page, and the page jumped onto it afterwards. A quick flick goes on at the fingers'
+  speed and ends within a fraction of a point, which is why the old tests never saw it.
+- **Bisect.** No regression found. The slide and its show have not changed since Oct 26 (`b80e59f1`). The same
+  probe (two sessions, a ticking TUI in a two-pane tab, 16 swipes) gave the same show cost of 85–135 ms in a Debug
+  build on `fa375b18` (Oct 29), `efa26b24` (your build) and main, with the same timing. The jump depends on how the
+  user swipes: how far the page still had to go at the lift, and how slowly.
+- **Fix.** The session shows once the pages are *drawn* within half a point of their place. `Slid` sees each frame's
+  offset and ends the slide after the frame that drew it there. The spring's full end (`.removed`) is kept only as a
+  fallback for a window that draws no frame. A slow swipe's session now shows about 45 ms later (252 ms after the
+  lift, not 205), with the page 0.3 pt from its place (before: 1.3 pt, and it jumped after the hold). A quick flick is
+  unchanged. The swipe record now keeps tenths of a point.
+- **Runs.** `testSessionSwipeFollowsTheFingersAndSlidesOnFromTheirSpeed` gets a slow swipe that rests before it lifts,
+  and checks that the page is within 0.5 pt of its place in the last frame before the show. Locally on the old code:
+  red, "1.6 is not equal to 0.0 +/- 0.5". On the new code: green, with the quick flick test.
+- **Recordings.** The UI test's screen recordings, before and after:
+  `/tmp/oriel-shots/t53m/before-swipe-test.mp4` and `after-swipe-test.mp4`. Each frame's offsets:
+  `before-latency.txt` and `after-latency.txt`. I made no screen recording at 120 fps, because the Mac was in use.
+- **Left.** The new session still appears about 100 ms after its page lands: that is the cost of building its page.
+  Making the show cheaper is a separate job.
+- **For the user.** Swipe slowly between two sessions on the sidebar: drag past half a page, hold the fingers still,
+  then lift. The page should settle with no stop and jump at the end. Then flick quickly: the same as before.
