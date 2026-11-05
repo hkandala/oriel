@@ -54,6 +54,29 @@ extension OvviUITests {
                       #"{"error":{"code":"no_ovvi""#)
     }
 
+    /// A session started after Ovvi read the machine's session list is a pane argument too: Ovvi reads the list again
+    /// before it says the session does not run.
+    func testTheOvviCommandFloatsAPaneOfASessionStartedLater() async throws {
+        let five = try env("OVVI_SESSION5")
+        if await (try? Self.snapshot(five)) != nil {
+            try await Self.post("\(five)/stop")
+        }
+        relaunch()
+        XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
+        try await waitForPrompt("w1:p1")
+        try await expectShown(one, "w1:p1")
+        let ovvi = Self.ovviCommand
+        try await run("until [ -x \(ovvi) ]; do sleep 0.1; done", in: "w1:p1", "script", 0)
+        // Answered after the list was read: Ovvi takes requests in order, after its first snapshot's list.
+        try await run("\(ovvi) float \(five)/w1:p1", in: "w1:p1", "stopped", 1, "ovvi: no herdr session \(five)")
+        let (_, pane) = try await shown(running(five))
+        try await run("\(ovvi) float \(five)/\(pane)", in: "w1:p1", "later", 0, "floating: true")
+        let window = app.windows.containing(.any, identifier: "float.\(pane)").firstMatch
+        XCTAssertTrue(window.exists(within: 5))
+        try await run("\(ovvi) unfloat \(five)/\(pane)", in: "w1:p1", "back", 0, "floating: false")
+        XCTAssertTrue(window.vanishes(within: 3))
+    }
+
     /// The `ovvi` command on Key Host (RemoteTests' sshd, CI only): Ovvi writes the script there, hears the ring over
     /// the relay, takes the request
     /// from that machine's mailbox and floats the pane in this Mac's window.

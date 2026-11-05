@@ -82,3 +82,16 @@ everything end to end, and test and review everything".
 - **Runs.** The four drag and chat tests (both file drops, the spring-load, pi's chat) green in chosen-tests runs
   42096736451 and 42096746914 on c38ecebe and 42097821135 on 70a780e8 (docs only on top); 42092809564 on 0c542f9f
   found the second leg's stuck session.
+
+### Follow-up fixes
+
+- **Cause, `ovvi float <session>/<pane>` refused a running session.** A command naming another session checked the
+  session list that Ovvi reads at connect and in Open Session. A session started later (pi-herd's, whose server
+  restarted after Ovvi launched) was "not running", so pi-herd's float failed and it fell back to a herdr popup that
+  Ovvi does not show; the next open hit herdr's "a popup pane is already open". **Fix:** a session missing from the
+  list makes Ovvi read the list again once before it refuses. The other readers of the list read it fresh already
+  (Open Session on appear, the "not running" page on each failure).
+- **Fix, pi-herd** (pi-hkandala): a failed float shows Ovvi's error and opens no popup; a popup of pi-herd's that
+  nobody sees no longer blocks the next open.
+- **For the user:** with Ovvi open, start a pi agent hidden (a new pi-herd server), then open it from pi's agents
+  tab: it floats.

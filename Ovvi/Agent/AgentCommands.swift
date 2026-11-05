@@ -176,13 +176,18 @@ struct AgentCall {
 
     /// A pane argument: `w1:p3` in the asking session, or `‹session›/‹pane›` of a session on the same machine. The
     /// machine is always the asking pane's, so no argument can reach another one.
-    func target(_ argument: String) throws -> PaneTarget {
+    func target(_ argument: String) async throws -> PaneTarget {
         let parts = argument.split(separator: "/", maxSplits: 1, omittingEmptySubsequences: false).map(String.init)
         let (session, id) = parts.count == 2 ? (parts[0], parts[1]) : (store.session, argument)
         guard !id.isEmpty, !id.hasPrefix("-"), !id.contains("/"), Session.isValidName(session),
               !id.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains)
         else { throw AgentError(code: "bad_argument", message: "\(argument) is not a pane") }
-        guard session == store.session || store.sessions.contains(where: { $0.name == session && $0.running }) else {
+        let runs = { store.sessions.contains { $0.name == session && $0.running } }
+        // The list is the one read at connect: a session started since needs a new one.
+        if session != store.session, !runs() {
+            await store.loadSessions()
+        }
+        guard session == store.session || runs() else {
             throw AgentError(
                 code: "pane_not_found",
                 message: "no herdr session \(session) runs on \(store.machine.name)",

@@ -18,7 +18,7 @@ extension AgentCommand {
         --replace does not take.
         """,
     ) { call in
-        let new = call.flag("--new"), place = try call.place()
+        let new = call.flag("--new"), place = try await call.place()
         let first = try call.argument("kind or path")
         var words: [String] = []
         while let word = try call.optionalArgument() {
@@ -51,7 +51,7 @@ extension AgentCommand {
         name: "reveal", usage: "reveal <pane>", summary: "Points the user at a pane, without moving their view",
         help: "In view, its card's border flashes; else each window that shows the session says so, with Show.",
     ) { call in
-        let target = try call.target(call.argument("pane"))
+        let target = try await call.target(call.argument("pane"))
         try call.done()
         let (store, pane) = try call.found(target)
         let shown = store.inView.contains(pane.id)
@@ -70,7 +70,7 @@ extension AgentCommand {
         when it has the chat view. arg is a card's argument, a terminal's folder.
         """,
     ) { call in
-        let target = try call.target(call.argument("pane"))
+        let target = try await call.target(call.argument("pane"))
         try call.done()
         let (store, pane) = try call.found(target)
         var json: [String: Any] = ["pane": pane.id, "title": store.title(pane), "floating": target.floating != nil,

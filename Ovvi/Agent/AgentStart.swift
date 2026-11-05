@@ -13,8 +13,10 @@ extension AgentCommand {
         user turned off Settings ▸ Agents ▸ When an agent sends one ("notified": false).
         """,
     ) { call in
-        let target = try call.value("--pane").map(call.target)
-            ?? call.asking
+        var target = call.asking
+        if let named = try call.value("--pane") {
+            target = try await call.target(named)
+        }
         let title = try call.argument("title"), body = try call.optionalArgument() ?? ""
         try call.done()
         let (store, pane) = try call.found(target)
@@ -44,7 +46,12 @@ extension AgentCommand {
             throw AgentError.usage("--replace takes a browser or plugin card")
         }
         // The options first, so the name is the next argument; a bad name is told before a bad place.
-        let place = Result { try call.place() }
+        let place: Result<AgentPlace, any Error>
+        do {
+            place = try await .success(call.place())
+        } catch {
+            place = .failure(error)
+        }
         let name = try call.argument("name")
         try call.done()
         guard let agent = Chooser.agents.first(where: { $0.command == name }) else {
@@ -72,7 +79,7 @@ extension AgentCommand {
         busy; this pane is self.
         """,
     ) { call in
-        let target = try call.target(call.argument("pane"))
+        let target = try await call.target(call.argument("pane"))
         try call.done()
         guard target.session != call.store.session || target.id != call.pane else {
             throw AgentError(code: "self", message: "pane \(target.id) is the asking one: its agent would end first")
@@ -104,7 +111,8 @@ extension AgentCommand {
         name: "view", usage: "view <pane> chat|tui", summary: "Switches a chat agent's card to its chat or its TUI",
         help: "As the card's Chat | TUI switch, in every window of the session.",
     ) { call in
-        let target = try call.target(call.argument("pane")), view = try call.argument("chat|tui")
+        let target = try await call.target(call.argument("pane"))
+        let view = try call.argument("chat|tui")
         try call.done()
         guard ["chat", "tui"].contains(view) else { throw AgentError.usage("\(view) is not chat or tui") }
         let (store, pane) = try call.found(target)

@@ -10,7 +10,7 @@ extension AgentCommand {
         """,
     ) { call in
         let onTop = call.flag("--on-top")
-        let target = try call.target(call.argument("pane"))
+        let target = try await call.target(call.argument("pane"))
         try call.done()
         let machine = call.store.machine
         guard let window = call.store.windows.first else {
@@ -37,7 +37,7 @@ extension AgentCommand {
     static let unfloat = AgentCommand(
         name: "unfloat", usage: "unfloat <pane>", summary: "Puts a floating pane back in its tab",
     ) { call in
-        let target = try call.target(call.argument("pane"))
+        let target = try await call.target(call.argument("pane"))
         try call.done()
         guard let (page, terminalID) = target.floating else {
             throw AgentError(code: "not_floating", message: "pane \(target.id) does not float")
@@ -51,7 +51,10 @@ extension AgentCommand {
         summary: "Evens out the splits of a pane's tab, this pane's by default",
         help: "As Balance Splits: each run of side-by-side or stacked panes gets equal shares.",
     ) { call in
-        let target = try call.optionalArgument().map(call.target) ?? call.asking
+        var target = call.asking
+        if let named = try call.optionalArgument() {
+            target = try await call.target(named)
+        }
         try call.done()
         let (store, pane) = try call.found(target)
         // Its tab once the writes before it are done: they can move the pane.

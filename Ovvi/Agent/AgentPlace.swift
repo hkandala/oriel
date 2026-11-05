@@ -14,16 +14,16 @@ enum AgentPlace {
 extension AgentCall {
     /// Reads the place's options, at most one of `--beside <pane> [--down]`, `--down`, `--tab`, `--float` and
     /// `--replace <pane>`.
-    mutating func place() throws -> AgentPlace {
+    mutating func place() async throws -> AgentPlace {
         let down = flag("--down"), tab = flag("--tab"), float = flag("--float")
         let beside = try value("--beside"), replace = try value("--replace")
         guard [beside != nil || down, tab, float, replace != nil].count(where: \.self) <= 1 else {
             throw AgentError.usage("give one place: --beside <pane> [--down], --tab, --float or --replace <pane>")
         }
         if let replace {
-            return try .replace(target(replace))
+            return try await .replace(target(replace))
         }
-        return tab || float ? .tab(float: float) : try .beside(target(beside ?? pane), down: down)
+        return tab || float ? .tab(float: float) : try await .beside(target(beside ?? pane), down: down)
     }
 
     /// A new pane at the place (not `replace`), in the session of the pane it goes beside, made in the request's
