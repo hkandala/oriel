@@ -323,7 +323,16 @@ private struct WindowContent: View {
         .testValue("app.links", "Links", Links.shared.recorded.joined(separator: " "), shown: Links.record)
         .testValue("app.latency", "Latency", Latency.shared.recorded.joined(separator: "; "), shown: Latency.isOn)
         .testValue("app.frames", "Frames", FrameProbe.shared.recorded, shown: FrameProbe.isOn)
-        .onChange(of: panel, initial: true) { pages.panelOpen = panel != nil }
+        // No card takes a panel's keys, nor a claim from before it opened (a new browser card's took the palette's);
+        // a closed panel gives them back. In one handler: the keys go back only once the panel counts as closed.
+        .onChange(of: panel, initial: true) { old, new in
+            pages.panelOpen = new != nil
+            if new != nil {
+                pages.terminals.dropClaims()
+            } else if old != nil {
+                page.focusKeyboardCard()
+            }
+        }
         // The sidebar and the Agents view count as drawn changes too.
         .onChange(of: "\(panel.map { "\($0)" } ?? "") \(sidebar) \(agents)", initial: true) {
             Latency.shared.panel = $1
@@ -347,12 +356,6 @@ private struct WindowContent: View {
         .onChange(of: sidebar) {
             if sidebar, panel == .workspaces {
                 panel = nil
-            }
-        }
-        // A closed panel gives the keys back.
-        .onChange(of: panel == nil) { _, closed in
-            if closed {
-                page.focusKeyboardCard()
             }
         }
         .onChange(of: page.shownTerminals) { pages.showTerminals() }

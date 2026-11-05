@@ -311,11 +311,12 @@ struct BrowserToolbar: View {
     }
 
     /// From the next turn (a first responder set during an update is undone), again every 50 ms while a card just
-    /// made is not in its window yet, as long as it is still this card's turn.
+    /// made is not in its window yet, as long as it is still this card's turn and no panel has the keys.
     private func focus(tries: Int) {
         DispatchQueue.main.asyncAfter(deadline: .now() + (tries == 10 ? 0 : 0.05)) {
             guard !editing, tries > 0, let pane = page.store.pane(browser.paneID),
-                  page.floats(pane) || page.keyboardCard(pane.tabID) === pane else { return }
+                  page.floats(pane) || page.terminals.pages?.panelOpen != true && page.keyboardCard(pane.tabID) === pane
+            else { return }
             editing = true
             focus(tries: tries - 1)
         }

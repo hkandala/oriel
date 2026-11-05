@@ -79,6 +79,14 @@ everything end to end, and test and review everything".
   hides, and the test sent Enter once it hid: the Enter reached pi first (the blank line before `/tree` in the
   pane). Not the Settings window. **Fix:** the test waits for `/tree` in the pane before its Enter.
 
+- **Cause, the palette after Open Browser Here** (42099119524, shard 4). ⌘K right after Open Browser Here: the
+  recording shows the palette's field take the keyboard and lose it half a second later, to no visible field. The new
+  browser card's keyboard claims (its address field's retries, a claim kept while its state file is read) went on
+  after the palette opened, and a card asking the registry for the keys got them too: nothing kept a panel's keys.
+  **Fix (product):** while a panel is open no card of the window takes the keys (the registry's `focus`, the address
+  field's retries), claims from before it opened are dropped, and its close gives them to the keyboard card, all in
+  one `onChange` so the keys go back only once the panel counts as closed. No new test: the race needs a claim that
+  lands after ⌘K; the browser test repeats it.
 - **Runs.** The four drag and chat tests (both file drops, the spring-load, pi's chat) green in chosen-tests runs
   42096736451 and 42096746914 on c38ecebe and 42097821135 on 70a780e8 (docs only on top); 42092809564 on 0c542f9f
   found the second leg's stuck session.

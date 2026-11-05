@@ -254,6 +254,8 @@ final class PaneViewRegistry {
     /// Gives the keyboard to this terminal. A view that left the window with the keyboard
     /// would take it back when its tab returns; this one wins instead.
     func focus(_ terminalID: String) {
+        // A panel's keys: its close gives them to the keyboard card.
+        guard pages?.panelOpen != true || pages?.floats(terminalID) == true else { return }
         dropClaims(but: terminalID)
         // A card that shows its chat: the reply box.
         if let chat = pages?.page(of: terminalID)?.store.chats[terminalID], chat.showsChat, chat.live, !chat.drawer {
@@ -266,7 +268,7 @@ final class PaneViewRegistry {
     }
 
     /// Per window: a floating window's terminals keep their claims.
-    private func dropClaims(but terminalID: String) {
+    func dropClaims(but terminalID: String? = nil) {
         for (id, terminal) in terminals where id != terminalID && pages?.floats(id) != true {
             terminal.view.dropClaim()
         }
