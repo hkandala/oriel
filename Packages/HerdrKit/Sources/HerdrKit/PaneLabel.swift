@@ -19,7 +19,7 @@ public struct PaneLabel: Equatable, Sendable {
     /// thread's time in a swipe across tabs).
     public init?(_ label: String?) {
         guard let label, label.hasPrefix("ovvi:") else { return nil }
-        let body = label.dropFirst(6), head = body.prefix { $0 != " " }
+        let body = label.dropFirst(5), head = body.prefix { $0 != " " }
         guard let hash = head.firstIndex(of: "#") else { return nil }
         let name = head[..<hash], iid = head[head.index(after: hash)...]
         let parts = name.split(separator: "/", maxSplits: 1, omittingEmptySubsequences: false)

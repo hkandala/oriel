@@ -96,5 +96,5 @@ public extension Exec {
 /// `# ovvi-cli 1.1` as [1, 1]; none for another line.
 private func scriptVersion(_ line: String) -> [Int] {
     guard line.hasPrefix("# ovvi-cli ") else { return [] }
-    return line.dropFirst(12).split(separator: ".").map { Int($0) ?? 0 }
+    return line.dropFirst(11).split(separator: ".").map { Int($0) ?? 0 }
 }

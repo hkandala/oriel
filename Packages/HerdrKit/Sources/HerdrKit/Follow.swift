@@ -50,7 +50,7 @@ public extension Exec {
                     mark.offset = offset
                     end = opened
                     yield(.opened(mark, restarted: restarted))
-                } else if line.hasPrefix("ovvi-skip "), let bytes = Int(line.dropFirst(11)) {
+                } else if line.hasPrefix("ovvi-skip "), let bytes = Int(line.dropFirst(10)) {
                     mark.offset += bytes
                 } else {
                     // Whole lines from a line start only, so the byte count holds (a cut inside a character would
