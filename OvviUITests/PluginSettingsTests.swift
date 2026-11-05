@@ -10,14 +10,14 @@ extension OvviUITests {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (_, shell) = try await newTab("plugin settings")
         try await waitForPrompt(shell)
-        let config = "/tmp/ovvi-e2e-plugin-settings", card = try await shoutCard(config, shell: shell)
+        let config = "/tmp/ovvi-e2e-plugin-settings", card = try await shoutCard(config, shell: shell).pane
         XCTAssertTrue(element("pane.\(card).trust").exists(within: 10))
 
         // ⌘, opens the window; the Plugins page lists the browser and the plugin that waits.
         app.typeKey(",", modifierFlags: .command)
         let page = element("settings.page.plugins")
         XCTAssertTrue(page.exists(within: 5))
-        let settings = app.windows["com_apple_SwiftUI_Settings_window"]
+        let settings = settingsWindow
         page.click()
         let row = element("plugins.ovvi-e2e-shout")
         XCTAssertTrue(row.exists(within: 5))
@@ -60,7 +60,7 @@ extension OvviUITests {
         try await expect("the waiting card's pane to close") { await (try? self.pane(card)) == nil }
 
         defaultPluginPage(page, in: settings)
-        app.windows["com_apple_SwiftUI_Settings_window"].buttons["_XCUI:CloseWindow"].click()
+        settingsWindow.buttons["_XCUI:CloseWindow"].click()
     }
 
     /// A default plugin's page: its manifest's settings, and it never asks. Pictures of both pages in dark and light.
@@ -84,8 +84,10 @@ extension OvviUITests {
     }
 
     /// A config folder with the Shout plugin, trusted by no one, with one toggle; the app launched on it, and a card
-    /// of the plugin in its own tab.
-    private func shoutCard(_ config: String, shell: String) async throws -> String {
+    /// of the plugin in its own tab. `extra`: a shell command that adds to the folder.
+    func shoutCard(_ config: String, shell: String, extra: String = "true") async throws
+        -> (tab: String, pane: String)
+    {
         let folder = "\(config)/plugins/ovvi-e2e-shout"
         let manifest = #"{"version":"1.0.0","description":"Says it.","ovvi":{"id":"ovvi-e2e-shout","#
             + #""name":"Shout","api":3,"entry":"main.js","icon":"megaphone","permissions":["files:read"],"#
@@ -96,7 +98,7 @@ extension OvviUITests {
             + #"ovvi.settings.get("shout") + more; ovvi.files.list("/tmp").catch(() => {}) }; "#
             + #"draw(" at load"); ovvi.on("settings", () => draw("")) }"#
         try await send("rm -rf \(config) && mkdir -p \(folder) && echo '\(manifest)' > \(folder)/package.json && "
-            + "echo '\(main)' > \(folder)/main.js && clear && echo made-$((6*7))\r", to: shell)
+            + "echo '\(main)' > \(folder)/main.js && \(extra) && clear && echo made-$((6*7))\r", to: shell)
         // A long line: a loaded Mac's shell takes seconds to echo it.
         try await waitFor(shell, times: 150) { $0.contains("made-42") }
         addTeardownBlock { [one] in
@@ -114,7 +116,7 @@ extension OvviUITests {
         let card: String = try field((layout?["root"] as? [String: Any])?["pane_id"], "layout's pane")
         closeAfter("tab", cardTab)
         try await show(cardTab)
-        return card
+        return (cardTab, card)
     }
 
     /// Text a plugin's page shows.

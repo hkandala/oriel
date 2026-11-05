@@ -1,6 +1,4 @@
-import HerdrKit
 import SwiftUI
-import WebKit
 
 /// Settings ▸ Machines: This Mac and the remote machines, in the machine menu's order. A row opens its page.
 /// ponytail: no drag to reorder (a grouped form takes no `onMove`); a List section if users ask.
@@ -24,7 +22,7 @@ struct MachinesPage: View {
                     Text("Machines")
                     Spacer()
                     NavigationLink("Add Machine…", value: SettingsDetail.machine(MachinePage.new))
-                        .accessibilityIdentifier("settings.machines.add")
+                        .controlSize(.small).accessibilityIdentifier("settings.machines.add")
                 }
                 .settingsRow("machines.list")
             }
@@ -32,7 +30,7 @@ struct MachinesPage: View {
     }
 }
 
-/// A machine's icon tile, name, a line under it, and whether a window is connected to it.
+/// A machine's icon, name, a line under it, and whether a window is connected to it.
 private struct MachineLabel: View {
     let machine: Machine
     let detail: String
@@ -40,14 +38,17 @@ private struct MachineLabel: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            SettingsTile(page: .machines, symbol: machine.icon, size: 26)
+            // The width of an agent's or a plugin's tile: names line up across pages.
+            Image(systemName: machine.icon).foregroundStyle(.secondary).frame(width: 22)
             VStack(alignment: .leading, spacing: 1) {
                 Text(machine.name)
                 Text(detail).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
             }
+            // The row's line starts under the name, as System Settings' lists.
+            .alignmentGuide(.listRowSeparatorLeading) { $0[.leading] }
             Spacer()
             if machine.isRemote {
-                let live = HostStore.all.contains { $0.machine.id == machine.id && $0.state == .live }
+                let live = MachinePage.isLive(machine)
                 Label(live ? "Connected" : "Not connected", systemImage: "circle.fill")
                     .labelStyle(StatusLabel(color: live ? look.finished : .secondary))
             }
@@ -63,117 +64,6 @@ private struct MachineLabel: View {
                 configuration.title.font(.system(size: 11)).foregroundStyle(.secondary)
             }
         }
-    }
-}
-
-/// A machine's page: its name, SSH target and icon (Add Remote Host's fields), its website data, and Remove. This Mac
-/// has only its website data. `new`: Add Machine's empty page.
-struct MachinePage: View {
-    static let new = "new"
-    let id: String
-    @State private var draft: Machine
-    @State private var confirm: Confirm?
-    @Environment(\.dismiss) private var dismiss
-
-    private enum Confirm {
-        case clear, remove
-    }
-
-    private var question: String {
-        let name = MachineList.shared.machine(id)?.name ?? ""
-        return confirm == .clear ? "Clear the website data of \(name)?" : "Remove \(name)?"
-    }
-
-    private var confirming: Binding<Bool> {
-        Binding { confirm != nil } set: {
-            if !$0 {
-                confirm = nil
-            }
-        }
-    }
-
-    init(id: String) {
-        self.id = id
-        _draft = State(initialValue: MachineList.shared.machine(id)
-            ?? Machine(id: UUID().uuidString, name: "", target: "", icon: "server.rack"))
-    }
-
-    var body: some View {
-        let saved = MachineList.shared.machine(id), target = draft.target.trimmingCharacters(in: .whitespaces)
-        Form {
-            if draft.isRemote || saved == nil {
-                Section {
-                    // Fields of a set width: a form's text field asks for all the room, which narrowed the sidebar.
-                    LabeledContent("Name") {
-                        TextField("Name", text: $draft.name, prompt: Text(target)).labelsHidden().frame(width: 200)
-                            .accessibilityIdentifier("settings.machine.name")
-                    }
-                    LabeledContent {
-                        TextField("SSH target", text: $draft.target).labelsHidden().frame(width: 200)
-                            .accessibilityIdentifier("settings.machine.target")
-                    } label: {
-                        Text("SSH target")
-                        Text("A host from ~/.ssh/config works too.")
-                    }
-                    LabeledContent("Icon") { IconPicker(icon: $draft.icon) }
-                } footer: {
-                    HStack {
-                        Spacer()
-                        Button(saved == nil ? "Add" : "Save") {
-                            if saved == nil {
-                                dismiss()
-                            }
-                            draft = MachineList.shared.keep(draft, target: target)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(!SSHExec.isValidTarget(target) || saved == draft)
-                        .accessibilityIdentifier("settings.machine.save")
-                    }
-                }
-            }
-            if let saved {
-                Section("On \(saved.name)") {
-                    LabeledContent {
-                        Button("Clear…") { confirm = .clear }.accessibilityIdentifier("settings.machine.clear")
-                    } label: {
-                        Text("Website data")
-                        Text("Logins and approved websites of browser cards on \(saved.name).")
-                    }
-                }
-                if saved.isRemote {
-                    Section {
-                        Button("Remove \(saved.name)…", role: .destructive) { confirm = .remove }
-                            .accessibilityIdentifier("settings.machine.remove")
-                    } footer: {
-                        Text("Its terminals keep running on \(saved.name).").settingsFooter()
-                    }
-                }
-            }
-        }
-        .formStyle(.grouped)
-        .navigationTitle(saved?.name ?? "Add Machine")
-        // The buttons and the message keep their words while the alert closes: `confirm` is nil by then.
-        .alert(question, isPresented: confirming, presenting: confirm) { which in
-            Button(which == .clear ? "Clear" : "Remove", role: .destructive) {
-                if let saved, which == .clear {
-                    Self.clear(saved)
-                } else if let saved {
-                    MachineList.shared.remove(saved)
-                    dismiss()
-                }
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: { which in
-            Text(which == .clear ? "Browser cards log out of every site, and pages wait for Open again."
-                : "Ovvi forgets it. Its terminals keep running on it.")
-        }
-    }
-
-    /// Its browser cards' cookies, storage and cache, and its approved websites.
-    private static func clear(_ machine: Machine) {
-        UserDefaults.standard.removeObject(forKey: "browserApprovals.\(machine.id)")
-        Browser.dataStore(machine).removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(),
-                                              modifiedSince: .distantPast) {}
     }
 }
 
@@ -204,7 +94,7 @@ struct PrivacyPage: View {
                     HStack {
                         Text("Approved websites on \(machine.name)")
                         Spacer()
-                        Button("Clear All") { set([], machine) }
+                        Button("Clear All") { set([], machine) }.controlSize(.small)
                             .accessibilityIdentifier("settings.privacy.\(machine.id).clear")
                     }
                 }

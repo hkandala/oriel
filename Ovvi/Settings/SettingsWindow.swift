@@ -8,16 +8,16 @@ enum SettingsPage: String, CaseIterable, Hashable {
         rawValue.capitalized
     }
 
-    /// Its sidebar tile's SF Symbol; the tile's color is in `SettingsTile`.
+    /// Its sidebar row's SF Symbol, drawn grey.
     var symbol: String {
         switch self {
-        case .general: "gearshape.fill"
+        case .general: "gearshape"
         case .appearance: "circle.lefthalf.filled"
-        case .terminal: "apple.terminal.fill"
+        case .terminal: "apple.terminal"
         case .agents: "sparkles"
         case .machines: "server.rack"
         case .plugins: Registry.missing
-        case .privacy: "hand.raised.fill"
+        case .privacy: "hand.raised"
         }
     }
 }
@@ -35,14 +35,11 @@ final class SettingsRoute {
     var path: [SettingsDetail] = []
     var ring: String?
 
-    /// The app's Settings opener, kept by the menu bar (`AppCommands`) for actions outside a view.
-    static var openSettings: OpenSettingsAction?
-
     /// Opens the window at a page, and a detail page on it.
     func open(_ page: SettingsPage, _ detail: SettingsDetail? = nil) {
         self.page = page
         path = detail.map { [$0] } ?? []
-        Self.openSettings?()
+        WindowPages.openWindow?(id: "settings")
     }
 }
 
@@ -78,7 +75,7 @@ struct SettingsWindow: View {
                                         .foregroundStyle(.secondary)
                                 }
                             } icon: {
-                                SettingsTile(page: row.page, symbol: row.page.symbol)
+                                SettingsIcon(page: row.page)
                             }
                         }
                         .buttonStyle(.plain)
@@ -86,6 +83,13 @@ struct SettingsWindow: View {
                     }
                 }
             }
+            .overlay {
+                if !search.isEmpty, SettingsSearch.matches(search).isEmpty {
+                    ContentUnavailableView.search(text: search)
+                }
+            }
+            // Red, as System Settings' badges: a plugin waits for an answer.
+            .badgeProminence(.increased)
             .searchable(text: $search, placement: .sidebar)
             // As System Settings: the sidebar always shows.
             .toolbar(removing: .sidebarToggle)
@@ -102,7 +106,8 @@ struct SettingsWindow: View {
                     }
             }
         }
-        .frame(width: 715, height: 560)
+        // As System Settings: a set width, the height the user's.
+        .frame(width: 715).frame(minHeight: 400)
         .environment(\.look, Look(style: settings.style, dark: colorScheme == .dark,
                                   contrast: colorSchemeContrast == .increased))
     }
@@ -120,10 +125,19 @@ private struct SettingsSidebarRow: View {
     let page: SettingsPage
 
     var body: some View {
-        Label { Text(page.title) } icon: { SettingsTile(page: page, symbol: page.symbol) }
+        Label { Text(page.title) } icon: { SettingsIcon(page: page) }
             .badge(page == .plugins ? PluginsPage.waiting : 0)
             .tag(page)
             .accessibilityIdentifier("settings.page.\(page.rawValue)")
+    }
+}
+
+/// A page's symbol in the sidebar: grey, as the user asked, not System Settings' colored tiles.
+private struct SettingsIcon: View {
+    let page: SettingsPage
+
+    var body: some View {
+        Image(systemName: page.symbol).foregroundStyle(.secondary)
     }
 }
 
@@ -145,6 +159,10 @@ private struct SettingsPageView: View {
         }
         .formStyle(.grouped)
         .navigationTitle(page.title)
+        // A toolbar item, so the window has a toolbar as System Settings: with none (the sidebar toggle is gone), the
+        // window had a bare title bar, its traffic lights in the corner and its corners square. A pushed page has
+        // its Back button.
+        .toolbar { ToolbarSpacer(.fixed) }
         .scrollsToRing()
     }
 }
@@ -237,5 +255,44 @@ struct SettingsSearch: Identifiable {
             let words = "\(row.title) \(row.words) \(row.place ?? row.page.title)".lowercased()
             return shown.contains(row.page) && typed.allSatisfy { words.contains($0) }
         }
+    }
+}
+
+/// A pushed page's first card, as System Settings' detail pages: a large icon, the name (and a version), a line or two
+/// under it, and the page's own small buttons on the trailing edge.
+struct SettingsHeader<Icon: View, Actions: View>: View {
+    let title: String
+    var note: String?
+    var lines: [String] = []
+    @ViewBuilder var icon: Icon
+    @ViewBuilder var actions: Actions
+
+    var body: some View {
+        HStack(spacing: 12) {
+            icon.frame(width: 44, height: 44)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(title).font(.system(size: 15, weight: .semibold)).lineLimit(2)
+                    if let note {
+                        Text(note).foregroundStyle(.secondary)
+                    }
+                }
+                // A description wraps; the last line, a source or a target, keeps its ends.
+                let shown = lines.filter { !$0.isEmpty }
+                ForEach(shown, id: \.self) { line in
+                    Text(line).font(.system(size: 11)).foregroundStyle(.secondary)
+                        .lineLimit(line == shown.last ? 1 : 2).truncationMode(line == shown.last ? .middle : .tail)
+                }
+            }
+            Spacer(minLength: 8)
+            actions.controlSize(.small)
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+extension SettingsHeader where Actions == EmptyView {
+    init(title: String, note: String? = nil, lines: [String] = [], @ViewBuilder icon: () -> Icon) {
+        self.init(title: title, note: note, lines: lines, icon: icon, actions: { EmptyView() })
     }
 }

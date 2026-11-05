@@ -68,8 +68,14 @@ struct OvviApp: App {
             .restorationBehavior(.disabled)
             .commandsRemoved()
             .handlesExternalEvents(matching: [])
-        // Ovvi ▸ Settings… (⌘,), from the system.
-        Settings { SettingsWindow() }
+        // Ovvi ▸ Settings… (⌘,). A `Window`: the `Settings` scene's window has no toolbar, which left its traffic
+        // lights in the corner and its corners square, unlike System Settings.
+        Window("Settings", id: "settings") { SettingsWindow() }
+            .defaultSize(width: 715, height: 560)
+            .windowResizability(.contentSize)
+            .restorationBehavior(.disabled)
+            .commandsRemoved()
+            .handlesExternalEvents(matching: [])
     }
 }
 

@@ -205,9 +205,9 @@ struct CommandList {
                     key: .init("f", modifiers: [.command, .control]),
                     symbol: "arrow.up.left.and.arrow.down.right") { NSApp.keyWindow?.toggleFullScreen(nil) },
             Self.reloadPlugins,
-            // The app menu's Settings… (⌘,) is the system's.
+            // The app menu has Settings… (⌘,) of its own (`AppCommands`).
             Command(section: .palette, title: "Settings…", symbol: "gearshape", keywords: "preferences options",
-                    action: { SettingsRoute.openSettings?() }),
+                    action: { WindowPages.openWindow?(id: "settings") }),
             // Settings ▸ Agents has the switches; the palette keeps a command for each (D48).
             Command(section: .palette, title: "Notifications When an Agent Needs You", symbol: "bell",
                     keywords: "alerts banners", checked: settings.notifyNeedsYou, setting: true,

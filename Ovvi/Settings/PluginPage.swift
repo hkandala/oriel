@@ -28,43 +28,55 @@ struct PluginPage: View {
             if let row {
                 Section { PluginSummary(row: row, gone: { dismiss() }) }
                 if let manifest = row.manifest {
-                    ForEach(Self.sections(manifest.settings), id: \.offset) { _, section in
+                    let sections = Self.sections(manifest.settings)
+                    ForEach(sections, id: \.offset) { index, section in
                         Section {
                             ForEach(section.settings, id: \.id) { SettingRow(setting: $0, plugin: id) }
+                            // The last section ends with the rows of Ovvi's own, as one card.
+                            if index == sections.count - 1 {
+                                inOvvi(manifest)
+                            }
                         } header: {
                             Text(section.title)
                         } footer: {
                             // A card's own choices are the default plugins' way; another plugin may read them live.
-                            if Registry.defaults.contains(id), section.settings.last == manifest.settings.last {
+                            if Registry.defaults.contains(id), index == sections.count - 1 {
                                 Text("New cards start with these. A card keeps its own choice once you change it "
                                     + "in its header.").settingsFooter()
                             }
                         }
                     }
-                    if manifest.chooser != nil {
-                        Section {
-                            NewPaneSwitch(manifest: manifest).accessibilityIdentifier("plugins.\(id).new-pane")
-                                .settingsRow(Self.newPaneRow(id))
-                        }
+                    if sections.isEmpty, manifest.chooser != nil {
+                        Section { inOvvi(manifest) }
                     }
-                    if id == Registry.browser.id {
-                        if PrivacyPage.hasItems {
-                            Section {
-                                LabeledContent("Approved websites") {
-                                    Button("Show in Privacy") { SettingsRoute.shared.open(.privacy) }
-                                        .accessibilityIdentifier("plugins.browser.privacy")
-                                }
-                            }
-                        }
-                    } else {
+                    if id != Registry.browser.id {
                         PluginPermissions(manifest: manifest)
                     }
                 }
+                if row.kind != .bundled {
+                    PluginRemove(row: row, gone: { dismiss() })
+                }
             }
         }
+        // A pushed page takes no style from the stack it is pushed on.
         .formStyle(.grouped)
         .navigationTitle(row?.manifest?.name.shown ?? id)
         .scrollsToRing()
+    }
+
+    /// Show in New Pane, and the browser's link to its approved websites.
+    @ViewBuilder
+    private func inOvvi(_ manifest: PluginManifest) -> some View {
+        if manifest.chooser != nil {
+            NewPaneSwitch(manifest: manifest).accessibilityIdentifier("plugins.\(id).new-pane")
+                .settingsRow(Self.newPaneRow(id))
+        }
+        if id == Registry.browser.id, PrivacyPage.hasItems {
+            LabeledContent("Approved websites") {
+                Button("Show in Privacy") { SettingsRoute.shared.open(.privacy) }
+                    .accessibilityIdentifier("plugins.browser.privacy")
+            }
+        }
     }
 
     /// The settings in groups: a setting with a `section` starts one under that heading.
@@ -82,78 +94,82 @@ struct PluginPage: View {
     }
 }
 
-/// The icon, name, version, description and source, and Update, Show Log, Reload, Reset to Default or Update to
-/// Version, and Remove…, as each applies.
+/// The header: icon, name and version, description and source, and Update, Reset to Default or Update to Version, Show
+/// Log and Reload as each applies (Remove is at the bottom of the page).
 private struct PluginSummary: View {
     let row: InstalledPlugin
-    /// Its row went: removed, or installed under its manifest's id.
+    /// Its row went: installed under its manifest's id.
     let gone: () -> Void
 
     var body: some View {
         let installs = PluginInstalls.shared, defaults = DefaultPlugins.shared, id = "plugins.\(row.id)"
         let manifest = row.manifest, busy = installs.busy[row.id]
             ?? (defaults.installing.contains(row.id) ? "Installing…" : nil)
-        HStack(alignment: .top, spacing: 14) {
-            ProgramTile(icon: manifest?.icon ?? Registry.missing).scaleEffect(2).frame(width: 44, height: 36)
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(manifest?.name.shown ?? row.id).font(.system(size: 15, weight: .semibold))
-                    if manifest?.entry != nil || manifest == nil {
-                        Text(manifest.map(\.version.shown) ?? "Not installed").foregroundStyle(.secondary)
-                    }
-                }
-                if let text = manifest?.description.shown, !text.isEmpty {
-                    Text(text)
-                }
-                Text(row.source).font(.system(size: 11)).foregroundStyle(.secondary).textSelection(.enabled)
-                    .lineLimit(2).truncationMode(.middle)
-                HStack(spacing: 6) {
-                    if let busy {
-                        ProgressView().controlSize(.small)
-                        Text(busy).foregroundStyle(.secondary).accessibilityIdentifier("\(id).busy")
-                    } else {
-                        if case .installed = row.kind {
-                            Button(manifest == nil ? "Install" : "Update", systemImage: "arrow.down.circle") {
-                                Task {
-                                    await installs.update(row)
-                                    if !installs.rows.contains(where: { $0.id == row.id }) {
-                                        gone()
-                                    }
-                                }
+        // The browser is the app's own: no version.
+        let version = manifest?.entry != nil || manifest == nil ? manifest.map(\.version.shown) ?? "Not installed" : nil
+        let lines = [manifest?.description.shown ?? "", row.source]
+        SettingsHeader(title: manifest?.name.shown ?? row.id, note: version, lines: lines) {
+            ProgramTile(icon: manifest?.icon ?? Registry.missing).scaleEffect(2)
+        } actions: {
+            if let busy {
+                ProgressView().controlSize(.small)
+                Text(busy).foregroundStyle(.secondary).accessibilityIdentifier("\(id).busy")
+            } else {
+                if case .installed = row.kind {
+                    Button(manifest == nil ? "Install" : "Update") {
+                        Task {
+                            await installs.update(row)
+                            if !installs.rows.contains(where: { $0.id == row.id }) {
+                                gone()
                             }
-                            .accessibilityIdentifier("\(id).update")
-                        }
-                        if row.kind == .bundled, let offer = defaults.offers[row.id] {
-                            // An edited copy stays the user's until they pick the app's again.
-                            Button(offer.map { "Update to Version \($0)" } ?? "Reset to Default") {
-                                Task { await defaults.reset(row.id) }
-                            }
-                            .accessibilityIdentifier("\(id).reset")
-                        }
-                        if manifest?.entry != nil {
-                            Button("Show Log", systemImage: "doc.text.magnifyingglass") { PluginLog.show(row.id) }
-                                .accessibilityIdentifier("\(id).log")
-                            Button("Reload", systemImage: "arrow.clockwise") { Task { await Plugin.reload(row.id) } }
-                                .accessibilityIdentifier("\(id).reload")
-                        }
-                        if row.kind != .bundled {
-                            Button("Remove…", role: .destructive) {
-                                Task {
-                                    await installs.remove(row)
-                                    if !installs.rows.contains(where: { $0.id == row.id }) {
-                                        gone()
-                                    }
-                                }
-                            }
-                            .accessibilityIdentifier("\(id).remove")
                         }
                     }
+                    .accessibilityIdentifier("\(id).update")
                 }
-                .controlSize(.small)
-                .padding(.top, 6)
+                if row.kind == .bundled, let offer = defaults.offers[row.id] {
+                    // An edited copy stays the user's until they pick the app's again.
+                    Button(offer.map { "Update to Version \($0)" } ?? "Reset to Default") {
+                        Task { await defaults.reset(row.id) }
+                    }
+                    .accessibilityIdentifier("\(id).reset")
+                }
+                if manifest?.entry != nil {
+                    Button("Show Log") { PluginLog.show(row.id) }.accessibilityIdentifier("\(id).log")
+                    Button("Reload") { Task { await Plugin.reload(row.id) } }.accessibilityIdentifier("\(id).reload")
+                }
             }
         }
-        .padding(.vertical, 4)
+    }
+}
+
+/// Remove, at the bottom of a page of a plugin that is not the app's own.
+private struct PluginRemove: View {
+    let row: InstalledPlugin
+    let gone: () -> Void
+
+    var body: some View {
+        let installs = PluginInstalls.shared
+        Section {
+            LabeledContent {
+                Button("Remove…", role: .destructive) {
+                    Task {
+                        await installs.remove(row)
+                        if !installs.rows.contains(where: { $0.id == row.id }) {
+                            gone()
+                        }
+                    }
+                }
+                .disabled(installs.busy[row.id] != nil)
+                .accessibilityIdentifier("plugins.\(row.id).remove")
+            } label: {
+                Text("Remove \((row.manifest?.name ?? row.id).shown)")
+                if case .local = row.kind {
+                    Text("Its folder stays where it is; Ovvi stops loading it.")
+                } else {
+                    Text("Its folder goes to the Trash.")
+                }
+            }
+        }
     }
 }
 
@@ -167,13 +183,13 @@ private struct PluginPermissions: View {
         let builds = folder.map(PluginPackages.builds) == true
         let symbols = (manifest.permissions.isEmpty ? ["rectangle.dashed"] : manifest.permissions.map(Self.symbol))
             + (builds ? ["hammer"] : [])
-        Section("Permissions") {
+        Section {
             ForEach(Array(zip(symbols, PluginTrust.words(manifest, folder: folder))), id: \.1) { symbol, words in
-                Label(words, systemImage: symbol)
+                // One width for every symbol: the words start on one edge.
+                Label { Text(words) } icon: { Image(systemName: symbol).foregroundStyle(.secondary).frame(width: 20) }
             }
             if Registry.defaults.contains(manifest.id) {
-                Text("Comes with Ovvi, so it never asks.").foregroundStyle(.secondary)
-                    .accessibilityIdentifier("\(id).trust")
+                // In the footer below.
             } else if trust.allows(manifest) {
                 LabeledContent {
                     Button("Forget Trust") { trust.forget(manifest.id) }.accessibilityIdentifier("\(id).forget")
@@ -195,6 +211,12 @@ private struct PluginPermissions: View {
                         Text("Its cards wait until you choose.")
                     }
                 }
+            }
+        } header: {
+            Text("Permissions")
+        } footer: {
+            if Registry.defaults.contains(manifest.id) {
+                Text("Comes with Ovvi, so it never asks.").settingsFooter().accessibilityIdentifier("\(id).trust")
             }
         }
     }
@@ -254,17 +276,19 @@ private struct SettingRow: View {
                     }
                 } label: { label }
             case let (_, .text(text)):
-                TextField(text: Binding { draft ?? text } set: { draft = $0 },
-                          prompt: Text((setting.placeholder ?? (setting.type == "path"
-                                  ? "A \(setting.kind ?? "file")’s path" : "")).shown)) { label }
-                    .font(setting.type == "path" ? .system(size: 13).monospaced() : nil)
-                    .focused($focused)
-                    .onSubmit { save() }
-                    .onChange(of: focused) {
-                        if !focused {
-                            save()
+                LabeledContent {
+                    TextField(setting.title.shown, text: Binding { draft ?? text } set: { draft = $0 },
+                              prompt: Text((setting.placeholder ?? (setting.type == "path"
+                                      ? "A \(setting.kind ?? "file")’s path" : "")).shown))
+                        .labelsHidden().multilineTextAlignment(.trailing).frame(width: 220)
+                        .focused($focused)
+                        .onSubmit { save() }
+                        .onChange(of: focused) {
+                            if !focused {
+                                save()
+                            }
                         }
-                    }
+                } label: { label }
             default:
                 EmptyView()
             }

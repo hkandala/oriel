@@ -209,7 +209,7 @@ extension OvviUITests {
         try await send("clear; tr -d ' \\n' < \(config)/settings.json | grep -q '\"hideInNewPane\":\\[\"kanban\"\\]' "
             + "&& echo hidden-$((6*7))\r", to: shell)
         try await waitFor(shell) { $0.contains("hidden-42") }
-        app.windows["com_apple_SwiftUI_Settings_window"].buttons["_XCUI:CloseWindow"].click()
+        settingsWindow.buttons["_XCUI:CloseWindow"].click()
         // The main window takes the keys again.
         element("terminal.\(shell)").click()
         let before = try await tabIDs()

@@ -160,7 +160,7 @@ extension OvviUITests {
         XCTAssertTrue(lines.has(\.label, "Ovvi E2E Lines, 0.1.0, \(config)/plugins/ovvi-e2e-lines", within: 30),
                       lines.label)
         keepScreenshot("plugins page")
-        app.windows["com_apple_SwiftUI_Settings_window"].buttons["_XCUI:CloseWindow"].click()
+        settingsWindow.buttons["_XCUI:CloseWindow"].click()
         XCTAssertTrue(source.vanishes(within: 2))
         try await send("clear; test -f \(config)/plugins/ovvi-e2e-csv-repo/dist/main.js && test -f "
             + "\(config)/plugins/ovvi-e2e-lines/dist/main.js && echo built-$((6*7))\r", to: shell)

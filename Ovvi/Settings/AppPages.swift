@@ -28,6 +28,7 @@ struct GeneralPage: View {
 /// Settings ▸ Appearance: the look as picture tiles, and the text size.
 struct AppearancePage: View {
     private var settings = AppSettings()
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Form {
@@ -48,7 +49,8 @@ struct AppearancePage: View {
                         ForEach([InterfaceStyle.glass, .classic], id: \.self) { value in
                             LookTile(title: value.rawValue.capitalized, selected: settings.style == value,
                                      id: "settings.style.\(value.rawValue)",
-                                     picture: LookPicture(dark: true, split: false, glass: value == .glass),
+                                     picture: LookPicture(dark: colorScheme == .dark, split: false,
+                                                          glass: value == .glass),
                                      action: { settings.style = value })
                         }
                     }
@@ -143,6 +145,7 @@ struct TerminalPage: View {
             Section {
                 Picker(selection: settings.$terminalFont) {
                     Text("SF Mono").tag("")
+                    Divider()
                     // A family set before it was uninstalled stays a choice.
                     ForEach(fonts + (fonts.contains(settings.terminalFont) || settings.terminalFont.isEmpty
                             ? [] : [settings.terminalFont]), id: \.self) { Text($0).tag($0) }
@@ -156,7 +159,7 @@ struct TerminalPage: View {
                     Text("Bar").tag(TerminalCursorStyle.bar)
                     Text("Underline").tag(TerminalCursorStyle.underline)
                 }
-                .pickerStyle(.segmented).fixedSize()
+                .pickerStyle(.segmented)
                 .accessibilityIdentifier("settings.terminal.cursor").settingsRow("terminal.cursor")
                 Toggle("Blink the cursor", isOn: settings.$cursorBlink)
                     .accessibilityIdentifier("settings.terminal.blink").settingsRow("terminal.blink")
@@ -219,21 +222,11 @@ struct AgentsPage: View {
             } header: {
                 Text("Notifications")
             } footer: {
-                HStack(spacing: 4) {
-                    Text("Banners, sounds and the Dock badge are in System Settings.")
-                    Button("Notification Settings…") {
-                        let id = Bundle.main.bundleIdentifier ?? ""
-                        if let url =
-                            URL(
-                                string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=\(id)",
-                            )
-                        {
-                            NSWorkspace.shared.open(url)
-                        }
-                    }
-                    .buttonStyle(.link)
-                }
-                .settingsFooter()
+                // A link in the sentence: it wraps with it and keeps its baseline.
+                Text(.init("Banners, sounds and the Dock badge are in System Settings. [Notification Settings…]"
+                        + "(x-apple.systempreferences:com.apple.Notifications-Settings.extension?id="
+                        + "\(Bundle.main.bundleIdentifier ?? ""))"))
+                    .settingsFooter()
             }
         }
     }
@@ -257,11 +250,13 @@ private struct AgentRow: View {
                 Text(agent.name)
                 Text(agent.command).font(.system(size: 11).monospaced()).foregroundStyle(.secondary)
             }
+            // The row's line starts under the name, as System Settings' lists.
+            .alignmentGuide(.listRowSeparatorLeading) { $0[.leading] }
             Spacer()
             TextField("Extra arguments", text: $arguments, prompt: Text("Extra arguments"))
                 // The field shows what it keeps.
                 .onChange(of: arguments) { arguments = Chooser.allowed(arguments) }
-                .font(.system(size: 12).monospaced()).textFieldStyle(.roundedBorder).frame(width: 170)
+                .textFieldStyle(.roundedBorder).frame(width: 220)
                 .labelsHidden().accessibilityLabel("\(agent.name) extra arguments")
                 .accessibilityIdentifier("\(id).arguments")
             Toggle("Show \(agent.name) in New Pane", isOn: Binding { !Registry.hiddenInNewPane(agent.command) } set: {

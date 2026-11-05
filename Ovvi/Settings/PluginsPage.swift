@@ -33,7 +33,8 @@ struct PluginsPage: View {
             Section {
                 HStack(spacing: 8) {
                     TextField("Source", text: $source, prompt: Text("npm:package, git:repository or a folder"))
-                        .labelsHidden().onSubmit(install).accessibilityIdentifier("plugins.source")
+                        .labelsHidden().textFieldStyle(.roundedBorder).onSubmit(install)
+                        .accessibilityIdentifier("plugins.source")
                     if let busy = installs.busy[typed] {
                         ProgressView().controlSize(.small)
                         Text(busy).foregroundStyle(.secondary).accessibilityIdentifier("plugins.busy")
@@ -108,6 +109,8 @@ private struct PluginLink: View {
                     Text(row.source).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
                         .truncationMode(.middle)
                 }
+                // The row's line starts under the name, as System Settings' lists.
+                .alignmentGuide(.listRowSeparatorLeading) { $0[.leading] }
                 Spacer(minLength: 8)
                 if let busy {
                     ProgressView().controlSize(.small)

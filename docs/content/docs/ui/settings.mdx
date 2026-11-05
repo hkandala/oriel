@@ -15,16 +15,30 @@ Settings that are not on this page do not exist.
 
 ## The window
 
-- **Size.** 715 × 560 pt, as System Settings. The sidebar is 215 pt wide and
-  always shows.
+- **Size.** 715 × 560 pt when it opens, as System Settings. The width stays;
+  the height changes with the window's edge, down to 400 pt. The sidebar is
+  215 pt wide and always shows.
+- **Chrome.** A window with a toolbar, so the system draws it as System
+  Settings: the sidebar floats inside the window with the traffic lights at
+  its top, and the toolbar shows the page's title and, on a machine's or a
+  plugin's page, the Back button.
 - **Sidebar.** General, Appearance, Terminal, Agents, Machines, Plugins and
-  Privacy, each with a colored tile. Privacy shows only when it has something
-  in it. Plugins has a red badge with the number of plugins whose cards wait
-  for your answer ([The trust prompt](/docs/plugins/security#the-trust-prompt)).
+  Privacy, each with its symbol in grey. Privacy shows only when it has
+  something in it. Plugins shows the number of plugins whose cards wait for
+  your answer ([The trust prompt](/docs/plugins/security#the-trust-prompt)).
+- **Controls.** Each row has its title on the left and its control on the
+  right. A row's value field is the form's own: no border, its text on the
+  right, 220 pt wide, with a word in it while it is empty (Required,
+  Optional). A field among other controls (an agent's extra arguments, the
+  plugin source) has a border. Buttons in a section's header are small.
+- **A machine's or a plugin's page** follows System Settings' detail pages:
+  a header card with a large icon, the name and a line or two of state, then
+  the sections, and the action that removes it last, in a section of its
+  own.
 - **Search.** The field at the top of the sidebar. While you type, the sidebar
   lists the settings whose title or other words hold every word you typed,
-  each with its page. A pick opens the page, scrolls to the row and rings it
-  for one second.
+  each with its page, or No Results. A pick opens the page, scrolls to the
+  row and rings it for one second.
 - **Opening at a page.** Ovvi ▸ Plugins… opens the Plugins page.
 
 ## General
@@ -120,15 +134,20 @@ an empty machine page.
 
 A machine's page:
 
-- **Name, SSH target and icon**, the fields of Add Remote Host
-  ([Add a machine](/docs/ui/add-a-machine)). Save keeps an edit, as the
-  dialog's Save does. On Add Machine's page, Add saves the machine and opens it
-  in a new window.
-- **Website data: Clear…** removes the logins, storage and cache of the
-  machine's browser cards, and its approved websites, after a confirmation.
-  This Mac's page has only this row.
-- **Remove ‹machine›…** takes the machine off the list after a confirmation,
-  as the dialog's Remove does. Its terminals keep running on the machine.
+- **The header**: the machine's icon and name, and Connected or Not
+  connected and its SSH target (This Mac: its own name).
+- **Connection**: Name, SSH target and Icon, the fields of Add Remote Host
+  ([Add a machine](/docs/ui/add-a-machine)). Under them, a target with a
+  space or a leading `-` says so in red, and Revert and Save. Save keeps an
+  edit, as the dialog's Save does. On Add Machine's page the buttons are
+  Cancel and Add: Add saves the machine and opens it in a new window. Return
+  is Save or Add, Esc is Cancel.
+- **Browser: Website data, Clear…** removes the logins, storage and cache of
+  the machine's browser cards, and its approved websites, after a
+  confirmation. This Mac's page has the header and this row.
+- **Remove ‹machine›: Remove…**, last, takes the machine off the list after a
+  confirmation, as the dialog's Remove does. Its terminals keep running on
+  the machine.
 
 ## Plugins
 
@@ -137,17 +156,20 @@ the browser first, then the plugins that come with Ovvi, then yours. Each row
 shows the plugin's icon, name, version and source, and Needs review while its
 cards wait for your answer. A row opens the plugin's page:
 
-- **The header**: Update, Update to Version ‹x› or Reset to Default when
-  offered, Show Log, Reload and Remove….
+- **The header**: the icon, name, version, description and source, and on
+  its right Update, Update to Version ‹x› or Reset to Default when offered,
+  Show Log and Reload.
 - **Settings** that the plugin declares in its manifest
   ([Settings](/docs/plugins/manifest#settings)), then Show in New Pane. A
   plugin's cards read them and hear each change
   ([The plugin API](/docs/plugins/api)). New cards start with them; a card
   keeps its own choice once you change it in its header. They are in
   `settings.json` under `plugins`, one value for every machine.
-- **Permissions**, in the trust prompt's words, and the answer: "Comes with
-  Ovvi, so it never asks.", Allowed with Forget Trust, or Not allowed yet
-  with Allow, and Don't Allow while its cards wait.
+- **Permissions**, in the trust prompt's words, and the answer: Allowed with
+  Forget Trust, or Not allowed yet with Allow, and Don't Allow while its
+  cards wait. A plugin that comes with Ovvi says under the list: "Comes with
+  Ovvi, so it never asks."
+- **Remove ‹plugin›: Remove…**, last, for a plugin that is not Ovvi's own.
 
 The browser's page has its network choice for new cards on a remote machine,
 Show in New Pane, and a link to its approved websites on the Privacy page.

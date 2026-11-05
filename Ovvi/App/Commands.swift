@@ -248,13 +248,12 @@ struct Command {
 struct AppCommands: Commands {
     @FocusedValue(\.commands) private var commands
     @Environment(\.openWindow) private var openWindow
-    @Environment(\.openSettings) private var openSettings
     private var settings = AppSettings()
 
     var body: some Commands {
-        // Every main window opens through it, and Settings from an action. `_ =` is no statement in a builder.
+        // Every main window and Settings open through it. `_ =` is no statement in a builder.
         // swiftlint:disable:next redundant_discardable_let
-        let _ = (WindowPages.openWindow = openWindow, SettingsRoute.openSettings = openSettings)
+        let _ = WindowPages.openWindow = openWindow
         // A key runs the key window's command for it, whichever window's list the menu bar holds; behind a sheet,
         // none. With no window: New Window and the settings.
         let list = (commands?.menu ?? CommandList(settings: settings).menuBarList).map { command in
@@ -274,6 +273,9 @@ struct AppCommands: Commands {
             return keyed
         }
         CommandGroup(replacing: .appInfo) { Button("About Ovvi") { openWindow(id: "about") } }
+        CommandGroup(replacing: .appSettings) {
+            Button("Settings…") { openWindow(id: "settings") }.keyboardShortcut(",")
+        }
         CommandGroup(after: .appInfo) { items(list, .app) }
         CommandGroup(replacing: .newItem) { items(list, .file) }
         // ⌘W closes the keyboard card, ⇧⌘W the tab, ⌃⌘W the workspace, ⌥⌘W detaches the session (design: keyboard).

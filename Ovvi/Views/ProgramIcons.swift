@@ -43,28 +43,6 @@ struct ProgramTile: View {
     }
 }
 
-/// A Settings page's white glyph on its page's colored tile, as System Settings draws its rows: the same in every look.
-struct SettingsTile: View {
-    let page: SettingsPage
-    let symbol: String
-    var size: CGFloat = 20
-
-    var body: some View {
-        let color: Color = switch page {
-        case .general, .machines: .gray
-        case .appearance: .indigo
-        case .terminal: .black
-        case .agents: .purple
-        case .plugins: .orange
-        case .privacy: .blue
-        }
-        Image(systemName: symbol).font(.system(size: size * 0.55, weight: .medium)).foregroundStyle(.white)
-            .frame(width: size, height: size)
-            .background(color.gradient, in: .rect(cornerRadius: size / 4, style: .continuous))
-            .accessibilityHidden(true)
-    }
-}
-
 /// The program's glyph alone, for card headers, hover card rows and an empty chat.
 struct ProgramGlyph: View {
     let icon: String
