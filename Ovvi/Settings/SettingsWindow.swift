@@ -88,8 +88,6 @@ struct SettingsWindow: View {
                     ContentUnavailableView.search(text: search)
                 }
             }
-            // Red, as System Settings' badges: a plugin waits for an answer.
-            .badgeProminence(.increased)
             .searchable(text: $search, placement: .sidebar)
             // As System Settings: the sidebar always shows.
             .toolbar(removing: .sidebarToggle)
