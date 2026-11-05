@@ -240,7 +240,10 @@ final class Browser: NSObject {
     func proxied(_ load: @escaping () -> Void) {
         guard let proxy else { return load() }
         Task {
-            guard await proxy.value != nil else {
+            let ssh = await proxy.value
+            // Not on a network the card switched away from meanwhile.
+            guard proxy == self.proxy else { return }
+            guard ssh != nil else {
                 failure = ("Oriel could not start the proxy to \(store?.machine.name ?? "")", nil)
                 ready = true
                 return
@@ -314,15 +317,15 @@ extension Browser {
     }
 
     /// The machine chip: the field's address again on This Mac's network, or back through the machine, in a new web
-    /// view (a store's network is fixed), with its back and forward list unless that load had failed.
+    /// view (a store's network is fixed). Its back and forward list starts again: its entries are the other network's.
     func toggleNetwork() {
         guard let store, store.machine.isRemote else { return }
         viaMac.toggle()
         Self.keep(viaMac, "\(store.session)/\(label.iid)", store.machine)
-        let old = view
+        let old = view, keyboard = old.window?.firstResponder === old
         old.navigationDelegate = nil
+        old.uiDelegate = nil
         old.stopLoading()
-        closePopup()
         if let proxy {
             Task { await proxy.value?.closeProxy() }
         }
@@ -330,7 +333,9 @@ extension Browser {
         view = BrowserView(store: Self.dataStore(viaMac ? .thisMac : store.machine))
         (view.onKeyboard, view.pictured) = (old.onKeyboard, old.pictured)
         wire()
-        if old.window?.firstResponder === old {
+        // The new page takes the keyboard if the old one or its popup had it.
+        closePopup()
+        if keyboard {
             view.takeKeyboard()
         }
         (loaded, ready, failure) = (false, false, nil)
@@ -340,8 +345,6 @@ extension Browser {
             return
         }
         approve(url)
-        let current = old.url.map { Self.shown($0, remoteAlias).absoluteString }
-        history = current == address ? old.interactionState as? Data : nil
-        restore(url)
+        load(url)
     }
 }

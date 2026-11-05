@@ -64,7 +64,7 @@ extension Browser: WKNavigationDelegate {
             return .cancel
         }
         // A remote card never shows This Mac's files (a history entry or a script may ask for one).
-        if store?.machine.isRemote == true, action.request.url?.isFileURL == true {
+        if store?.machine.isRemote != false, action.request.url?.isFileURL == true {
             return .cancel
         }
         guard let url = action.request.url,

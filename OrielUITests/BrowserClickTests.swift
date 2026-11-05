@@ -25,8 +25,8 @@ extension OrielUITests {
         let message = element("browser.\(browser).message")
         XCTAssertTrue(message.has(\.stringValue, "Nothing answers on localhost:\(port)", within: 5),
                       message.stringValue)
-        let failed = address.value as? String ?? ""
-        XCTAssertTrue(failed.hasPrefix("http://localhost:\(port)"), failed)
+        XCTAssertTrue(until(2) { address.stringValue.hasPrefix("http://localhost:\(port)") }, address.stringValue)
+        let failed = address.stringValue
         keepScreenshot("failed address")
 
         element("terminal.\(left)").click()

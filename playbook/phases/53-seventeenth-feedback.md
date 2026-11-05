@@ -416,3 +416,40 @@ CI runs and on-demand) at about 2–3 h.
   sheet (`NSWindow.confirm`).
 - **Decisions (25).** File Explorer's "changed on disk" toasts (Reload, Keep Mine; Overwrite, Reload) are choices in a
   conflict, not confirmations of a delete or a discard, so they stay plain.
+
+### Track C
+
+- **Cause, item 4.** The field follows WebKit's `url`. During a load, `url` moves to the new address. When the load
+  fails, `url` goes back to the last page's address, and the field followed it. Now the field ignores `url` while an
+  error shows. The error writes the address that failed, and the next commit shows the page's address again. Reload
+  already loaded the field's address after an error, so it now tries the failed address again.
+- **Cause, item 5.** The web view is hidden (opacity 0) while the empty card, an error, "Open this page?" or the
+  loader shows, and a hidden SwiftUI view takes no click. The globe's own tap asked for the address field, but the
+  field takes the keyboard only on the tab's keyboard card, so the request was dropped. The error view had no tap at
+  all. The phase 51 `_hitTest:dragTypes:` override was not the cause: it decides only drags. **Fix:** one tap over
+  the whole cover, its buttons too, makes the card the keyboard card, then gives the keyboard to the page, or to the
+  field when there is no address.
+- **Decisions, item 31.**
+  - A web view's store fixes its network, so each switch makes a new web view on This Mac's store or the machine's,
+    and loads the field's address. The back and forward list starts again, because its entries hold the other
+    network's addresses (`<machine>.localhost`).
+  - The choice is kept in this Mac's defaults (`browserViaMac.<machine id>`), not in the state file: "This Mac"
+    is a different Mac on another device, and a process on the machine must not choose This Mac's network.
+  - On This Mac's network, `localhost` is This Mac's, so it is not on the safe list: a label or state file from the
+    machine asks first. A switch approves the address it loads (the user clicked). So that machine can later open
+    that This Mac port by itself on its cards on This Mac's network. On This Mac's network, a machine can also send a
+    card to a safe-list site (github.com) with This Mac's logins.
+  - A link opened in a new tab keeps the card's network. `file://` stays closed to remote cards on both networks.
+- **Left.** While an error shows, the hidden old page takes the keyboard, as it did before after a tab switch. Back to
+  a same-document entry after an error (`#a`) still leaves the error up: such a load has no commit.
+- **Runs.** On the old code (run 41960236424), the new test failed at the click on the empty card, and the remote test
+  failed at the chip's label, which a plain `Text` leaves empty.
+- **Pictures** in `/tmp/oriel-shots/t53c/`: `before-remote-chip.png` and `before-empty-click.png` (old code, CI, dark).
+- **For the user.**
+  1. In a browser card, open a page, then type `localhost:4999` (nothing listening). The field keeps
+     `http://localhost:4999/`. Start a server on 4999 and click Reload: that page loads.
+  2. With two panes, click the other pane, then click anywhere on the browser's error page, or on a new browser
+     card's globe. The browser card becomes active.
+  3. On a remote machine, open a browser card on `localhost:<port>`. Click the machine chip: it says "This Mac", and
+     the page loads from this Mac's `localhost`. Click it again: back to the machine's page. Quit and reopen Oriel:
+     the card keeps its choice.

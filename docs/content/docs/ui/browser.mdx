@@ -103,8 +103,8 @@ server's terminal.
   the needs-you color on a 0.18 fill of it). A click on the chip switches the
   card to This Mac's network: the chip then says "This Mac" in secondary text
   on a 0.08 fill of the primary color
-  ([This Mac's network](#this-macs-network)). Under the pointer it shows the
-  text cursor and its fill goes to 0.1. A click or ⌘L selects the whole
+  ([This Mac's network](#this-macs-network)). Under the pointer the field
+  shows the text cursor (the chip shows the arrow) and its fill goes to 0.1. A click or ⌘L selects the whole
   address under a 1.5 pt accent edge. Return loads it and gives the keyboard
   to the page. Text that is not an address goes to a Google search
   (`https://www.google.com/search?q=…`): text with a space, or text with no
@@ -113,13 +113,13 @@ server's terminal.
   `swift actors`, `oriel` and `devbox:3000` search. Esc puts back the current address and gives the keyboard to the
   page.
 - **Empty card.** Until its first page, the card shows a 44 pt `globe` in
-  tertiary. A click anywhere on the card gives the address field the
-  keyboard. The web view stays hidden until a page commits, because an empty
+  tertiary. The web view stays hidden until a page commits, because an empty
   web view draws white.
 - **A click off the page.** The hidden web view takes no click. So a click
   anywhere on the empty card, the loader, an error or "Open this page?" makes
-  the card the keyboard card, as a click on a page does. The page takes the
-  keyboard, or the address field when the card has no address.
+  the card the keyboard card, as a click on a page does, also a click on
+  its buttons. The page takes the keyboard, or the address field when the
+  card has no address.
 - **Loading.** A 2 pt progress line in the accent runs under the header while
   a page loads.
 - **Loader.** Only while a card first opens or reads its saved state: the
@@ -287,11 +287,11 @@ pane or write its state file. So:
   the keyboard. Open approves the origin. Not Now leaves the page the card
   had, or the empty card.
 - The safe list: the machine's own `localhost`, `127.0.0.1`, `[::1]` and
-  `*.localhost` on any port (on [This Mac's network](#this-macs-network)
-  these are This Mac's, so they ask like any other origin), This Mac's `file://` pages, and `github.com`,
+  `*.localhost` on any port, This Mac's `file://` pages, and `github.com`,
   `gitlab.com`, `bitbucket.org`, `developer.apple.com`,
   `developer.mozilla.org`, `docs.github.com`, `vercel.com`, `*.vercel.app`
-  and `*.netlify.app`.
+  and `*.netlify.app`. On [This Mac's network](#this-macs-network) the
+  loopback names are This Mac's, so they ask like any other origin.
 - Approvals are per device and per machine, the newest 200 web origins, in
   the app's defaults (`browserApprovals.<machine id>`,
   [Data](/docs/data#every-piece-of-data)). Removing a machine removes them.
@@ -367,8 +367,8 @@ machine again.
   `localhost` is This Mac's, and logins are This Mac's. The chip says "This
   Mac", plain.
 - Each switch makes a new web view, because a store's network cannot change.
-  The card loads the address in its field again, with its back and forward
-  list. After a failed load, the list starts again.
+  The card loads the address in its field again. Its back and forward list
+  starts again, because its entries belong to the other network.
 - `file://` pages stay closed to a remote card on either network.
 - A page that the machine puts in the label or the state file loads by
   itself only from an approved origin. This Mac's `localhost` is not safe

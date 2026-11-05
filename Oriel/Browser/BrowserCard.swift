@@ -57,10 +57,12 @@ struct BrowserCard: View {
             // does: the hidden web view takes no click.
             .overlay {
                 if !shows {
-                    cover.frame(maxWidth: .infinity, maxHeight: .infinity).contentShape(.rect).onTapGesture {
-                        page.tookKeyboard(browser.terminalID)
-                        browser.takeKeyboard()
-                    }
+                    // Also on its buttons (Reload, Open).
+                    cover.frame(maxWidth: .infinity, maxHeight: .infinity).contentShape(.rect)
+                        .simultaneousGesture(TapGesture().onEnded {
+                            page.tookKeyboard(browser.terminalID)
+                            browser.takeKeyboard()
+                        })
                 }
             }
             .overlay {
