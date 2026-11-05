@@ -33,30 +33,15 @@
   -webkit-mask: var(--symbol) center / contain no-repeat;
 }
 [data-place="files"] :is(#tree, #matches) { flex: 1; min-height: 0; }
-/* The find bar under row 2, as the terminal's: a capsule with the field, the count of matches and a close button. */
+/* The find bar under row 2: the editor's (find.css), across the card, in the flow over nothing to blur or shadow. */
 [data-place="files"] #find {
   flex: none;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  height: 28px;
+  width: auto;
   margin: 0 6px 6px;
-  padding: 0 3px 0 10px;
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--text) 8%, transparent);
+  box-shadow: none;
 }
-[data-place="files"] #find input {
-  flex: 1;
-  min-width: 0;
-  border: 0;
-  outline: none;
-  background: none;
-  color: inherit;
-  font: inherit;
-}
-[data-place="files"] #find .count { color: var(--dim); font-variant-numeric: tabular-nums; }
-/* An icon button, as row 2's: the symbol (files.ts) as a mask in the dim color. */
-[data-place="files"] :is(#find, footer) button {
+/* An icon button, as row 2's: the symbol (footer.ts) as a mask in the dim color. */
+[data-place="files"] footer button {
   flex: none;
   width: 22px;
   height: 22px;
@@ -66,7 +51,7 @@
   background: none;
   cursor: default;
 }
-[data-place="files"] :is(#find, footer) button::before {
+[data-place="files"] footer button::before {
   content: "";
   display: block;
   width: 100%;
@@ -74,7 +59,7 @@
   background: var(--dim);
   -webkit-mask: var(--symbol) center / auto 11px no-repeat;
 }
-[data-place="files"] :is(#find, footer) button:hover { background: color-mix(in srgb, var(--text) 10%, transparent); }
+[data-place="files"] footer button:hover { background: color-mix(in srgb, var(--text) 10%, transparent); }
 /* The Git status bar: one line under the tree. */
 [data-place="files"] footer {
   flex: none;

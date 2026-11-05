@@ -4,7 +4,7 @@ import { FileTree, type FileTreeBatchOperation, type FileTreeDirectoryHandle, ty
   type GitStatus } from "@pierre/trees"
 import type { Change } from "@oriel/plugin-api"
 import { footer } from "./footer"
-import { how, menu, open, type Place, type Reveal } from "./place"
+import { how, menu, open, type Place, type Reveal, symbols } from "./place"
 
 const STATUS: Record<string, GitStatus> = {
   M: "modified", T: "modified", C: "modified", A: "added", D: "deleted", R: "renamed", U: "untracked",
@@ -109,8 +109,9 @@ export async function show(place: Place): Promise<Reveal> {
   let repository = false
   const rooted = () => oriel.git.root(top).catch(() => null)
 
-  root.innerHTML = `<div id="find" hidden><input placeholder="Filter" aria-label="Filter" spellcheck="false"><span
-    class="count"></span><button aria-label="Close Filter" title="Close"></button></div><div id="message" hidden><span
+  root.innerHTML = `<div id="find" class="find" hidden><div class="find-row"><input class="find-field" placeholder="Filter"
+    aria-label="Filter" spellcheck="false"><span class="find-count"></span><button class="find-icon" aria-label="Close Filter"
+    title="Close"></button></div></div><div id="message" hidden><span
     class="symbol"></span><p></p></div><div id="tree"></div><div id="matches" hidden></div><footer hidden></footer>`
   const renaming = (own: () => FileTree) => ({
     canRename: (item: { path: string }) => item.path !== UP.slice(0, -1),
@@ -125,7 +126,7 @@ export async function show(place: Place): Promise<Reveal> {
   const matches = root.querySelector<HTMLElement>("#matches")!
   const find = root.querySelector<HTMLElement>("#find")!
   const field = find.querySelector("input")!
-  const count = find.querySelector<HTMLElement>(".count")!
+  const count = find.querySelector<HTMLElement>(".find-count")!
   const status = footer(oriel, root.querySelector("footer")!)
   tree.render({ containerWrapper: host })
   results.render({ containerWrapper: matches })
@@ -268,11 +269,11 @@ export async function show(place: Place): Promise<Reveal> {
     // As specific as the rule that hides them, and after it: it wins.
     const shown = changed.map((path) =>
       `[data-item-path="${CSS.escape(path)}"]:not([data-item-git-status]) > [data-item-section="git"]`)
-    for (const style of dots) {
-      style.textContent = `[data-item-contains-git-change]:not([data-item-git-status]) > [data-item-section="git"] {
-        visibility: hidden; }
-        ${shown.length ? `${shown.join(", ")} { visibility: visible; }` : ""}`
-    }
+    const css = `[data-item-contains-git-change]:not([data-item-git-status]) > [data-item-section="git"] {
+      visibility: hidden; }
+      ${shown.length ? `${shown.join(", ")} { visibility: visible; }` : ""}`
+    // Only on a change: a new style restyles the whole tree, and an agent's edits refresh it often.
+    for (const style of dots) if (style.textContent !== css) style.textContent = css
   }
 
   /** git's letters and the open folders again, after a change on the machine. A closed folder lists when it opens. */
@@ -419,7 +420,8 @@ export async function show(place: Place): Promise<Reveal> {
   }
   const close = find.querySelector("button")!
   close.onclick = closeFind
-  void oriel.symbol("xmark", 11).then((url) => close.style.setProperty("--symbol", `url(${url})`), () => {})
+  symbols(oriel, ["xmark"])
+  close.style.setProperty("--symbol", "var(--sf-xmark)")
 
   // After each change under the root, and once when the card shows again.
   oriel.files.watch(top, () => {

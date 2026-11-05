@@ -1,6 +1,7 @@
 // The tree's Git status bar (files.ts), only while its root is in a repository: the branch, the count of changes,
 // how far the branch is ahead of and behind its upstream, and a button that opens Git on the repository.
 import type { Oriel } from "@oriel/plugin-api"
+import { symbols } from "./place"
 
 type Head = { branch: string; ahead: number; behind: number } | null
 
@@ -13,7 +14,8 @@ export function footer(oriel: Oriel, bar: HTMLElement) {
   let repo: string | null = null
   // Git's home on the repository, in a new tab at the end.
   button.onclick = () => repo && void oriel.open(`${repo}/`, { plugin: "git", how: "tab" }).catch(console.error)
-  void oriel.symbol("source.branch", 14).then((url) => button.style.setProperty("--symbol", `url(${url})`), () => {})
+  symbols(oriel, ["source.branch"], 14)
+  button.style.setProperty("--symbol", "var(--sf-source-branch)")
   return (root: string | null, count: number, head: Head) => {
     repo = root
     bar.hidden = !root || !head
