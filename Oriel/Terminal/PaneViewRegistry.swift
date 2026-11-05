@@ -33,9 +33,11 @@ final class PaneViewRegistry {
         let id: String
     }
 
-    /// On a memory-pressure warning the kept cards out of view go down to half the bounds.
+    /// On critical memory pressure the kept cards out of view go down to half the bounds. Not on a warning: macOS sent
+    /// one every 30 minutes at normal pressure with 43 % of 32 GB free, and each dropped web cards that the next
+    /// workspace switch made again (100–200 ms each).
     private static let pressure = {
-        let source = DispatchSource.makeMemoryPressureSource(eventMask: [.warning, .critical], queue: .main)
+        let source = DispatchSource.makeMemoryPressureSource(eventMask: .critical, queue: .main)
         source.setEventHandler {
             MainActor.assumeIsolated { trim(terminals: spare / 2, web: spareWeb / 2) }
         }

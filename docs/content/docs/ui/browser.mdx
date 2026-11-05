@@ -204,9 +204,11 @@ its page, for its overview tile and for a card made again:
   its state file ([State](/docs/plugins/api#state)), and with no Back and
   Forward.
 - A floated card and a plugin card with unsaved edits are never dropped.
-- On a memory-pressure warning from macOS
+- On critical memory pressure from macOS
   (`DispatchSource.makeMemoryPressureSource`), the kept cards out of view go
-  down to half the bound, and so do the kept terminals.
+  down to half the bound, and so do the kept terminals. A warning does
+  nothing: macOS can send one every 30 minutes while memory is free, and a
+  dropped card costs its next show 100–200 ms.
 - `spareWebCards` and `spareTerminals` (defaults, or `-spareWebCards N` at
   launch) set the two bounds.
 
@@ -462,7 +464,7 @@ gets the same card.
 | The SOCKS port is open to other accounts on the Mac | another account can reach the machine's network | accepted for a single-user Mac; a random port, open only while a card needs it |
 | A server with `AllowTcpForwarding no` | remote pages cannot load | the card says "cannot reach"; Tailscale or LAN addresses still load; a bigger server helper later |
 | `_WKInspector` is private | the Web Inspector button can break on a macOS update | Safari's Develop menu still reaches every card |
-| Web view memory | memory grows with many browser cards | at most 25 web cards kept out of view, half on a memory-pressure warning ([What stays in memory](#what-stays-in-memory)) |
+| Web view memory | memory grows with many browser cards | at most 25 web cards kept out of view, half on critical memory pressure ([What stays in memory](#what-stays-in-memory)) |
 
 ## Choices
 
