@@ -693,3 +693,61 @@ CI runs and on-demand) at about 2–3 h.
   6. Scroll a long open folder: its folder rows stay stuck at the top, nested; `..` scrolls away.
   7. The bar at the bottom shows the branch, "N changes" and ↑/↓ when ahead or behind; the branch button opens Git
      in a new tab. A folder outside a repository has no bar.
+
+### Track H
+
+- **How measured.** Release builds on this Mac, the bench session's workspaces: one (1 terminal tab), terms (10
+  terminal tabs), webs (10 browser tabs on the `oriel-research` reports, copied to `/tmp`), mixed (10 tabs: browsers,
+  File Explorer, Git) and many (30 terminal tabs). `-recordLatency` gives each switch's time from the click to the end
+  of the turn whose commit drew it, and (a local patch) the main thread's CPU time in it. Clicks went to the HID tap
+  under the GUI lock; an in-app driver (local patch) switched workspaces in a background window with no lock. The Mac's
+  load was 40–290 all along (other tracks building), so wall times moved ±20 ms between runs: I compared CPU times,
+  medians of 6–12 switches, before and after in turns, and checked each cause with a count.
+- **Cause.** What grew with the tab count was the tab bar: a switch made a capsule for every tab of the workspace, in
+  view or not, at about 2–3 ms of the main thread each (a build with no capsules took every switch down to the 1-tab
+  time). Browser, File Explorer and Git tabs cost the same as terminal tabs: only the shown tab's card is made, and a
+  kept web card is reused, not made again. Each capsule also followed its frame in the window and wrote it to its state
+  at every layout (DragSource).
+- **Fix.** The row is a lazy stack: a switch makes only the capsules in and near the row's view (SwiftUI makes about a
+  view's width ahead: 13 of 16 on a full-width Retina window, 3 to 8 on CI's). The drag preview takes its place from the
+  pointer and the view's size. The new pacing test counts the capsules a switch makes: 24 of 24 on the old code (run
+  41972567123, red), at most twice the row's fit on the new.
+- **Cause, repeated first visits.** A web card shown for the first time since launch costs 80–145 ms of main thread
+  (a new WKWebView and WebContent process, the page loads); a kept one is reused. Cards were dropped by the memory
+  trim, which halved both kept sets (to 12 web cards, 12 terminals) on every pressure *warning*. The user's installed
+  Oriel got one every 30 minutes like clockwork (16:47, 17:17, … 19:17 in the log) while
+  `kern.memorystatus_vm_pressure_level` read normal with 43 % of 32 GB free. **Fix (agreed with the orchestrator):**
+  only critical pressure trims; a warning does nothing. D46 and the design pages say so.
+- **Numbers** (main-thread CPU ms, then wall ms; medians):
+
+  | Switch | Before | After |
+  |---|---|---|
+  | one → many (30 tabs), clicks | 99, 110 | 58, 67 |
+  | many → one, clicks | 57, 66 | 46, 56 |
+  | one → webs (10 browsers), clicks | 76–79, 88 | 68–75, 82–86 |
+  | webs → one, clicks | 46–48, 50–54 | 45–48, 50–54 |
+  | one → terms / one → mixed (driver) | 48–71 / 57–66 | 49–54 / 56–72 |
+  | first visit, one → webs (driver) | 85–145 | 78–82 |
+  | phase 48: a terminal tab, a kept browser tab, the overview open, close (driver) | 34–46, 24–36, 38–58, 24–33 | 34–43, 34–42, 47–48, 28–34 |
+
+  The phase 48 measures did not change beyond the noise.
+- **Left, and why.** A switch to a 1-tab workspace still costs about 45 ms of main thread here: the whole window's
+  update for a new selection (SwiftUI's graph about a third, layout, Core Animation's commit, accessibility queries
+  from a client on this Mac). Under 13 tabs a full-width window makes every capsule, so 10 tabs still cost about 20 ms
+  more than 1 (68–75 against 45–48): the 50 ms target holds on CI-sized windows and from 30 tabs down to that floor
+  here, not for 10 tabs on this loaded Mac. Also left: leaving a terminal tab copies each of its terminals' last picture
+  (about 4 ms each, `keepPicture`, phase 48's guard against a blank frame), once per leave.
+- **Decisions.** Tried and dropped, no gain beyond the noise: `TabButton` as `Equatable`, a hover panel that follows
+  its frame only while hovered, deferring or skipping the terminal snapshot. VoiceOver reads the capsules in and near
+  the row's view; ⌘1–9, ⇧⌘[ ] and the palette reach the rest, and a workspace row's value carries its strongest state
+  (theme-and-accessibility). The tests wait on a new `tabs.count` value instead of the last capsule.
+- **Pictures.** The look does not change: `/tmp/oriel-shots/t53h/before-webs-dark.png` and
+  `/tmp/oriel-shots/t53h/after-webs-dark.png` are the same pixels.
+- **For the user.**
+  1. Open a workspace with 20 or more tabs, then switch to it and away a few times: it shows at once, as a small one
+     does.
+  2. Switch to your reports workspace after the Mac has been up for an hour: the browser tab shows its page at once,
+     with no reload.
+  3. In a workspace with more tabs than fit, drag a tab to the row's end and hold: the row scrolls; check that the
+     dimmed capsule and the drop place look right as it scrolls.
+  4. With VoiceOver on, move through the tab row: it reads the tabs in view; ⌘1–9 reach the others.
