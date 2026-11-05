@@ -14,8 +14,9 @@ every command except `status`, which the script answers from herdr alone.
   This Mac included. Oriel writes it when it opens a session on the machine
   and the file there is missing or older
   ([How the command gets there](/docs/agent-control/remote#how-the-command-gets-there)).
-- It is not on `PATH`. Agents use the full path (the `oriel` skill in
-  pi-hkandala names it). A user who wants the short name adds
+- It is not on `PATH`. Agents use the full path (the `oriel` skill names
+  it: [The oriel skill](/docs/agent-control#the-oriel-skill)). A user who
+  wants the short name adds
   `export PATH="$HOME/.cache/oriel/bin:$PATH"` to their shell.
 - No file means that no Oriel ever opened a session on this machine.
 - It needs `sh`, `sed`, `date`, `mv`, `head`, `tail`, `tr`, `uuidgen` or

@@ -29,6 +29,20 @@ remote machine that Oriel connects to (D104).
 - **An agent never moves the user's view.** It can add a card or a floating
   window. To point at something, it shows a notice with **Show**.
 
+## The oriel skill
+
+A skill is a folder of instructions that an agent loads when a task needs it.
+The `oriel` skill, in `skills/oriel/` of the Oriel repo, teaches an agent the
+`oriel` command
+([what it holds](/docs/agent-control/migration#the-oriel-skill)).
+
+- **On This Mac,** `make install` links the folder to
+  `~/.agents/skills/oriel` (pi and Codex) and `~/.claude/skills/oriel`
+  (Claude Code). It leaves an `oriel` skill that is already there alone.
+- **On a remote machine,** copy the folder to the same places, for example
+  `scp -r skills/oriel <machine>:.agents/skills/`. Oriel does not install
+  it there.
+
 ## What Oriel does, and what stays herdr
 
 | Operation | Who | Command |

@@ -105,9 +105,12 @@ app: web
 	$(XCODEBUILD) $(MAC) -configuration Release build $(NOWARN) $(BEAUTIFY)
 	@echo "$(DERIVED_DATA)/Build/Products/Release/Oriel.app"
 
+# Also links the oriel skill for pi and Codex (~/.agents/skills) and Claude Code (~/.claude/skills), where no oriel
+# skill is; -f replaces a link whose checkout is gone.
 install: app
 	rm -rf ~/Applications/Oriel.app
 	cp -R $(DERIVED_DATA)/Build/Products/Release/Oriel.app ~/Applications/
+	for d in ~/.agents/skills ~/.claude/skills; do mkdir -p $$d; [ -e $$d/oriel ] || ln -sfn $(CURDIR)/skills/oriel $$d/oriel; done
 
 dmg: app
 	rm -f .build/Oriel.dmg

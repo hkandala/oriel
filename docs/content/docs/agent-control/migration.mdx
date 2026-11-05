@@ -3,10 +3,10 @@ title: "Migration"
 description: "How pi-herd's float, pi's copy and the oriel-panes skill moved to the oriel command, and the older tokens Oriel still reads"
 ---
 
-Three callers in pi-hkandala used token tricks before the `oriel` command
+Three callers used token tricks before the `oriel` command
 ([Agent control](/docs/agent-control)). Each now runs the command:
-- pi-herd's float runs `oriel float`.
-- pi's copy runs `oriel copy`.
+- pi-herd's float (in pi-hkandala) runs `oriel float`.
+- pi's copy (in pi-hkandala) runs `oriel copy`.
 - The `oriel` skill replaces the `oriel-panes` skill.
 
 Oriel still reads the older float and copy tokens for one release, for a
@@ -70,7 +70,8 @@ return new Promise((ok) => {
 
 ## The oriel skill
 
-The `oriel` skill (`skills/oriel/` in pi-hkandala) replaces `oriel-panes`
+The `oriel` skill (`skills/oriel/` in the Oriel repo,
+[The oriel skill](/docs/agent-control#the-oriel-skill)) replaces `oriel-panes`
 and its `placeholder.sh`. Its `SKILL.md` says what Oriel is, how to tell that
 it shows the pane (`oriel status`), the commands an agent uses most and the
 rules (with `notify` and `copy`). One file per topic loads only when the agent needs it:
