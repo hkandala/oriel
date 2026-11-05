@@ -183,7 +183,7 @@ struct AgentCall {
               !id.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains)
         else { throw AgentError(code: "bad_argument", message: "\(argument) is not a pane") }
         let runs = { store.sessions.contains { $0.name == session && $0.running } }
-        // The list is the one read at connect: a session started since needs a new one.
+        // The list is read at connect and by Open Session: a session started since needs a new one.
         if session != store.session, !runs() {
             await store.loadSessions()
         }

@@ -93,5 +93,7 @@ everything end to end, and test and review everything".
   (Open Session on appear, the "not running" page on each failure).
 - **Fix, pi-herd** (pi-hkandala): a failed float shows Ovvi's error and opens no popup; a popup of pi-herd's that
   nobody sees no longer blocks the next open.
+- **Runs.** The new test red on the old code at its float after the start (42106371894) and green with the fix
+  (42106377248), beside the agent-control, open, balance and agent-start tests (the last skips on CI: it has claude).
 - **For the user:** with Ovvi open, start a pi agent hidden (a new pi-herd server), then open it from pi's agents
   tab: it floats.

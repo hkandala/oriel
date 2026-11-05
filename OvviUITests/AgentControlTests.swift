@@ -60,6 +60,7 @@ extension OvviUITests {
         let five = try env("OVVI_SESSION5")
         if await (try? Self.snapshot(five)) != nil {
             try await Self.post("\(five)/stop")
+            try await expect("five to stop") { await (try? Self.snapshot(five)) == nil }
         }
         relaunch()
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
