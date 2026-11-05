@@ -56,6 +56,9 @@ struct FilterList: View {
     /// The last rows sit under the scrolled ones, always in view: the workspace menu's New Workspace is a drop target
     /// only in view as a drag starts (macOS 27, `MenuRowDrop`).
     var pinned = 0
+    /// The panel's bottom padding, when the list ends the panel: inside the scrolled rows, after the last one, so a cut
+    /// row runs to the panel's edge. Under the field on a name page, which has no rows.
+    var inset: CGFloat = 0
     /// Off for the workspace menu a drag holds open: the drag's keyboard card keeps the keys.
     var autofocus = true
     /// After a row acted or the field's text was submitted.
@@ -123,6 +126,7 @@ struct FilterList: View {
                                 Text("No matches").foregroundStyle(.secondary).padding(8)
                             }
                         }
+                        .padding(.bottom, inset)
                         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { rowsHeight = $0 }
                     }
                     .scrollIndicators(.never)
@@ -140,6 +144,7 @@ struct FilterList: View {
                 }
             }
         }
+        .padding(.bottom, submit == nil ? 0 : inset)
         .onAppear {
             filter = text
             scrolls.map(NSEvent.removeMonitor)

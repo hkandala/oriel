@@ -826,7 +826,11 @@ A window that watches a session another window controls (D66).
 ## Command palette
 
 ⌘K or the title-bar ⌘ button opens it (D48). ⇧⌘P also opens it (Rex's key).
-- 480 pt wide, with 10 pt around its content. The search field says
+- 480 pt wide, with 10 pt around its content. The list is the exception at
+  the bottom: it runs to the panel's bottom edge, so a row cut by the scroll
+  is cut at that edge. Its 10 pt sit after the last row, and show only when
+  the list is scrolled to its end. Open Session's list does the same with its
+  8 pt. The search field says
   "Search", in 15 pt text with 12 pt of padding at its sides and 9 pt above
   and below.
 - **Rows.** 32 pt: a symbol, the title, and on the right the shortcut, or ›

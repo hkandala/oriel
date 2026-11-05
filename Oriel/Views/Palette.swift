@@ -29,9 +29,11 @@ struct Palette: View {
             }
             palette(command, list)
         }
-        .padding(10)
+        .padding([.horizontal, .top], 10)
         .frame(width: 480)
         .floatingGlass(in: .rect(cornerRadius: 14))
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("palette")
         // Rex's preview delay.
         .task(id: lit) {
             guard command?.previews == true, let lit,
@@ -59,6 +61,7 @@ struct Palette: View {
             submit: command?.name.map { name in { text in Task { await name.save(text) } } },
             back: sub == nil ? nil : { back() },
             rowHeight: 32,
+            inset: 10,
         ) { open = false }
             .controlSize(.large)
             // A new page starts with a new field and list.

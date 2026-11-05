@@ -38,12 +38,14 @@ extension OrielUITests {
     }
 
     /// The pointer lights a row; the list scrolled under the still pointer keeps the light where it was; a move
-    /// lights the row under it again.
+    /// lights the row under it again. The list runs to the panel's bottom edge, so a cut row is cut there.
     func testPaletteLightStaysWhileTheListScrolls() {
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         openPalette()
         let lit = element("palette.command.New Tab"), other = element("palette.command.Close Other Tabs")
         XCTAssertTrue(lit.exists(within: 2))
+        let panel = element("palette").frame, list = element("palette").scrollViews.firstMatch.frame
+        XCTAssertEqual(list.maxY, panel.maxY, accuracy: 1, "list \(list), panel \(panel)")
         lit.hover()
         XCTAssertTrue(lit.has(\.isSelected, true, within: 2))
         // The pointer rests on the row's middle: the scroll takes the row off it.
