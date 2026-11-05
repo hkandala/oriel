@@ -67,7 +67,7 @@ no title and no key hint. While the chooser shows, the card's header says
   | OpenCode | `opencode` |
 
   An agent that is not on the machine has a dimmed row. "Not installed" in
-  11 pt secondary text takes the place of its number key
+  11 pt secondary text, dimmed with the row, takes the place of its number key
   ([Agents that are not installed](#agents-that-are-not-installed)).
 - **Selection.** The palette's accent pill
   ([Command palette](/docs/ui/window#command-palette)), with the row's text
@@ -157,8 +157,9 @@ dimmed and takes no pick.
   The login shell runs the user's startup files, so the shell's `PATH` and
   aliases count. The check stops after 3 s.
 - **Unknown means installed.** Until the check answers, and when it fails,
-  stops or cannot run the loop (fish), every agent is enabled. So no row turns grey and back. A check that
-  failed runs again when the window connects to its remote machine.
+  stops or cannot run the loop (fish), every agent is enabled. So no row
+  turns grey and back. A check that failed runs again when the window
+  connects to its remote machine.
 - **Kept for the window.** The answer stays on the window until it closes.
   The app does not save it and does not check again. To see an agent that
   you installed after the window opened, open a new window.

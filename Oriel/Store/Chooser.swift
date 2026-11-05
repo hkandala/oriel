@@ -255,10 +255,13 @@ extension WindowPages {
     func findAgents() {
         guard agents == nil else { return }
         let commands = Chooser.agents.map(\.command)
-        let loop = "for c in \(commands.joined(separator: " ")); do command -v \"$c\" >/dev/null && echo \"$c\"; done"
+        // The first `echo`: a startup file's text with no final newline would join the first agent's line. The end
+        // marker: a shell that ran the loop.
+        let script = "echo; for c in \(commands.joined(separator: " ")); do command -v $c >/dev/null && echo $c; done; "
+            + "echo oriel-end"
         Task {
             let lines = try? await machine.exec().output(["sh", "-c", #"exec "${SHELL:-sh}" -ilc "$1""#, "sh",
-                                                          loop + "; echo oriel-end"], timeout: .seconds(3))
+                                                          script], timeout: .seconds(3))
                 .split(separator: "\n").map(String.init)
             if let lines, lines.last == "oriel-end" {
                 agents = Set(lines).intersection(commands)

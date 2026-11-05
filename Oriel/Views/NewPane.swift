@@ -96,20 +96,17 @@ struct NewPane: View {
             page.store.pick(chooser, row, page: page)
         } label: {
             HStack(spacing: 8) {
-                Group {
-                    icon(row, selected: selected)
-                    Text(name).lineLimit(1)
-                    if row == .agent {
-                        Image(systemName: chooser.open ? "chevron.down" : "chevron.right")
-                            .font(.system(size: 9, weight: .semibold)).foregroundStyle(dim)
-                    }
-                    Spacer(minLength: 4)
-                    if details {
-                        Text(detail).font(.system(size: 12, design: agent != nil ? .monospaced : .default))
-                            .foregroundStyle(dim).lineLimit(1)
-                    }
+                icon(row, selected: selected)
+                Text(name).lineLimit(1)
+                if row == .agent {
+                    Image(systemName: chooser.open ? "chevron.down" : "chevron.right")
+                        .font(.system(size: 9, weight: .semibold)).foregroundStyle(dim)
                 }
-                .opacity(missing ? 0.45 : 1)
+                Spacer(minLength: 4)
+                if details {
+                    Text(detail).font(.system(size: 12, design: agent != nil ? .monospaced : .default))
+                        .foregroundStyle(dim).lineLimit(1)
+                }
                 if missing {
                     Text("Not installed").font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
                 } else if let number = chooser.number(row) {
