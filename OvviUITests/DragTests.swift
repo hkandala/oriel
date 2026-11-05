@@ -45,8 +45,9 @@ extension OvviUITests {
         let fourth = try await split(third)
         restoreHerdrFocusAfter()
         try await Self.call(one, "pane.zoom", ["pane_id": third, "mode": "on"])
-        try await drag(second, holdingOver: capsule)
+        try await press(second, over: capsule)
         XCTAssertTrue(capsule.has(\.isSelected, true, within: 2))
+        try await release()
         // The failed write's notice: a red symbol and a ✕ that closes it.
         let notice = element("detail.notice")
         XCTAssertTrue(notice.staticTexts["The tab is zoomed in herdr"].exists(within: 3))
@@ -59,8 +60,9 @@ extension OvviUITests {
 
         // The same refused move onto a workspace row: only the row's spring-load selects beta.
         XCTAssertTrue(element("pane.\(third)").exists(within: 3))
-        try await drag(third, holdingOver: element("workspace.w2"))
+        try await press(third, over: element("workspace.w2"))
         XCTAssertTrue(element("workspace.w2").has(\.isSelected, true, within: 2))
+        try await release()
         XCTAssertTrue(notice.staticTexts["The tab is zoomed in herdr"].exists(within: 3))
         notice.buttons["notice.close"].click()
         XCTAssertTrue(notice.vanishes(within: 2))
@@ -355,15 +357,17 @@ extension OvviUITests {
         during(card(pane, 0, 0).withOffset(CGVector(dx: 60, dy: 17)), to: target, hold: hold)
     }
 
-    /// A drag that holds 1.2 s over `target`'s middle before the drop, past a spring-load's 0.65 s. Posted by
-    /// scripts/drag.swift, which holds after its last move: XCUITest plays a drag on a timetable from its start, and
-    /// on a busy runner its late moves cut a 1.2 s hold to 0.4 s in the app.
-    func drag(_ pane: String, holdingOver target: XCUIElement) async throws {
+    /// Presses on the pane's card and holds over `target`'s middle until `release()` (scripts/drag.swift), so the test
+    /// drops once it saw what the hold did. A timed hold failed both ways on CI: XCUITest plays a drag on a timetable
+    /// from its start (late moves cut a 1.2 s hold to 0.4 s in the app), and drag.swift's release 0.5 s after a
+    /// spring-load left a drag session that never ended.
+    func press(_ pane: String, over target: XCUIElement) async throws {
         let from = element("pane.\(pane)").frame, over = target.frame
-        try await Self.post(
-            "\(one)/drag",
-            Data("\(from.minX + 60) \(from.minY + 17) \(over.midX) \(over.midY) 1.2".utf8),
-        )
+        try await Self.post("\(one)/press", Data("\(from.minX + 60) \(from.minY + 17) \(over.midX) \(over.midY)".utf8))
+    }
+
+    func release() async throws {
+        try await Self.post("\(one)/release")
     }
 
     /// A drag that holds at `target` before the drop. XCUITest runs nothing else while it drags (not even the main

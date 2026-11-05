@@ -36,10 +36,10 @@ Problems that came back across phases, and the rule that stops each. How we work
   `.moved`.
 - **Never post synthetic key events.** A key event posted with modifier flags but no modifier key-up leaves the
   session's modifiers down for every app. Keys reach the app only through XCUITest.
-- **Time a posted drag's hold from its last move and its release from the session's start.** XCUITest plays a drag
-  on a timetable from its start: late moves on a busy runner shorten its hold (a spring-load missed). A release posted
-  before the app's drag session began leaves one that never ends. Hold after the last move (`scripts/drag.swift`) and
-  release after `willBeginAt`.
+- **Step a posted drag by what the app did, not by a clock.** XCUITest plays a drag on a timetable from its start:
+  late moves on a busy runner shorten its hold (a spring-load missed). A release posted before the app's drag session
+  began, or during the page a spring-load builds, left a session that never ended. Release after `willBeginAt` or
+  once the test saw the hold's effect (the helper's `press` and `release`).
 - **Know XCUITest's input gaps on macOS.** Drags need `click(forDuration:thenDragTo:)`; scroll is a wheel
   with no phases; a ⌘ key whose menu item is disabled is never delivered. Real trackpad gestures go
   through the e2e helper as HID events. It cannot read a menu checkmark (`isSelected` is false), hear an

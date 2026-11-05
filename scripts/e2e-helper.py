@@ -28,6 +28,8 @@ ssh asks for it again.
 POST /<session>/swipe with "x y step steps [pause [vertical [option]]]" as the body posts a two-finger trackpad swipe there (scripts/swipe.swift).
 POST /<session>/drag with "x y (x y hold)..." as the body drags the mouse from the first point through the others,
 holding at each (scripts/drag.swift).
+POST /<session>/press with "x y tx ty" as the body drags from x y to tx ty and comes back while it holds there;
+/<session>/release lets go.
 POST /<session>/stress with "tabs workspaces panes agents" as the body starts the session afresh and fills it with
 scripts/stress.py; its summary comes back. With an empty body it removes the session, so the next tests do not run
 beside its shells.
@@ -51,6 +53,8 @@ import time
 split = sys.argv.index("--")
 sessions, command = sys.argv[1:split], sys.argv[split + 1:]
 folders = []
+# The session's drag that /press holds.
+held = {}
 # The tests' config folder (OvviUITests.noConfig): a launch from here installs the default plugins there, never in the
 # user's ~/.config/ovvi.
 NO_CONFIG = "/tmp/ovvi-e2e-no-config"
@@ -96,7 +100,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             status, reply = 403, f"refusing session '{session}'".encode()
         elif action not in ("", "control", "takeover", "children", "stop", "start", "open-folder", "open-url",
                             "file-drag", "usage", "ssh-drop", "ssh-forget", "ssh-connections", "swipe", "drag",
-                            "stress", "sample", "heap"):
+                            "stress", "sample", "heap", "press", "release"):
             status, reply = 404, f"no action '{action}'".encode()
         elif action in ("control", "takeover") and not re.fullmatch(rb"\w[\w-]*", body):
             status, reply = 400, b"the body must be a terminal id"
@@ -136,13 +140,27 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 status, reply = 500, f"{action} took over {limit} s".encode()
         elif action == "drag" and not re.fullmatch(rb"-?[\d.]+ -?[\d.]+( -?[\d.]+ -?[\d.]+ [\d.]+)+", body):
             status, reply = 400, b"the body must be x y (x y hold)..."
-        elif action == "file-drag" and not re.fullmatch(rb"-?[\d.]+( -?[\d.]+){3}", body):
+        elif action in ("file-drag", "press") and not re.fullmatch(rb"-?[\d.]+( -?[\d.]+){3}", body):
             status, reply = 400, b"the body must be x y tx ty"
-        elif action in builds and any([build.wait() for build in builds.values()]):
+        elif action == "release" and session not in held:
+            status, reply = 400, b"no drag held"
+        elif action in (*builds, "press") and any([build.wait() for build in builds.values()]):
             status, reply = 500, b"".join(open(f"{tools}/{name}.log", "rb").read() for name in builds)
         elif action in ("swipe", "drag"):
             run = subprocess.run([f"{tools}/{action}"] + body.decode().split(), capture_output=True, timeout=120)
             status, reply = (200, b"") if run.returncode == 0 else (500, run.stderr)
+        elif action == "press":
+            run = subprocess.Popen([f"{tools}/drag"] + body.decode().split() + ["-1"], stdin=subprocess.PIPE,
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if run.stdout.readline():  # "held": over tx ty
+                held[session] = run
+                status, reply = 200, b""
+            else:
+                status, reply = 500, run.communicate(timeout=10)[1]
+        elif action == "release":
+            run = held.pop(session)
+            _, error = run.communicate(b"\n", timeout=30)
+            status, reply = (200, b"") if run.returncode == 0 else (500, error)
         elif action == "ssh-drop":
             pattern = f"ssh -M -N -f .* {body.decode()}$"
             pids = subprocess.run(["pgrep", "-f", pattern], capture_output=True).stdout

@@ -1,7 +1,8 @@
 // A mouse drag through several points, for the drag tests that need two legs (a tab held over the
 // workspace button opens its menu, then drops on a row there): XCUITest drags to one point only. Presses at x y (screen
 // points, top left) for 0.3 s, then moves to each next point over 0.3 s and holds there for its seconds, then lets go.
-// Posted to the HID system, as scripts/swipe.swift does. Only from an Ovvi window: never into another app.
+// A negative hold prints "held" and holds until a line on stdin (at most 30 s): the test lets go once it saw what the
+// hold did. Posted to the HID system, as scripts/swipe.swift does. Only from an Ovvi window: never into another app.
 // Usage: swift scripts/drag.swift <x> <y> (<x> <y> <hold>)...
 import CoreGraphics
 import Foundation
@@ -41,7 +42,19 @@ for index in stride(from: 2, to: args.count, by: 3) {
         Thread.sleep(forTimeInterval: 0.015)
     }
     point = next
-    Thread.sleep(forTimeInterval: args[index + 2])
+    if args[index + 2] < 0 {
+        print("held")
+        fflush(stdout)
+        let line = DispatchSemaphore(value: 0)
+        Thread.detachNewThread {
+            _ = readLine()
+            line.signal()
+        }
+        // Not left down for every app when no line comes.
+        _ = line.wait(timeout: .now() + 30)
+    } else {
+        Thread.sleep(forTimeInterval: args[index + 2])
+    }
 }
 
 post(.leftMouseUp, point)
