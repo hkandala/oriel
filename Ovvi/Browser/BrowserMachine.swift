@@ -44,7 +44,7 @@ extension Browser {
             return store
         }
         // This Mac's fixed id; a remote machine's from its id, else kept in memory only.
-        let id = UUID(uuidString: machine.isRemote ? machine.id : "6F726965-6C00-4000-8000-746869734D61")
+        let id = UUID(uuidString: machine.isRemote ? machine.id : "6F767669-0000-4000-8000-746869734D61")
         let store = id.map { WKWebsiteDataStore(forIdentifier: $0) } ?? .nonPersistent()
         stores[machine.id] = store
         return store
