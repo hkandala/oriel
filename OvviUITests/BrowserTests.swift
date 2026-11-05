@@ -215,7 +215,7 @@ extension OvviUITests {
         let other = try await replaced(left, in: tab, besides: [browser])
         let otherLabel = try await paneLabel(other)
         XCTAssertTrue(otherLabel.hasPrefix("ovvi:browser#"), otherLabel)
-        XCTAssertTrue(hasKeyboard("browser.\(other).address"))
+        XCTAssertTrue(hasKeyboard("browser.\(other).address"), "the keyboard is on \(keyboardOwner())")
         // Not on a browser pane, where Open Terminal Here is.
         openPalette()
         app.typeText("here")
@@ -223,7 +223,7 @@ extension OvviUITests {
         XCTAssertFalse(element("palette.command.Open Browser Here").exists)
         app.typeKey(.escape, modifierFlags: [])
         // ⇧⌘R on a browser card: a shell with the chooser.
-        XCTAssertTrue(hasKeyboard("browser.\(other).address"))
+        XCTAssertTrue(hasKeyboard("browser.\(other).address"), "the keyboard is on \(keyboardOwner())")
         app.typeKey("r", modifierFlags: [.command, .shift])
         let shell = try await replaced(other, in: tab, besides: [browser])
         XCTAssertTrue(element("pane.\(shell).chooser.terminal").exists(within: 3))

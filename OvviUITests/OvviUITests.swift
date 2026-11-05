@@ -319,8 +319,14 @@ extension OvviUITests {
     func openPalette() -> XCUIElement {
         app.typeKey("k", modifierFlags: .command)
         let filter = element("palette.filter")
-        XCTAssertTrue(hasKeyboard(filter))
+        XCTAssertTrue(hasKeyboard(filter), "the keyboard is on \(keyboardOwner())")
         return filter
+    }
+
+    /// What has the keyboard, for a failure's message: its type and identifier.
+    func keyboardOwner() -> String {
+        let owner = app.descendants(matching: .any).matching(NSPredicate(format: "hasKeyboardFocus == true")).firstMatch
+        return owner.exists ? "\(owner.elementType.rawValue) '\(owner.identifier)' '\(owner.label)'" : "nothing"
     }
 
     /// For people reviewing a run: the window (brought to the front when given), in the result bundle.
