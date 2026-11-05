@@ -122,5 +122,8 @@ everything end to end, and test and review everything".
   `tail -F` never reads its stdin. They depend on removed temporary files and do nothing; `pkill -f 'T/oriel-'` ends
   the old ones. No process in the user's panes uses a removed path; two shell panes of
   `default`, `w2K:p1` and `w2M:p1`, still wait without a program for `~/code/oriel-design` and `~/code/oriel-agentapi`.
+- **Runs.** Both UI tests green in chosen-tests run 42109609335 on d773d5f6; 42108320174 on 274c2fdd passed the
+  remake and failed the zsh test's own prompt wait (a read trims the space after `%`). No red run on the old code: the
+  2-run cap; the spike shows the old line failing in zsh and bash 5.3.
 - **For the user.** In pane `w4:pHQ` (File Explorer, `mira-features-since-oct-9.md`), close the card and open the file
   again, or, once this build is installed, relaunch Ovvi: it sends ⌃U and the line again into that pane's zsh.
