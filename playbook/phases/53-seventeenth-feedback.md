@@ -433,8 +433,8 @@ CI runs and on-demand) at about 2–3 h.
   - A web view's store fixes its network, so each switch makes a new web view on This Mac's store or the machine's,
     and loads the field's address. The back and forward list starts again, because its entries hold the other
     network's addresses (`<machine>.localhost`).
-  - The choice is kept in this Mac's defaults (`browserViaMac.<machine id>`), not in the state file: "This Mac"
-    is a different Mac on another device, and a process on the machine must not choose This Mac's network.
+  - The choice is kept in this Mac's defaults (`browserViaMac.<machine id>`), not in the state file: each Mac has
+    its own This Mac, and a process on the machine must not choose This Mac's network.
   - On This Mac's network, `localhost` is This Mac's, so it is not on the safe list: a label or state file from the
     machine asks first. A switch approves the address it loads (the user clicked). So that machine can later open
     that This Mac port by itself on its cards on This Mac's network. On This Mac's network, a machine can also send a
