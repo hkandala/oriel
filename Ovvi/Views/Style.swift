@@ -41,11 +41,12 @@ struct Look {
              Color(white: 0x1E / 255), Color(white: 0xF6 / 255))
     }
 
-    /// Glass dark: the shade over a second, within-window blur, between `backdrop` and `window`. That blur smooths the
-    /// text and edges of a bright window behind, which the `overlay` darkening sharpens; 0.2 keeps the darkness the
-    /// system glass gave. Light needs none: its white tint already hides a dark window behind.
-    var blurShade: Color? {
-        style == .glass && dark ? .black.opacity(0.2) : nil
+    /// Glass dark: the system glass between the blur and `window`, as Rex's Modern window, under this shade. Its wide
+    /// blur smooths the text and edges of a bright window behind, which the `overlay` darkening sharpens. The shade
+    /// keeps the darkness the glass's own `#1e1e1e` 0.5 tint gave, which macOS drops in an inactive window. Light needs
+    /// none: its white tint already hides a dark window behind.
+    var glassShade: Color? {
+        style == .glass && dark ? .black.opacity(0.5) : nil
     }
 
     var cardFill: Color {

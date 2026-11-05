@@ -7,13 +7,12 @@ struct WindowBackground: View {
 
     var body: some View {
         if look.style == .glass {
-            Frosted(blending: .behindWindow, material: .hudWindow)
-                .overlay(look.backdrop.blendMode(BlendMode.overlay))
+            Frosted().overlay(look.backdrop.blendMode(BlendMode.overlay))
                 .overlay {
-                    // Not the system glass: macOS draws it without its tint and wide blur in an inactive window,
-                    // so the window would turn lighter and greyer.
-                    if let shade = look.blurShade {
-                        Frosted(blending: .withinWindow, material: .fullScreenUI).overlay(shade)
+                    // A plain shade, not the glass's own tint: macOS draws that tint grey and faint in an inactive
+                    // window, so the window would turn lighter and greyer.
+                    if let shade = look.glassShade {
+                        Color.clear.glassEffect(.regular, in: .rect).overlay(shade)
                     }
                 }
                 .overlay(look.window)
@@ -23,16 +22,12 @@ struct WindowBackground: View {
     }
 }
 
-/// A blur of the desktop behind the window (SwiftUI's materials blur only what is inside it), or of the window's own
-/// background.
+/// The Glass window's blur of the desktop. SwiftUI's materials blur only what is inside the window.
 private struct Frosted: NSViewRepresentable {
-    let blending: NSVisualEffectView.BlendingMode
-    let material: NSVisualEffectView.Material
-
     func makeNSView(context _: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
-        view.blendingMode = blending
-        view.material = material
+        view.blendingMode = .behindWindow
+        view.material = .hudWindow
         // Blurred in an inactive window too, so the look holds.
         view.state = .active
         return view
