@@ -366,6 +366,31 @@ what differs unless a card needs it otherwise, and give the reason in Findings.
     - New Pane never waits for the check.
     - A UI test with a stand-in `PATH` where one agent is missing. A picture of the disabled rows, dark and light.
 
+## Track K: New Pane's folder (item 44)
+
+44. **Where the pane opens, editable.** After the mockups (`new-pane-mockups.html`): "honestly, the current one looks
+    better than anything else, one improvement we can do to current one is add that opens in filepath text at the
+    bottom like shown in idea 1, one more addition to that, let's make that path editable, like user can click on
+    that path, and that becomes editable and they can type in their path there, adn we can have an icon or something
+    clicking on it should open macos file picker, basically similar to what the file explorer plugin has in its
+    address bar, similar to that, do not show full absolut path all the time, same like file explorer again".
+    - Keep today's chooser as it is. Add one quiet line under the list: "Opens in", then the folder the new pane will
+      start in.
+    - The folder shows short, as File Explorer's path bar does: `~/code/oriel`, or relative to the repository, never
+      the full absolute path at rest. Name the machine only when it is not This Mac.
+    - A click on the path turns it into a text field with the path selected. Return applies it and Esc cancels it.
+      `~` and relative paths are taken. A folder that does not exist on that machine shows an inline error, and the
+      old folder stays.
+    - A folder icon at the line's end opens the macOS folder picker (NSOpenPanel, folders only) at the current folder.
+      On a remote machine the icon is hidden, because the Mac's picker cannot browse that machine; typing still works.
+    - The picked folder is the start folder of whatever the user picks next: Terminal, an agent, File Explorer, Git,
+      or a plugin. It is kept for that chooser only, not saved.
+    - Keys: the number keys and arrows work as today while the field is not editing. ⌘L, or Tab from the list,
+      starts editing.
+    - Reuse File Explorer's path bar look and its short-path rule; do not copy its code if it can be shared.
+    - A UI test: type a folder, pick Terminal, and check the shell's folder; a bad folder shows the error.
+    - Pictures, dark and light.
+
 ## Research, plans only (items 34–38, 42, 43)
 
 No code changes. Each report is one self-contained HTML file in `/tmp/oriel-research/`, copied to
@@ -427,6 +452,7 @@ The tracks run in parallel, each in its own worktree. Estimates are in agent hou
 | H, workspace switches | 39 | 3 h |
 | I, the chat view's load | 40 | 3 h |
 | J, missing agents | 41 | 2 h |
+| K, New Pane's folder | 44 | 3 h |
 
 - D and E both touch `plugins/explorer`: D owns the tree and its header, and E owns the file cards. Each bumps
   File Explorer's version when it lands, rebasing on the other.
