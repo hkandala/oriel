@@ -893,6 +893,26 @@ CI runs and on-demand) at about 2–3 h.
      place.
   3. Scroll up, click Show Earlier, switch away and back: the chat shows its newest rows at the bottom.
 
+### Track J
+
+- **Fix.** Each window runs one check on its machine when it opens (`WindowPages.findAgents`): `$SHELL -ilc` with the
+  `command -v` loop and an end marker, through the machine's exec, stopped after 3 s. The answer is one set on the
+  window, never saved or refreshed. New Pane reads it and never waits; the first ⌘T after launch shows every agent
+  enabled until the check answers (about 0.2 s here).
+- **Decisions.** One set per window, not a dictionary by machine: a window has exactly one machine (D43), and its floats
+  are of that machine too. A check that failed (a remote machine that needs Connect first) runs again after Connect;
+  one that answered never runs again. A missing end marker (fish cannot run the POSIX loop, a broken rc file) means
+  unknown, so no shell makes every agent grey. The hover tip names an npm package for each agent.
+- **Decisions, keys.** A missing agent keeps its place in the numbering (Pi stays 3 when Codex is missing), so the keys
+  of the others never change. If the answer comes while a missing agent is selected, Return does nothing on it.
+- **Tests.** CI has no agents, so every UI test now launches the app with stand-in `claude`, `codex`, `pi` and
+  `opencode` files on its `PATH` (the login shell keeps the inherited entries). The agent test hides the user's real
+  agents with a stand-in login shell that reads no profile, and a `PATH` of the stand-ins without `codex` plus herdr's
+  folder (the e2e helper passes herdr's path).
+- **For the user.** Open New Pane, then Agent, in a window on a Mac without one of the four agents: its row is dimmed
+  with "Not installed", the pointer does not select it and its hover tip gives the install command. Install it, open a
+  new window: the row is enabled there, and still dimmed in the old window.
+
 ### Final review fixes
 
 - **Docs pass.** The design pages already had most of the phase from the tracks. It added: a Git home commit opens on a
