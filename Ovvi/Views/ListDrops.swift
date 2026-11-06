@@ -76,6 +76,7 @@ struct TrackDrop: DropDelegate {
             // starts before that end.
             page.dragging = nil
             page.lifted = nil
+            DragSource.dropImage()
             // The order the bar draws now.
             let order = page.store.workspace(of: id)?.tabs.map(\.id) ?? [id]
             let place = order.firstIndex(of: id) ?? from

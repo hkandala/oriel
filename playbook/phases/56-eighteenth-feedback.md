@@ -757,6 +757,16 @@ is enabeld. don't increase it too much" and "let's make it 300".
 - **For the user.** Drag a tab fast along the bar and let go, in dark and light: no dim before the floating tab
   shows, a round floating tab, and at the drop the tab slides the last bit into its place with nothing else moving;
   the × is on the tab under the pointer. Drag the selected tab: its pill goes with it.
+- **Cause, round 2 (item 26).** SwiftUI's drop target sets `animatesToDestination` on every drop
+  (`_PlatformDraggingDestinationView.prepareForDragOperation`) and names no place to go, so AppKit plays its drop
+  animation in place: the image stays where it was let go for about 0.35 s, then the session ends. Over a tab let go on
+  its place the image lay on the capsule, so only a drop half way showed it. **Fix:** a tab dropped on the bar empties
+  the session's image (`DragSource.dropImage`), so it goes in the drop's frame and the capsule glides from its place.
+  The session still ends 0.35 s later: its end clears a drag only if it is the latest session, as the next drag can
+  begin before.
+- **Decisions, round 2.** The capsule's glide stays, not AppKit's slide of the image to the place: one motion, ours.
+  Other drops keep the image: a pane's or a row's view changes only once herdr answers, and the image stands in until
+  then.
 
 ### Runs (Track N)
 
@@ -767,10 +777,16 @@ is enabeld. don't increase it too much" and "let's make it 300".
   (about 30 fps: `screencapture` on a Mac at a load of 100–400). Old: 4–5 frames dimmed with no image, then the bright
   square, in both looks; the pill stays under the neighbour. Fix: no dimmed frame without the image over it, the pill
   moves with its tab, and the drop's first frame has the capsule where the image was (`after-dark-drop-zoom.png`).
-  With posted events AppKit fades its image over about 0.3 s after the drop in both builds (phase 53 saw it too); the
-  user's own drags show none, so a posted drag shows the image over the glide.
+  After the drop AppKit kept its image in place for about 0.3 s in both builds (phase 53 saw it too), over the glide;
+  the user's drags show it too (round 2, item 26).
 - `make test`'s HerdrKit timing tests failed locally at a load of 350, a different one each run (untouched here; CI's
   checks run them).
+- **Round 2 (item 26).** The user's video (`.build/fb56/tab-drag-9.32.58.mov`, drop at frame 77): the image stays at
+  the drop point 0.3 s (18 frames) while the capsule glides. A probe (`setAnimatesToDestination:` swizzled, logged):
+  `performDrop` at 0, the source's `endedAt` 0.37 s later. Before and after the fix, the third tab let go half a tab
+  off its place, dark and light: `/tmp/ovvi-shots/p56n/r2/{before,after}-{dark,light}-sheet.png`. Old: the image over
+  `alpha` for 11 frames (0.28 s) after the drop; fix: gone in the drop's frame, the capsule glides from there. The
+  experiment with the image emptied and without: `r2/hide.png`, `r2/plain.png`.
 
 ## Track Q: file drops (item 27)
 
