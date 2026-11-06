@@ -9,10 +9,10 @@ extension Page {
     /// Once: a second click before herdr reports the session would start a second agent on it.
     func resume(_ session: ClosedSession, beside: Bool) {
         guard let agent = Chooser.agents.first(where: { $0.command == session.agent }),
-              resuming.insert(session.value).inserted else { return }
+              store.resuming.insert(session.value).inserted else { return }
         Task {
             if let problem = await resumeNow(session, agent, beside: beside) {
-                resuming.remove(session.value)
+                store.resuming.remove(session.value)
                 await store.show(Notice(text: problem))
             }
         }
@@ -24,21 +24,19 @@ extension Page {
             return "\(agent.name) is not on \(store.machine.name)"
         }
         // herdr starts a pane in the home folder when its folder is gone.
-        let found: Bool
-        do {
-            found = try await store.machine.exec().output(["sh", "-c", #"test -d "$1" && echo yes"#, "sh",
-                                                           session.folder]) == "yes"
-        } catch {
-            return error.localizedDescription
-        }
+        let exec = await store.machine.exec()
+        guard let found = try? await exec.output(["sh", "-c", #"test -d "$1" && echo yes"#, "sh", session.folder])
+            .contains("yes") else { return "\(store.machine.name) did not answer" }
         guard found || session.agent == "pi" else {
             return "\(PathField.short(session.folder, remote: store.machine.isRemote)) is gone"
         }
         let cwd = found ? session.folder : "~", card = beside ? keyboardPane : nil
         guard let workspace = card.flatMap({ store.workspace(of: $0.tabID) }) ?? workspace(holding: cwd) else {
-            if let chooser = await newWorkspace(cwd: cwd).flatMap({ store.chooser($0.id) }) {
-                store.start(agent, chooser, closed: session.value)
+            guard let chooser = await newWorkspace(cwd: cwd).flatMap({ store.chooser($0.id) }) else {
+                store.resuming.remove(session.value)
+                return nil
             }
+            store.start(agent, chooser, closed: session.value)
             return nil
         }
         // A failed write shows herdr's words itself.
@@ -53,7 +51,7 @@ extension Page {
             follow(pane, pane.terminalID)
         }
         if !made {
-            resuming.remove(session.value)
+            store.resuming.remove(session.value)
         }
         return nil
     }

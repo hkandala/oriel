@@ -79,15 +79,22 @@ private struct Fixture {
     let elsewhere = ProcessExec(["HOME": "/nonexistent", "PATH": "/usr/bin:/bin"], herdr: nil, asked: .now)
     #expect(try await elsewhere.closedSessions(agent: "claude", offset: 0, home: fixture.home.path) == page)
 
-    // A long transcript: its first lines and its last 256 KB, where the rename is. The Agent SDK's are left out.
-    let filler = #"{"type":"assistant","text":""# + String(repeating: "x", count: 1 << 20) + "\"}\n"
+    // A long transcript: its first 100 lines and its last 256 KB. A rename in between is not read (the title there
+    // is Claude Code's own, at the end). The Agent SDK's are left out.
+    let head = Array(repeating: #"{"type":"progress"}"#, count: 150)
+    let middle = #"{"type":"custom-title","customTitle":"Not read"}"#
+    let filler = #"{"type":"assistant","text":""# + String(repeating: "x", count: 1 << 20) + "\"}"
     let user = #"{"type":"user","message":{"role":"user","content":"long one"},"cwd":"/tmp/d"}"#
-    try fixture.write(".claude/projects/-tmp-d/3d99d1b5-0a47-4595-b86c-4b7c2379f9fa.jsonl", user + "\n" + filler
-        + #"{"type":"custom-title","customTitle":"Long, renamed"}"#, age: 10)
+    let text = ([user] + head[..<119] + [middle] + head[119...] + [
+        filler,
+        #"{"type":"ai-title","aiTitle":"Long one"}"#,
+    ])
+    .joined(separator: "\n")
+    try fixture.write(".claude/projects/-tmp-d/3d99d1b5-0a47-4595-b86c-4b7c2379f9fa.jsonl", text, age: 10)
     try fixture.write(".claude/projects/-tmp-d/4eaae2c6-1b58-46a6-c97d-5c8d3480aa0b.jsonl",
                       #"{"type":"user","message":{"role":"user","content":"hi"},"cwd":"/tmp/d","entrypoint":"sdk-ts"}"#)
     let long = try await fixture.exec.closedSessions(agent: "claude", offset: 0)
-    #expect(long.sessions.map(\.title) == ["Long, renamed", "write the docs", "say hi (Branch)"])
+    #expect(long.sessions.map(\.title) == ["Long one", "write the docs", "say hi (Branch)"])
     #expect(long.looked == 4)
 }
 

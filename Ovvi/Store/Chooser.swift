@@ -245,7 +245,11 @@ extension HostStore {
         guard chooser.starting == nil else { return }
         chooser.starting = agent
         Task {
-            defer { drop(chooser) }
+            defer {
+                drop(chooser)
+                // Started or not: herdr reports a live one's session.
+                resuming.remove(closed ?? "")
+            }
             let resumed = await resumed(agent, chooser, resume: resume, closed: closed)
             guard resume ?? closed == nil || resumed != nil else { return }
             let clock = ContinuousClock(), begun = clock.now

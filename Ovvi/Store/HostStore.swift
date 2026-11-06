@@ -34,6 +34,8 @@ final class HostStore {
     var flashing: String?
     /// New panes' choosers (ui/new-pane) and agent panes' chats by terminal id: the app's own, for every window.
     var choosers: [Chooser] = []
+    /// The closed sessions a Resume is starting: out of Archived, and not started twice.
+    var resuming: Set<String> = []
     @ObservationIgnored var chats: [String: Chat] = [:]
     /// Writes, one at a time in order: a quick second close or split waits for the first (both show at once).
     @ObservationIgnored let writes = Gate(1)

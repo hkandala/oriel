@@ -45,7 +45,6 @@ struct ArchivedShelf: View {
         }
         .task(id: [open ? 1 : 0, attempt]) {
             (list, reading, failed, slow, generation) = (ClosedList(), [], [], false, generation + 1)
-            page.resuming = []
             guard open else { return }
             async let pages: Void = read(Chooser.agents.map(\.command))
             // No line while a page reads fast (This Mac).
@@ -83,7 +82,7 @@ struct ArchivedShelf: View {
     /// The sessions shown: none a live pane runs (on any page of the machine), none pinned (they show in Pinned), none
     /// resuming.
     private func rows(_ shown: [String]) -> [ClosedSession] {
-        let live = page.liveSessions.union(page.resuming)
+        let live = page.liveSessions.union(page.store.resuming)
         let pinned = Set([AgentPin](json: pins).filter { $0.machine == page.store.machine.id
                 && $0.session == page.store.session
         }.map(\.key))

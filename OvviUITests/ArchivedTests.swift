@@ -137,8 +137,11 @@ extension OvviUITests {
     /// A click on Claude Code's row types its resume line in a new workspace in the folder. Not where the new pane's
     /// shell would start a real Claude Code (this Mac); CI's is the stand-in (`OvviUITests.agents`), which only exits.
     private func resumes(_ row: XCUIElement, _ id: String, in folder: String, _ pane: String) async throws {
-        try await send("case $(command -v claude) in \(Self.agents)/*) echo stand-$((6*7));; *) echo real-$((6*7));; "
-            + "esac\r", to: pane)
+        try await send(
+            "case $(command -v claude) in \"\"|\(Self.agents)/*) echo stand-$((6*7));; *) echo real-$((6*7));; "
+                + "esac\r",
+            to: pane,
+        )
         try await waitFor(pane) { $0.contains("\nstand-42") || $0.contains("\nreal-42") }
         if try await read(pane).contains("\nreal-42") {
             throw XCTSkip("this Mac has claude, which the resume would start")
@@ -146,6 +149,8 @@ extension OvviUITests {
         let before = try await workspaceIDs()
         closeNew("workspace", besides: before)
         row.click()
+        // Out of Archived while it starts: a second click cannot start it twice.
+        XCTAssertTrue(row.vanishes(within: 2))
         var resumed: String?
         try await expect("a new workspace in the folder") {
             let panes = try await snapshot()["panes"] as? [[String: Any]] ?? []
@@ -156,5 +161,7 @@ extension OvviUITests {
         }
         // Wrapped at the pane's width.
         try await waitFor(XCTUnwrap(resumed)) { $0.replacing("\n", with: "").contains("claude --resume \(id)") }
+        // The stand-in exits, or the shell has no claude: the session is closed again, back in Archived.
+        XCTAssertTrue(row.exists(within: 15))
     }
 }
