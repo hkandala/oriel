@@ -138,7 +138,7 @@ extension OvviUITests {
     /// shell would start a real Claude Code (this Mac); CI's is the stand-in (`OvviUITests.agents`), which only exits.
     private func resumes(_ row: XCUIElement, _ id: String, in folder: String, _ pane: String) async throws {
         try await send(
-            "case $(command -v claude) in \"\"|\(Self.agents)/*) echo stand-$((6*7));; *) echo real-$((6*7));; "
+            "case $(command -v claude) in \(Self.agents)/*) echo stand-$((6*7));; *) echo real-$((6*7));; "
                 + "esac\r",
             to: pane,
         )

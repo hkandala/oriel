@@ -247,7 +247,8 @@ extension HostStore {
         Task {
             defer {
                 drop(chooser)
-                // Started or not: herdr reports a live one's session.
+                // Started or not: herdr reports a live one's session. ponytail: a session herdr reports a moment after
+                // the agent's status shows in Archived for that moment; hold it until it is live if that shows.
                 resuming.remove(closed ?? "")
             }
             let resumed = await resumed(agent, chooser, resume: resume, closed: closed)
