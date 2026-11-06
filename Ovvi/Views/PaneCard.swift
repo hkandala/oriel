@@ -150,8 +150,9 @@ struct PaneCard: View {
         }
         .onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
         .background {
-            // Not in a kept page out of view: SwiftUI's drop target is a view of its own, under the card's content, and
-            // one in a kept page over the shown page took every drag from its cards (files too, then refused them).
+            // Only while the page shows: the drop target is an AppKit view of its own, which the page's opacity and
+            // `allowsHitTesting` do not stop, so a kept page's, over the shown one, would take its cards' drags (files
+            // too, and refuse them).
             if !hidden {
                 Color.clear.contentShape(.rect)
                     .onDrop(of: [.ovviDrag], delegate: CardDrop(paneID: id, page: page, size: size, zone: $zone))

@@ -374,9 +374,9 @@ extension OvviUITests {
         element("pane.\(pane)").coordinate(withNormalizedOffset: CGVector(dx: across, dy: down))
     }
 
-    /// Drags a card by its header's title area.
+    /// Drags a card by its title (30.5 pt in): on CI a quarter-wide card's shown buttons start at 52 pt, and take it.
     func drag(_ pane: String, to target: XCUICoordinate, hold: TimeInterval = 0.6) {
-        during(card(pane, 0, 0).withOffset(CGVector(dx: 60, dy: 17)), to: target, hold: hold)
+        during(card(pane, 0, 0).withOffset(CGVector(dx: 32, dy: 17)), to: target, hold: hold)
     }
 
     /// Presses on the pane's card and holds over `target`'s middle until `release()` (scripts/drag.swift), so the test
