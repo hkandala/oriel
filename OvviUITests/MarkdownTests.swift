@@ -46,7 +46,7 @@ extension OvviUITests {
         XCTAssertTrue(element("overview").vanishes(within: 2))
 
         // Locked again through ⌘K, which finds Lock Editing by its manifest keywords; clean: a change on disk shows; a
-        // relative link shows its file in the card, ⌘-click in a new tab at the end.
+        // relative link shows its file in the card, ⌘-click in a new tab right after the card's.
         openPalette()
         app.typeText("markdown read")
         XCTAssertTrue(element("palette.command.Lock Editing").has(\.isSelected, true, within: 2))

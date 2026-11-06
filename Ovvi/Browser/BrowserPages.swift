@@ -157,8 +157,8 @@ extension Browser {
         }
     }
 
-    /// Open Link in New Tab, ⌘-click and `target=_blank`: a browser pane on the link in a new tab after the
-    /// workspace's others, left in the background as Safari does. The user picked the link: its origin is approved,
+    /// Open Link in New Tab, ⌘-click and `target=_blank`: a browser pane on the link in a new tab right after
+    /// the card's, left in the background as Safari does. The user picked the link: its origin is approved,
     /// so the new card loads it. False for an address a label cannot hold.
     @discardableResult
     func openTab(_ link: URL) -> Bool {
@@ -175,8 +175,8 @@ extension Browser {
         }
         Task {
             await store.write {
-                _ = try await $0.newTab(workspace: workspace.id, cwd: pane.cwd ?? "~", label: label,
-                                        command: label.placeholder)
+                _ = try await store.newPane($0, in: workspace.id, cwd: pane.cwd ?? "~", label: label,
+                                            .tab(after: pane.tabID))
             }
         }
         return true

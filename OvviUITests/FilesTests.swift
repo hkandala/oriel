@@ -233,8 +233,8 @@ extension OvviUITests {
         try await send("rm -rf \(repo)\r", to: shell)
     }
 
-    /// ⌘-click opens a file in a new tab at the end, ⌥-click in a pane to the card's side, both behind: the card's
-    /// tab stays selected and the tree keeps the keyboard.
+    /// ⌘-click opens a file in a new tab right after the card's, ⌥-click in a pane to the card's side, both behind: the
+    /// card's tab stays selected and the tree keeps the keyboard.
     func testFileExplorerOpensInNewTabsAndToTheSide() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (_, shell) = try await newTab("files-open")
@@ -259,8 +259,7 @@ extension OvviUITests {
         XCTAssertTrue(element("file.\(side).page").exists(within: 10))
         XCTAssertTrue(hasKeyboard(row("one.txt", in: tree)))
 
-        // Each ⌘-click from the tree: a new tab at the end (from the second on, the card's tab is not last), behind
-        // it.
+        // Each ⌘-click from the tree: a new tab right after the card's (from the second on, not the end), behind it.
         for name in ["two.txt", "three.txt", "four.txt"] {
             let before = try await tabIDs()
             XCUIElement.perform(withKeyModifiers: .command) { row(name, in: tree).click() }
@@ -268,11 +267,9 @@ extension OvviUITests {
             closeAfter("tab", opened)
             let pane = try await pane(of: opened)
             try await labelEnds(pane, " \(root)/\(name)")
-            let last = try await isLast(opened)
-            XCTAssertTrue(last, "\(name)'s tab is not last")
             // Once the bar shows the new tab, the card's tab stays selected: the app follows a new tab only after it
             // shows.
-            XCTAssertTrue(element("tab.\(opened)").exists(within: 5), name)
+            try await expectBeside(opened, tab)
             XCTAssertFalse(until(0.5) { !element("tab.\(tab)").isSelected }, name)
             XCTAssertTrue(hasKeyboard(row(name, in: tree)), name)
         }

@@ -34,6 +34,8 @@ struct Ahead {
     /// A workspace's tabs in the order a drop or a move asked for, until a snapshot has herdr's: the bar shows it
     /// at once, never the old order between.
     var order: NewOrder?
+    /// New tabs that open right after a tab, oldest first (`Beside`).
+    var beside: [Beside] = []
 
     struct NewTab {
         let id: String, workspaceID: String
@@ -78,6 +80,9 @@ struct Ahead {
         tabs.removeAll { $0.id == standIn }
         for index in tabs.indices {
             tabs[index].known.insert(id)
+        }
+        for index in beside.indices {
+            beside[index].known.insert(id)
         }
     }
 
@@ -132,7 +137,7 @@ struct Ahead {
         var tabs = snapshot.tabs.filter {
             !closing.contains($0.id) && !closing.contains($0.workspaceID) && !emptied.contains($0.id)
         }
-        tabs = ordered(tabs)
+        tabs = placed(ordered(tabs), herdr: snapshot.tabs)
         let left = Set(tabs.map(\.workspaceID)), had = Set(snapshot.tabs.map(\.workspaceID))
         let workspaces = snapshot.workspaces.filter {
             !closing.contains($0.id) && (left.contains($0.id) || !had.contains($0.id))

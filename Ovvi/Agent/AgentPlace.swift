@@ -5,7 +5,7 @@ import HerdrKit
 enum AgentPlace {
     /// A split of the pane, to its right or below; the asking pane's by default.
     case beside(PaneTarget, down: Bool)
-    /// A new tab at the end of the asking pane's workspace, not selected; with `float`, its pane floats then.
+    /// A new tab right after the asking pane's tab, not selected; with `float`, its pane floats then.
     case tab(float: Bool)
     /// That browser or plugin card shows something else (`open` only).
     case replace(PaneTarget)
@@ -44,7 +44,7 @@ extension AgentCall {
             // Its tab once the writes before it are done: they can move panes.
             guard let card = store.pane(found.1.id), let workspace = store.workspace(of: card.tabID)
             else { throw AgentError(code: "pane_not_found", message: "pane \(near.id) is in no tab") }
-            let spot = split.map { PanePlace.split(tab: card.tabID, pane: card.id, $0) } ?? .tab
+            let spot = split.map { PanePlace.split(tab: card.tabID, pane: card.id, $0) } ?? .tab(after: card.tabID)
             return try await store.newPane(client, in: workspace.id, cwd: cwd, label: label, spot)
         }
         // In its place: a snapshot between the new tab and the move has it in the temporary tab.

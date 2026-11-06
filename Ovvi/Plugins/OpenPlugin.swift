@@ -2,7 +2,7 @@ import HerdrKit
 import SwiftUI
 
 /// Where a plugin card opens a file or a diff (plugins/default-plugins): in the card (a click or a double-click), in a
-/// new tab at the end of the card's workspace (⌘), or in a pane to the card's side (⌥).
+/// new tab right after the card's tab (⌘), or in a pane to the card's side (⌥).
 enum Opening: String {
     case here, tab, side
 }
@@ -45,7 +45,7 @@ extension Page {
     }
 
     /// An open from the card of terminal `source`: in the card itself when it is of that kind (`Plugin.go`); else a
-    /// linked open, a new herdr tab at the end of the card's workspace, in its folder (also from a floating window),
+    /// linked open, a new herdr tab right after the card's tab, in its folder (also from a floating window),
     /// or a pane to the card's side, which the snapshot after it selects with the keyboard unless it opens in the
     /// `background`; in the selected tab's workspace once the card is gone. Its card lands at a line of a file or a
     /// diff's file, once (not in the label).
@@ -64,7 +64,7 @@ extension Page {
             let spot = if how == .side, let card {
                 PanePlace.split(tab: card.tabID, pane: card.id, .right)
             } else {
-                PanePlace.tab
+                PanePlace.tab(after: tabID)
             }
             let pane = try await store.newPane(client, in: workspace.id, cwd: cwd, label: label, spot)
             // ponytail: a card made from a snapshot before this line misses its landing; hand it over in the label
@@ -79,18 +79,35 @@ extension Page {
     }
 }
 
-/// Where a new pane goes: a new tab at the workspace's end, where herdr adds it, or a split of a pane.
+/// Where a new pane goes: a new tab right after a tab of the workspace, or a split of a pane.
 enum PanePlace {
-    case tab
+    case tab(after: String)
     case split(tab: String, pane: String, SplitNode.Direction)
 }
 
 extension HostStore {
     /// A new pane in the workspace, with herdr's focus left alone: a browser or plugin card with its label and
-    /// placeholder in one call (plugins/labels#create), else a shell, made in a new tab and, for a split, moved into
-    /// place.
+    /// placeholder in one call (plugins/labels#create), else a shell, made in a new tab and then moved into place.
     func newPane(_ client: any Multiplexer, in workspaceID: String, cwd: String, label: PaneLabel?,
                  _ place: PanePlace) async throws -> HerdrKit.Pane
+    {
+        guard case let .tab(after) = place else {
+            return try await makePane(client, in: workspaceID, cwd: cwd, label: label, place)
+        }
+        let placing = placeBeside(after, in: workspaceID)
+        do {
+            let pane = try await makePane(client, in: workspaceID, cwd: cwd, label: label, place)
+            try await moveBeside(placing, pane.tabID, after: after, in: workspaceID, client)
+            return pane
+        } catch {
+            dropBeside(placing)
+            throw error
+        }
+    }
+
+    /// The new pane, in a new tab at the workspace's end (where herdr adds it) or, for a split, moved beside its pane.
+    private func makePane(_ client: any Multiplexer, in workspaceID: String, cwd: String, label: PaneLabel?,
+                          _ place: PanePlace) async throws -> HerdrKit.Pane
     {
         var pane: HerdrKit.Pane?
         if let label {

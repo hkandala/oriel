@@ -115,9 +115,14 @@ One capsule per herdr tab of the selected workspace (D42).
   near either end of the bar scrolls it (the scroll view's own drop scroll).
   The bar makes only the capsules in and near its view, so a workspace with
   many tabs shows as fast as one with a few.
-- **New tabs.** Every new tab goes at the end of its workspace's tabs: ⌘T,
-  `+`, an open from a card (⌘-click, Git's Open File), a link opened in a new
-  tab, `ovvi open --tab`, and a pane dropped on `+` or the bar's empty end.
+- **New tabs.** ⌘T, `+` and a pane dropped on `+` or the bar's empty end
+  make a new tab at the end of the workspace's tabs, as in Safari. An open
+  from a card (⌘-click, Open in New Tab, Git's Open File), a link opened in a
+  new tab and `ovvi open --tab` make it right after the card's tab (the
+  asking pane's for `ovvi open`). herdr adds every tab last, and the app then
+  moves it (`tab.move`). The bar shows the tab in its place from its first
+  frame, never at the end first: the app keeps it there until herdr's order
+  matches.
 - **Dividers.** 1 pt wide, 18 pt tall, centered between
   tabs. A divider next to the selected or the hovered tab is hidden, at once.
 - **Selection.** One marker sits on the selected tab. It is 30 pt tall and

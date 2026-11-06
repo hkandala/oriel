@@ -69,8 +69,8 @@ export interface Ovvi {
   /** Runs argv on the card's machine, in the pane's folder unless `cwd` says otherwise: no shell, 30 s unless
    *  `timeout` (ms) says otherwise, 4 MiB of stdout, two at a time per card. Needs `run`. */
   run(argv: string[], options?: { cwd?: string; stdin?: string; timeout?: number }): Promise<RunResult>
-  /** An open of a file, a folder (ends in `/`), a URL or a plugin's argument: in this card, in a new tab at the end of
-   *  this card's workspace (the default) or in a pane to its side. No `plugin`: the file's default plugin, the browser for
+  /** An open of a file, a folder (ends in `/`), a URL or a plugin's argument: in this card, in a new tab right after
+   *  this card's tab (the default) or in a pane to its side. No `plugin`: the file's default plugin, the browser for
    *  a web address. `at`: the new card's landing (`card.at`). */
   open(arg: string, options?: {
     plugin?: string
@@ -334,7 +334,7 @@ export interface OvviError extends Error {
 | `controls` | the header row and the card's commands | the native header (`Header`, `HeaderView`) |
 | `theme` | colors, light or dark, glass or classic, the text size | the `Look` tokens |
 | `settings` | the values the user set on the plugin's page in Settings, else the manifest's defaults; `open` shows that page | `PluginSettings`, `settings.json` ([Settings](/docs/plugins/manifest#settings)) |
-| `open` | an open in this card, a new tab at the end of this card's workspace (the default) or a pane to its side, in front or in the background | `Page.open(_:arg:at:from:how:)` |
+| `open` | an open in this card, a new tab right after this card's tab (the default) or a pane to its side, in front or in the background | `Page.open(_:arg:at:from:how:)` |
 | `toast` | the card's toast | `Toast` and its view |
 | `menu.show` | the native context menu at the pointer | `NSMenu` |
 | `pick.folder` | Choose Folder…: the folder panel on This Mac, a "Go to Folder" field on a remote machine, which shows "No folder ‹path›" for a folder that is not there | `NSOpenPanel`, or an `NSAlert` with a field |

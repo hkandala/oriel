@@ -3,9 +3,9 @@ import XCTest
 /// `ovvi notify`, `ovvi agent`, `ovvi chat`, `ovvi view` and `ovvi balance` (agent-control/cli): a notification on
 /// the Mac, an agent in a new pane, Relaunch with Chat, the Chat | TUI switch and Balance Splits, asked from a pane.
 extension OvviUITests {
-    /// A split beside the asking pane, then a tab at the end: each shell gets Claude Code's line with Ovvi's flags,
-    /// the answer comes once it is typed, and the keyboard and the selected tab stay. CI only past the errors: a new
-    /// pane's shell has no stand-in and runs the real `claude` when there is one, and CI has none.
+    /// A split beside the asking pane, then a tab right after its tab: each shell gets Claude Code's line with Ovvi's
+    /// flags, the answer comes once it is typed, and the keyboard and the selected tab stay. CI only past the errors: a
+    /// new pane's shell has no stand-in and runs the real `claude` when there is one, and CI has none.
     func testAgentStartsAnAgentWithChatBesideThePane() async throws {
         let before = try await tabIDs()
         closeNew("tab", besides: before)

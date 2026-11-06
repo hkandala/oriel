@@ -168,10 +168,18 @@ extension OvviUITests {
             .compactMap { $0["tab_id"] as? String }.firstIndex(of: tab)
     }
 
-    /// The tab is w2's last: every new tab goes at the end.
-    func isLast(_ tab: String) async throws -> Bool {
-        try await (Self.call(one, "tab.list", ["workspace_id": "w2"])["tabs"] as? [[String: Any]])?.last?["tab_id"]
-            as? String == tab
+    /// A linked open's new tab: the bar shows it right after `card`'s at the first look, no capsule between them,
+    /// and herdr moves it there.
+    func expectBeside(_ tab: String, _ card: String) async throws {
+        XCTAssertTrue(element("tab.\(tab)").exists(within: 5))
+        let after = element("tab.\(card)").frame.maxX, start = element("tab.\(tab)").frame.minX
+        let capsules = app.buttons.matching(NSPredicate(format: "identifier MATCHES %@", #"tab\.[^.]+"#))
+            .allElementsBoundByIndex.map(\.frame.midX)
+        XCTAssertTrue(start > after && !capsules.contains { $0 > after && $0 < start }, "\(tab) is not beside \(card)")
+        let index = try await order(of: card)
+        try await expect("\(tab) right after \(card) in herdr") {
+            try await self.order(of: tab) == index.map { $0 + 1 }
+        }
     }
 
     /// Shows w2's tab by its key (⌘1–9): a click misses one past the tab bar's end on CI's screen.

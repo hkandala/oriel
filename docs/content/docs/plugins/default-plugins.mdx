@@ -107,7 +107,7 @@ apply:
 | Gesture | Where it opens |
 |---|---|
 | a click, or a double-click or ⌘O in the tree | in the card itself, as its next place ([Back and Forward](#back-and-forward)) |
-| ⌘-click | in a new herdr tab at the end of the card's workspace, in the background |
+| ⌘-click | in a new herdr tab right after the card's tab, in the background |
 | ⌥-click | in a pane to the side of the card, in the background |
 
 - A right click on a row of the tree or of the Git home shows the app's own
@@ -118,11 +118,13 @@ apply:
   one, and the card keeps the keyboard. The right-click menu's **Open in New
   Tab** and **Open to the Side** open in the background too. Any other open in
   a new tab (a Git diff's **Open File**) selects it.
-- **A new tab** opens at the end of the card's workspace, on the same
-  machine, also from a floating window. Unless it opens in the background,
-  the app selects the new tab and gives its card the keyboard. The call is
-  `layout.apply` for a new tab with the labeled pane. herdr adds the tab last
-  ([Writes are herdr calls](/docs/talking-to-herdr#writes-are-herdr-calls)).
+- **A new tab** opens right after the card's tab, on the same machine, also
+  from a floating window. Unless it opens in the background, the app selects
+  the new tab and gives its card the keyboard. The calls are `layout.apply`
+  for a new tab with the labeled pane, then `tab.move`, because herdr adds
+  the tab last. The bar shows the tab right after the card's from its first
+  frame ([New tabs](/docs/ui/window#tab-bar),
+  [Writes are herdr calls](/docs/talking-to-herdr#writes-are-herdr-calls)).
 - **To the side** makes the pane in a new tab, then moves it beside the
   card (`pane.move`), as Replace Pane does, because herdr's split runs no
   command. The new tab can show for one snapshot.

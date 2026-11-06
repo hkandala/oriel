@@ -47,7 +47,7 @@ extension Bridge {
         return info
     }
 
-    /// In the card (a place of this plugin), a new tab at the end of the card's workspace (the default), or a pane to
+    /// In the card (a place of this plugin), a new tab right after the card's tab (the default), or a pane to
     /// its side; behind it in the background, the selection and the keyboard kept.
     private func open(_ args: [String: Any], _ plugin: Plugin) throws {
         guard let arg = args["arg"] as? String else { throw PluginError("failed", "arg is missing") }

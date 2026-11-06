@@ -10,9 +10,9 @@ extension OvviUITests {
     /// diff; Revert and Revert All put the changes back; the branch menu switches the branch. The diff: a commit's
     /// subject is its title, and its Parent opens in the card; the working tree from a change follows the work tree,
     /// also in a file it shows, and a file growing above the one in view does not move it; Open File opens the file
-    /// in a new tab at the end; Viewed folds the file; Next Change scrolls to a change the page has not drawn; ⌘-click
-    /// on a line opens the file at the line, in Unified and in Side by Side; Word Wrap toggles in Unified only; the
-    /// file list starts closed and opens.
+    /// in a new tab right after the card's; Viewed folds the file; Next Change scrolls to a change the page has not
+    /// drawn; ⌘-click on a line opens the file at the line, in Unified and in Side by Side; Word Wrap toggles in
+    /// Unified only; the file list starts closed and opens.
     func testGitCardCommitsPushesAndOpensDiffs() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, left) = try await newTab("git")
@@ -232,7 +232,7 @@ extension OvviUITests {
         // Clicks in the page wait for what it draws: its layout comes back late after the card was hidden.
         let open = page.buttons["Open a.txt"]
         XCTAssertTrue(open.has(\.isHittable, true, within: 3))
-        _ = try await opens("\(root)/a.txt") { open.click() }
+        _ = try await opens("\(root)/a.txt", beside: tab) { open.click() }
         try await show(tab)
         let viewed = page.checkBoxes["Viewed a.txt"], line = page.staticTexts.matching(
             NSPredicate(format: "value BEGINSWITH 'line'"),
@@ -272,10 +272,10 @@ extension OvviUITests {
         }
     }
 
-    /// ⌘-click on the line opens the file at the line in a new tab at the end; the editor draws only the lines in
-    /// view.
+    /// ⌘-click on the line opens the file at the line in a new tab right after the card's, behind it; the editor draws
+    /// only the lines in view.
     private func commandClick(_ line: XCUIElement, behind tab: String, root: String) async throws {
-        let file = try await opens("\(root)/a.txt", behind: tab) {
+        let file = try await opens("\(root)/a.txt", beside: tab, behind: true) {
             XCUIElement.perform(withKeyModifiers: .command) { line.click() }
         }
         let editor = element("file.\(file).page").textViews.firstMatch
@@ -333,24 +333,23 @@ extension OvviUITests {
         }
     }
 
-    /// The action opens a file card for the path in a new tab at the end, selected, or behind `tab`; its pane.
-    private func opens(_ path: String, behind tab: String? = nil, _ action: () -> Void) async throws -> String {
+    /// The action opens a file card for the path in a new tab right after `tab`, selected, or behind it; its pane.
+    private func opens(_ path: String, beside tab: String, behind: Bool = false,
+                       _ action: () -> Void) async throws -> String
+    {
         let before = try await tabIDs()
         action()
         let opened = try await newTabID(after: before)
         closeAfter("tab", opened)
         // Once the bar shows it: a ⌘-click opens behind, and the card's tab stays selected (the app follows a new tab
         // only after it shows).
-        XCTAssertTrue(element("tab.\(opened)").exists(within: 5))
-        if let tab {
+        try await expectBeside(opened, tab)
+        if behind {
             XCTAssertFalse(until(0.5) { !element("tab.\(tab)").isSelected }, "\(opened) took the selection")
         } else {
             XCTAssertTrue(element("tab.\(opened)").has(\.isSelected, true, within: 5))
         }
-        // Once selected: the app selects a new tab after its last write.
-        let last = try await isLast(opened)
-        XCTAssertTrue(last, "\(opened) is not last")
-        if tab != nil {
+        if behind {
             try await show(opened)
         }
         let pane = try await pane(of: opened), label = try await paneLabel(pane)

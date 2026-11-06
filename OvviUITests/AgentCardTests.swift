@@ -30,8 +30,8 @@ extension OvviUITests {
         XCTAssertTrue(element("pane.\(below)").exists(within: 3))
         XCTAssertLessThan(element("pane.\(file)").frame.maxY, element("pane.\(below)").frame.minY)
 
-        // Not selected: the notice's Show selects it. A tab after the asking one, so the new tab at the end is not the
-        // place right after it.
+        // Not selected: the notice's Show selects it. A tab after the asking one, so the place right after it is not
+        // the end.
         let (spare, _) = try await createTab(in: "w2")
         closeAfter("tab", spare)
         try await send("clear; \(Self.ovviCommand) open git . --tab; echo tab-$((6*7))-$?\r", to: first)
@@ -47,8 +47,7 @@ extension OvviUITests {
         let tabbed = try await answered(first)
         let opened: String = try await field(pane(tabbed)["tab_id"], "the Git card's tab")
         XCTAssertTrue(element("tab.\(opened)").has(\.isSelected, true, within: 3))
-        let last = try await isLast(opened)
-        XCTAssertTrue(last, "\(opened) is not last")
+        try await expectBeside(opened, tab)
 
         let floated = try await open("explorer notes.md --float --new", from: first, "float", ["reused: false"])
         XCTAssertTrue(app.windows.containing(.any, identifier: "float.\(floated)").firstMatch.exists(within: 5))
