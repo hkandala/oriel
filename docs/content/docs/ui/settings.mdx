@@ -23,10 +23,10 @@ Settings that are not on this page do not exist.
   its top, and the toolbar shows the page's title and, on a machine's or a
   plugin's page, the Back button.
 - **Sidebar.** General, Appearance, Terminal, Agents, Machines, Plugins and
-  Privacy, each with its symbol in white on the same grey rounded tile
-  (22 pt, as System Settings' tiles but one grey), so the symbols' different
-  shapes read as one set. Privacy shows only when it has
-  something in it.
+  Privacy, each with its symbol in white (14 pt semibold, about 70 % of the
+  tile) on the same grey rounded tile (22 pt, System Settings' General grey
+  for every page), so the symbols' different
+  shapes read as one set. Every page always shows, Privacy too.
 - **Controls.** Each row has its title on the left and its control on the
   right. A row's value field is the form's own: no border, its text on the
   right, 220 pt wide, with a word in it while it is empty (Required,
@@ -181,9 +181,14 @@ How it works: [The Plugins page](/docs/plugins/packages#the-plugins-page).
 ## Privacy
 
 The websites that each machine's browser cards load by themselves, one
-section per machine, each site with Remove, and Clear All per machine
+section per machine
 ([When a page loads by itself](/docs/ui/browser#when-a-page-loads-by-itself)).
-The page is in the sidebar only when a machine has an approved website.
+Each section lists its sites, each with Remove, or says No approved websites;
+Clear All is in its header while it has any. Under the list, a field and
+Add approve a site before any card opens it: the address becomes its origin,
+as a page you open is approved (`https` when you type no scheme, `http` for
+`localhost`, `127.0.0.1` and a `.localhost` name). An address that is not a
+web address leaves Add off. A machine keeps its newest 200.
 
 ## In the menu bar
 

@@ -65,35 +65,39 @@ private struct MachineLabel: View {
     }
 }
 
-/// Settings ▸ Privacy: the websites each machine's browser cards load by themselves, with Remove and Clear All.
+/// Settings ▸ Privacy: the websites each machine's browser cards load by themselves, a section per machine, with Add,
+/// Remove and Clear All. It shows with none too: a site can be added before any card opens it.
 struct PrivacyPage: View {
     /// Read again after a change: the approvals are plain defaults.
     @State private var version = 0
 
-    /// Any machine has an approved website: else the page has nothing to show and is not in the sidebar.
-    /// ponytail: read when the sidebar draws; observe `UserDefaults.didChangeNotification` if a site approved while
-    /// Settings is open must add the page at once.
-    static var hasItems: Bool {
-        machines.contains { !approvals($0).isEmpty }
-    }
-
     var body: some View {
         let _ = version // swiftlint:disable:this redundant_discardable_let
         Form {
-            ForEach(Self.machines.filter { !Self.approvals($0).isEmpty }) { machine in
+            ForEach([.thisMac] + MachineList.shared.list) { machine in
+                let sites = Browser.approvals(machine)
                 Section {
-                    ForEach(Self.approvals(machine), id: \.self) { site in
+                    ForEach(sites, id: \.self) { site in
                         LabeledContent(site) {
-                            Button("Remove") { set(Self.approvals(machine).filter { $0 != site }, machine) }
+                            Button("Remove") { set(sites.filter { $0 != site }, machine) }
                                 .accessibilityIdentifier("settings.privacy.\(machine.id).\(site).remove")
                         }
+                    }
+                    if sites.isEmpty {
+                        Text("No approved websites.").foregroundStyle(.secondary)
+                            .accessibilityIdentifier("settings.privacy.\(machine.id).empty")
+                    }
+                    AddSite(machine: machine) { site in
+                        set(Array((sites.filter { $0 != site } + [site]).suffix(200)), machine)
                     }
                 } header: {
                     HStack {
                         Text("Approved websites on \(machine.name)")
                         Spacer()
-                        Button("Clear All") { set([], machine) }.controlSize(.small)
-                            .accessibilityIdentifier("settings.privacy.\(machine.id).clear")
+                        if !sites.isEmpty {
+                            Button("Clear All") { set([], machine) }.controlSize(.small)
+                                .accessibilityIdentifier("settings.privacy.\(machine.id).clear")
+                        }
                     }
                 }
             }
@@ -104,16 +108,40 @@ struct PrivacyPage: View {
         }
     }
 
-    private static var machines: [Machine] {
-        [.thisMac] + MachineList.shared.list
-    }
-
-    private static func approvals(_ machine: Machine) -> [String] {
-        UserDefaults.standard.stringArray(forKey: "browserApprovals.\(machine.id)") ?? []
-    }
-
     private func set(_ sites: [String], _ machine: Machine) {
         UserDefaults.standard.set(sites, forKey: "browserApprovals.\(machine.id)")
         version += 1
+    }
+}
+
+/// A field and Add: an address becomes its origin, as a page the user opens is approved. With no scheme, `https`, and
+/// `http` for a loopback name.
+private struct AddSite: View {
+    let machine: Machine
+    let add: (String) -> Void
+    @State private var text = ""
+
+    private var origin: String? {
+        let typed = text.trimmingCharacters(in: .whitespaces)
+        let host = typed.split(separator: "/").first?.split(separator: ":").first.map(String.init)?.lowercased() ?? ""
+        let loopback = Browser.loopback.contains(host) || host.hasSuffix(".localhost")
+        let full = typed.contains("://") ? typed : (loopback ? "http://" : "https://") + typed
+        return Browser.url(full, local: false).map(Browser.origin)
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            TextField("Website", text: $text, prompt: Text("Website address")).labelsHidden()
+                .textFieldStyle(.roundedBorder).onSubmit(save)
+                .accessibilityIdentifier("settings.privacy.\(machine.id).field")
+            Button("Add", action: save).disabled(origin == nil)
+                .accessibilityIdentifier("settings.privacy.\(machine.id).add")
+        }
+    }
+
+    private func save() {
+        guard let origin else { return }
+        add(origin)
+        text = ""
     }
 }

@@ -68,7 +68,7 @@ struct PluginPage: View {
             NewPaneSwitch(manifest: manifest).accessibilityIdentifier("plugins.\(id).new-pane")
                 .settingsRow(Self.newPaneRow(id))
         }
-        if id == Registry.browser.id, PrivacyPage.hasItems {
+        if id == Registry.browser.id {
             LabeledContent("Approved websites") {
                 Button("Show in Privacy") { SettingsRoute.shared.open(.privacy) }
                     .accessibilityIdentifier("plugins.browser.privacy")

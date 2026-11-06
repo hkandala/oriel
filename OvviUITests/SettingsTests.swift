@@ -219,4 +219,31 @@ extension OvviUITests {
         target.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(target.vanishes(within: 2), "Esc left Add Machine open")
     }
+
+    /// Privacy shows with no approved website; a typed address adds its origin (https when it has no scheme), a
+    /// non-address adds nothing, and Remove takes it off. On a test machine: the approvals are the user's defaults.
+    func testSettingsPrivacyAddsAndRemovesAWebsite() {
+        let machines = #"[{"id":"e2e-p1","name":"privbox","target":"ovvi-e2e@localhost","icon":"server.rack"}]"#
+        relaunch(one, ["-machines", machines])
+        XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
+        openSettings("privacy")
+        XCTAssertTrue(element("settings.privacy.e2e-p1.empty", in: settingsWindow).exists(within: 3))
+        let field = element("settings.privacy.e2e-p1.field", in: settingsWindow)
+        let add = element("settings.privacy.e2e-p1.add", in: settingsWindow)
+        field.click()
+        field.typeText("not an address")
+        XCTAssertFalse(add.isEnabled, "Add takes a non-address")
+        field.typeKey("a", modifierFlags: .command)
+        field.typeText("example.com\r")
+        let remove = element("settings.privacy.e2e-p1.https://example.com.remove", in: settingsWindow)
+        XCTAssertTrue(remove.exists(within: 3), "no row for https://example.com")
+        XCTAssertFalse(element("settings.privacy.e2e-p1.empty", in: settingsWindow).exists)
+        // Away and back: the page stays in the sidebar with the site; then Remove empties it again.
+        openSettings("general")
+        openSettings("privacy")
+        remove.click()
+        XCTAssertTrue(element("settings.privacy.e2e-p1.empty", in: settingsWindow).exists(within: 3))
+        openSettings("general")
+        XCTAssertTrue(element("settings.page.privacy", in: settingsWindow).exists, "Privacy left the sidebar")
+    }
 }

@@ -325,3 +325,32 @@ Runs: none (no app code).
 - **For the user.** Install a build with this fix (`make app`): the running app is an old build, and any test
   run until then can break it again. Then, in a devvm-aai browser card through the machine, open a page and a
   `localhost` port. Both load.
+## Track O: Settings ▸ Privacy and the sidebar icons
+
+The user's words: "so couple of things i notced with settings window:
+- the privacy section, if i clear all enabled links and switch to anotehr section, i see privacy section gets removed
+  completely from the sidebar, that should be shown all the time, even if nothing is approved or anything, we should
+  also have an option there to add items to allowlist or remove them
+- and the icons thing man, i am still not fully satisfied, so i think grey is fine, but the actual icon white is less
+  or the icon is too small or something, i feel the icon is not clearly visible at all, may be use brighter white or
+  slightly increase the inner icon size a bit and show me, also show me an option with colorful icons following color
+  standards similar to macos settings, give me snapshots of different options, so i can finalise one"
+
+- Privacy always shows; each machine's section has an empty state, a field and Add (an address becomes its origin,
+  as a page that is opened is approved), Remove per site and Clear All. Tested by
+  `testSettingsPrivacyAddsAndRemovesAWebsite`.
+- Icons: options first, in one picture, nothing applied until the user picks. The user picked c: the grey tile as
+  today, a pure white symbol at 14 pt semibold.
+
+### Findings (Track O)
+
+- **Cause.** The sidebar listed Privacy only while a machine had an approved website (or while it was the page in
+  view), so Clear All and a page switch took it away. **Fix:** every page always shows; the filter and
+  `PrivacyPage.hasItems` are gone, and the browser's page always links to Privacy.
+- **Decisions.** A typed site with no scheme is `https` (`http` for a loopback name): the address bar's own default
+  (`http`) would approve an origin that an `https` page never matches. The field adds the origin, not the path, the
+  newest 200 as the browser keeps them.
+- **Icons.** Five options rendered with ImageRenderer from a copy of `SettingsIcon` and the row layout (no window):
+  `/tmp/ovvi-shots/settings-polish/icons/options-2.png`. System Settings' glyphs fill 70–80 % of its 20 pt tiles
+  (measured); the 11 pt glyph filled about 55 %. **Fix:** 14 pt semibold in pure white, about 70 %, in the sidebar and
+  the search results.

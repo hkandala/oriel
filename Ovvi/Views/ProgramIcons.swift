@@ -51,8 +51,9 @@ struct SettingsIcon: View {
     let page: SettingsPage
 
     var body: some View {
-        Image(systemName: page.symbol).font(.system(size: 11, weight: .medium)).imageScale(.medium)
-            .foregroundStyle(Color(white: 0xF2 / 255))
+        // About 70 % of the tile, as System Settings' glyphs (70–80 %, measured); 11 pt read too small.
+        Image(systemName: page.symbol).font(.system(size: 14, weight: .semibold)).imageScale(.medium)
+            .foregroundStyle(Color.white)
             .frame(width: 22, height: 22)
             .background(LinearGradient(colors: [Color(red: 156 / 255, green: 155 / 255, blue: 161 / 255),
                                                 Color(red: 139 / 255, green: 139 / 255, blue: 144 / 255)],

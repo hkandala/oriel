@@ -58,7 +58,7 @@ struct SettingsWindow: View {
                 route.path = []
             }) {
                 if search.isEmpty {
-                    ForEach(SettingsPage.shown, id: \.self) { page in
+                    ForEach(SettingsPage.allCases, id: \.self) { page in
                         SettingsSidebarRow(page: page)
                     }
                 } else {
@@ -108,14 +108,6 @@ struct SettingsWindow: View {
         .frame(width: 715).frame(minHeight: 400)
         .environment(\.look, Look(style: settings.style, dark: colorScheme == .dark,
                                   contrast: colorSchemeContrast == .increased))
-    }
-}
-
-@MainActor
-extension SettingsPage {
-    /// The pages with something in them: Privacy only with approved websites, or while it shows.
-    static var shown: [SettingsPage] {
-        allCases.filter { $0 != .privacy || PrivacyPage.hasItems || SettingsRoute.shared.page == .privacy }
     }
 }
 
@@ -235,15 +227,15 @@ struct SettingsSearch: Identifiable {
                        words: "notifications notify"),
         SettingsSearch(id: "machines.list", title: "Machines", page: .machines, words: "remote ssh host add"),
         SettingsSearch(id: "privacy.websites", title: "Approved websites", page: .privacy,
-                       words: "browser sites privacy"),
+                       words: "browser sites privacy allowlist add"),
     ]
 
-    /// The rows whose title, words or page hold every typed word; Privacy's only when it shows.
+    /// The rows whose title, words or page hold every typed word.
     static func matches(_ text: String) -> [SettingsSearch] {
-        let typed = text.lowercased().split(separator: " "), shown = SettingsPage.shown
+        let typed = text.lowercased().split(separator: " ")
         return (app + PluginsPage.searchRows).filter { row in
             let words = "\(row.title) \(row.words) \(row.place ?? row.page.title)".lowercased()
-            return shown.contains(row.page) && typed.allSatisfy { words.contains($0) }
+            return typed.allSatisfy { words.contains($0) }
         }
     }
 }

@@ -92,6 +92,11 @@ extension Browser {
         UserDefaults.standard.set(Array((approvals + [Self.origin(url)]).suffix(200)), forKey: approvalsKey)
     }
 
+    /// A machine's approved origins, the newest last (Settings ▸ Privacy).
+    static func approvals(_ machine: Machine) -> [String] {
+        UserDefaults.standard.stringArray(forKey: "browserApprovals.\(machine.id)") ?? []
+    }
+
     private var approvalsKey: String {
         "browserApprovals.\(store?.machine.id ?? "")"
     }
