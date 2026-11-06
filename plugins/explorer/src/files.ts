@@ -1,5 +1,5 @@
 // The File Explorer's home: the root's tree, each folder listed as it opens, git's letters, the find bar's filter over
-// every path, and the Git status bar. A file opens in the card, a new tab or a pane to the side.
+// every path, and the status bar. A file opens in the card, a new tab or a pane to the side.
 import { FileTree, type FileTreeBatchOperation, type FileTreeDirectoryHandle, type FileTreeRenameEvent,
   type GitStatus } from "@pierre/trees"
 import type { Change } from "@ovvi/plugin-api"
@@ -71,8 +71,9 @@ const look = {
  *  nested folder that the next one pushes up goes above its parent's bottom. After each scroll and each draw of the
  *  tree, in the same frame. */
 function unband(shadow: ShadowRoot) {
+  // WebKit queues no mutation for a write of the same value: the observer below runs once more, not again and again.
   const set = (element: HTMLElement | null, clip: string) => {
-    if (element && element.style.clipPath !== clip) element.style.clipPath = clip
+    if (element) element.style.clipPath = clip
   }
   const clip = () => {
     const scroll = shadow.querySelector<HTMLElement>("[data-file-tree-virtualized-scroll]")
@@ -138,7 +139,7 @@ export async function show(place: Place): Promise<Reveal> {
   root.innerHTML = `<div id="find" class="find" hidden><div class="find-row"><input class="find-field" placeholder="Filter"
     aria-label="Filter" spellcheck="false"><span class="find-count"></span><button class="find-icon" aria-label="Close Filter"
     title="Close"></button></div></div><div id="message" hidden><span
-    class="symbol"></span><p></p></div><div id="tree"></div><div id="matches" hidden></div><footer></footer>`
+    class="symbol"></span><p></p></div><div id="tree"></div><div id="matches" hidden></div><footer hidden></footer>`
   const renaming = (own: () => FileTree) => ({
     canRename: (item: { path: string }) => item.path !== UP.slice(0, -1),
     onRename: (event: FileTreeRenameEvent) => void renamed(event, own()),
@@ -319,12 +320,13 @@ export async function show(place: Place): Promise<Reveal> {
   }
 
   /** The repository's changes and its branch from git: the root's letters, when it is the repository's root, and
-   *  the status bar's part, with the lines added and removed since HEAD (none before the first commit).
+   *  the status bar's part, with the lines added and removed since HEAD (none before the first commit). The plumbing
+   *  `diff-index` never writes the index, so it leaves no `index.lock` in an agent's way.
    *  ponytail: `--numstat` leaves untracked files out; count them too if the bar should match Git's diff. */
   async function git() {
     const at = repo
     const [now, head, numstat] = at ? await Promise.all([ovvi.git.status(at).catch(() => []),
-      ovvi.git.head(at).catch(() => null), ovvi.run(["git", "diff", "HEAD", "--numstat"], { cwd: at }).catch(() => null)])
+      ovvi.git.head(at).catch(() => null), ovvi.run(["git", "--no-optional-locks", "diff-index", "--numstat", "HEAD"], { cwd: at }).catch(() => null)])
       : [[], null, null]
     changes = now
     showStatus()

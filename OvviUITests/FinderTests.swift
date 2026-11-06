@@ -123,9 +123,8 @@ extension OvviUITests {
     }
 
     /// A clean folder shows no change dot, also with a folder git ignores in it (they showed one once opened); a new
-    /// file shows one on its folder. The status bar shows the root's folders and files, the lines changed since HEAD,
-    /// Push while the branch is ahead (a click pushes), and Git, which opens Git on the repository in a new tab. A
-    /// folder outside a repository has no Git part.
+    /// file shows one on its folder. The status bar shows the root's folders and files and its Git part
+    /// (`statusBar`); Git opens Git on the repository in a new tab. A folder outside a repository has no Git part.
     func testFileExplorerChangeDotsAndGitBar() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (_, shell) = try await newTab("files-dots")
@@ -155,18 +154,7 @@ extension OvviUITests {
         try await send("touch src/deep/new.swift web/node_modules/x/y.js && echo four >>a.txt\r", to: shell)
         XCTAssertTrue(!draws || until(10) { dot(row("src", in: tree)) == true })
         XCTAssertFalse(draws && dot(row("web", in: tree)) == true)
-        XCTAssertTrue(text("+1", in: tree).exists(within: 5))
-        XCTAssertFalse(tree.buttons["Push, 1 ahead"].exists)
-        keepScreenshot("file explorer status bar")
-        try await send("""
-        git init -q --bare \(repo)-remote && git remote add origin \(repo)-remote && git push -qu origin HEAD && \
-        git -c user.name=e2e -c user.email=e2e@ovvi commit -qam four && touch web/b.ts\r
-        """, to: shell)
-        let push = tree.buttons["Push, 1 ahead"]
-        XCTAssertTrue(push.exists(within: 10))
-        XCTAssertFalse(text("+1", in: tree).exists)
-        push.click()
-        XCTAssertTrue(push.vanishes(within: 10))
+        try await statusBar(tree, shell, repo)
 
         let before = try await tabIDs()
         tree.buttons["Open in Git"].click()
@@ -182,7 +170,35 @@ extension OvviUITests {
         app.typeText("/private/tmp/ovvi-e2e-files-plain\r")
         XCTAssertTrue(row("x", in: tree).exists(within: 10))
         XCTAssertFalse(until(2) { tree.buttons["Open in Git"].exists })
-        try await send("rm -rf \(repo) \(repo)-remote /tmp/ovvi-e2e-files-plain\r", to: shell)
+        try await send("rm -rf \(repo) \(repo)-remote \(repo)-other /tmp/ovvi-e2e-files-plain\r", to: shell)
+    }
+
+    /// The lines changed since HEAD; Push while the branch is ahead, and a click pushes; Pull once Fetch saw a commit
+    /// elsewhere, and a click pulls.
+    private func statusBar(_ tree: XCUIElement, _ shell: String, _ repo: String) async throws {
+        XCTAssertTrue(text("+1", in: tree).exists(within: 5))
+        XCTAssertFalse(tree.buttons["Push, 1 ahead"].exists)
+        keepScreenshot("file explorer status bar")
+        try await send("""
+        git init -q --bare \(repo)-remote && git remote add origin \(repo)-remote && git push -qu origin HEAD && \
+        git -c user.name=e2e -c user.email=e2e@ovvi commit -qam four && touch web/b.ts\r
+        """, to: shell)
+        let push = tree.buttons["Push, 1 ahead"]
+        XCTAssertTrue(push.exists(within: 10))
+        XCTAssertFalse(text("+1", in: tree).exists)
+        push.click()
+        XCTAssertTrue(push.vanishes(within: 10))
+        // A commit elsewhere: Fetch shows Pull, and Pull brings it.
+        try await send("""
+        git clone -q \(repo)-remote \(repo)-other && cd \(repo)-other && touch c && git add c && \
+        git -c user.name=e2e -c user.email=e2e@ovvi commit -qm c && git push -q && cd \(repo)\r
+        """, to: shell)
+        let pull = tree.buttons["Pull, 1 behind"]
+        XCTAssertFalse(until(1) { pull.exists })
+        tree.buttons["Fetch"].click()
+        XCTAssertTrue(pull.exists(within: 10))
+        pull.click()
+        XCTAssertTrue(pull.vanishes(within: 10))
     }
 
     private func text(_ value: String, in page: XCUIElement) -> XCUIElement {

@@ -171,7 +171,8 @@ runs and on-demand on the final head.
 - **Cause, item 6.** The app sets the page root's inline style to its colors with each theme (`WebCardContent`'s
   `onChange(initial: true)` runs again whenever the card's view comes back, as after Open in Git's new tab). File
   Explorer kept its SF Symbol masks (`--sf-*`) in that same inline style, so they went and every mask drew a full
-  grey square. **Fix:** the masks live in a style sheet of their own; the API's `Theme` says to do so.
+  grey square. **Fix:** the masks live in a style sheet of their own; the API's `Theme` says to do so. No test: it
+  would read mask pixels, and CI's screenshots draw no web content.
 - **Cause, item 5.** The rename field fills the row's name section, which clips what goes past it: the outline
   outside the box lost its sides. **Fix:** the outline sits inside the box.
 - **Cause, item 10.** The tree's rows are transparent (the card shows through), and the band under the sticky
@@ -182,17 +183,16 @@ runs and on-demand on the final head.
   and each draw of the tree, in the same frame.
 - **Item 8.** A row's menu adds Rename (not on `..`), the same rename as Return.
 - **Decisions, item 9.** ⌘[ and ⌘] already go Back and Forward in every view, the editor too (the web view's key
-  equivalent runs before CodeMirror's indent keys), and the Back and Forward tooltips name them. Checked in the tree,
-  a file's editor, a preview and Git's diff; no code change.
-- **Items 7 and 20 (the user's pick, C without the empty states).** The bar shows in every folder: the machine on a
-  remote one, the root's folders and files (and the hidden ones), and in a repository the branch, +/− lines, Pull and
-  Push only when there is something to pull or push, Fetch, and Git at the right edge. Outside a repository the right
-  side is empty; a clean one shows no counts.
-- **Decisions, items 7 and 20.** The lines come from `git diff HEAD --numstat` through `ovvi.run`, so untracked files
-  count once added (a `ponytail:` note; Git's diff counts them). The mockup's free disk space is left out: no API
-  has it. Fetch, Pull and Push use Git's own symbols (`arrow.clockwise`, `arrow.down`, `arrow.up`). Git follows
-  Track H's rule: a click opens a new tab, selected; ⌘ in the background; ⌥ to the side.
-- **No test for item 6:** it would read mask pixels, and CI's screenshots draw no web content.
+  equivalent runs before CodeMirror's indent keys, for every plugin card), and the Back and Forward tooltips name
+  them. FilesTests pins ⌘[ in the editor; no code change. Only a row 2 field (the root) leaves it to Select Pane.
+- **Items 7 and 20: the user's pick, C without the empty states.** The bar shows in every folder: the machine on a
+  remote one, the root's folders, files and hidden names, and in a repository the branch, +/− lines, Pull and Push only
+  when there is something to pull or push, Fetch, and Git at the right edge (Track H's open rule). Outside a
+  repository the right side is empty; a clean one shows no counts. **Decisions:** the lines come from
+  `git --no-optional-locks diff-index --numstat HEAD` (porcelain `git diff` rewrites the index and takes
+  `index.lock` under an agent's `git add`), so untracked files count once added. The mockup's free disk space is left
+  out (no API has it). Git's own symbols for Fetch, Pull and Push. A branch with no upstream shows no Push: Git's
+  Push publishes it.
 
 ### Runs (Track E)
 

@@ -408,11 +408,14 @@ selection in the accent at 24 %. A 6 pt gap sits under the header.
   - **At the right**, only while the root is inside a Git repository: the
     branch (`source.branch`), the lines added (+12, the finished color) and
     removed (−3, the error color) since HEAD in the whole repository, from
-    `git diff HEAD --numstat` (untracked files count once added); none on a
+    `git diff-index --numstat HEAD`, which never writes the index (untracked
+    files count once added); none on a
     clean one. Then **Pull** (`arrow.down` and the count behind) and **Push**
     (`arrow.up` and the count ahead), each only when there is something to
-    pull or push, and **Fetch** (`arrow.clockwise`) always. One runs at a time,
-    with its icon turning (not with Reduce Motion) and the others off, and
+    pull or push (a branch with no upstream has nothing to push here; Git's
+    Push publishes it), and **Fetch** (`arrow.clockwise`) always. One runs at a time,
+    with all three off meanwhile and Fetch's arrow turning (not with Reduce
+    Motion), and
     git's message shows in a toast when it fails. After a divider, **Git**
     (`arrow.up.right.square`, "Open in Git") opens Git's home on the
     repository: a click in a new tab, selected; ⌘-click in

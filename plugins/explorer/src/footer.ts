@@ -36,7 +36,7 @@ export function footer(ovvi: Ovvi, bar: HTMLElement, again: () => void) {
     if (!repo) return
     button.toggleAttribute("data-busy", true)
     for (const each of [pull, push, fetch]) each.disabled = true
-    await done(repo).catch((error: Error) => void ovvi.toast(error.message))
+    await done(repo).catch((error) => void ovvi.toast(String((error as Error).message ?? error)))
     button.toggleAttribute("data-busy", false)
     for (const each of [pull, push, fetch]) each.disabled = false
     again()
