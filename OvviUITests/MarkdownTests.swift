@@ -134,7 +134,8 @@ extension OvviUITests {
         XCTAssertTrue(app.menuItems["Open to the Side"].exists(within: 2))
         XCTAssertTrue(app.menuItems["Open in New Tab"].exists && app.menuItems["Copy Link"].exists)
         keepScreenshot("markdown link menu")
-        app.menuItems["Open"].click()
+        // Not Services ▸ Open in the menu bar.
+        app.windows.menuItems["Open"].click()
         XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, "other.md", within: 5))
         XCTAssertTrue(element("pane.\(card).outline").vanishes(within: 3))
         element("pane.\(card).go-back").click()
