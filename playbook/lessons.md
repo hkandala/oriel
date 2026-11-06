@@ -109,6 +109,9 @@ Problems that came back across phases, and the rule that stops each. How we work
 - **WebKit scrolls on its own thread: a scroll listener runs a frame or more behind.** A clip or a cover set from one
   showed rows under a sticky header in a fast scroll (phase 56). Tie what must follow a scroll to CSS (`position:
   sticky`, opaque), and check a fast scroll frame by frame.
+- **SwiftUI's `.onDrop` is an AppKit view of its own** (`DraggingDestinationView`, for any data), under the view
+  it is on. Opacity 0 and `allowsHitTesting(false)` do not stop it: a kept page's took every drop from the shown
+  page below it (phase 56). Make it only while its view shows (`.background { if shown { … } }`).
 - **An overlay blocks every input path to the page below:** swipes, the wheel, menu shortcuts and clicks.
   Check all of them when you add one.
 - **A new or lazy scroll view's first layout lies.** The first scroll position gets dropped,

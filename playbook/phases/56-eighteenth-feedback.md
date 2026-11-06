@@ -772,6 +772,36 @@ is enabeld. don't increase it too much" and "let's make it 300".
 - `make test`'s HerdrKit timing tests failed locally at a load of 350, a different one each run (untouched here; CI's
   checks run them).
 
+## Track Q: file drops (item 27)
+
+27. Files dropped from Finder on a card do nothing (the user's words in Round 2). Find the commit, fix the cause, and
+    fix the test that should have caught it.
+
+### Findings (Track Q)
+
+- **Cause.** Kept pages (Track A, `da7237c7`). The pages of the tabs shown last stay in the window in herdr's order,
+  hidden by opacity, and only their terminal and web views are hidden views. A card's `.onDrop` is a SwiftUI drop
+  view of its own (`DraggingDestinationView`, for any data, the card's size, under its content), and no one hides it.
+  So a later tab's kept page lay over the shown page with live drop views, and they took every drag over its cards.
+  A file went to a hidden card, which turned it down. A pane dropped on a card did nothing either. Today's
+  `TemporaryItems` copy and Track N's drag changes played no part.
+- **Why the tests missed it.** Both drop tests dropped on a new tab, the last in herdr's order, so no kept page lay
+  over it. Every tab but the last one shown failed for the user.
+- **Fix.** The card's drop target is a clear background, made only while its page shows: a hidden page has no drop
+  views, and the card's content keeps its identity. `.onDrop(of: [])` on a hidden page does not work: SwiftUI keeps
+  the view.
+- **Tests.** The file drop test and the card swap test first show a later tab, so its page is kept over the tab
+  they drop on.
+- **Not a feature.** Files dropped on the tab bar or a card's header never opened anything. File Explorer and other
+  web cards give a dropped file to their page, as a browser does (the design's Files and images).
+- **For the user.** Drag a file from Finder onto a terminal in a tab that is not the last one you visited, on This
+  Mac and on a remote machine. Drag a pane onto another card there too.
+
+### Runs (Track Q)
+
+- Locally, old code with the new tests: the file drop was refused, and the swap test failed ("waited for the two
+  swapped"). With the fix both pass.
+
 ## Round 2 (after the user's testing, 21:40)
 
 The user's words, item by item, with the track that takes each:
