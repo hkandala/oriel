@@ -55,25 +55,44 @@ struct Shelf<Accessory: View, Content: View>: View {
                 opened = lines.joined(separator: "\n")
             }
         } label: {
-            HStack(spacing: 6) {
+            line(open: open) {
                 Text(label)
                 Spacer(minLength: 0)
-                accessory()
-                if let count {
-                    Text("\(count)").monospacedDigit().foregroundStyle(.tertiary)
-                }
-                Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold))
-                    .rotationEffect(.degrees(open ? 90 : 0))
+                // Room for the accessory, drawn over the row: inside the label it would be part of the header's one
+                // accessibility element.
+                accessory().hidden().accessibilityHidden(true)
             }
-            .font(.system(size: 12, weight: .medium)).foregroundStyle(.secondary)
-            .padding(.horizontal, 8)
-            .frame(height: 28)
         }
         .buttonStyle(ChromeStyle(radius: 7))
         .accessibilityLabel(count.map { "\(label) \($0)" } ?? label)
         .accessibilityAddTraits(.isHeader)
         .accessibilityValue(open ? "expanded" : "collapsed")
         .accessibilityIdentifier("agents.shelf.\(label)")
+        .overlay {
+            line(open: open, tail: false) {
+                Spacer(minLength: 0)
+                accessory()
+            }
+        }
+    }
+
+    /// The header's line: `lead`, then the count and the chevron (only their room without `tail`).
+    private func line(open: Bool, tail: Bool = true, @ViewBuilder _ lead: () -> some View) -> some View {
+        HStack(spacing: 6) {
+            lead()
+            HStack(spacing: 6) {
+                if let count {
+                    Text("\(count)").monospacedDigit().foregroundStyle(.tertiary)
+                }
+                Image(systemName: "chevron.right").font(.system(size: 10, weight: .semibold))
+                    .rotationEffect(.degrees(open ? 90 : 0))
+            }
+            .opacity(tail ? 1 : 0)
+            .accessibilityHidden(!tail)
+        }
+        .font(.system(size: 12, weight: .medium)).foregroundStyle(.secondary)
+        .padding(.horizontal, 8)
+        .frame(height: 28)
     }
 }
 
