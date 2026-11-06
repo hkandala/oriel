@@ -721,3 +721,30 @@ is enabeld. don't increase it too much" and "let's make it 300".
   user's own drags show none, so a posted drag shows the image over the glide.
 - `make test`'s HerdrKit timing tests failed locally at a load of 350, a different one each run (untouched here; CI's
   checks run them).
+
+## Round 2 (after the user's testing, 21:40)
+
+The user's words, item by item, with the track that takes each:
+
+26. Track N: "that tab drag and drop still has issue, see the main issue is once i drag and position to a different
+    position and when i leave it, that time wherever i leave it that stays there until the tab settles or something,
+    so i kinda see that hovering tab for breif sec, so ideally we should fade out or move it to that tab position,
+    instead of it staying at that location for sometime, so you have to drag it half way and test, when you perfectly
+    drag it at tabs positions you won't see it" (`.build/fb56/tab-drag-9.32.58.mov`).
+27. Track Q: "while dragging that video i just realised, i can't drag and drop files to the ovvi anymore, probably
+    regression from previous fixes?"
+28. Track P: "actually let's revert that change where we show border even if only one pane is there, i change my
+    mind, it doesn't look good actually".
+29. Track O: "on the setting man, i freaking don't understand, i am not satisfied with its icon coloring or god knows
+    what, something feels very off with it and not aesthetic at all, can you give me some options on improving it.
+    also try out the raycast settings view" (`.build/fb56/raycast-settings-9.36.25.png`).
+30. Track H: "we need to improve text parsing for links in terminal, if its md it should be opened in markdown viewer,
+    and we need to strip any . at the end of files. if its html it should be opened in browser, "/reload your open pi"
+    is also coming with click to open, for terminal ones, let's drop the right click option, just cmd+click and
+    option+click".
+31. Track E: "in file explorer footer, that fetch arrow doesn't rotate on centered axis, it kinda wobbles".
+32. Track E: "for the sticky folders, can we avoid that dark background, is that not possible to fix that?"
+33. Track E: "for hotkey you used cmd [ ] in file explorer woudln't that conflict with pane changes shortcuts".
+34. Tracks L1 and L2, the Agents view (report `~/Downloads/ovvi-research/agents-view-ux.html`): "for headers and
+    folding go with B, settled and archived rows go with A, agent filter go with menu, pin icon should be shown only
+    on hover and on right click there should be option as well, same for resume, go ahead and impl everything".
