@@ -55,6 +55,12 @@ extension OvviUITests {
     /// folder (a screenshot's thumbnail) pastes the path of a copy the pane's programs can read.
     func testDroppingAFilePastesItsPath() async throws {
         let (tab, pane) = try await newTab("drop")
+        // A later tab's page, kept hidden over this one (TabPages).
+        let (other, _) = try await createTab(in: workspace(of: tab), label: "over")
+        closeAfter("tab", other)
+        XCTAssertTrue(element("tab.\(other)").has(\.isHittable, true, within: 5))
+        element("tab.\(other)").click()
+        XCTAssertTrue(element("page.\(other)").exists(within: 5))
         element("tab.\(tab)").click()
         let terminal = element("terminal.\(pane)")
         XCTAssertTrue(terminal.has(\.isHittable, true, within: 3))

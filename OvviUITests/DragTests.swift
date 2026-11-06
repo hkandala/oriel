@@ -7,6 +7,12 @@ extension OvviUITests {
         let tab = tabs[0]
         let second = try await split(first), third = try await split(second)
         restoreHerdrFocusAfter()
+        // A later tab's page, kept hidden over this one (TabPages): its drop targets must not take the drags.
+        let over = try await createTab(in: workspace(of: tab), label: "over").tab
+        XCTAssertTrue(element("tab.\(over)").has(\.isHittable, true, within: 5))
+        element("tab.\(over)").click()
+        XCTAssertTrue(element("page.\(over)").exists(within: 5))
+        element("tab.\(tab)").click()
         XCTAssertTrue(element("pane.\(third)").exists(within: 3))
 
         drag(first, to: card(second, 0.5, 0.6))

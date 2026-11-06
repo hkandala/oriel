@@ -149,7 +149,14 @@ struct PaneCard: View {
             }
         }
         .onGeometryChange(for: CGSize.self) { $0.size } action: { size = $0 }
-        .onDrop(of: [.ovviDrag], delegate: CardDrop(paneID: id, page: page, size: size, zone: $zone))
+        .background {
+            // Not in a kept page out of view: SwiftUI's drop target is a view of its own, under the card's content, and
+            // one in a kept page over the shown page took every drag from its cards (files too, then refused them).
+            if !hidden {
+                Color.clear.contentShape(.rect)
+                    .onDrop(of: [.ovviDrag], delegate: CardDrop(paneID: id, page: page, size: size, zone: $zone))
+            }
+        }
         .clearsDrop(page) { zone = nil }
         .onHover { hovering = $0 }
         .task(id: follow) {
