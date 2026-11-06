@@ -268,6 +268,7 @@ runs and on-demand on the final head.
 - The sticky folders, opaque: a recording of fast scrolls (XCUITest wheel scrolls of 300 pt, both ways, dark and
   light), every changed frame on a sheet: no row shows under the stack. In some frames the stack is missing for a frame
   as a scroll leaves the top (the tree's own overlay lags there); it was so before.
+- After the opaque stack and the even bar: the two Finder tests and Git's main test, 3 executed, green (42165498856).
 
 ## Track F: file cards (items 11, 13, 15, then 12)
 
