@@ -37,6 +37,8 @@ scripts/stress.py; its summary comes back. With an empty body it removes the ses
 beside its shells.
 POST /<session>/sample with a number of seconds as the body gives back `sample`'s profile of the app over that time.
 POST /<session>/heap gives back `heap`'s summary of the app's malloc heap, the largest classes first.
+POST /<session>/pause stops the session's server (SIGSTOP), so the app's writes wait for herdr's answer;
+/<session>/resume lets it go on (SIGCONT), as the helper's exit does for every session.
 POST /<session>/ssh-connections gives back how many connections the CI sshd (scripts/ci-sshd.sh) has seen.
 Any session not named on the command line is refused.
 """
@@ -92,6 +94,12 @@ def usage(session, seconds):
     return "\n".join([f"cpu {100 * app_cpu / wall:.1f}%",
                       f"helpers {len(helpers)} {sum(int(n) for n in rss.split()) // 1024} MB "
                       f"{100 * helpers_cpu / wall:.1f}%"] + processes.splitlines() + summary[:16]).encode()
+
+
+def signal_server(session, action):
+    """Stops (`pause`) the session's server or lets it go on (`resume`); false when no server matched."""
+    return subprocess.run(["pkill", "-STOP" if action == "pause" else "-CONT", "-f",
+                           f"^[^ ]*herdr --session {re.escape(session)} server$"], capture_output=True).returncode == 0
 
 
 class Handler(http.server.BaseHTTPRequestHandler):
@@ -215,10 +223,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             status, reply = (200, path.encode()) if source.returncode == 0 else (
                 500, source.stderr or b"the drop was refused")
         elif action in ("pause", "resume"):
-            # The session's server stopped or going on again: the app's writes wait for herdr's answer meanwhile.
-            run = subprocess.run(["pkill", "-STOP" if action == "pause" else "-CONT", "-f",
-                                  f"^[^ ]*herdr --session {session} server$"], capture_output=True)
-            status, reply = (200, b"") if run.returncode == 0 else (500, b"no server")
+            status, reply = (200, b"") if signal_server(session, action) else (500, b"no server")
         elif action == "usage":
             status, reply = 200, usage(session, float(body or b"10"))
         elif action == "start":
@@ -267,6 +272,9 @@ env = {**os.environ, "TEST_RUNNER_OVVI_HELPER": f"http://127.0.0.1:{server.serve
        "TEST_RUNNER_OVVI_HERDR": shutil.which("herdr") or "",
        **{f"TEST_RUNNER_OVVI_SESSION{n if n > 1 else ''}": name for n, name in enumerate(sessions, 1)}}
 status = subprocess.run(command, env=env).returncode
+# A run cut short between a pause and its resume leaves no stopped server, which the cleanup's stop would wait on.
+for name in sessions:
+    signal_server(name, "resume")
 for folder in folders:
     shutil.rmtree(folder, ignore_errors=True)
 sys.exit(status)

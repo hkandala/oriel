@@ -72,8 +72,9 @@ final class Chooser {
     @ObservationIgnored var typed = false
     /// The folder its pick starts in, from its folder line (`NewPaneFolder`); nil: the pane's own.
     var folder: String?
-    /// The folder herdr starts its shell in, known before herdr answers: the pane it was made from's, as herdr's
-    /// `resolve_new_terminal_cwd` follows it (src/app/creation.rs), then herdr's answer's.
+    /// The folder herdr starts its shell in, known before herdr answers: the split pane's or the new tab's, as herdr
+    /// picks it with its default `new_cwd` (`resolve_new_terminal_cwd`, src/app/creation.rs), then herdr's answer's.
+    /// From the snapshot, which a `cd` since herdr's last report does not change: herdr's answer corrects it.
     var cwd: String?
     /// Its folder line is a field.
     var editing = false

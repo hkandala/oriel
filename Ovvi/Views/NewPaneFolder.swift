@@ -19,7 +19,9 @@ struct NewPaneFolder: View {
     @Environment(\.look) private var look
 
     var body: some View {
-        let store = page.store, remote = store.machine.isRemote, editing = chooser.editing
+        let store = page.store, remote = store.machine.isRemote
+        // Not on a stand-in: herdr's pane, as it shows, gives its terminal the keyboard and would close the field.
+        let editing = chooser.editing && store.pane(cardID) != nil
         if let folder = chooser.folder ?? store.pane(cardID)?.cwd ?? chooser.cwd {
             VStack(spacing: 4) {
                 // The icon is one view in both looks: a click on it as the field lets go still lands.
@@ -45,6 +47,9 @@ struct NewPaneFolder: View {
                     .accessibilityHidden(error == nil)
             }
             .onChange(of: chooser.editing, initial: true) {
+                if chooser.editing, page.store.pane(cardID) == nil {
+                    chooser.editing = false
+                }
                 draft = folder
                 error = nil
             }

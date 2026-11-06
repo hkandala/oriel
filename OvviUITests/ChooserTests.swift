@@ -276,17 +276,23 @@ extension OvviUITests {
         let info = try await self.pane(pane), cwd = try XCTUnwrap(info["cwd"] as? String)
         try await closeNew("tab", besides: tabIDs())
         addTeardownBlock { [one] in _ = try? await Self.post("\(one)/resume") }
-        let folder = app.descendants(matching: .any).matching(NSPredicate(
+        let folders = app.descendants(matching: .any).matching(NSPredicate(
             format: "identifier BEGINSWITH 'pane.new.' AND identifier ENDSWITH '.chooser.folder'",
-        )).firstMatch
-        for key in ["d", "t"] {
+        ))
+        // A quick second ⌘D splits the first one's stand-in: its folder is that one's chooser's.
+        for (key, count) in [("d", 2), ("t", 1)] {
             _ = try await Self.post("\(one)/pause")
-            app.typeKey(key, modifierFlags: .command)
-            let shown = folder.has(\.stringValue, cwd, within: 3)
+            for _ in 0 ..< count {
+                app.typeKey(key, modifierFlags: .command)
+            }
+            let shown = until(3) {
+                folders.allElementsBoundByIndex.map(\.stringValue) == Array(repeating: cwd, count: count)
+            }
+            let seen = folders.allElementsBoundByIndex.map(\.stringValue)
             _ = try await Self.post("\(one)/resume")
-            XCTAssertTrue(shown, "⌘\(key): \(folder.debugDescription)")
-            // herdr's pane takes the stand-in's place.
-            XCTAssertTrue(folder.vanishes(within: 5))
+            XCTAssertTrue(shown, "⌘\(key) ×\(count): \(seen)")
+            // herdr's panes take the stand-ins' places.
+            XCTAssertTrue(folders.firstMatch.vanishes(within: 5))
         }
     }
 

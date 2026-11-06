@@ -123,7 +123,10 @@ herdr's `src/app/creation.rs`):
 - A new workspace starts in the folder the app gives herdr (the home folder
   by default).
 
-Once herdr reports the new pane, the line shows the pane's own folder.
+This is herdr's rule with its default `new_cwd` (`follow`). Once herdr
+answers, the line shows the folder herdr gave the pane, which differs only
+when herdr has another `new_cwd` or the shell moved to another folder since
+herdr last reported it. The line can be edited once herdr has made the pane.
 
 - **Look.** "Opens in" and the folder are tertiary (secondary with Increase
   Contrast), the folder in medium weight. Only the field is primary. The
