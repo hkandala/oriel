@@ -69,8 +69,9 @@ runs and on-demand on the final head.
 
 ### Findings (Track B)
 
-- **Fix (item 2).** The palette's field (the one at `.controlSize(.large)`) is a rounded rectangle of 4 pt, the
-  panel's 14 pt less its 10 pt inset. The other fields stay capsules.
+- **Fix (item 2).** The palette's field (the one at `.controlSize(.large)`) has the panel's radius, 14 pt (both
+  continuous). A concentric 4 pt, the panel's 14 less its 10 pt inset, looked square to the user. Measured at 1x
+  on CI, the panel's corner leaves its straight edges about 12 pt from the corner. The other fields stay capsules.
 - **Cause (item 2's grey).** On the glass panel a hierarchical fill (`.primary.opacity`) is vibrant: 7 % showed 3
   steps over the panel, and 10 % only 4. The field now takes a flat Look color, `paletteField`.
 - **Fix (items 14, 19).** Open File…, Open Working Tree and Open Commit… resolve through `ovvi open`'s own code
