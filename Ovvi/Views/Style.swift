@@ -49,6 +49,12 @@ struct Look {
         style == .glass && dark ? .black.opacity(0.5) : nil
     }
 
+    /// The palette's field on its glass panel (#141414 dark, white light), in both styles: a flat color, as a
+    /// hierarchical fill there is vibrant and shows at about a fifth of its strength.
+    var paletteField: Color {
+        dark ? .white.opacity(0.08) : .black.opacity(0.06)
+    }
+
     var cardFill: Color {
         // Glass: a step brighter than the window; `keyboardFill` keeps the keyboard card close (D64). Classic dark:
         // #222 on #1e1e1e, as in Rex.
@@ -380,18 +386,6 @@ extension View {
                 Rectangle()
                 LinearGradient(colors: [.black, .clear], startPoint: from, endPoint: until)
                     .frame(width: horizontal ? end : nil, height: horizontal ? nil : end)
-            }
-        }
-    }
-
-    /// A value for tests, on a one-point text leaf: SwiftUI exposes no value on a container or a plain element. One
-    /// point, so accessibility hit tests still find the cards and buttons; last for VoiceOver.
-    func testValue(_ id: String, _ label: String, _ value: String, shown: Bool = true) -> some View {
-        background(alignment: .topLeading) {
-            if shown {
-                Color.clear.frame(width: 1, height: 1).accessibilityElement().accessibilityAddTraits(.isStaticText)
-                    .accessibilityLabel(label).accessibilityIdentifier(id).accessibilitySortPriority(-1)
-                    .accessibilityValue(value)
             }
         }
     }

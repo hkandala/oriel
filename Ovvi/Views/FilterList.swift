@@ -315,9 +315,9 @@ struct RenameField: View {
 }
 
 extension View {
-    /// A text field in a soft capsule; at `.controlSize(.large)` (the palette) roomier, in a larger font and a
-    /// stronger fill, in a rounded rectangle concentric with the panel. `fill` off keeps only its padding (New Pane's
-    /// folder line at rest).
+    /// A text field in a soft capsule; at `.controlSize(.large)` (the palette) roomier, in a larger font, on the
+    /// look's `paletteField`, in a rounded rectangle concentric with the panel. `fill` off keeps only its padding
+    /// (New Pane's folder line at rest).
     func fieldCapsule(fill: Bool = true) -> some View {
         modifier(FieldCapsule(fill: fill))
     }
@@ -340,6 +340,7 @@ extension View {
 private struct FieldCapsule: ViewModifier {
     let fill: Bool
     @Environment(\.controlSize) private var size
+    @Environment(\.look) private var look
 
     func body(content: Content) -> some View {
         let large = size == .large
@@ -347,7 +348,8 @@ private struct FieldCapsule: ViewModifier {
         let shape = large ? AnyShape(.rect(cornerRadius: 4)) : AnyShape(.capsule)
         content.textFieldStyle(.plain).transformEnvironment(\.font) { font in font = large ? .system(size: 15) : font }
             .padding(.horizontal, large ? 12 : 8).padding(.vertical, large ? 9 : 5)
-            .background(.primary.opacity(fill ? large ? 0.1 : 0.07 : 0), in: shape)
+            .background(fill ? large ? AnyShapeStyle(look.paletteField) : AnyShapeStyle(.primary.opacity(0.07))
+                : AnyShapeStyle(.clear), in: shape)
     }
 }
 

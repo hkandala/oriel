@@ -244,7 +244,9 @@ Runs: none (no app code).
 ### Findings (Track B)
 
 - **Fix (item 2).** The palette's field (the one at `.controlSize(.large)`) is a rounded rectangle of 4 pt, the
-  panel's 14 pt less its 10 pt inset, with the text color at 10 % instead of 7 %. The other fields stay capsules.
+  panel's 14 pt less its 10 pt inset. The other fields stay capsules.
+- **Cause (item 2's grey).** On the glass panel a hierarchical fill (`.primary.opacity`) is vibrant: 7 % showed 3
+  steps over the panel, and 10 % only 4. The field now takes a flat Look color, `paletteField`.
 - **Fix (items 14, 19).** Open File…, Open Working Tree and Open Commit… resolve through `ovvi open`'s own code
   (`AgentCall.opening`), then open with `Page.open` as the plugins' links do: a new tab, ⌥ (Return or click) to the
   side. A path is checked and `~` expanded by one `sh` call on the page's machine, so it works on a remote machine.
