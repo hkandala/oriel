@@ -218,7 +218,7 @@ extension OvviUITests {
     /// `pin`: the settings as they ship, whatever the user's Ovvi has (the defaults are shared); off for a test that
     /// changes them in the Settings window, where a pinned key cannot change.
     func relaunch(_ session: String? = nil, _ args: [String] = [], pin: Bool = true) {
-        let config = args.contains("-configFolder") ? [] : Self.noConfig
+        let config = args.contains("-configFolder") ? ["-archivedHome", Self.archivedHome] : Self.noConfig
         let shipped = ["notifyNeedsYou": "YES", "notifyFinished": "YES", "notifyFromAgents": "YES",
                        "terminalFont": "", "cursorStyle": "block", "cursorBlink": "YES", "optionKey": "characters",
                        "copyOnSelect": "NO", "agentView": "terminal", "agentArguments.claude": "",
@@ -226,9 +226,8 @@ extension OvviUITests {
                        "settleAfter": "<real>10800</real>", "showClosedSessions": "YES"]
         let notify = pin ? shipped.sorted { $0.key < $1.key }.filter { !args.contains("-\($0.key)") }
             .flatMap { ["-\($0.key)", $0.value] } : []
-        // Archived reads the agents' stores of a test's fixtures, never the user's sessions.
-        app.launchArguments = ["-session", session ?? one, "-ApplePersistenceIgnoreState", "YES",
-                               "-archivedHome", Self.archivedHome] + config + notify + args
+        app.launchArguments = ["-session", session ?? one, "-ApplePersistenceIgnoreState", "YES"] + config + notify
+            + args
         // The default plugins install from npm's cache (`make web` fills it), never the network.
         app.launchEnvironment["npm_config_offline"] = "true"
         app.launch()
@@ -238,8 +237,9 @@ extension OvviUITests {
     /// its own folder. CI puts both folders on its login shell's PATH.
     static let agents = URL(filePath: #filePath).deletingLastPathComponent().appending(path: "Fixtures/agents").path
 
-    /// A config folder of the tests' own: the app installs its default plugins there, never in the user's.
-    static let noConfig = ["-configFolder", "/tmp/ovvi-e2e-no-config"]
+    /// A config folder of the tests' own: the app installs its default plugins there, never in the user's. Archived
+    /// reads the agents' stores of the tests' fixtures, never the user's sessions.
+    static let noConfig = ["-configFolder", "/tmp/ovvi-e2e-no-config", "-archivedHome", archivedHome]
 
     /// Swipes sideways over the element until the target has the value, one way and then the other: which sign goes
     /// forward follows the natural scrolling setting (one way here, the other on CI), and past the last page nothing

@@ -62,6 +62,8 @@ held = {}
 # The tests' config folder (OvviUITests.noConfig): a launch from here installs the default plugins there, never in the
 # user's ~/.config/ovvi.
 NO_CONFIG = "/tmp/ovvi-e2e-no-config"
+# The tests' config folder and agents' stores, never the user's (OvviUITests.noConfig).
+ISOLATED = ["-configFolder", NO_CONFIG, "-archivedHome", "/tmp/ovvi-e2e-archived"]
 # Compiled once, beside the app's build: `swift` interpreting the script again took up to 10 s a swipe on CI.
 tools = tempfile.mkdtemp()
 folders.append(tools)
@@ -195,7 +197,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             folders.append(folder)
             run = subprocess.run(["open", "--env", "npm_config_offline=true", "-a", body.decode(), folder, "--args",
                                   "-session", session,
-                                  "-ApplePersistenceIgnoreState", "YES", "-configFolder", NO_CONFIG],
+                                  "-ApplePersistenceIgnoreState", "YES", *ISOLATED],
                                  capture_output=True, timeout=10)
             status, reply = (200, folder.encode()) if run.returncode == 0 else (500, run.stderr)
         elif action == "open-url" and not re.fullmatch(rb"[^\n]+\.app\novvi://\S+", body):
@@ -204,7 +206,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             # As pi-herd opens it, to that app: LaunchServices may know other builds of the app.
             app, url = body.decode().split("\n")
             run = subprocess.run(["open", "--env", "npm_config_offline=true", "-g", "-a", app, url, "--args",
-                                  "-machines", "[]", "-configFolder", NO_CONFIG],
+                                  "-machines", "[]", *ISOLATED],
                                  capture_output=True, timeout=10)
             status, reply = (200, b"") if run.returncode == 0 else (500, run.stderr)
         elif action in ("file-drag", "temporary-file-drag"):

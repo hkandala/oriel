@@ -1,6 +1,6 @@
 import XCTest
 
-/// The Git diff's keys (phase 56): ] and [ step through the changes, from the top of the view after a scroll, and ⌘F's
+/// The Git diff's keys: ] and [ step through the changes, from the top of the view after a scroll, and ⌘F's
 /// find bar filters the files by path.
 extension OvviUITests {
     /// In a working tree that changes a.txt's lines 10, 200 and 290 and adds b.md: ] steps to each change, [ back;

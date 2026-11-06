@@ -96,6 +96,13 @@ extension OvviUITests {
         row.rightClick()
         app.menus.menuItems["Pin"].firstMatch.click()
         let pinned = element("agents.pinned.claude.\(id)")
+        // A failure below must leave no pin: the tests' domain keeps it for every later run.
+        addTeardownBlock { @MainActor [self] in
+            if pinned.exists {
+                pinned.hover()
+                element("agents.pinned.claude.\(id).pin").click()
+            }
+        }
         XCTAssertTrue(pinned.exists(within: 2))
         XCTAssertTrue(row.vanishes(within: 2))
         XCTAssertLessThan(pinned.frame.maxY, shelf.frame.minY)

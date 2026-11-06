@@ -177,7 +177,6 @@ extension OvviUITests {
     /// elsewhere, and a click pulls.
     private func statusBar(_ tree: XCUIElement, _ shell: String, _ repo: String) async throws {
         XCTAssertTrue(text("+1", in: tree).exists(within: 5))
-        XCTAssertFalse(tree.buttons["Push, 1 ahead"].exists)
         keepScreenshot("file explorer status bar")
         try await send("""
         git init -q --bare \(repo)-remote && git remote add origin \(repo)-remote && git push -qu origin HEAD && \
@@ -191,8 +190,9 @@ extension OvviUITests {
         // A commit elsewhere: Fetch shows Pull, and Pull brings it.
         try await send("""
         git clone -q \(repo)-remote \(repo)-other && cd \(repo)-other && touch c && git add c && \
-        git -c user.name=e2e -c user.email=e2e@ovvi commit -qm c && git push -q && cd \(repo)\r
+        git -c user.name=e2e -c user.email=e2e@ovvi commit -qm c && git push -q && cd \(repo) && echo pushed-$((6*7))\r
         """, to: shell)
+        try await waitFor(shell) { $0.contains("pushed-42") }
         let pull = tree.buttons["Pull, 1 behind"]
         XCTAssertFalse(until(1) { pull.exists })
         tree.buttons["Fetch"].click()

@@ -183,7 +183,9 @@ extension OvviUITests {
         let place = row.frame
         element("agent.\(other)").click()
         try await waitForValue("agent.\(pane)", containing: "Idle")
-        XCTAssertFalse(until(1.5) { row.frame != place }, "\(row.frame) \(place)")
+        // Off the list, past the 1 s hold and the 0.2 s slide: a move would show.
+        element("sidebar.header").hover()
+        XCTAssertFalse(until(2.5) { row.frame != place }, "\(row.frame) \(place)")
         // View ▸ Show Agents turns it off; the sidebar stays.
         app.menuBars.menuBarItems["View"].click()
         app.menuItems["Show Agents"].click()

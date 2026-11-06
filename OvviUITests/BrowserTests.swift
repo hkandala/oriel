@@ -364,8 +364,7 @@ extension OvviUITests {
 
 extension OvviUITests {
     /// Files ⌘-clicked in a File Explorer card open tabs right after its tab, one after the other, behind it: the
-    /// card's tab stays selected, and each new tab shows its own page (item 28: the selected tab showed another tab's
-    /// page).
+    /// card's tab stays selected, and each new tab shows its own page, not another tab's.
     func testEachOpenInANewTabShowsItsOwnPage() async throws {
         let (_, shell) = try await newTab("opens")
         try await waitForPrompt(shell)
