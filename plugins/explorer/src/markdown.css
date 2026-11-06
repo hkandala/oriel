@@ -38,15 +38,10 @@ nav button:hover {
 
 /* The live preview (live.ts): CodeMirror's lines drawn as rendered Markdown, the same locked or not. */
 /* Headings: GitHub's sizes for h1 to h3 and its 1.25 line height; h4 to h6 step down to h6 under the body size, dim,
-   as GitHub's. The space above and below is in the heading's own em, so it grows with the level (h1 the most); padding,
-   not margins, which CodeMirror leaves out of a line's height; with `.cm-line`, or CodeMirror's `.cm-line` padding wins.
-   A blank source line around a heading adds a body line. */
-.cm-line.cm-md-h1,
-.cm-line.cm-md-h2,
-.cm-line.cm-md-h3,
-.cm-line.cm-md-h4,
-.cm-line.cm-md-h5,
-.cm-line.cm-md-h6 {
+   as GitHub's. The space above and below is in the heading's own em, so it grows with the level (h1 the most). Padding,
+   not margin: CodeMirror's height map leaves margins out. `.cm-line` in the selector beats CodeMirror's own `.cm-line`
+   padding. A blank source line around a heading adds a body line. */
+.cm-line:is(.cm-md-h1, .cm-md-h2, .cm-md-h3, .cm-md-h4, .cm-md-h5, .cm-md-h6) {
   line-height: 1.25;
   padding-top: 0.6em;
   padding-bottom: 0.2em;
