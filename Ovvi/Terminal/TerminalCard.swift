@@ -8,6 +8,9 @@ struct TerminalHost: NSViewRepresentable {
     /// The card's dim. On the host view: SwiftUI's `opacity` moved the terminal's accessibility frame half a card
     /// down, so clicks at its center missed it.
     let alpha: CGFloat
+    /// In a kept page out of view: an input, not read from the environment in `updateNSView`, which SwiftUI does not
+    /// call for an environment change alone.
+    var hidden = false
 
     func makeNSView(context _: Context) -> SettlingHost {
         let host = SettlingHost()
@@ -20,8 +23,8 @@ struct TerminalHost: NSViewRepresentable {
         return host
     }
 
-    func updateNSView(_ host: SettlingHost, context: Context) {
-        host.hide(context.environment.pageHidden)
+    func updateNSView(_ host: SettlingHost, context _: Context) {
+        host.hide(hidden)
         // A new pane's chooser hid it (ui/new-pane): it fades in as the chooser fades out.
         if host.alphaValue == 0, alpha > 0,
            !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion || Animation.forceMotion
@@ -46,9 +49,10 @@ struct TerminalCard: View {
     let watched: Bool
     /// The content's opacity: the watching dim (D66); 0 under a new pane's chooser, with no spinner.
     let alpha: CGFloat
+    @Environment(\.pageHidden) private var hidden
 
     var body: some View {
-        TerminalHost(terminal: terminal, alpha: alpha)
+        TerminalHost(terminal: terminal, alpha: alpha, hidden: hidden)
             // A new terminal in the same spot (panes swapped) needs a new host to adopt it.
             .id(ObjectIdentifier(terminal))
             .overlay(alignment: .bottom) {

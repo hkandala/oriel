@@ -12,6 +12,8 @@ struct ChatView: View {
     static let gutter: CGFloat = 48
     @State private var height: CGFloat = 0
     @FocusState private var composing: Bool
+    /// In a kept page out of view: the reply box gives up the keyboard, and takes it as the page shows.
+    @Environment(\.pageHidden) private var hidden
 
     var body: some View {
         VStack(spacing: 0) {
@@ -25,7 +27,6 @@ struct ChatView: View {
         }
         // Esc stops the agent while it works, as in its TUI.
         .onExitCommand(perform: chat.stop)
-        .blursWhenHidden($composing)
         // A click anywhere, on text too, gives the card the keyboard: the reply box, or the drawer's terminal. A
         // button's or a link's click acts as well. Not a double or triple click or a ⇧-click, which select text (Copy
         // needs it to stay), nor a ⌃-click, which opens the menu.
@@ -53,9 +54,14 @@ struct ChatView: View {
                 chat.wantsKeyboard = true
             }
         }
-        .onChange(of: chat.wantsKeyboard, initial: true) {
+        .onChange(of: hidden) {
+            if hidden {
+                composing = false
+            }
+        }
+        .onChange(of: [chat.wantsKeyboard, hidden], initial: true) {
             // On the next turn: a first responder set during an update is undone.
-            if chat.wantsKeyboard {
+            if chat.wantsKeyboard, !hidden {
                 chat.wantsKeyboard = false
                 Task { composing = true }
             }

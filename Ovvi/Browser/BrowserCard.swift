@@ -44,11 +44,12 @@ struct BrowserCard: View {
     let browser: Browser
     let page: Page
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.pageHidden) private var hidden
 
     var body: some View {
         let shows = browser.ready && browser.failure == nil && browser.asking == nil && browser.loaded
         // A network switch makes a new web view.
-        WebHost(view: browser.view).id(ObjectIdentifier(browser.view))
+        WebHost(view: browser.view, hidden: hidden).id(ObjectIdentifier(browser.view))
             .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
             .padding([.horizontal, .bottom], 6)
             .opacity(shows ? 1 : 0)
@@ -171,6 +172,8 @@ private struct Popup: View {
 /// fits it to itself once a motion ends, as a terminal's does.
 struct WebHost: NSViewRepresentable {
     let view: WKWebView
+    /// In a kept page out of view (as `TerminalHost`'s).
+    var hidden = false
 
     func makeNSView(context: Context) -> SettlingHost {
         let host = SettlingHost(), box = NSView()
@@ -189,8 +192,8 @@ struct WebHost: NSViewRepresentable {
         return host
     }
 
-    func updateNSView(_ host: SettlingHost, context: Context) {
-        host.hide(context.environment.pageHidden)
+    func updateNSView(_ host: SettlingHost, context _: Context) {
+        host.hide(hidden)
     }
 }
 

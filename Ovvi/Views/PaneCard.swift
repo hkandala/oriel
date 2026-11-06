@@ -75,7 +75,11 @@ struct PaneCard: View {
                     }
                 } else if let pane, let chat = page.shownChat(pane) {
                     ChatView(chat: chat, page: page, terminal: terminal)
-                        .background { pane.terminalID.map { ChatProbe(terminalID: $0, registry: page.terminals) } }
+                        .background { pane.terminalID.map { ChatProbe(
+                            terminalID: $0,
+                            registry: page.terminals,
+                            hidden: hidden,
+                        ) } }
                 } else if let terminal {
                     // Rex's text starts 12 pt in from the card's edge.
                     TerminalCard(terminal: terminal, watched: page.watched, alpha: chooser == nil ? content : 0)

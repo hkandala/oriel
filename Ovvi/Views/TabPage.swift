@@ -6,6 +6,9 @@ import SwiftUI
 struct TabPage: View {
     let tab: HostStore.Tab
     let page: Page
+    /// A kept page out of view (`TabPages`) leaves the accessibility tree. Not by `accessibilityHidden(false)` when
+    /// shown, which overrides the hidden ones inside (a zoom's cards under it).
+    @Environment(\.pageHidden) private var hidden
 
     var body: some View {
         Group {
@@ -19,8 +22,8 @@ struct TabPage: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onGeometryChange(for: CGSize.self, of: \.size) { page.terminals.pageSize = $0 }
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("page.\(tab.id)")
+        .accessibilityElement(children: hidden ? .ignore : .contain)
+        .accessibilityIdentifier(hidden ? "" : "page.\(tab.id)")
     }
 
     /// A page's cards inside its page: room for the cards' outer stroke and shadow.

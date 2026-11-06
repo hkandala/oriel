@@ -207,6 +207,7 @@ struct WebCardContent: View {
     @Environment(\.self) private var environment
     @Environment(\.look) private var look
     @AppStorage("fontSize") private var textSize = PaneTerminal.fontSize
+    @Environment(\.pageHidden) private var hidden
 
     var body: some View {
         let colors = [
@@ -220,7 +221,7 @@ struct WebCardContent: View {
         }
         let css = colors.map { "--\($0): \($1)" }.joined(separator: "; ")
             + "; --app-text-size: \(textSize)px; color-scheme: \(look.dark ? "dark" : "light")"
-        WebHost(view: card.view).onChange(of: css, initial: true) {
+        WebHost(view: card.view, hidden: hidden).onChange(of: css, initial: true) {
             card.theme(css, ["dark": look.dark, "style": look.style.rawValue, "textSize": textSize,
                              "colors": Dictionary(uniqueKeysWithValues: colors)])
         }

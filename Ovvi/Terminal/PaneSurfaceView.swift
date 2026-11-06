@@ -70,9 +70,9 @@ final class PaneSurfaceView: AppTerminalView {
     private func claimKeyboard() {
         DispatchQueue.main.async { [weak self] in
             guard let self, claimed else { return }
-            // Out of the window for a moment (SwiftUI moves it to a new host when a split closes): claim it
-            // once it is in again, or the keyboard goes nowhere.
-            guard let window else {
+            // Out of the window for a moment (SwiftUI moves it to a new host when a split closes), or in a kept page
+            // out of view (the overview's): claim it once it is in view again, or the keyboard goes nowhere.
+            guard let window, !isHiddenOrHasHiddenAncestor else {
                 wantsKeyboard = true
                 return
             }
@@ -98,6 +98,14 @@ final class PaneSurfaceView: AppTerminalView {
         purgeable(window == nil)
         // A view that left the window leaves without resignFirstResponder; the flag must not stay on.
         terminal?.hasKeyboard = window?.firstResponder === self
+        if wantsKeyboard, window != nil {
+            wantsKeyboard = false
+            claimKeyboard()
+        }
+    }
+
+    override func viewDidUnhide() {
+        super.viewDidUnhide()
         if wantsKeyboard, window != nil {
             wantsKeyboard = false
             claimKeyboard()

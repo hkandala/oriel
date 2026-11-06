@@ -70,6 +70,8 @@ struct CardPicture: View {
 struct ChatProbe: NSViewRepresentable {
     let terminalID: String
     let registry: PaneViewRegistry
+    /// In a kept page out of view (as `TerminalHost`'s).
+    let hidden: Bool
 
     func makeNSView(context _: Context) -> Probe {
         let probe = Probe()
@@ -105,8 +107,8 @@ struct ChatProbe: NSViewRepresentable {
         return probe
     }
 
-    func updateNSView(_ probe: Probe, context: Context) {
-        probe.outOfView = context.environment.pageHidden
+    func updateNSView(_ probe: Probe, context _: Context) {
+        probe.outOfView = hidden
     }
 
     final class Probe: NSView {

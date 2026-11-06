@@ -44,7 +44,8 @@ class BrowserView: WKWebView {
         wantsKeyboard = true
         // After SwiftUI's update: a first responder set during one is undone.
         DispatchQueue.main.async { [weak self] in
-            guard let self, wantsKeyboard, !inTile, let window else { return }
+            // Not in a kept page out of view (the overview's): it takes it as the page shows (`viewDidUnhide`).
+            guard let self, wantsKeyboard, !inTile, let window, !isHiddenOrHasHiddenAncestor else { return }
             wantsKeyboard = false
             window.makeFirstResponder(self)
         }
@@ -153,6 +154,13 @@ class BrowserView: WKWebView {
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
+        if wantsKeyboard, window != nil {
+            takeKeyboard()
+        }
+    }
+
+    override func viewDidUnhide() {
+        super.viewDidUnhide()
         if wantsKeyboard, window != nil {
             takeKeyboard()
         }
