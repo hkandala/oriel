@@ -37,20 +37,39 @@ nav button:hover {
 }
 
 /* The live preview (live.ts): CodeMirror's lines drawn as rendered Markdown, the same locked or not. */
-.cm-md-h1,
-.cm-md-h2,
-.cm-md-h3 {
-  line-height: 1.3;
-  padding-top: 0.3em;
+/* Headings: GitHub's sizes for h1 to h3 and its 1.25 line height; h4 to h6 step down to h6 under the body size, dim,
+   as GitHub's. The space above and below is in the heading's own em, so it grows with the level (h1 the most); padding,
+   not margins, which CodeMirror leaves out of a line's height; with `.cm-line`, or CodeMirror's `.cm-line` padding wins.
+   A blank source line around a heading adds a body line. */
+.cm-line.cm-md-h1,
+.cm-line.cm-md-h2,
+.cm-line.cm-md-h3,
+.cm-line.cm-md-h4,
+.cm-line.cm-md-h5,
+.cm-line.cm-md-h6 {
+  line-height: 1.25;
+  padding-top: 0.6em;
+  padding-bottom: 0.2em;
+}
+/* A heading on the document's first line sits at the column's top padding. */
+.cm-content > :is(.cm-md-h1, .cm-md-h2, .cm-md-h3, .cm-md-h4, .cm-md-h5, .cm-md-h6):first-child {
+  padding-top: 0;
 }
 .cm-md-h1 {
-  font-size: 1.6em;
+  font-size: 2em;
 }
 .cm-md-h2 {
-  font-size: 1.3em;
+  font-size: 1.5em;
 }
 .cm-md-h3 {
+  font-size: 1.25em;
+}
+.cm-md-h4 {
   font-size: 1.1em;
+}
+.cm-md-h6 {
+  font-size: 0.9em;
+  color: var(--dim);
 }
 .cm-editor a,
 .cm-editor a * {

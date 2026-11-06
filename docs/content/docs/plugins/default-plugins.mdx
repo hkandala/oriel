@@ -507,8 +507,13 @@ An editable text view (CodeMirror 6).
   - **Paragraphs flow.** A line break in the source is a space, so the text
     wraps at the column's width. A hard break (two spaces or a backslash at
     the line's end) starts a new line.
-  - **Headings** have their size and no line under them: only a `---` rule
-    draws a line.
+  - **Headings** are semibold, with no line under them: only a `---` rule
+    draws a line. Their sizes are GitHub's for h1 to h3 (2, 1.5 and 1.25
+    times the body), then 1.1, 1 and 0.9 (h6 in secondary text), with a 1.25
+    line height. The space above a heading is 0.9 of its own size and the
+    space below 0.3, so h1 has the most and h6 the least. A heading on the
+    first line has no space above. Rich Text, locked or not, and Source's
+    page look the same.
   - **Lists.** Bullets are `•`. Numbers count up from the list's first one, so
     `1. 1. 1.` shows 1, 2, 3, and `1)` shows `1.`. Each list depth indents
     1.5 em, and the bullet sits at the end of its indent. So the text, its

@@ -295,6 +295,24 @@ runs and on-demand on the final head.
 - **Migration:** a card's kept mode maps (Read → Rich Text locked, Live Edit → unlocked, Source → Source folded, Side
   by Side → Source shown). The setting keeps Source; its Read, Live Edit and Side by Side read as the default.
 - **Runs (12):** Markdown and Git tests green (42147118938, 2 tests).
+- **Headings (a later ask: "each header should have different spacing with h1 has the highest").** Cause: the heading
+  rules' `padding-top` lost to CodeMirror's own `.cm-line` padding (a more specific selector), so every heading had only
+  its line height, and h4 to h6 were body size: the gaps were all about 29 pt. Fix: `.cm-line.cm-md-hN`, GitHub's sizes
+  for h1 to h3 and its 1.25 line height, 0.6 em above and 0.2 em below in each heading's own size, h6 dim, no space
+  above a first-line heading; body text unchanged; Rich Text (locked or not) and Source's page share it. Measured on
+  the test file (heading, blank line, paragraph, blank line), ink to ink, in points:
+
+  | | h1 | h2 | h3 | h4 | h5 | h6 |
+  |---|---|---|---|---|---|---|
+  | size before (× body 14 px) | 1.6 | 1.3 | 1.1 | 1 | 1 | 1 |
+  | size after | 2 | 1.5 | 1.25 | 1.1 | 1 | 0.9 |
+  | gap above, before | top | 31.5 | 28.5 | 29.5 | 30 | 29.5 |
+  | gap above, after | top | 45 | 39 | 37.5 | 36.5 | 35 |
+  | gap below, before | 29 | 29 | 28.5 | 30.5 | 30.5 | 30.5 |
+  | gap below, after | 34.5 | 32.5 | 31.5 | 31 | 31 | 31 |
+
+  The blank source lines around a heading stay a body line each (21.7 pt), so most of each gap is theirs; a tighter
+  gap below would need those lines drawn shorter.
 
 ## Track G: mockups (items 7, 20, 12)
 
