@@ -23,8 +23,9 @@ struct ChatMessages: View, Equatable {
     @State private var first: String?
     /// Show Earlier's rows are on their way: its spinner shows.
     @State private var earlier = false
-    /// The card drew once: its rows come on the next turn, so a switch to a tab whose chat is made draws the window,
-    /// the tab and the card in the click's own turn (the rows take 124 ms of a long chat).
+    /// The view drew once: its rows come on the next turn after it is made (a tab's first show, the flip from the TUI,
+    /// a floating window), so a switch to a tab whose chat is made draws the window, the tab and the card in the
+    /// click's own turn (the rows take 124 ms of a long chat).
     @State private var drawn = false
     /// The offset the row at the top asks for. Only asked, never told: a place the scroll view names as a scroll
     /// begins or ends, given back to it, snaps that row to the top, a jump past the fingers.

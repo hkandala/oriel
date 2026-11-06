@@ -276,8 +276,11 @@ private struct WindowContent: View {
                 // Also under the overview, hidden, so its kept pages stay (ui/window#tab-page).
                 Detail(pages: pages, page: page).frame(maxWidth: .infinity, maxHeight: .infinity)
                     .opacity(pages.overview ? 0 : 1)
+                    // At once, also in the sidebar's animation (⌘. from the overview).
+                    .animation(nil, value: pages.overview)
                     .allowsHitTesting(!pages.overview)
-                    .accessibilityHidden(pages.overview)
+                    // Not `accessibilityHidden(false)`, which overrides the hidden ones inside.
+                    .accessibilityElement(children: pages.overview ? .ignore : .contain)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             .overlay {

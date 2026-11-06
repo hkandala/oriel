@@ -216,7 +216,9 @@ private struct TabPages: View {
                 TabPage(tab: kept, page: page)
                     .opacity(shows ? 1 : 0)
                     .allowsHitTesting(shows)
-                    .accessibilityHidden(!shows)
+                    // Not `accessibilityHidden(false)`, which overrides the hidden ones inside (a zoom's cards under
+                    // it).
+                    .accessibilityElement(children: shows ? .contain : .ignore)
                     .environment(\.pageHidden, !shows)
             }
         }

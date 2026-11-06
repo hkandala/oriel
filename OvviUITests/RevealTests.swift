@@ -5,7 +5,7 @@ import XCTest
 /// The pixels of a terminal are the only place an empty card shows, so these tests read its screenshot.
 extension OvviUITests {
     /// Every way a card comes into view shows its text: launch, another tab and back, another workspace and back, a
-    /// new tab, a split, the sidebar.
+    /// new tab, a split, the overview, the sidebar.
     func testCardsShowTheirTextOnEveryPath() async throws {
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         for pane in ["w1:p1", "w1:p2", "w1:p3", "w1:p4", "w2:p1"] {
@@ -28,6 +28,12 @@ extension OvviUITests {
         let right = try await split(pane)
         try await fill(right)
         try await expectText([pane, right], "split")
+        // The overview's live tiles give the terminals back to their cards in the kept page under it.
+        app.typeKey("o", modifierFlags: [.command, .control])
+        XCTAssertTrue(element("overview").exists(within: 5))
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(element("overview").vanishes(within: 5))
+        try await expectText([pane, right], "overview and back")
         element("titlebar.sidebar").click()
         try await expectText([pane, right], "sidebar hidden")
         element("titlebar.sidebar").click()

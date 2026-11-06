@@ -5,9 +5,9 @@ import XCTest
 extension OvviUITests {
     /// A chat of long replies, a long Markdown file in File Explorer and a Git diff, each in its own tab. The chat
     /// builds only its newest rows (about two views of text, not 34 rows); after Show Earlier and a scroll, switches to
-    /// the other tabs and to another workspace and back show it with the same rows and the same messages at its top.
-    /// The
-    /// kept Markdown card still scrolls. The switches' times are in the result bundle (`latency`).
+    /// the other tabs, to another workspace and back, and the overview's round trip show it with the same rows and the
+    /// same messages at its top. The kept Markdown card still scrolls, and the reply box gives up the keyboard as its
+    /// page leaves view. The switches' times are in the result bundle (`latency`).
     func testSwitchesKeepHeavyCardsAsTheyWere() async throws {
         let (chatTab, pane) = try await startChat(["-recordLatency", "YES"])
         addTeardownBlock { @MainActor in self.keep(self.element("app.latency").stringValue, as: "latency") }
@@ -53,14 +53,46 @@ extension OvviUITests {
         element("workspace.w1").click()
         XCTAssertTrue(last.vanishes(within: 3))
         element("workspace.w2").click()
-        XCTAssertTrue(until(3) { last.exists })
-        XCTAssertEqual(try rows(), built)
-        XCTAssertEqual(atTop(of: chat, pane), top)
+        let same = {
+            XCTAssertTrue(until(3) { last.exists })
+            XCTAssertEqual(try rows(), built)
+            XCTAssertEqual(self.atTop(of: chat, pane), top)
+        }
+        try same()
         XCTAssertTrue(element("chat.\(pane).bottom").exists)
+        // The overview's round trip.
+        app.typeKey("o", modifierFlags: [.command, .control])
+        XCTAssertTrue(element("overview").exists(within: 5))
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(element("overview").vanishes(within: 5))
+        try same()
 
-        // The kept Markdown card takes the wheel: its first heading scrolls out of view.
-        element("tab.\(tabs[0])").click()
-        let markdown = try await element("markdown.\(self.pane(of: tabs[0])).page")
+        try await replyBoxLetsGo(pane, in: chatTab)
+        try await scrolls(tabs[0])
+    }
+
+    /// The reply box has the keyboard; a tab whose card takes none (its pane floats) gets the keys, not the box.
+    private func replyBoxLetsGo(_ pane: String, in chatTab: String) async throws {
+        let (floatTab, floated) = try await newTab("float")
+        element("tab.\(floatTab)").click()
+        XCTAssertTrue(element("terminal.\(floated)").exists(within: 3))
+        _ = try float(floated)
+        element("tab.\(chatTab)").click()
+        let composer = element("chat.\(pane).composer")
+        composer.click()
+        XCTAssertTrue(hasKeyboard(composer))
+        element("tab.\(floatTab)").click()
+        XCTAssertTrue(element("pane.\(floated).show").exists(within: 3))
+        app.typeText("blur")
+        element("tab.\(chatTab)").click()
+        XCTAssertTrue(composer.exists(within: 3))
+        XCTAssertFalse(composer.stringValue.contains("blur"), composer.stringValue)
+    }
+
+    /// The kept Markdown card takes the wheel: its first heading scrolls out of view.
+    private func scrolls(_ tab: String) async throws {
+        element("tab.\(tab)").click()
+        let markdown = try await element("markdown.\(pane(of: tab)).page")
         let heading = markdown.staticTexts.matching(NSPredicate(format: "value == 'Part 1'")).firstMatch
         XCTAssertTrue(until(5) { heading.exists && heading.frame.minY >= markdown.frame.minY })
         markdown.scroll(byDeltaX: 0, deltaY: -2000)
