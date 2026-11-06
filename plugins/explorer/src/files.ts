@@ -54,13 +54,6 @@ const look = {
   }
   /* As the Finder's list: the selection in gray while the tree does not have the keyboard. */
   :host(:not(:focus-within)) { --trees-selected-bg-override: color-mix(in srgb, var(--text) 12%, transparent); }
-  /* The open folders at the top hide the rows that scroll under them, and a nested one that the next folder pushes
-     up slides under its parent: each sticky row is opaque, its hover or selection over the card's color. */
-  [data-file-tree-sticky-overlay-content] { background-color: var(--card); }
-  [data-file-tree-sticky-row="true"] { --state: transparent;
-    background: linear-gradient(var(--state), var(--state)), var(--card); }
-  [data-file-tree-sticky-row="true"]:is(:hover, [data-item-context-hover="true"]) { --state: var(--trees-bg-muted); }
-  [data-file-tree-sticky-row="true"][data-item-selected="true"] { --state: var(--trees-selected-bg); }
   [data-item-contains-git-change="true"] > [data-item-section="git"] { opacity: 1; }
   [data-type="item"] > [data-item-section="icon"] { width: 34px; justify-content: flex-end; color: var(--dim); }
   [data-item-type="folder"] > [data-item-section="icon"] { justify-content: space-between; }
@@ -73,6 +66,29 @@ const look = {
     outline-offset: -1.5px; }
   :host(:not([data-keys])) [data-type="item"]::before { outline: none !important; }`,
 }
+/** The open folders at the tree's top draw on the card with no band of their own (an opaque one never matches Glass's
+ *  translucent card): what scrolls under them is clipped away instead. The list goes above the stack's bottom, and a
+ *  nested folder that the next one pushes up goes above its parent's bottom. After each scroll and each draw of the
+ *  tree, in the same frame. */
+function unband(shadow: ShadowRoot) {
+  const set = (element: HTMLElement | null, clip: string) => {
+    if (element && element.style.clipPath !== clip) element.style.clipPath = clip
+  }
+  const clip = () => {
+    const scroll = shadow.querySelector<HTMLElement>("[data-file-tree-virtualized-scroll]")
+    let bottom = 0
+    for (const row of shadow.querySelectorAll<HTMLElement>("[data-file-tree-sticky-overlay-content] > *")) {
+      set(row, row.offsetTop < bottom ? `inset(${bottom - row.offsetTop}px 0 0 0)` : "")
+      bottom = Math.max(bottom, row.offsetTop + row.offsetHeight)
+    }
+    // At the top the stack hides, but while a scroll lands there (`data-overlay-reveal`).
+    const top = scroll?.scrollTop ?? 0, shown = top > 0 || shadow.querySelector("[data-overlay-reveal]")
+    set(shadow.querySelector("[data-file-tree-virtualized-list]"), shown && bottom ? `inset(${top + bottom}px 0 0 0)` : "")
+  }
+  shadow.addEventListener("scroll", clip, { capture: true, passive: true })
+  new MutationObserver(clip).observe(shadow, { subtree: true, childList: true, attributeFilter: ["style", "data-overlay-reveal"] })
+}
+
 /** Whether a name is a dotfile's, which the tree hides unless row 2's Hidden Files is on. */
 const dotted = (path: string) => /(^|\/)\.[^/]/.test(path)
 
@@ -122,7 +138,7 @@ export async function show(place: Place): Promise<Reveal> {
   root.innerHTML = `<div id="find" class="find" hidden><div class="find-row"><input class="find-field" placeholder="Filter"
     aria-label="Filter" spellcheck="false"><span class="find-count"></span><button class="find-icon" aria-label="Close Filter"
     title="Close"></button></div></div><div id="message" hidden><span
-    class="symbol"></span><p></p></div><div id="tree"></div><div id="matches" hidden></div><footer hidden></footer>`
+    class="symbol"></span><p></p></div><div id="tree"></div><div id="matches" hidden></div><footer></footer>`
   const renaming = (own: () => FileTree) => ({
     canRename: (item: { path: string }) => item.path !== UP.slice(0, -1),
     onRename: (event: FileTreeRenameEvent) => void renamed(event, own()),
@@ -137,12 +153,13 @@ export async function show(place: Place): Promise<Reveal> {
   const find = root.querySelector<HTMLElement>("#find")!
   const field = find.querySelector("input")!
   const count = find.querySelector<HTMLElement>(".find-count")!
-  const status = footer(ovvi, root.querySelector("footer")!)
+  const bar = root.querySelector("footer")!, status = footer(ovvi, bar, () => void run(git))
   tree.render({ containerWrapper: host })
   results.render({ containerWrapper: matches })
   // pierre counts an ignored path as a change of the folders above it: their dot shows only for git's changes.
   // ponytail: a style per tree in its shadow root; drop it when pierre leaves ignored paths out of its counts.
   const dots = [tree, results].map((each) => each.getFileTreeContainer()!.shadowRoot!.appendChild(document.createElement("style")))
+  for (const each of [tree, results]) unband(each.getFileTreeContainer()!.shadowRoot!)
   keep(() => {
     tree.cleanUp()
     results.cleanUp()
@@ -210,7 +227,9 @@ export async function show(place: Place): Promise<Reveal> {
     if (!at) failed = false
     // An empty folder too: a refresh lists it again.
     if (!children.has(at)) children.set(at, new Set())
+    const hidden = dotfiles ? 0 : entries.filter((entry) => entry.name.startsWith(".")).length
     if (!dotfiles) entries = entries.filter((entry) => !entry.name.startsWith("."))
+    if (!at) status.folder(entries.filter((entry) => entry.folder).length, entries.filter((entry) => !entry.folder).length, hidden)
     const now = entries.map((entry) => at + entry.name + (entry.folder ? "/" : ""))
     const kept = new Set(now)
     const operations: FileTreeBatchOperation[] = []
@@ -236,6 +255,8 @@ export async function show(place: Place): Promise<Reveal> {
   function show() {
     const none = Boolean(filter) && !matched, empty = !filter && !failed && children.get("")?.size === 0
     message.hidden = !failed && !none && !empty
+    // A root that cannot be listed has no counts.
+    bar.hidden = failed
     message.querySelector("p")!.textContent = failed ? `Can't list ${top}`
       : none ? "No matching files" : empty ? "This folder is empty" : ""
     const icon = failed ? "folder.badge.questionmark" : empty ? "folder" : "magnifyingglass"
@@ -298,14 +319,22 @@ export async function show(place: Place): Promise<Reveal> {
   }
 
   /** The repository's changes and its branch from git: the root's letters, when it is the repository's root, and
-   *  the status bar. */
+   *  the status bar's part, with the lines added and removed since HEAD (none before the first commit).
+   *  ponytail: `--numstat` leaves untracked files out; count them too if the bar should match Git's diff. */
   async function git() {
     const at = repo
-    const [now, head] = at ? await Promise.all([ovvi.git.status(at).catch(() => []), ovvi.git.head(at).catch(() => null)])
-      : [[], null]
+    const [now, head, numstat] = at ? await Promise.all([ovvi.git.status(at).catch(() => []),
+      ovvi.git.head(at).catch(() => null), ovvi.run(["git", "diff", "HEAD", "--numstat"], { cwd: at }).catch(() => null)])
+      : [[], null, null]
     changes = now
     showStatus()
-    status(at, changes.length, head)
+    const lines = { added: 0, removed: 0 }
+    // Binary files count `-`.
+    for (const [plus, minus] of (numstat?.code === 0 ? numstat.stdout : "").split("\n").map((line) => line.split("\t"))) {
+      lines.added += Number(plus) || 0
+      lines.removed += Number(minus) || 0
+    }
+    status.repo(at, head, lines)
   }
 
   /** A row's rename (Return, as in the Finder) on the machine. The tree moved its row already, and moves it back when
@@ -515,6 +544,8 @@ export async function show(place: Place): Promise<Reveal> {
     trees.addEventListener("keydown", keys, true)
     // The app's menu: Open (Open as Root on a folder), Open in New Tab, Open to the Side, Rename (not on `..`).
     trees.addEventListener("contextmenu", (event) => {
+      // The rename's field has its own.
+      if (event.composedPath()[0] instanceof HTMLInputElement) return
       const at = row(event)
       if (!at) return event.preventDefault()
       const shown = filter ? results : tree

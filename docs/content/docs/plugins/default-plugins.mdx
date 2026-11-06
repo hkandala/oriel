@@ -112,7 +112,7 @@ apply:
 
 - A right click on a row of the tree or of the Git home shows the app's own
   menu: **Open** (**Open as Root** on a folder), **Open in New Tab** and
-  **Open to the Side**.
+  **Open to the Side**, and on a tree row other than `..`, **Rename**.
 - **In the background** means that the selected tab and the keyboard stay
   where they are: a ⌘-click or ⌥-click on one file after another opens each
   one, and the card keeps the keyboard. The right-click menu's **Open in New
@@ -334,9 +334,10 @@ selection in the accent at 24 %. A 6 pt gap sits under the header.
   scrolls away with the rows, and hides while the filter has text.
 - **Sticky folders.** When the tree scrolls, each open folder above the view
   stays at its top, nested, until its last row scrolls past, as in Xcode's
-  navigator. So the folders the rows are in always show. Each sticky folder
-  is opaque in the card's color, so the rows under it, and a nested folder
-  that the next one pushes up, slide under it and never show through.
+  navigator. So the folders the rows are in always show. They draw on the
+  card itself, with no band of their own: the rows that scroll under them,
+  and a nested folder that the next one pushes up, are cut off at the
+  stack's bottom, so nothing shows through.
 - **The tree** shows the root's listing first and lists a folder only when
   it opens. `.git` is hidden, and links to folders are folders. Files and
   folders whose name starts with `.` show only while Show Hidden Files is on.
@@ -398,14 +399,27 @@ selection in the accent at 24 %. A 6 pt gap sits under the header.
 - The tree and the letters update after each change under the root while
   the card shows. The open folders list again. A root that cannot be listed
   shows "Can't list ‹root›" in the middle of the card, under a folder icon.
-- **The Git status bar.** A one-line bar under the tree, only while the root
-  is inside a Git repository: the branch, the number of changes in the
-  repository (in the needs-you color, none when it has none), then ↑2 ↓1 when
-  the branch is ahead of or behind its upstream. At its right end, **Open in
-  Git** (`source.branch`) opens Git's home on that repository in a new tab at
-  the end of the workspace. It updates with the tree's letters, after each
-  change under the root, with no polling of its own. A folder outside a
-  repository has no bar.
+- **The status bar.** A 30 pt line under the tree. It hides only while the
+  root cannot be listed:
+  - **At the left**, the folder: on a remote machine the machine's name first
+    (`server.rack`), then `folder` and the root's own counts, "3 folders,
+    12 files", with "· 2 hidden" while Show Hidden Files is off and names
+    that start with `.` hide.
+  - **At the right**, only while the root is inside a Git repository: the
+    branch (`source.branch`), the lines added (+12, the finished color) and
+    removed (−3, the error color) since HEAD in the whole repository, from
+    `git diff HEAD --numstat` (untracked files count once added); none on a
+    clean one. Then **Pull** (`arrow.down` and the count behind) and **Push**
+    (`arrow.up` and the count ahead), each only when there is something to
+    pull or push, and **Fetch** (`arrow.clockwise`) always. One runs at a time,
+    with its icon turning (not with Reduce Motion) and the others off, and
+    git's message shows in a toast when it fails. After a divider, **Git**
+    (`arrow.up.right.square`, "Open in Git") opens Git's home on the
+    repository: a click in a new tab, selected; ⌘-click in
+    the background; ⌥-click to the side.
+  - Outside a repository the right side is empty. The bar updates with the
+    tree's letters, after each change under the root and after each of its
+    own writes, with no polling of its own.
 
 ### File
 

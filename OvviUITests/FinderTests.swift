@@ -52,7 +52,7 @@ extension OvviUITests {
     }
 
     /// Return renames the selected file with its stem selected, a name the tree refuses keeps the old one, and a
-    /// folder's menu renames it with its whole name selected.
+    /// folder's menu renames it.
     private func renames(_ card: String, _ tree: XCUIElement, _ shell: String) async throws {
         row("a.txt", in: tree).click()
         app.typeKey(.return, modifierFlags: [])
@@ -68,13 +68,15 @@ extension OvviUITests {
         XCTAssertTrue(element("pane.\(card).toast").exists(within: 3))
         element("pane.\(card).toast.main").click()
         XCTAssertTrue(row("b.txt", in: tree).exists)
-        // A folder's menu renames it, its whole name selected.
+        // A folder's menu renames it.
         row("build", in: tree).rightClick()
         app.menuItems["Rename"].click()
         XCTAssertTrue(tree.textFields.matching(NSPredicate(format: "value == 'build'")).firstMatch.exists(within: 3))
         app.typeText("built\r")
         XCTAssertTrue(row("built", in: tree).exists(within: 5))
-        try await send("clear; test -f b.txt && test ! -e a.txt && test -d built && echo renamed-$((6*7))\r", to: shell)
+        // The row moves before the folder does.
+        try await send("clear; test -d built || sleep 1; test -f b.txt && test ! -e a.txt && test -d built && " +
+            "echo renamed-$((6*7))\r", to: shell)
         try await waitFor(shell) { $0.contains("renamed-42") }
     }
 
@@ -121,8 +123,9 @@ extension OvviUITests {
     }
 
     /// A clean folder shows no change dot, also with a folder git ignores in it (they showed one once opened); a new
-    /// file shows one on its folder. The Git status bar shows the changes, and its button opens Git on the repository
-    /// in a new tab. A folder outside a repository has no bar.
+    /// file shows one on its folder. The status bar shows the root's folders and files, the lines changed since HEAD,
+    /// Push while the branch is ahead (a click pushes), and Git, which opens Git on the repository in a new tab. A
+    /// folder outside a repository has no Git part.
     func testFileExplorerChangeDotsAndGitBar() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (_, shell) = try await newTab("files-dots")
@@ -144,16 +147,26 @@ extension OvviUITests {
         app.typeKey(.rightArrow, modifierFlags: [])
         XCTAssertTrue(row("node_modules", in: tree).exists(within: 5))
         XCTAssertTrue(tree.buttons["Open in Git"].exists(within: 5))
+        XCTAssertTrue(text("3 folders, 1 file · 1 hidden", in: tree).exists)
         // CI's screenshots draw no web content: there the dots go unchecked (make e2e on a Mac checks them).
         let draws = dot(row("web", in: tree)) != nil
         XCTAssertFalse(draws && until(1) { dot(row("web", in: tree)) == true }, "a clean folder shows a change dot")
 
-        try await send("touch src/deep/new.swift web/node_modules/x/y.js\r", to: shell)
+        try await send("touch src/deep/new.swift web/node_modules/x/y.js && echo four >>a.txt\r", to: shell)
         XCTAssertTrue(!draws || until(10) { dot(row("src", in: tree)) == true })
         XCTAssertFalse(draws && dot(row("web", in: tree)) == true)
-        let changes = tree.staticTexts.matching(NSPredicate(format: "value == '1 change'")).firstMatch
-        XCTAssertTrue(changes.exists(within: 5))
-        keepScreenshot("file explorer git bar")
+        XCTAssertTrue(text("+1", in: tree).exists(within: 5))
+        XCTAssertFalse(tree.buttons["Push, 1 ahead"].exists)
+        keepScreenshot("file explorer status bar")
+        try await send("""
+        git init -q --bare \(repo)-remote && git remote add origin \(repo)-remote && git push -qu origin HEAD && \
+        git -c user.name=e2e -c user.email=e2e@ovvi commit -qam four && touch web/b.ts\r
+        """, to: shell)
+        let push = tree.buttons["Push, 1 ahead"]
+        XCTAssertTrue(push.exists(within: 10))
+        XCTAssertFalse(text("+1", in: tree).exists)
+        push.click()
+        XCTAssertTrue(push.vanishes(within: 10))
 
         let before = try await tabIDs()
         tree.buttons["Open in Git"].click()
@@ -169,6 +182,10 @@ extension OvviUITests {
         app.typeText("/private/tmp/ovvi-e2e-files-plain\r")
         XCTAssertTrue(row("x", in: tree).exists(within: 10))
         XCTAssertFalse(until(2) { tree.buttons["Open in Git"].exists })
-        try await send("rm -rf \(repo) /tmp/ovvi-e2e-files-plain\r", to: shell)
+        try await send("rm -rf \(repo) \(repo)-remote /tmp/ovvi-e2e-files-plain\r", to: shell)
+    }
+
+    private func text(_ value: String, in page: XCUIElement) -> XCUIElement {
+        page.staticTexts.matching(NSPredicate(format: "value == %@", value)).firstMatch
     }
 }

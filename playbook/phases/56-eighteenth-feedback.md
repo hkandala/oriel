@@ -175,16 +175,29 @@ runs and on-demand on the final head.
 - **Cause, item 5.** The rename field fills the row's name section, which clips what goes past it: the outline
   outside the box lost its sides. **Fix:** the outline sits inside the box.
 - **Cause, item 10.** The tree's rows are transparent (the card shows through), and the band under the sticky
-  folders used `--card`, a measured stand-in for Glass's translucent card fill that was 18 steps off on the
-  user's screen (`#34` on `#22`). A nested sticky folder that the next folder pushes up slides under its parent's
-  transparent row: both names drew. **Fix:** each sticky row is opaque, its hover or selection over the card's
-  color; ‹band›.
+  folders used `--card`, a measured stand-in for Glass's translucent card fill that was 18 steps off on the user's
+  screen (`#34` on `#22`); no stand-in matches every wallpaper. A nested sticky folder that the next folder pushes up
+  slides under its parent's transparent row: both names drew. **Fix:** no band at all. What scrolls under the stack
+  is clipped away (the list above the stack's bottom, a pushed folder above its parent's bottom), after each scroll
+  and each draw of the tree, in the same frame.
 - **Item 8.** A row's menu adds Rename (not on `..`), the same rename as Return.
 - **Decisions, item 9.** ⌘[ and ⌘] already go Back and Forward in every view, the editor too (the web view's key
   equivalent runs before CodeMirror's indent keys), and the Back and Forward tooltips name them. Checked in the tree,
   a file's editor, a preview and Git's diff; no code change.
+- **Items 7 and 20 (the user's pick, C without the empty states).** The bar shows in every folder: the machine on a
+  remote one, the root's folders and files (and the hidden ones), and in a repository the branch, +/− lines, Pull and
+  Push only when there is something to pull or push, Fetch, and Git at the right edge. Outside a repository the right
+  side is empty; a clean one shows no counts.
+- **Decisions, items 7 and 20.** The lines come from `git diff HEAD --numstat` through `ovvi.run`, so untracked files
+  count once added (a `ponytail:` note; Git's diff counts them). The mockup's free disk space is left out: no API
+  has it. Fetch, Pull and Push use Git's own symbols (`arrow.clockwise`, `arrow.down`, `arrow.up`). Git follows
+  Track H's rule: a click opens a new tab, selected; ⌘ in the background; ⌥ to the side.
+- **No test for item 6:** it would read mask pixels, and CI's screenshots draw no web content.
 
 ### Runs (Track E)
+
+- The changed Finder test and the two other tree tests, chosen on CI at the first commit: 3 executed, green
+  (42142849197).
 
 ## Track F: file cards (items 11, 13, 15, then 12)
 

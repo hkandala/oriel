@@ -41,40 +41,62 @@
   z-index: 5;
   max-width: calc(100% - 24px);
 }
-/* An icon button, as row 2's: the symbol (footer.ts) as a mask in the dim color. */
-[data-place="files"] footer button {
-  flex: none;
-  width: 22px;
-  height: 22px;
-  border: 0;
-  border-radius: 11px;
-  padding: 0;
-  background: none;
-  cursor: default;
-}
-[data-place="files"] footer button::before {
-  content: "";
-  display: block;
-  width: 100%;
-  height: 100%;
-  background: var(--dim);
-  -webkit-mask: var(--symbol) center / auto 11px no-repeat;
-}
-[data-place="files"] footer button:hover { background: color-mix(in srgb, var(--text) 10%, transparent); }
-/* The Git status bar: one line under the tree. */
+/* The status bar (footer.ts): one line under the tree, the folder at the left, the repository at the right. */
 [data-place="files"] footer {
   flex: none;
   display: flex;
   align-items: center;
-  gap: 8px;
-  height: 26px;
-  padding: 0 0 0 12px;
+  gap: 7px;
+  height: 30px;
+  padding: 0 6px 0 12px;
   border-top: 1px solid var(--divider);
   color: var(--dim);
   font-size: 12px;
   white-space: nowrap;
 }
-[data-place="files"] footer .branch { overflow: hidden; text-overflow: ellipsis; color: var(--text); }
-[data-place="files"] footer .changes { color: var(--needs-you); }
-[data-place="files"] footer button { margin-left: auto; }
-[data-place="files"] footer button::before { -webkit-mask-size: auto 14px; }
+[data-place="files"] footer > *, [data-place="files"] footer .git > * { display: inline-flex; align-items: center; gap: 4px; }
+[data-place="files"] footer .folder { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+[data-place="files"] footer .machine { padding-right: 7px; border-right: 1px solid var(--divider); }
+[data-place="files"] footer .git { margin-left: auto; gap: 7px; min-width: 0; }
+[data-place="files"] footer .branch { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+[data-place="files"] footer .added { color: var(--finished); font-variant-numeric: tabular-nums; }
+[data-place="files"] footer .removed { color: var(--error); font-variant-numeric: tabular-nums; margin-left: -2px; }
+[data-place="files"] footer :is(.added, .removed):empty { display: none; }
+[data-place="files"] footer .rule { width: 1px; height: 14px; background: var(--divider); }
+[data-place="files"] footer button {
+  flex: none;
+  height: 20px;
+  border: 0;
+  border-radius: 5px;
+  padding: 0 4px;
+  background: none;
+  color: var(--dim);
+  font: inherit;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: default;
+}
+[data-place="files"] :is(footer .pull, footer .push) { color: var(--accent); }
+[data-place="files"] footer .open { padding: 0 7px; font-weight: 400; }
+[data-place="files"] footer button:hover:not(:disabled) { background: color-mix(in srgb, var(--text) 10%, transparent); }
+[data-place="files"] footer button:disabled { opacity: 0.5; }
+/* Each part's SF Symbol (footer.ts) as a mask in its color. */
+[data-place="files"] footer :is(.machine, .folder, .branch, button)::before {
+  content: "";
+  flex: none;
+  width: 13px;
+  height: 13px;
+  background: currentColor;
+  -webkit-mask: var(--symbol) center / contain no-repeat;
+}
+[data-place="files"] footer .branch::before { background: var(--dim); }
+[data-place="files"] footer .machine { --symbol: var(--sf-server-rack); }
+[data-place="files"] footer .folder { --symbol: var(--sf-folder); }
+[data-place="files"] footer .branch { --symbol: var(--sf-source-branch); }
+[data-place="files"] footer .pull { --symbol: var(--sf-arrow-down); }
+[data-place="files"] footer .push { --symbol: var(--sf-arrow-up); }
+[data-place="files"] footer .fetch { --symbol: var(--sf-arrow-clockwise); }
+[data-place="files"] footer .open { --symbol: var(--sf-arrow-up-right-square); }
+[data-place="files"] footer [data-busy]::before { animation: spin 1s linear infinite; }
+@media (prefers-reduced-motion: reduce) { [data-place="files"] footer [data-busy]::before { animation: none; } }
+@keyframes spin { to { transform: rotate(360deg); } }
