@@ -21,6 +21,7 @@ extension OvviUITests {
         if shelf.value as? String == "collapsed" {
             shelf.click()
         }
+        XCTAssertTrue(shelf.has(\.stringValue, "expanded", within: 2))
         let first = element("agents.archived.claude.\(id)"), second = element("agents.archived.pi.2026_\(id).jsonl")
         XCTAssertTrue(first.exists(within: 5))
         XCTAssertTrue(second.exists(within: 2))
@@ -38,19 +39,19 @@ extension OvviUITests {
     private func filters(_ claude: XCUIElement, _ piRow: XCUIElement) {
         let menu = element("agents.archived.filter")
         menu.click()
-        app.menuItems["Pi"].click()
+        menu.menuItems["Pi"].click()
         XCTAssertTrue(claude.vanishes(within: 2))
         XCTAssertTrue(piRow.exists)
         XCTAssertEqual(menu.value as? String, "Pi")
         menu.click()
-        app.menuItems["All Agents"].click()
+        menu.menuItems["All Agents"].click()
         XCTAssertTrue(claude.exists(within: 2))
     }
 
     /// Pinned, it leaves Archived for the top of the list, with Resume; unpinned, it comes back.
     private func pins(_ row: XCUIElement, _ id: String, below shelf: XCUIElement) {
         row.rightClick()
-        app.menuItems["Pin"].firstMatch.click()
+        row.menuItems["Pin"].click()
         let pinned = element("agents.pinned.claude.\(id)")
         XCTAssertTrue(pinned.exists(within: 2))
         XCTAssertTrue(row.vanishes(within: 2))
