@@ -200,6 +200,11 @@ runs and on-demand on the final head.
   (42142849197).
 - With the status bar and the clipped sticky folders, the two Finder tests and two other tree tests: 4 executed,
   green (42145865419).
+- After the second review's fixes (diff-index, the narrow bar, Fetch and Pull in the test): the two Finder tests, 2
+  executed, green (42149764616).
+- **For the user:** the sticky folders' clip is checked in still frames only; local UI runs stopped when Automation
+  Mode began to ask for a password. Scroll fast through a deep tree with nested folders open: a row must never show
+  through a sticky folder.
 
 ## Track F: file cards (items 11, 13, 15, then 12)
 
