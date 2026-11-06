@@ -323,6 +323,7 @@ Runs: none (no app code).
 - 42150968413 (3 tests): terminal and browser links green; Markdown red on a test query (Services ▸ Open matched).
 - 42158851355 (4 tests with the tree's Rename menu): 3 green; Markdown red at ⌘3 back from the new browser tab (the
   cause above), red locally too.
+- 42160968691 (Markdown and browser links, with the fix): both green.
 
 ## Track I: Git's diff (items 17, 18)
 
