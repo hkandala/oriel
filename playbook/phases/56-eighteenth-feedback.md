@@ -67,6 +67,29 @@ runs and on-demand on the final head.
     - Palette ▸ **Open Working Tree** (the active pane's repo) and **Open Commit…** (a field for a sha or ref),
       both opening the Git plugin at that view. Add the plugin arguments Git needs if it lacks them.
 
+### Findings (Track B)
+
+- **Fix (item 2).** The palette's field (the one at `.controlSize(.large)`) is a rounded rectangle of 4 pt, the
+  panel's 14 pt less its 10 pt inset. The other fields stay capsules.
+- **Cause (item 2's grey).** On the glass panel a hierarchical fill (`.primary.opacity`) is vibrant: 7 % showed 3
+  steps over the panel, and 10 % only 4. The field now takes a flat Look color, `paletteField`.
+- **Fix (items 14, 19).** Open File…, Open Working Tree and Open Commit… resolve through `ovvi open`'s own code
+  (`AgentCall.opening`), then open with `Page.open` as the plugins' links do: a new tab, ⌥ (Return or click) to the
+  side. A path is checked and `~` expanded by one `sh` call on the page's machine, so it works on a remote machine.
+- **Decisions.** A filter starting with `/`, `~`, `./` or `../` is checked as a path, 150 ms after the last key;
+  when it exists, **Open ‹path›** is the first row. Open Commit takes a hash or a ref: the app resolves it with
+  `git rev-parse --verify` (`Git.commit`) and the label holds the whole hash, so `ovvi open git . main` works too
+  and a mistyped hash is a notice. A path or commit that names nothing closes the palette with a warning notice.
+- **Cause (review).** "open file" lit Open File Explorer Here: both titles start with the filter, and the tie went
+  to the earlier row. A title that is the whole filter now wins the tie.
+- **For the user.** Return opens in a new tab at the end until Track J makes new tabs open beside.
+
+### Runs (Track B)
+
+- **Runs.** The first chosen-tests run of the new test failed on a tab it never selected (a test bug); the
+  review's ranking blocker would have failed it too. Green on 14670eb2 (plus a throwaway picture test): run
+  42144998994, Executed 4 tests (the new one, two palette tests for the ranking, the pictures).
+
 ## Track C: New Pane's folder (item 3)
 
 3. "on the new pane thing, showing the path, it takes a brief second before its shown and that filckers the new
@@ -241,19 +264,3 @@ Runs: none (no app code).
 ### Runs (Track L)
 
 - None: a report, no code.
-### Findings (Track B)
-
-- **Fix (item 2).** The palette's field (the one at `.controlSize(.large)`) is a rounded rectangle of 4 pt, the
-  panel's 14 pt less its 10 pt inset. The other fields stay capsules.
-- **Cause (item 2's grey).** On the glass panel a hierarchical fill (`.primary.opacity`) is vibrant: 7 % showed 3
-  steps over the panel, and 10 % only 4. The field now takes a flat Look color, `paletteField`.
-- **Fix (items 14, 19).** Open File…, Open Working Tree and Open Commit… resolve through `ovvi open`'s own code
-  (`AgentCall.opening`), then open with `Page.open` as the plugins' links do: a new tab, ⌥ (Return or click) to the
-  side. A path is checked and `~` expanded by one `sh` call on the page's machine, so it works on a remote machine.
-- **Decisions.** A filter starting with `/`, `~`, `./` or `../` is checked as a path, 150 ms after the last key;
-  when it exists, **Open ‹path›** is the first row. Open Commit takes a hash or a ref: the app resolves it with
-  `git rev-parse --verify` (`Git.commit`) and the label holds the whole hash, so `ovvi open git . main` works too
-  and a mistyped hash is a notice. A path or commit that names nothing closes the palette with a warning notice.
-- **Cause (review).** "open file" lit Open File Explorer Here: both titles start with the filter, and the tie went
-  to the earlier row. A title that is the whole filter now wins the tie.
-- **For the user.** Return opens in a new tab at the end until Track J makes new tabs open beside.
