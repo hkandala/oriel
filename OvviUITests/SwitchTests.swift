@@ -24,11 +24,11 @@ extension OvviUITests {
         let tabs = try await heavyTabs()
         // Each shown once, until its page drew.
         for (tab, kind) in zip(tabs, ["markdown", "git"]) {
-            try await show(tab)
+            try await select(tab)
             let card = try await self.pane(of: tab)
             XCTAssertTrue(element("\(kind).\(card).page").exists(within: 30), tab)
         }
-        try await show(chatTab)
+        try await select(chatTab)
         XCTAssertTrue(until(5) { last.exists && last.isHittable })
 
         // Up to Show Earlier, and its rows: the messages at the top once the scroll rests.
@@ -73,25 +73,39 @@ extension OvviUITests {
 
     /// The reply box has the keyboard; a tab whose card takes none (its pane floats) gets the keys, not the box.
     private func replyBoxLetsGo(_ pane: String, in chatTab: String) async throws {
-        let (floatTab, floated) = try await newTab("float")
-        element("tab.\(floatTab)").click()
+        let (floatTab, floated) = try await createTab(in: "w2", label: "float")
+        closeAfter("tab", floatTab)
+        try await select(floatTab)
         XCTAssertTrue(element("terminal.\(floated)").exists(within: 3))
         _ = try float(floated)
-        element("tab.\(chatTab)").click()
+        // The main window takes the keys again.
+        element("workspace.w2").click()
+        try await select(chatTab)
         let composer = element("chat.\(pane).composer")
         composer.click()
         XCTAssertTrue(hasKeyboard(composer))
-        element("tab.\(floatTab)").click()
+        try await select(floatTab)
         XCTAssertTrue(element("pane.\(floated).show").exists(within: 3))
         app.typeText("blur")
-        element("tab.\(chatTab)").click()
+        try await select(chatTab)
         XCTAssertTrue(composer.exists(within: 3))
         XCTAssertFalse(composer.stringValue.contains("blur"), composer.stringValue)
     }
 
+    /// w2's tab, by its ⌘ number once the app has every tab: the row makes only the capsules in view, and it has more
+    /// tabs than CI's window shows.
+    private func select(_ tab: String) async throws {
+        let tabs = try await (Self.call(one, "tab.list", ["workspace_id": "w2"])["tabs"] as? [[String: Any]] ?? [])
+            .compactMap { $0["tab_id"] as? String }
+        let index = try XCTUnwrap(tabs.firstIndex(of: tab))
+        XCTAssertTrue(element("tabs.count").has(\.stringValue, "\(tabs.count)", within: 5))
+        app.typeKey("\(index + 1)", modifierFlags: .command)
+        XCTAssertTrue(element("tab.\(tab)").has(\.isSelected, true, within: 3), tab)
+    }
+
     /// The kept Markdown card takes the wheel: its first heading scrolls out of view.
     private func scrolls(_ tab: String) async throws {
-        element("tab.\(tab)").click()
+        try await select(tab)
         let markdown = try await element("markdown.\(pane(of: tab)).page")
         let heading = markdown.staticTexts.matching(NSPredicate(format: "value == 'Part 1'")).firstMatch
         XCTAssertTrue(until(5) { heading.exists && heading.frame.minY >= markdown.frame.minY })
