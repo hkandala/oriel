@@ -206,12 +206,14 @@ struct WebCardContent: View {
     let card: WebCard
     @Environment(\.self) private var environment
     @Environment(\.look) private var look
+    @Environment(\.keyboardCard) private var keyboard
     @AppStorage("fontSize") private var textSize = PaneTerminal.fontSize
     @Environment(\.pageHidden) private var hidden
 
     var body: some View {
         let colors = [
-            ("text", Color.primary), ("dim", look.paneButton), ("divider", look.divider), ("card", look.cardSolid),
+            ("text", Color.primary), ("dim", look.paneButton), ("divider", look.divider),
+            ("card", look.cardSolid(keyboard: keyboard)),
             ("accent", .accentColor), ("on-accent", Look.onAccent),
             ("working", look.working), ("needs-you", look.needsYou), ("finished", look.finished),
             ("error", look.error),

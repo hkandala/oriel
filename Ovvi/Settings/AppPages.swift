@@ -187,7 +187,7 @@ private struct LookPicture: View {
     }
 
     private func window(dark: Bool) -> some View {
-        let look = Look(style: .classic, dark: dark), back = look.window, card = look.cardSolid
+        let look = Look(style: .classic, dark: dark), back = look.window, card = look.cardSolid()
         return HStack(spacing: 3) {
             RoundedRectangle(cornerRadius: 2).fill(card.opacity(0.5)).frame(width: 14)
             RoundedRectangle(cornerRadius: 2).fill(card)

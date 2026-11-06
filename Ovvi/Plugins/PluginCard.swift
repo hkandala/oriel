@@ -126,7 +126,7 @@ private struct PluginFailure: View {
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         // Over what the page drew before it stopped.
-        .background(look.cardSolid)
+        .background(look.cardSolid())
     }
 
     /// Build runs the package's build script first; Reload and Try Again load the page again.

@@ -232,12 +232,15 @@ runs and on-demand on the final head.
   would read mask pixels, and CI's screenshots draw no web content.
 - **Cause, item 5.** The rename field fills the row's name section, which clips what goes past it: the outline
   outside the box lost its sides. **Fix:** the outline sits inside the box.
-- **Cause, item 10.** The tree's rows are transparent (the card shows through), and the band under the sticky
-  folders used `--card`, a measured stand-in for Glass's translucent card fill that was 18 steps off on the user's
-  screen (`#34` on `#22`); no stand-in matches every wallpaper. A nested sticky folder that the next folder pushes up
-  slides under its parent's transparent row: both names drew. **Fix:** no band at all. What scrolls under the stack
-  is clipped away (the list above the stack's bottom, a pushed folder above its parent's bottom), after each scroll
-  and each draw of the tree, in the same frame.
+- **Cause, item 10.** The tree's rows are transparent, and the band under the sticky folders used `--card`, a stand-in
+  for Glass's card fill that was 18 levels off (`#34` on the user's `#22`), the same on the keyboard card. A nested
+  folder pushed up slid under its parent's transparent row: both names drew. A first fix clipped what scrolls under the
+  stack from a scroll listener, but WebKit scrolls on its own thread: a fast scroll showed rows under the stack for
+  frames (the user saw it). **Fix:** CSS alone: the band and each sticky row are opaque in `--card`, which is now the
+  card's own measured fill and the keyboard card's while it has the keyboard (`Look.cardSolid(keyboard:)`). On the
+  screen: 35 on 37 (dark Glass) and 245 on 245 (light); a fast-scroll recording shows no row under the stack in any
+  frame. Dark Glass's card lightens by up to 18 levels over a bright window behind, where the band shows darker
+  (a `ponytail:` note: an opaque card body under web cards would end it).
 - **Item 8.** A row's menu adds Rename (not on `..`), the same rename as Return.
 - **Decisions, item 9.** ⌘[ and ⌘] already go Back and Forward in every view, the editor too (the web view's key
   equivalent runs before CodeMirror's indent keys, for every plugin card), and the Back and Forward tooltips name
@@ -250,6 +253,8 @@ runs and on-demand on the final head.
   `index.lock` under an agent's `git add`), so untracked files count once added. The mockup's free disk space is left
   out (no API has it). Git's own symbols for Fetch, Pull and Push. A branch with no upstream shows no Push: Git's
   Push publishes it.
+- **Item 7, the padding.** The card's 10 pt inset sits under the page, so the bar's text had 13 pt above and 21 pt
+  below. The bar now adds 10 px above (26 px tall, 16 px buttons): 12.5 pt above and 12.5 pt below, dark and light.
 
 ### Runs (Track E)
 
@@ -259,9 +264,9 @@ runs and on-demand on the final head.
   green (42145865419).
 - After the second review's fixes (diff-index, the narrow bar, Fetch and Pull in the test): the two Finder tests, 2
   executed, green (42149764616).
-- **For the user:** the sticky folders' clip is checked in still frames only; local UI runs stopped when Automation
-  Mode began to ask for a password. Scroll fast through a deep tree with nested folders open: a row must never show
-  through a sticky folder.
+- The sticky folders, opaque: a recording of fast scrolls (XCUITest wheel scrolls of 300 pt, both ways, dark and
+  light), every changed frame on a sheet: no row shows under the stack. In some frames the stack is missing for a frame
+  as a scroll leaves the top (the tree's own overlay lags there); it was so before.
 
 ## Track F: file cards (items 11, 13, 15, then 12)
 

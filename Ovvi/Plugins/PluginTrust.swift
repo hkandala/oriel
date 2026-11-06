@@ -110,6 +110,6 @@ struct TrustPrompt: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(look.cardSolid)
+        .background(look.cardSolid())
     }
 }

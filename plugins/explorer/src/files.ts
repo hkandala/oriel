@@ -61,35 +61,19 @@ const look = {
     background: var(--folder-blue); -webkit-mask: var(--folder) center / 16px no-repeat; }
   [data-item-path="${UP}"] > [data-item-section="icon"] > svg { visibility: hidden; }
   [data-item-selected="true"] > [data-item-section="icon"] { color: var(--dim); }
+  /* The open folders at the top cover the rows that scroll under them, and a nested one that the next folder pushes
+     up slides under its parent: the band and each sticky row are opaque in the card's own color (\`--card\`, the
+     keyboard card's when it is), each row's hover or selection over it. CSS alone, so they hold at any scroll speed. */
+  [data-file-tree-sticky-overlay-content] { background-color: var(--card); }
+  [data-file-tree-sticky-row="true"] { --state: transparent;
+    background: linear-gradient(var(--state), var(--state)), var(--card); }
+  [data-file-tree-sticky-row="true"]:hover { --state: var(--trees-bg-muted); }
+  [data-file-tree-sticky-row="true"][data-item-selected="true"] { --state: var(--trees-selected-bg); }
   /* Inside its box: the row's name clips what goes past it. */
   [data-item-rename-input] { border-radius: 4px; background: var(--card); outline: 1.5px solid var(--accent);
     outline-offset: -1.5px; }
   :host(:not([data-keys])) [data-type="item"]::before { outline: none !important; }`,
 }
-/** The open folders at the tree's top draw on the card with no band of their own (an opaque one never matches Glass's
- *  translucent card): what scrolls under them is clipped away instead. The list goes above the stack's bottom, and a
- *  nested folder that the next one pushes up goes above its parent's bottom. After each scroll and each draw of the
- *  tree, in the same frame. */
-function unband(shadow: ShadowRoot) {
-  // WebKit queues no mutation for a write of the same value: the observer below runs once more, not again and again.
-  const set = (element: HTMLElement | null, clip: string) => {
-    if (element) element.style.clipPath = clip
-  }
-  const clip = () => {
-    const scroll = shadow.querySelector<HTMLElement>("[data-file-tree-virtualized-scroll]")
-    let bottom = 0
-    for (const row of shadow.querySelectorAll<HTMLElement>("[data-file-tree-sticky-overlay-content] > *")) {
-      set(row, row.offsetTop < bottom ? `inset(${bottom - row.offsetTop}px 0 0 0)` : "")
-      bottom = Math.max(bottom, row.offsetTop + row.offsetHeight)
-    }
-    // At the top the stack hides, but while a scroll lands there (`data-overlay-reveal`).
-    const top = scroll?.scrollTop ?? 0, shown = top > 0 || shadow.querySelector("[data-overlay-reveal]")
-    set(shadow.querySelector("[data-file-tree-virtualized-list]"), shown && bottom ? `inset(${top + bottom}px 0 0 0)` : "")
-  }
-  shadow.addEventListener("scroll", clip, { capture: true, passive: true })
-  new MutationObserver(clip).observe(shadow, { subtree: true, childList: true, attributeFilter: ["style", "data-overlay-reveal"] })
-}
-
 /** Whether a name is a dotfile's, which the tree hides unless row 2's Hidden Files is on. */
 const dotted = (path: string) => /(^|\/)\.[^/]/.test(path)
 
@@ -160,7 +144,6 @@ export async function show(place: Place): Promise<Reveal> {
   // pierre counts an ignored path as a change of the folders above it: their dot shows only for git's changes.
   // ponytail: a style per tree in its shadow root; drop it when pierre leaves ignored paths out of its counts.
   const dots = [tree, results].map((each) => each.getFileTreeContainer()!.shadowRoot!.appendChild(document.createElement("style")))
-  for (const each of [tree, results]) unband(each.getFileTreeContainer()!.shadowRoot!)
   keep(() => {
     tree.cleanUp()
     results.cleanUp()

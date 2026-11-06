@@ -47,8 +47,11 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  height: 30px;
-  padding: 0 6px 0 12px;
+  /* The card's 10 pt inset (PaneCard.inset) sits under the page: 10 px more on top makes the space above the line's
+     text and below it, to the card's edge, the same, and the 16 px buttons still end inside the page. */
+  box-sizing: border-box;
+  height: 26px;
+  padding: 10px 6px 0 12px;
   border-top: 1px solid var(--divider);
   color: var(--dim);
   font-size: 12px;
@@ -71,9 +74,9 @@
   align-items: center;
   gap: 4px;
   flex: none;
-  height: 20px;
+  height: 16px;
   border: 0;
-  border-radius: 5px;
+  border-radius: 4px;
   padding: 0 4px;
   background: none;
   color: var(--dim);

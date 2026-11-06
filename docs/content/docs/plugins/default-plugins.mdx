@@ -328,10 +328,10 @@ selection in the accent at 24 %. A 6 pt gap sits under the header.
   scrolls away with the rows, and hides while the filter has text.
 - **Sticky folders.** When the tree scrolls, each open folder above the view
   stays at its top, nested, until its last row scrolls past, as in Xcode's
-  navigator. So the folders the rows are in always show. They draw on the
-  card itself, with no band of their own: the rows that scroll under them,
-  and a nested folder that the next one pushes up, are cut off at the
-  stack's bottom, so nothing shows through.
+  navigator. So the folders the rows are in always show. The stack and each
+  of its rows are opaque in the card's color (`--card`, the keyboard card's
+  when it is), so no row shows through at any scroll speed, also a nested
+  folder that the next one pushes up under its parent.
 - **The tree** shows the root's listing first and lists a folder only when
   it opens. `.git` is hidden, and links to folders are folders. Files and
   folders whose name starts with `.` show only while Show Hidden Files is on.
@@ -393,8 +393,9 @@ selection in the accent at 24 %. A 6 pt gap sits under the header.
 - The tree and the letters update after each change under the root while
   the card shows. The open folders list again. A root that cannot be listed
   shows "Can't list ‹root›" in the middle of the card, under a folder icon.
-- **The status bar.** A 30 pt line under the tree. It hides only while the
-  root cannot be listed:
+- **The status bar.** A line under the tree, with the same space above its
+  text as below it to the card's edge. It hides only while the root cannot
+  be listed:
   - **At the left**, the folder: on a remote machine the machine's name first
     (`server.rack`), then `folder` and the root's own counts, "3 folders,
     12 files", with "· 2 hidden" while Show Hidden Files is off and names
@@ -792,10 +793,11 @@ The changes of one source in one scroll (`@pierre/diffs`).
   kept.
 - A file with no hunks (binary, a mode change, a pure rename) shows its
   header alone. `N unmodified lines` rows do not expand.
-- `Look.cardSolid` is exact in Classic. In Glass it is measured on a card
-  (dark `#2E`, light `#F9`), so an unusual wallpaper moves the card a few
-  steps off the header, and on the keyboard card the header is a step
-  darker than the card.
+- `Look.cardSolid` follows the card: the keyboard card's is its brighter
+  fill. It is exact in Classic. In Glass it is measured over a black window
+  (dark `#1F`, `#23` on the keyboard card; light `#F1`, `#F5`, the same over
+  a white one). A bright window behind lightens dark Glass's card by up to
+  18 levels, and the band then shows a little darker than the card.
 
 ## Keys
 
