@@ -80,8 +80,9 @@ struct Palette: View {
 
     /// Empty field: each group under its header, in `Command.Group`'s order: the tabs, workspaces and sessions
     /// first in theirs, then its commands. Typed: one list, best match first, each row with its group's name; a
-    /// tie goes to a title that starts with the filter ("font size": Font Size › before Increase Font Size), then
-    /// to commands before places, then to the earlier row (the menu's and the sidebar's order). A keyword match
+    /// tie goes to the whole title ("open file": Open File › before Open File Explorer Here), then to a title that
+    /// starts with the filter ("font size": Font Size › before Increase Font Size), then to commands before places,
+    /// then to the earlier row (the menu's and the sidebar's order). A keyword match
     /// ranks under a title match.
     private func rootItems(_ filter: String, _ list: [Command]) -> [FilterList.Item] {
         // A floating window's palette lists only its commands (D50).
@@ -97,9 +98,10 @@ struct Palette: View {
         return [open].compactMap(\.self) + (commands + places).enumerated().compactMap { index, row in
             [row.item.title.fuzzyScore(filter), row.keywords.fuzzyScore(filter).map { $0 + 3 }].compactMap(\.self)
                 .min().map { score in
-                    let starts = row.item.title.range(of: filter, options: [.anchored, .caseInsensitive,
-                                                                            .diacriticInsensitive]) != nil
-                    return (score: score, rest: starts ? 0 : 1, index: index, item: row.item)
+                    let options: String.CompareOptions = [.anchored, .caseInsensitive, .diacriticInsensitive]
+                    let starts = row.item.title.range(of: filter, options: options) != nil
+                    let whole = row.item.title.compare(filter, options: options) == .orderedSame
+                    return (score: score, rest: whole ? 0 : starts ? 1 : 2, index: index, item: row.item)
                 }
         }
         .sorted { ($0.score, $0.rest, $0.index) < ($1.score, $1.rest, $1.index) }
@@ -185,6 +187,8 @@ struct Palette: View {
     private func check(_ filter: String) async {
         let text = filter.trimmingCharacters(in: .whitespacesAndNewlines)
         guard ["/", "~", "./", "../"].contains(where: text.hasPrefix) else { return pasted = nil }
+        // Not each key of a typed path: a remote machine's checks share its one relay.
+        guard await (try? Task.sleep(for: .milliseconds(150))) != nil else { return }
         let path = await page.resolve(text)
         if !Task.isCancelled {
             pasted = path.map { (filter, $0) }

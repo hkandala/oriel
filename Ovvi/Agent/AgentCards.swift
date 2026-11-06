@@ -224,8 +224,7 @@ extension AgentCall {
                 throw AgentError(code: "bad_argument", message: "\(path) is no folder of a git repository")
             }
             guard let source else { return root + "/" }
-            let hash = source == "uncommitted" || (4 ... 40).contains(source.count) && source
-                .allSatisfy { $0.isASCII && $0.isHexDigit } ? source
+            let hash = source == "uncommitted" ? source
                 : await Git.commit(source, in: root, exec: store.machine.exec())
             guard let hash else {
                 throw AgentError(code: "bad_argument", message: "\(source) is not uncommitted or a commit")

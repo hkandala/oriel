@@ -29,7 +29,7 @@ extension Page {
             guard let path = await resolve(text) else {
                 return await store.show(Notice(text: "No file or folder \(text)", tone: .warning))
             }
-            await open(path, [], how)
+            await openAsCLI(path, [], how)
         }
     }
 
@@ -37,7 +37,7 @@ extension Page {
     func openGit(_ source: String) {
         let how = Self.how, source = source.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !source.isEmpty else { return }
-        Task { await open("git", [keyboardPane?.cwd ?? "", source], how) }
+        Task { await openAsCLI("git", [keyboardPane?.cwd ?? "", source], how) }
     }
 
     /// The absolute path of a file or folder on the page's machine, nil when there is none: `~` is the home folder,
@@ -57,7 +57,7 @@ extension Page {
     }
 
     /// `ovvi open`'s kind and argument for the words, opened from the keyboard card; a refusal is a notice.
-    private func open(_ first: String, _ words: [String], _ how: Opening) async {
+    private func openAsCLI(_ first: String, _ words: [String], _ how: Opening) async {
         let pane = keyboardPane
         let call = AgentCall(store: store, pane: pane?.id ?? "", cwd: pane?.cwd ?? "/", id: "", args: [])
         do {

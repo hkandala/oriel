@@ -63,6 +63,10 @@ import Testing
         #expect(log[4] == Git.Commit(hash: log[4].hash, parents: [], author: "t",
                                      date: Date(timeIntervalSince1970: 1_000_000_000), subject: "init"))
         #expect(log.map(\.refs) == [["HEAD -> refs/heads/main"], ["refs/heads/side"], [], [], []])
+        #expect(await Git.commit("side", in: repo.path, exec: exec) == log[1].hash)
+        #expect(await Git.commit(String(log[4].hash.prefix(7)), in: repo.path, exec: exec) == log[4].hash)
+        #expect(await Git.commit("nope", in: repo.path, exec: exec) == nil)
+        #expect(await Git.commit("--all", in: repo.path, exec: exec) == nil)
         // The side branch takes lane 1 from the merge down to where it forked; main stays in lane 0.
         #expect(Git.graph(log) == [
             Git.GraphRow(lane: 0, children: [], parents: [0, 1], through: []),
