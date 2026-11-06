@@ -132,6 +132,19 @@ runs and on-demand on the final head.
   cards: 3–4 File Explorer status bars (in a repo with changes, ahead and behind, clean, not a repo, a remote
   machine) and 2–3 ways to make Markdown two modes with a read lock. The user picks; Tracks E and F build the pick.
 
+Findings:
+
+- Written: status bars A (one quiet line, recommended), B (capsules), C (folder first, then Git), D (icons only);
+  Markdown A (segments and a mode button), B (one grey menu with sub-options), C (a lock button and a grey mode
+  menu, recommended). Built by `~/Downloads/ovvi-research/phase56-src/build.py` on screenshots of `156a850b`.
+- A plugin label's iid is exactly 6 `[a-z0-9]`: a 5-letter iid shows a plain terminal titled with the label.
+- A launch with `open -n` can lose the 3 s login-shell lookup and show "herdr is not installed"; launch again.
+- The window's height is the user's saved frame and changed between launches (1005 and 1084 pt): take every shot of
+  one report in one hold, or measure each.
+- No Side by Side shot: the GUI lock went to the user first. Source's row 2 is drawn on the Read shots.
+
+Runs: none (no app code).
+
 ## Track H: one way to open links (item 16)
 
 16. "in markdown, when there are links, clicking on it doesn't open by default clicking on it should open in new
