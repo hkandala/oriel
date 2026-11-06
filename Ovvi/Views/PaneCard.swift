@@ -135,7 +135,7 @@ struct PaneCard: View {
                 .accessibilityActions { PaneActions(page: page, pane: pane) }
                 .contextMenu { PaneItems(page: page, pane: pane) }
         }
-        .overlay { ActiveBorder(id: "pane.\(id)", shown: lit) }
+        .overlay { ActiveBorder(id: id, shown: lit && shown.count > 1 && page.zoomedPaneID == nil) }
         .opacity(page.lifted == .pane(id) ? 0.4 : 1)
         .overlay(alignment: .topLeading) {
             if let zone, page.dragging != nil {

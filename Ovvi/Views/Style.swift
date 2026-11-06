@@ -96,7 +96,7 @@ struct Look {
              keyboard ? (.black.opacity(0.18), 0.8) : (.black.opacity(0.12), 0.7))
     }
 
-    /// A 1 pt line inside the keyboard card's edge, a floating window's card too: the label color, dimmed.
+    /// A 1 pt line inside the keyboard card's edge while its tab shows two or more cards: the label color, dimmed.
     var activeBorder: Color {
         .primary.opacity(dark ? 0.3 : 0.22)
     }
