@@ -126,6 +126,19 @@ runs and on-demand on the final head.
     options etc, having 4 options is just confusing, also the icon dropdown should be greyed out like the file
     explorer button".
 
+### Findings (Track F)
+
+- **Cause (11, 13):** the editor's selection rule was less specific than CodeMirror's base rule for a focused
+  editor (`&light.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground`, a pale lilac). The editor
+  never says it is dark, so the light rule drew in dark too, under light text. File and Markdown share the editor.
+- **Fix:** the same selector, so the accent at 35 % wins in both looks and in every Markdown mode; Side by Side's
+  page (no drawn selection) gets the same rule for WebKit's own.
+- **Decisions (15):** Word Wrap is a row 2 toggle in File only (Markdown's Read is prose; Source wraps as before). It
+  starts on, as File always wrapped (cards are narrow), and the card keeps its choice for every file it shows. No
+  setting: Git's has one, add one here when a user wants unwrapped files by default.
+- **Runs:** the File test red on the old code (no Word Wrap button, 42142561012) and green with it
+  (42143799483, 2 tests). CI's recordings draw no web content, so the pictures are local.
+
 ## Track G: mockups (items 7, 20, 12)
 
 - HTML mockups in `~/Downloads/ovvi-research/phase56-mockups.html`, drawn from real screenshots of the current
