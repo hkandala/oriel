@@ -17,7 +17,7 @@ md.renderer.rules.image = (tokens, i) => {
   return `<a href="${escapeHtml(src)}">${escapeHtml(tokens[i].content || src)}</a>`
 }
 
-/** The mode is the view's `editable`: Edit when it is, and the caret's lines show their marks. */
+/** Unlocked is the view's `editable`: then the caret's lines show their marks. */
 export const editing = (state: EditorState) => state.facet(EditorView.editable)
 export const switched = (start: EditorState, now: EditorState) => editing(start) !== editing(now)
 /** The nodes that hold blocks: the walks over the document's blocks go into these only. */

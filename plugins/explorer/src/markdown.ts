@@ -245,8 +245,8 @@ export async function show(place: Place): Promise<Reveal> {
       })
       if (heading) view.dispatch({ effects: EditorView.scrollIntoView(heading.from, { y: "start" }) })
     } else {
-      const place = address(link)
-      if (place) open(ovvi, place, how(event))
+      const to = address(link)
+      if (to) open(ovvi, to, how(event))
     }
     return true
   }
@@ -271,9 +271,9 @@ export async function show(place: Place): Promise<Reveal> {
       return true
     },
     contextmenu: (event) => {
-      const link = (event.target as Element).closest("a"), place = link && address(link)
-      if (!place) return false
-      void menu(ovvi, event, place, { link: true })
+      const link = (event.target as Element).closest("a"), to = link && address(link)
+      if (!to) return false
+      void menu(ovvi, event, to, { link: true })
       return true
     },
   })
@@ -330,9 +330,9 @@ export async function show(place: Place): Promise<Reveal> {
   })
   // A new setting, while the card has no choice of its own (an old mode is one).
   ovvi.on("settings", (changed) => {
-    const next = mode(changed.markdown), locked = changed["markdown-lock"]
-    if (next && kept.mode === undefined) present(view, { ...now, mode: next }, outlined)
-    if (typeof locked === "boolean" && kept.locked === undefined) present(view, { ...now, locked }, outlined)
+    const next = mode(changed.markdown), locked = changed["markdown-lock"], choices = own(ovvi)
+    if (next && choices.mode === undefined) present(view, { ...now, mode: next }, outlined)
+    if (typeof locked === "boolean" && choices.locked === undefined) present(view, { ...now, locked }, outlined)
   })
   titles(view, all(view.state))
   // A linked open at a line (a diff's) puts the caret there (`editor`), unlocked or not. Back's landing is a path.

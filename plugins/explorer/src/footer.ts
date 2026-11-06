@@ -2,7 +2,7 @@
 // and files (and the hidden ones while they hide); in a repository, at the right, the branch, the lines added and
 // removed, Pull and Push while there is something to pull or push, Fetch, and Git, which opens Git's home on it.
 import type { Ovvi } from "@ovvi/plugin-api"
-import { how, symbols } from "./place"
+import { how, menu, open as opening, symbols } from "./place"
 
 type Head = { branch: string; ahead: number; behind: number } | null
 
@@ -23,20 +23,24 @@ export function footer(ovvi: Ovvi, bar: HTMLElement, again: () => void) {
   where.hidden = !machine.remote
   where.textContent = machine.name
   let repo: string | null = null
-  // Git's home on the repository: a new tab beside, selected; ⌘ in the background, ⌥ to the side.
+  // Git's home on the repository, as every open: a click in a new tab, selected (this card cannot show it); ⌘ in the
+  // background, ⌥ to the side; the menu's three.
   open.onclick = (event) => {
-    const to = how(event)
-    if (repo) {
-      void ovvi.open(`${repo}/`, { plugin: "git", how: to === "card" ? "tab" : to, background: to !== "card" })
-        .catch(console.error)
-    }
+    if (repo) opening(ovvi, `${repo}/`, how(event), "git")
   }
-  /** One write at a time, every button off meanwhile and a spinner on its own; git's message in a toast. */
+  open.oncontextmenu = (event) => {
+    if (repo) void menu(ovvi, event, `${repo}/`, { plugin: "git" })
+  }
+  /** One write at a time, every button off meanwhile and Fetch's arrow turning; git's error in a toast, as the
+   *  sidebar shows it: without its `hint:` lines, which come first, the last two lines on one. */
   const write = (button: HTMLButtonElement, done: (root: string) => Promise<void>) => async () => {
     if (!repo) return
     button.toggleAttribute("data-busy", true)
     for (const each of [pull, push, fetch]) each.disabled = true
-    await done(repo).catch((error) => void ovvi.toast(String((error as Error).message ?? error)))
+    await done(repo).catch((error) => {
+      const lines = String((error as Error).message ?? error).split("\n").filter((l) => l.trim() && !l.startsWith("hint:"))
+      void ovvi.toast(lines.slice(-2).join(" "))
+    })
     button.toggleAttribute("data-busy", false)
     for (const each of [pull, push, fetch]) each.disabled = false
     again()

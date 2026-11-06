@@ -59,15 +59,17 @@ export const how = (event: MouseEvent | KeyboardEvent): How => (event.metaKey ? 
 
 /** A file, or a folder (its path ends in `/`), in the card (its next place), or behind it in a new tab or a pane to
  *  the side, the keyboard kept here: a folder in a File Explorer, a file in its default plugin. */
-export const open = (ovvi: Ovvi, arg: string, how: How) =>
-  void ovvi.open(arg, { how, background: how !== "card" }).catch((error) => console.error(error))
+export const open = (ovvi: Ovvi, arg: string, how: How, plugin?: string) =>
+  void ovvi.open(arg, { plugin, how, background: how !== "card" }).catch((error) => console.error(error))
 
 /** A row's or a link's menu at the pointer: Open (Open as Root for a folder), Open in New Tab, Open to the Side;
  *  Rename when the row can be renamed; a link's Copy Link, as WebKit's own menu had. */
-export async function menu(ovvi: Ovvi, event: MouseEvent, arg: string, more: { rename?: () => void; link?: boolean } = {}) {
+export async function menu(ovvi: Ovvi, event: MouseEvent, arg: string,
+  more: { rename?: () => void; link?: boolean; plugin?: string } = {}) {
   event.preventDefault()
   const picked = await ovvi.menu.show([
-    { value: "card", title: arg.endsWith("/") ? "Open as Root" : "Open" },
+    // A web address that ends in `/` is no folder.
+    { value: "card", title: arg.endsWith("/") && !more.plugin && !/^[a-z][a-z0-9+.-]*:/i.test(arg) ? "Open as Root" : "Open" },
     { value: "tab", title: "Open in New Tab" },
     { value: "side", title: "Open to the Side" },
     ...(more.rename ? ["-" as const, { value: "rename", title: "Rename" }] : []),
@@ -75,7 +77,7 @@ export async function menu(ovvi: Ovvi, event: MouseEvent, arg: string, more: { r
   ])
   if (picked === "rename") more.rename?.()
   else if (picked === "copy") ovvi.clipboard.write(arg).catch(console.error)
-  else if (picked) open(ovvi, arg, picked as How)
+  else if (picked) open(ovvi, arg, picked as How, more.plugin)
 }
 
 /** SF Symbols as masks (`ovvi.symbol`), each loaded once: CSS draws `--sf-<name with - for .>`. In a sheet of their

@@ -60,8 +60,6 @@
   .disclosure { display: inline-block; width: 10px; text-align: center; transform: rotate(90deg);
     transition: transform 0.15s }
   .disclosure.shut { transform: none }
-  /* A narrow card keeps Viewed and Open File in sight in each file's header: the folder and the counts, also in the
-     file list, give way. The header does not wrap: its height is fixed for the scroll. */
   /* ⌘F's find bar, as File Explorer's (find.css): a capsule of the card's fill with a blur behind, floating at the top
      right under the sticky header, so the header's Viewed and Open File stay in reach. */
   .find { position: absolute; top: 48px; right: 16px; z-index: 2; display: flex; align-items: center; gap: 2px;
@@ -75,6 +73,8 @@
   .find-icon { all: unset; flex: none; width: 22px; height: 22px; border-radius: 5.5px; color: var(--dim);
     background: currentColor; -webkit-mask: var(--sf-xmark) center / 14px no-repeat }
   .find-icon:hover { color: var(--text) }
+  /* A narrow card keeps Viewed and Open File in sight in each file's header: the folder and the counts, also in the
+     file list, give way. The header does not wrap: its height is fixed for the scroll. */
   @media (max-width: 480px) {
     .file > :is(.folder, .added, .removed) {
       display: none;
