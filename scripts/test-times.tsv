@@ -24,6 +24,7 @@
 38	testFileExplorerBrowsesOpensAndGoesBack
 36	testLayoutMotionAnimatesWithoutBlanking
 36	testSettingsPagesSearchAndLook
+36	testGitDiffStepsWithBracketsAndFilters
 35	testACodexChatOnARemoteMachine
 35	testALongChatKeepsItsPlaceAndScrollsToTheBottom
 34	testMenuSwitchesTheLook

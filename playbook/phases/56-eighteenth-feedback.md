@@ -300,6 +300,14 @@ Runs: none (no app code).
   ⌘F is enabled in a diff only (`Plugin.handles`): the Git home has nothing to filter.
 - **Decisions:** the bar's CSS is Git's own (13 lines in `diff.css`), not File Explorer's `find.css`: plugins are
   separate packages, and a shared one belongs in `card.css` under an `ovvi-` name, which renames the tree's.
+- **For the user:** the bar floats over the top lines of the diff, as the editor's and the tree's do, so a short
+  file's first line can sit under it.
+
+### Runs (Track I)
+
+- CI 42142284507 (a temporary tag): the steps passed; the ⌘F check failed, because `name=search` made the field a
+  search field in accessibility. CI 42150477008 on 545615a6: the new test, the Git card test and the Git home test,
+  3 passed. XCUITest's screenshots on CI draw no web content, so the pictures come from the app launched by hand.
 
 ## Track J: new tabs beside (item 21)
 
