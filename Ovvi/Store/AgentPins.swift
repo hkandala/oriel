@@ -72,9 +72,12 @@ extension HostStore {
 
 @MainActor
 extension UserDefaults {
-    /// The Agents view's own state: pins, open shelves and the agents' times, in `agents.plist` in the config folder,
-    /// so a test's `-configFolder` keeps its writes out of the user's.
-    static let agents = UserDefaults(suiteName: Registry.config.appending(path: "agents").path) ?? .standard
+    /// The Agents view's own state: pins, open shelves and the agents' times, in a defaults domain of the config
+    /// folder's (`dev.ovvi.app.agents.‹folder, / as _›`), so a test's `-configFolder` keeps its writes out of the
+    /// user's. Not a suite at a path: once its file exists, a new process's writes read back the old value and notify
+    /// no view, so no shelf opened and no pin changed after a relaunch.
+    static let agents = UserDefaults(suiteName: "dev.ovvi.app.agents." + Registry.config.path.replacing("/", with: "_"))
+        ?? .standard
 }
 
 extension Array where Element: Codable {
