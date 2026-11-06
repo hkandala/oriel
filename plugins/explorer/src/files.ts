@@ -4,6 +4,7 @@ import { FileTree, type FileTreeBatchOperation, type FileTreeDirectoryHandle, ty
   type GitStatus } from "@pierre/trees"
 import type { Change } from "@ovvi/plugin-api"
 import { footer } from "./footer"
+import { stack } from "./stack"
 import { choose, how, menu, open, own, type Place, type Reveal, symbols } from "./place"
 
 const STATUS: Record<string, GitStatus> = {
@@ -61,14 +62,12 @@ const look = {
     background: var(--folder-blue); -webkit-mask: var(--folder) center / 16px no-repeat; }
   [data-item-path="${UP}"] > [data-item-section="icon"] > svg { visibility: hidden; }
   [data-item-selected="true"] > [data-item-section="icon"] { color: var(--dim); }
-  /* The open folders at the top cover the rows that scroll under them, and a nested one that the next folder pushes
-     up slides under its parent: the band and each sticky row are opaque in the card's own color (\`--card\`, the
-     keyboard card's when it is), each row's hover or selection over it. CSS alone, so they hold at any scroll speed. */
-  [data-file-tree-sticky-overlay-content] { background-color: var(--card); }
-  [data-file-tree-sticky-row="true"] { --state: transparent;
-    background: linear-gradient(var(--state), var(--state)), var(--card); }
-  [data-file-tree-sticky-row="true"]:hover { --state: var(--trees-bg-muted); }
-  [data-file-tree-sticky-row="true"][data-item-selected="true"] { --state: var(--trees-selected-bg); }
+  /* The sticky folders on the card, with no band (stack.ts): the view masked under them, their copy over it. */
+  :host { position: relative; }
+  :host([data-stack]) [data-file-tree-virtualized-scroll] {
+    -webkit-mask: linear-gradient(transparent var(--stack), #000 var(--stack)); }
+  [data-stack-copy] { position: absolute; z-index: 5; pointer-events: none; }
+  [data-stack-copy] [data-hover] { background-color: var(--trees-bg-muted); }
   /* Inside its box: the row's name clips what goes past it. */
   [data-item-rename-input] { border-radius: 4px; background: var(--card); outline: 1.5px solid var(--accent);
     outline-offset: -1.5px; }
@@ -141,6 +140,7 @@ export async function show(place: Place): Promise<Reveal> {
   const bar = root.querySelector("footer")!, status = footer(ovvi, bar, () => void run(git))
   tree.render({ containerWrapper: host })
   results.render({ containerWrapper: matches })
+  for (const each of [tree, results]) stack(each.getFileTreeContainer()!)
   // pierre counts an ignored path as a change of the folders above it: their dot shows only for git's changes.
   // ponytail: a style per tree in its shadow root; drop it when pierre leaves ignored paths out of its counts.
   const dots = [tree, results].map((each) => each.getFileTreeContainer()!.shadowRoot!.appendChild(document.createElement("style")))

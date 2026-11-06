@@ -19,6 +19,9 @@ extension KeyboardShortcut {
     static let closeTab = KeyboardShortcut("w", modifiers: [.command, .shift])
     static let previousTab = KeyboardShortcut("[", modifiers: [.command, .shift])
     static let nextTab = KeyboardShortcut("]", modifiers: [.command, .shift])
+    /// A plugin card's Back and Forward, as Xcode's Go Back and Go Forward (`WebCardView` takes them).
+    static let back = KeyboardShortcut(.leftArrow, modifiers: [.command, .control])
+    static let forward = KeyboardShortcut(.rightArrow, modifiers: [.command, .control])
     static let bigger = KeyboardShortcut("+")
     static let findNext = KeyboardShortcut("g")
     static let save = KeyboardShortcut("s")

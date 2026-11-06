@@ -121,7 +121,7 @@ extension OvviUITests {
         button("Go").click()
         XCTAssertTrue(line("place: \(root)/sub/ x").exists(within: 3))
         try await expect("the label follows") { try await paneLabel(card).hasSuffix(" \(root)/sub/") }
-        app.typeKey("[", modifierFlags: .command)
+        app.typeKey(.leftArrow, modifierFlags: [.command, .control])
         XCTAssertTrue(line("place: \(root)/ x").exists(within: 3))
         try await expect("the label goes back") { try await paneLabel(card).hasSuffix(" \(root)/") }
 

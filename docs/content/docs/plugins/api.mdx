@@ -386,8 +386,8 @@ Markdown, or Git's home and a diff. The plugin draws every place itself:
   loaded again. With unsaved edits, the app asks first ("‹name› has unsaved
   edits.", Discard and **Keep Editing**).
 - With `"history": true` in the manifest, the app keeps Back and Forward for
-  the card and draws them at the left of row 2 (`chevron.left` ⌘[,
-  `chevron.right` ⌘]). A page that uses `pages.route` also goes Back and
+  the card and draws them at the left of row 2 (`chevron.left` ⌃⌘←,
+  `chevron.right` ⌃⌘→). A page that uses `pages.route` also goes Back and
   Forward on ⌘← and ⌘→, unless a text field in the page has the keyboard.
   The runtime takes these keys before the page's own handlers.
 - `on("place")` fires on every move: the page's own `card.go`, Back,

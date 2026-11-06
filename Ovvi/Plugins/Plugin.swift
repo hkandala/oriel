@@ -298,10 +298,10 @@ struct BackForward: View {
     var body: some View {
         // No opacity of their own: ChromeStyle dims a disabled button.
         HStack(spacing: 0) {
-            IconButton(symbol: "chevron.left", help: "Back", key: .init("["), size: 22) { plugin.goBack() }
+            IconButton(symbol: "chevron.left", help: "Back", key: .back, size: 22) { plugin.goBack() }
                 .disabled(!plugin.canGoBack)
                 .accessibilityIdentifier("pane.\(plugin.paneID).go-back")
-            IconButton(symbol: "chevron.right", help: "Forward", key: .init("]"), size: 22) { plugin.goForward() }
+            IconButton(symbol: "chevron.right", help: "Forward", key: .forward, size: 22) { plugin.goForward() }
                 .disabled(!plugin.canGoForward)
                 .accessibilityIdentifier("pane.\(plugin.paneID).go-forward")
         }

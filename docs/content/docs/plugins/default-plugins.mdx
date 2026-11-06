@@ -156,7 +156,7 @@ the click.
 
 ## Back and Forward
 
-- **Back** (`chevron.left`, ⌘[) and **Forward** (`chevron.right`, ⌘]) sit at
+- **Back** (`chevron.left`, ⌃⌘←) and **Forward** (`chevron.right`, ⌃⌘→) sit at
   the left of row 2 on every page. The app draws them and keeps the list,
   because both manifests say `"history": true`
   ([One plugin, many places](/docs/plugins/api#one-plugin-many-places)).
@@ -174,10 +174,10 @@ the click.
   that row is out of view.
 - A Git home drawn anew (not kept) lands at the change or the commit that
   the card came back from.
-- ⌘[ and ⌘] work in every view: the tree, a file and its editor (where they
-  take the place of CodeMirror's indent keys), Markdown, a preview and Git's
-  pages. They move the card only while it has a place that way. Otherwise
-  they select the pane to the left or right, as elsewhere. ⌘← and ⌘→ also
+- ⌃⌘← and ⌃⌘→ (Xcode's Go Back and Go Forward) work in every view: the
+  tree, a file and its editor, Markdown, a preview and Git's pages. No text
+  view, CodeMirror or Ovvi key uses them. ⌘[ and ⌘] stay Select Previous
+  Pane and Select Next Pane over every card. ⌘← and ⌘→ also
   go Back and Forward, as in a browser, except in a text field such as the
   editor, where they move the caret. A card made from
   its label (after a relaunch, or a dropped card shown again) has no list
@@ -328,10 +328,13 @@ selection in the accent at 24 %. A 6 pt gap sits under the header.
   scrolls away with the rows, and hides while the filter has text.
 - **Sticky folders.** When the tree scrolls, each open folder above the view
   stays at its top, nested, until its last row scrolls past, as in Xcode's
-  navigator. So the folders the rows are in always show. The stack and each
-  of its rows are opaque in the card's color (`--card`, the keyboard card's
-  when it is), so no row shows through at any scroll speed, also a nested
-  folder that the next one pushes up under its parent.
+  navigator. So the folders the rows are in always show. They draw on the
+  card itself, with no band behind them, in Glass too. The tree's scroll
+  view is masked under them, and the mask stays with the view, so no row
+  shows through at any scroll speed. A copy of the stack draws over the
+  mask, with the hover and the selection; a nested folder that the next one
+  pushes up is cut where its parent covers it. The stack itself, under the
+  mask, still takes the clicks.
 - **The tree** shows the root's listing first and lists a folder only when
   it opens. `.git` is hidden, and links to folders are folders. Files and
   folders whose name starts with `.` show only while Show Hidden Files is on.
@@ -381,7 +384,7 @@ selection in the accent at 24 %. A 6 pt gap sits under the header.
   | Return | renames the selected row in place, its name selected without the extension: Return saves, Esc cancels. A name in use, an empty one or one with `/` keeps the old name and says why in a toast. A row's menu has **Rename** too (not `..`) | the same |
   | ⌘O, ⌘↓ | open the selected row: a folder becomes the root, a file shows in the card | the same |
   | ⌘↑ | the parent folder becomes the root | the same |
-  | ⌘← ⌘→, ⌘[ ⌘] | Back and Forward | ⌘[ ⌘] |
+  | ⌘← ⌘→, ⌃⌘← ⌃⌘→ | Back and Forward | ⌘[ ⌘] |
   | a letter | opens the find bar with that letter | jumps to the first name with it |
   | Space | nothing: there is no preview card | Quick Look |
   | ⌘⌫ | nothing: the plugin API has no Trash | Move to Trash |
@@ -409,7 +412,8 @@ selection in the accent at 24 %. A 6 pt gap sits under the header.
     clean one. Then **Pull** (`arrow.down` and the count behind) and **Push**
     (`arrow.up` and the count ahead), each only when there is something to
     pull or push (a branch with no upstream has nothing to push here; Git's
-    Push publishes it), and **Fetch** (`arrow.clockwise`) always. One runs at a time,
+    Push publishes it), and **Fetch** (`arrow.triangle.2.circlepath`, the same
+    either way round, so it turns about its middle) always. One runs at a time,
     with all three off meanwhile and Fetch's arrow turning (not with Reduce
     Motion), and
     git's message shows in a toast when it fails. After a divider, **Git**
@@ -808,7 +812,7 @@ over the card that uses it, because a disabled menu item swallows its key.
 
 | Keys | Command | When it has its key |
 |---|---|---|
-| ⌘[ ⌘] | Back, Forward in the card | while the card has a place that way. Else they select a pane |
+| ⌃⌘← ⌃⌘→ | Back, Forward in the card | while the card has a place that way (the page's own key) |
 | ⌘← ⌘→ | Back, Forward in the card | while no text field in the page has the keyboard: there they move the caret |
 | ⌘S | Save (File menu): the editor's text to disk | only while File or Markdown has the keyboard |
 | ⌘F | Find… (Edit menu): the editor's find bar; on the tree and a Git diff, its find bar (a filter of the files) | on File, Markdown, the tree and a Git diff. Disabled on Preview and the Git home |

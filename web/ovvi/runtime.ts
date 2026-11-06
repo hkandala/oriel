@@ -353,7 +353,7 @@ function present(kept: Kept, again?: { arg: string; at?: string }) {
   if (document.hasFocus()) dispatchEvent(new Event("focus"))
 }
 
-/** ⌘← and ⌘→ go Back and Forward, as ⌘[ and ⌘] do (the app's), unless a text field has the keyboard: there they move
+/** ⌘← and ⌘→ go Back and Forward, as ⌃⌘← and ⌃⌘→ do (the app's), unless a text field has the keyboard: there they move
  *  its caret. In the capture phase, before a page's own keys (a tree's ← goes to the parent row). */
 function backForward(event: KeyboardEvent) {
   const back = event.key === "ArrowLeft"

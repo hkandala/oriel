@@ -107,7 +107,8 @@
 [data-place="files"] footer .branch { --symbol: var(--sf-source-branch); }
 [data-place="files"] footer .pull { --symbol: var(--sf-arrow-down); }
 [data-place="files"] footer .push { --symbol: var(--sf-arrow-up); }
-[data-place="files"] footer .fetch { --symbol: var(--sf-arrow-clockwise); }
+/* Fetch turns about its middle: its two arrows are the same either way round, so it never wobbles. */
+[data-place="files"] footer .fetch { --symbol: var(--sf-arrow-triangle-2-circlepath); }
 [data-place="files"] footer .open { --symbol: var(--sf-arrow-up-right-square); }
 /* Fetch's arrow turns while it runs; Pull and Push only dim with the others. */
 [data-place="files"] footer .fetch[data-busy]::before { animation: spin 1s linear infinite; }

@@ -65,10 +65,14 @@ extension OvviUITests {
         try await send("rm -rf \(repo)\r", to: shell)
     }
 
-    /// Back (⌘[ over the card), then Forward (⌘→ over the tree): the file. ⌘← in its text moves the caret.
+    /// In the editor ⌘[ is Select Previous Pane, not Back; Back is ⌃⌘←. Then Forward (⌘→ over the tree): the file. ⌘←
+    /// in its text moves the caret.
     private func backAndForward(_ card: String, _ tree: XCUIElement, _ file: XCUIElement, _ root: String) async throws {
         file.textViews.firstMatch.click()
         app.typeKey("[", modifierFlags: .command)
+        XCTAssertFalse(until(1) { element("pane.\(card).go-forward").isEnabled }, "⌘[ went Back")
+        file.textViews.firstMatch.click()
+        app.typeKey(.leftArrow, modifierFlags: [.command, .control])
         try await backToTheKeptTree(card, tree, root)
         row("out.o", in: tree).click()
         app.typeKey(.rightArrow, modifierFlags: .command)

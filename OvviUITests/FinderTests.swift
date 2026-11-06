@@ -92,7 +92,7 @@ extension OvviUITests {
         row("..", in: tree).click()
         app.typeKey("o", modifierFlags: .command)
         try await labelEnds(card, " /private/tmp/")
-        app.typeKey("[", modifierFlags: .command)
+        app.typeKey(.leftArrow, modifierFlags: [.command, .control])
         try await labelEnds(card, " \(root)/")
         XCTAssertTrue(row("a.txt", in: tree).exists(within: 10))
     }

@@ -270,6 +270,24 @@ runs and on-demand on the final head.
   as a scroll leaves the top (the tree's own overlay lags there); it was so before.
 - After the opaque stack and the even bar: the two Finder tests and Git's main test, 3 executed, green (42165498856).
 
+### Findings (Track E, round 2)
+
+- **Cause, item 31.** `arrow.clockwise` is no circle: its arrowhead sticks out, so its box's middle is off the
+  circle's, and it turned about the box. **Fix:** Fetch is `arrow.triangle.2.circlepath`, the same either way round:
+  its box's middle is its turning point (the icon's centre of mass stayed within 0.1 px over 80 frames of a spin).
+- **Cause, item 32.** An opaque band never matches Glass's card (31 to 53 levels in dark, by what is behind).
+  **Fix:** no band: the tree's scroll view is masked under the stack (`--stack`, set only when the stack changes),
+  and the mask stays with the view while WebKit's own thread moves the rows. The stack is in the view, so a copy of
+  it draws over the mask (stack.ts), with the hover from the real rows (which still take the clicks, masked) and
+  each pushed folder cut under its parent. Band and card read the same (37 on 37 dark, 244 on 244 light).
+- **Decisions, item 33.** Back and Forward are ⌃⌘← and ⌃⌘→ (Xcode's Go Back and Go Forward): no Ovvi key, macOS text
+  binding or CodeMirror default uses them (CodeMirror has ⌃← ⌃→ on the Mac). ⌘[ ⌘] are Select Previous Pane and
+  Select Next Pane over every card again. ⌘← ⌘→ stay Back and Forward where no text field has the keyboard.
+- **For the user:** in a few frames of a fast scroll the stack is missing as the scroll leaves the top (the tree's
+  own overlay lags there); nothing ever shows under it.
+
+### Runs (Track E, round 2)
+
 ## Track F: file cards (items 11, 13, 15, then 12)
 
 11. and 13. "selected text color is whitish and making the text not readable fix that, make sure it looks good in

@@ -18,7 +18,7 @@ export function footer(ovvi: Ovvi, bar: HTMLElement, again: () => void) {
     class="open" title="Open in Git" aria-label="Open in Git">Git</button></span>`
   const [where, folder, git, branch, added, removed] = bar.querySelectorAll("span")
   const [pull, push, fetch, open] = bar.querySelectorAll("button")
-  symbols(ovvi, ["server.rack", "folder", "source.branch", "arrow.down", "arrow.up", "arrow.clockwise",
+  symbols(ovvi, ["server.rack", "folder", "source.branch", "arrow.down", "arrow.up", "arrow.triangle.2.circlepath",
     "arrow.up.right.square"], 11)
   where.hidden = !machine.remote
   where.textContent = machine.name
