@@ -647,3 +647,54 @@ is enabeld. don't increase it too much" and "let's make it 300".
   many tabs and the drops on the sidebar, "Executed 4 tests, with 0 failures".
 - Pictures in `/tmp/ovvi-shots/p56p/`: `one-{dark,light}.png`, `two-{dark,light}.png` (glass, this Mac) and
   `sidebar-300-agents-dark.png` (CI's 1024 pt screen).
+
+## Track N: the tab drag, again (item 25)
+
+25. "also one more bug i noticed, that tab drag and drop thing we fixed in previous phase where it flickers, that
+    issue is still there, check this video: /Users/hkandala/Desktop/Screen Recording 2026-11-05 at 5.37.52 PM.mov you
+    can see the flicker is very regular on each drag and drop, and now when the tab is dragged i see that dragged one
+    has sharp corners instead of rounded corners like tab, this used to be fine eerlier, now that's another regression
+    probably, so basically when you leave the dragged tab, it doesn't settle in smoothyl, instead its sharp and the tab
+    kinda flickers, we should make it overall smooth".
+    - The drop settles smoothly: the tab lands in its place in the frame the drag ends, no blink, no jump, no
+      re-layout of other tabs after herdr answers. The drag image has the tab's round shape again.
+
+### Findings (Track N)
+
+- **Cause, the blink (every drag).** Phase 53 fixed the drop; this blink comes at the drag's start. The tab dimmed
+  as the drag began, but AppKit shows the drag image some frames later, first over the tab's own place, and moves it
+  with the pointer only from the session's first move. The user's video: 4 frames dimmed with no image, 3 frames of
+  the image over the tab (it reads as the tab gone bright on a square), then dimmed again with the image at the
+  pointer. **Fix:** the view dims from the session's first move (`Page.lifted`); panes and rows too.
+- **Cause, the square image.** The image is a snapshot of the window's rect around the capsule. Since d87918ba dark
+  Glass has a plain black 0.5 shade over the glass, which draws into that snapshot (the glass's own tint did not), so
+  the corners showed the shade and the track as a dark square. **Fix:** the snapshot is cut to the capsule's shape (a
+  workspace row's to its own).
+- **Cause, the drop.** The image vanished at the pointer while the tab showed in its slot (a jump), and the dropped
+  tab kept the hover it had when the drag began: its × and fill, until a later event moved them to the tab under the
+  pointer about 0.6 s on and cut the titles anew. **Fix:** in the drop's frame the capsule shows where the image was
+  and glides into its place (0.22 s, the slide's curve; none with Reduce Motion), and the tab under the pointer takes
+  the hover; the capsule's fill follows the bar's hover (`ChromeStyle.hovered`).
+- **Fix (review).** The place came from the pointer while the image is up to a tab's width left of it, so a drop could
+  glide 1.5 tabs over a neighbour; the place is the one under the image now. The selected tab's pill was drawn at its
+  index under the track: it stayed under the neighbour during a drag and jumped at the drop. It is the capsule's own
+  background now, so it dims, slides and lands with it.
+- **Decisions.** A glide from the image rather than a snap into the slot: the image is where the user's eye is, and
+  the tab is in its slot at full opacity from the drop's frame on, the other tabs already in place.
+- **For the user.** Drag a tab fast along the bar and let go, in dark and light: no dim before the floating tab
+  shows, a round floating tab, and at the drop the tab slides the last bit into its place with nothing else moving;
+  the × is on the tab under the pointer. Drag the selected tab: its pill goes with it.
+
+### Runs (Track N)
+
+- The new check (the × on the tab under the pointer after a drop) on the old code: red, "the dropped tab kept the
+  hover" (42150578075). Six drag tests on the fix: "Executed 6 tests, with 0 failures" (42150582777).
+- Captures of the same drag (the third tab to 0.6 of the first, Quartz events) on the old build and the fix, dark and
+  light Glass: `/tmp/ovvi-shots/p56n/{before,after}-{dark,light}.mov` with their changed frames in `*-sheet*.png`
+  (about 30 fps: `screencapture` on a Mac at a load of 100–400). Old: 4–5 frames dimmed with no image, then the bright
+  square, in both looks; the pill stays under the neighbour. Fix: no dimmed frame without the image over it, the pill
+  moves with its tab, and the drop's first frame has the capsule where the image was (`after-dark-drop-zoom.png`).
+  With posted events AppKit fades its image over about 0.3 s after the drop in both builds (phase 53 saw it too); the
+  user's own drags show none, so a posted drag shows the image over the glide.
+- `make test`'s HerdrKit timing tests failed locally at a load of 350, a different one each run (untouched here; CI's
+  checks run them).
