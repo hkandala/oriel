@@ -274,7 +274,8 @@ runs and on-demand on the final head.
 
 - **Cause, item 31.** `arrow.clockwise` is no circle: its arrowhead sticks out, so its box's middle is off the
   circle's, and it turned about the box. **Fix:** Fetch is `arrow.triangle.2.circlepath`, the same either way round:
-  its box's middle is its turning point (the icon's centre of mass stayed within 0.1 px over 80 frames of a spin).
+  its box's middle is its turning point (over 16 recorded frames of a spin, the icon's centre of mass moved under
+  0.5 px at 2x, dark and light).
 - **Cause, item 32.** An opaque band never matches Glass's card (31 to 53 levels in dark, by what is behind).
   **Fix:** no band: the tree's scroll view is masked under the stack (`--stack`, set only when the stack changes),
   and the mask stays with the view while WebKit's own thread moves the rows. The stack is in the view, so a copy of
@@ -289,6 +290,11 @@ runs and on-demand on the final head.
   own overlay lags there); nothing ever shows under it.
 
 ### Runs (Track E, round 2)
+
+- Recorded fast scrolls (XCUITest wheel scrolls of 300 pt, both ways), dark and light, every changed frame on a sheet:
+  no row under the stack, no band; band and card 37 on 37 (dark), 244 on 244 (light).
+- Chosen on CI at d79769d3: the three tree tests and the file card's test, 4 executed, green (42173656965); the plugin
+  API test (Back on ⌃⌘←), 1 executed, green (42173681158).
 
 ## Track F: file cards (items 11, 13, 15, then 12)
 
