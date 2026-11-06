@@ -232,6 +232,7 @@ extension OvviUITests {
         // Clicks in the page wait for what it draws: its layout comes back late after the card was hidden.
         let open = page.buttons["Open a.txt"]
         XCTAssertTrue(open.has(\.isHittable, true, within: 3))
+        // The card's tab is last here, so only the ⌘-clicks below tell beside from the end.
         _ = try await opens("\(root)/a.txt", beside: tab) { open.click() }
         try await show(tab)
         let viewed = page.checkBoxes["Viewed a.txt"], line = page.staticTexts.matching(

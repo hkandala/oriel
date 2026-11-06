@@ -150,6 +150,7 @@ extension OvviUITests {
                 let label = try await paneLabel(pane)
                 return label.hasPrefix("ovvi:browser#") && label.hasSuffix(" \(two)")
             }
+            try await expectBeside(new, tab)
             XCTAssertTrue(element("tab.\(tab)").isSelected, how)
             XCTAssertTrue(pageText("ovvi-page-one").exists, how)
         }

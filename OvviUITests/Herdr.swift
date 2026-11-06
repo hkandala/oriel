@@ -168,8 +168,8 @@ extension OvviUITests {
             .compactMap { $0["tab_id"] as? String }.firstIndex(of: tab)
     }
 
-    /// A linked open's new tab: the bar shows it right after `card`'s at the first look, no capsule between them,
-    /// and herdr moves it there.
+    /// A linked open's new tab: once the bar shows it, it sits right after `card`'s with no capsule between them, and
+    /// herdr has it there. XCUITest looks too seldom to see a one-snapshot jump: that is checked by hand.
     func expectBeside(_ tab: String, _ card: String) async throws {
         XCTAssertTrue(element("tab.\(tab)").exists(within: 5))
         let after = element("tab.\(card)").frame.maxX, start = element("tab.\(tab)").frame.minX

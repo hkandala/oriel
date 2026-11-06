@@ -293,6 +293,28 @@ Runs: none (no app code).
     - The new tab shows in its final place in its first frame (an optimistic tab placed beside, as instant tabs do),
       and the strip scrolls to it.
 
+### Findings (Track J)
+
+- **Cause:** herdr makes a tab last and has no insert index on create. Phase 52 had made the tab, then moved it
+  (`tab.move`): a snapshot between showed it at the end, then it jumped. Phase 52 dropped the move, so every new tab
+  stayed at the end.
+- **Fix:** the move is back, and `Ahead.beside` places the tab before herdr has moved it. Before the create, the app
+  notes the workspace's tabs. The first other tab of that workspace in a snapshot (or herdr's answer, if it comes
+  first) shows right after the card's tab. It stays there until herdr's order matches. At the latest, herdr's order
+  shows from the third snapshot after the move's answer, so a move that herdr put somewhere else never pins the tab.
+  No stand-in: a stand-in's "New Tab" label and empty card would change under the user. The tab shows as soon as
+  herdr has it, already in place.
+- **Decisions:** ⌘-click, Open in New Tab, Git's Open File, a link's new tab (⌘-click, `target=_blank`, Open Link in
+  New Tab) and `ovvi open --tab` open right after the card's tab. ⌘T, `+` and a pane dropped on `+` stay at the end,
+  as in Safari: the user named the first group, and `+` sits at the end of the bar. Several quick opens from one tab
+  stack newest first, right after it, as herdr's moves put them. The strip scrolls only to a selected new tab. A
+  background tab sits next to the selected one, so it is nearly always in view already.
+- **Known race** (`ponytail:` in `Beside.swift`): a ⌘T pressed while a linked open's write runs can take the linked
+  tab for its stand-in. It is rare, and it existed before.
+- **For the user:** ⌘-click three or four files fast in a File Explorer tree, in a tab in the middle of many tabs,
+  on This Mac and on devvm. Each new tab must show right after the tree's tab, with no jump from the end.
+  XCUITest checks the place, not a one-snapshot jump.
+
 ## Track K: notifications check (item 22)
 
 22. "it also looks like we already implemented notifications as well right? check the research report we had earlier

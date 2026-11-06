@@ -97,7 +97,7 @@ extension HostStore {
         let placing = placeBeside(after, in: workspaceID)
         do {
             let pane = try await makePane(client, in: workspaceID, cwd: cwd, label: label, place)
-            try await moveBeside(placing, pane.tabID, after: after, in: workspaceID, client)
+            await moveBeside(placing, pane.tabID, after: after, in: workspaceID, client)
             return pane
         } catch {
             dropBeside(placing)
