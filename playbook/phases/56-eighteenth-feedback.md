@@ -315,13 +315,14 @@ Runs: none (no app code).
   reads the link it reports.
   It moves the pointer off the view first: libghostty looks for links again only on a new cell. Relative paths
   (`./`, `../`) open from the card's folder.
-- **For the user.** A browser card that asks "Open this page?" with the keyboard takes no ⌘1–⌘9 (the tab stays):
-  seen in the Markdown test, not this track's code; the test clicks the tab instead.
+- **Cause (⌘1–⌘9 after a link).** A browser card that asks "Open this page?" has the keyboard on a web view with no
+  page: WebKit takes every ⌘ key for the page and, with none there, drops it. With no page the menu goes first now.
 
 ### Runs (Track H)
 
 - 42150968413 (3 tests): terminal and browser links green; Markdown red on a test query (Services ▸ Open matched).
-- 42158851355 (4 tests with the tree's Rename menu): 3 green; Markdown red at ⌘3 back from the new browser tab (above).
+- 42158851355 (4 tests with the tree's Rename menu): 3 green; Markdown red at ⌘3 back from the new browser tab (the
+  cause above), red locally too.
 
 ## Track I: Git's diff (items 17, 18)
 

@@ -124,9 +124,8 @@ extension OvviUITests {
         XCTAssertTrue(element("tab.\(browser)").has(\.isSelected, true, within: 5))
         let label = try await paneLabel(pane(of: browser))
         XCTAssertTrue(label.hasPrefix("ovvi:browser#") && label.contains(" https://example.com"), label)
-        // A click, not ⌘3: a browser card that asks "Open this page?" takes no ⌘ digit.
-        element("tab.\(tab)").click()
-        XCTAssertTrue(element("tab.\(tab)").has(\.isSelected, true, within: 3))
+        // ⌘3 from the new card, which asks "Open this page?" with the keyboard.
+        try await show(tab)
     }
 
     /// A relative link's menu has the three opens and Copy Link; Open shows its file in the card: with no heading,

@@ -50,6 +50,13 @@ class BrowserView: WKWebView {
         }
     }
 
+    /// With no page (a card that asks "Open this page?", or is empty), the menu first: WebKit sends the key to a page
+    /// that is not there, and ⌘1–⌘9 were lost.
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        url == nil && window?.firstResponder === self && NSApp.mainMenu?.performKeyEquivalent(with: event) == true
+            || super.performKeyEquivalent(with: event)
+    }
+
     /// Per card, ⌘+ ⌘− ⌘0 while it has the keyboard (the font size items); 0 resets.
     func zoom(_ step: Int) {
         pageZoom = step == 0 ? 1 : min(3, max(0.5, pageZoom + CGFloat(step) * 0.1))
