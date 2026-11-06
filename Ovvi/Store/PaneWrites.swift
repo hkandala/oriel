@@ -215,6 +215,8 @@ extension HostStore {
                 ids.remove(at: from)
                 ids.insert(tabID, at: min(from < index ? index - 1 : index, ids.count))
                 ahead.order = Ahead.NewOrder(workspaceID: workspace.id, ids: ids)
+                // The user's order wins over a new tab still held beside its opener.
+                ahead.beside.removeAll { $0.workspaceID == workspace.id }
                 asked = ids
                 redraw()
             }

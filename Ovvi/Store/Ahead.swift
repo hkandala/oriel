@@ -341,7 +341,9 @@ extension HostStore {
     /// A new tab shown at once in the workspace, last, as "New Tab"; its stand-in id.
     func standIn(in workspaceID: String) -> String {
         let id = Ahead.standIn()
-        let known = (last?.tabs ?? []).filter { $0.workspaceID == workspaceID }.map(\.id)
+        // A beside tab herdr named that no snapshot has yet is not this stand-in's either.
+        let herdrs = (last?.tabs ?? []).filter { $0.workspaceID == workspaceID }.map(\.id)
+        let known = herdrs + ahead.beside.compactMap(\.tab)
         ahead.tabs.append(Ahead.NewTab(id: id, workspaceID: workspaceID, known: Set(known)))
         redraw()
         return id

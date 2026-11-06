@@ -209,9 +209,10 @@ private struct TabPages: View {
     var body: some View {
         let all = page.store.workspaces.flatMap(\.tabs)
         let recent = (shown.filter { id in id != tab.id && all.contains { $0.id == id } } + [tab.id]).suffix(Self.kept)
-        // In herdr's order, which a switch does not change: a moved page would host its cards' views again.
+        // In an order no switch, drop or move changes: a moved page would host its cards' views again. Only the shown
+        // page draws and takes input, so the stacking order does not matter.
         ZStack {
-            ForEach(all.filter { recent.contains($0.id) }) { kept in
+            ForEach(all.filter { recent.contains($0.id) }.sorted { $0.id < $1.id }) { kept in
                 let shows = kept === tab && !overview
                 TabPage(tab: kept, page: page)
                     .opacity(shows ? 1 : 0)

@@ -148,6 +148,7 @@ private struct Popup: View {
     let view: WKWebView
     let title: String
     let close: () -> Void
+    @Environment(\.pageHidden) private var hidden
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -158,7 +159,7 @@ private struct Popup: View {
                 IconButton(symbol: "xmark", help: "Close", size: 22, action: close)
             }
             .padding(.leading, 11).padding(.trailing, 6).frame(height: 32)
-            WebHost(view: view)
+            WebHost(view: view, hidden: hidden)
         }
         // Floating glass, not the card's fill: over a white page that left the × white on white.
         .clipShape(shape)

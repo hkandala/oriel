@@ -142,9 +142,11 @@ struct ArchivedShelf: View {
 
     /// The first page of each agent, else the next; each agent's rows show as they come.
     private func read(_ agents: [String]) async {
-        let generation = generation, exec = await page.store.machine.exec()
+        // Marked as reading before the await: a second read meanwhile would read the same offset.
+        let generation = generation
         let pages = agents.filter { !reading.contains($0) }.map { ($0, list.agents[$0]?.looked ?? 0) }
         reading.formUnion(pages.map(\.0))
+        let exec = await page.store.machine.exec()
         await withTaskGroup(of: (String, ClosedPage?).self) { group in
             for (agent, offset) in pages {
                 group.addTask {

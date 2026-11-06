@@ -161,7 +161,9 @@ struct RowsDrop: DropDelegate {
         guard page.dragging != nil else { return nil }
         let pointY = info.location.y
         if case let .workspace(id) = page.dragging {
-            let index = blocks(id).count { block in middle(block) < pointY }
+            // The place under the drag image's middle, where the rows glide in from, as a tab's.
+            let imageY = pointY - DragSource.grabbed.y + (frames[id]?.height ?? 0) / 2
+            let index = blocks(id).count { block in middle(block) < imageY }
             if state.slot != index {
                 withAnimation(.slide) { state.slot = index }
             }
