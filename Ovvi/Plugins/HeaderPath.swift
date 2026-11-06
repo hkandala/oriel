@@ -55,6 +55,7 @@ struct PathField: View {
             .accessibilityIdentifier("\(identifier).choose")
             TextField(control.label ?? "", text: $draft)
                 .focused($editing)
+                .blursWhenHidden($editing)
                 // Hidden under the short path while not editing; not by opacity: SwiftUI focuses no view at 0.
                 .foregroundStyle(editing ? AnyShapeStyle(.primary) : AnyShapeStyle(.clear))
                 .accessibilityIdentifier(identifier)

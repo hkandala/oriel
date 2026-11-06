@@ -166,9 +166,9 @@ private struct Popup: View {
     }
 }
 
-/// Shows a web view the registry owns; the newest host adopts it. A card out of view takes its web view out of the
-/// window with it, and the web view lives on (hidden ones saw dropped events otherwise). The host fits it to itself
-/// once a motion ends, as a terminal's does.
+/// Shows a web view the registry owns; the newest host adopts it. A card whose page goes takes its web view out of the
+/// window with it, and the web view lives on; a kept page out of view hides the host (`SettlingHost.hide`). The host
+/// fits it to itself once a motion ends, as a terminal's does.
 struct WebHost: NSViewRepresentable {
     let view: WKWebView
 
@@ -229,6 +229,7 @@ struct BrowserToolbar: View {
                 .foregroundStyle(look.paneButton)
                 .accessibilityIdentifier("\(id).inspector")
         }
+        .blursWhenHidden($editing)
     }
 
     /// The host in full and the rest at half while not editing; a click or ⌘L selects it all. Return and Esc give the

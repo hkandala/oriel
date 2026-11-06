@@ -99,6 +99,7 @@ struct NewPaneFolder: View {
     private func field(_ folder: String) -> some View {
         TextField("Folder", text: $draft)
             .focused($focused)
+            .blursWhenHidden($focused)
             .accessibilityIdentifier("pane.\(cardID).chooser.folder.field")
             .onSubmit { submit(from: folder) }
             .onExitCommand(perform: stop)

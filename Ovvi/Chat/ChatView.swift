@@ -25,6 +25,7 @@ struct ChatView: View {
         }
         // Esc stops the agent while it works, as in its TUI.
         .onExitCommand(perform: chat.stop)
+        .blursWhenHidden($composing)
         // A click anywhere, on text too, gives the card the keyboard: the reply box, or the drawer's terminal. A
         // button's or a link's click acts as well. Not a double or triple click or a ⇧-click, which select text (Copy
         // needs it to stay), nor a ⌃-click, which opens the menu.

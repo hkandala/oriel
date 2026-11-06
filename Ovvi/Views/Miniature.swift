@@ -141,6 +141,7 @@ struct MiniTerminal: NSViewRepresentable {
 
     func makeNSView(context _: Context) -> Mini {
         let mini = Mini()
+        mini.lender = terminal.view.superview
         mini.size = size
         mini.wantsLayer = true
         mini.clipsToBounds = true
@@ -153,8 +154,17 @@ struct MiniTerminal: NSViewRepresentable {
         mini.fit()
     }
 
+    /// The view goes back to the card's host it came from, in a kept page under the overview (`TabPages`), unless a
+    /// newer host took it.
+    static func dismantleNSView(_ mini: Mini, coordinator _: ()) {
+        if let view = mini.subviews.first, let lender = mini.lender, lender.window != nil {
+            lender.addSubview(view)
+        }
+    }
+
     final class Mini: NSView {
         var size = CGSize.zero
+        weak var lender: NSView?
         private var fitting: Task<Void, Never>?
 
         override var isFlipped: Bool {

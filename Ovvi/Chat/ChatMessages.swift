@@ -23,6 +23,9 @@ struct ChatMessages: View, Equatable {
     @State private var first: String?
     /// Show Earlier's rows are on their way: its spinner shows.
     @State private var earlier = false
+    /// The card drew once: its rows come on the next turn, so a switch to a tab whose chat is made draws the window,
+    /// the tab and the card in the click's own turn (the rows take 124 ms of a long chat).
+    @State private var drawn = false
     /// The offset the row at the top asks for. Only asked, never told: a place the scroll view names as a scroll
     /// begins or ends, given back to it, snaps that row to the top, a jump past the fingers.
     @State private var position = ScrollPosition(idType: String.self)
@@ -54,7 +57,9 @@ struct ChatMessages: View, Equatable {
         Group {
             // No scroll view until there is something to show: one made empty keeps the top inset that held its empty
             // content at the bottom after a long history loads, a blank above the messages.
-            if chat.history.entries.isEmpty, chat.loading || (chat.outgoing.isEmpty && chat.problem == nil) {
+            if !drawn {
+                Color.clear.task { drawn = true }
+            } else if chat.history.entries.isEmpty, chat.loading || (chat.outgoing.isEmpty && chat.problem == nil) {
                 empty
             } else {
                 messages

@@ -114,7 +114,8 @@ struct Detail: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 // As the tab bar's marker: the first tab until a snapshot settles the selection.
-                TabPages(tab: workspace.tabs[page.selectedIndex(in: workspace)], page: page).id(page.id)
+                TabPages(tab: workspace.tabs[page.selectedIndex(in: workspace)], page: page, overview: pages.overview)
+                    .id(page.id)
             }
         } else if page.store.state == .live {
             // Not while it reconnects before its first snapshot.
@@ -192,11 +193,13 @@ struct Detail: View {
 }
 
 /// The selected tab's page over the pages of the tabs shown last, which stay made, hidden: a switch to one of them
-/// shows it as it was, with nothing built again (a chat's rows, its scroll place, a web card in the window). A view of
-/// its own per tab: a shared one would carry its cards' places into the next tab's.
+/// shows it as it was, with nothing built again (a chat's rows, its scroll place, a web card in the window). Under the
+/// overview every page stays, hidden. A view of its own per tab: a shared one would carry its cards' places into the
+/// next tab's.
 private struct TabPages: View {
     let tab: HostStore.Tab
     let page: Page
+    let overview: Bool
     /// The tabs shown before, the latest last.
     @State private var shown: [String] = []
     /// ponytail: a fixed count; a kept page costs its cards' updates while hidden. Bound by the cards' cost if a
@@ -204,18 +207,17 @@ private struct TabPages: View {
     static let kept = 8
 
     var body: some View {
-        let recent = (shown.filter { $0 != tab.id } + [tab.id]).suffix(Self.kept)
+        let all = page.store.workspaces.flatMap(\.tabs)
+        let recent = (shown.filter { id in id != tab.id && all.contains { $0.id == id } } + [tab.id]).suffix(Self.kept)
         // In herdr's order, which a switch does not change: a moved page would host its cards' views again.
-        let tabs = page.store.workspaces.flatMap(\.tabs).filter { recent.contains($0.id) }
         ZStack {
-            ForEach(tabs.contains { $0 === tab } ? tabs : tabs + [tab]) { kept in
-                let selected = kept === tab
+            ForEach(all.filter { recent.contains($0.id) }) { kept in
+                let shows = kept === tab && !overview
                 TabPage(tab: kept, page: page)
-                    .opacity(selected ? 1 : 0)
-                    .allowsHitTesting(selected)
-                    .accessibilityHidden(!selected)
-                    .zIndex(selected ? 1 : 0)
-                    .environment(\.pageHidden, !selected)
+                    .opacity(shows ? 1 : 0)
+                    .allowsHitTesting(shows)
+                    .accessibilityHidden(!shows)
+                    .environment(\.pageHidden, !shows)
             }
         }
         .onChange(of: tab.id, initial: true) { shown = Array(recent) }
@@ -225,6 +227,27 @@ private struct TabPages: View {
 extension EnvironmentValues {
     /// In a kept tab's page out of view (`TabPages`).
     @Entry var pageHidden = false
+}
+
+extension View {
+    /// A text field in a kept page that goes out of view gives up the keyboard: keys typed after the switch must not
+    /// reach it.
+    func blursWhenHidden(_ focus: FocusState<Bool>.Binding) -> some View {
+        modifier(BlurWhenHidden(focus: focus))
+    }
+}
+
+private struct BlurWhenHidden: ViewModifier {
+    let focus: FocusState<Bool>.Binding
+    @Environment(\.pageHidden) private var hidden
+
+    func body(content: Content) -> some View {
+        content.onChange(of: hidden) {
+            if hidden {
+                focus.wrappedValue = false
+            }
+        }
+    }
 }
 
 /// A spinner and one line, after `delay`.

@@ -273,11 +273,11 @@ private struct WindowContent: View {
                         .zIndex(1)
                         .transition(.move(edge: .leading).combined(with: .opacity))
                 }
-                if !pages.overview {
-                    // At once, also when the sidebar moves in the same update (⌘. from the overview).
-                    Detail(pages: pages, page: page).frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .transition(.identity)
-                }
+                // Also under the overview, hidden, so its kept pages stay (ui/window#tab-page).
+                Detail(pages: pages, page: page).frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .opacity(pages.overview ? 0 : 1)
+                    .allowsHitTesting(!pages.overview)
+                    .accessibilityHidden(pages.overview)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             .overlay {

@@ -488,12 +488,16 @@ tab at once.
   shows it as it was and builds nothing: a chat keeps its rows (Show Earlier's
   too) and its scroll place, and a web card stays in the window. In a hidden
   page the terminal and web views are hidden too, so no mouse move, cursor or
-  hover reaches them, and they give up the keyboard. A tab past the 8, a
-  session switch or the overview makes its page again.
+  hover reaches them, and they give up the keyboard, as do the cards' text
+  fields. The overview keeps them too, all hidden. A tab past the 8 or a
+  session switch makes its page again. A chat card made for its tab's first
+  show draws its rows on the next run loop turn, so the switch draws the tab
+  and the card frames in the click's own turn.
 - When the page's size changes (the sidebar, the window), the selected
-  workspace's other tabs' kept terminals take their card's new size once it
-  settles, while hidden, as Ghostty's hidden tabs do: their programs hear of it
-  then, and a switch to the tab shows no reflow.
+  workspace's other tabs' kept terminals, and every kept page's terminals,
+  take their card's new size once it settles, while hidden, as Ghostty's
+  hidden tabs do: their programs hear of it then, and a switch to the tab shows
+  no reflow.
 - A pane the app creates shows the [New pane](/docs/ui/new-pane) chooser
   first: Terminal, Agent, Browser, File Explorer or Git.
 - Inside a page, pane cards follow herdr's split tree, with an 8 pt gap
@@ -781,7 +785,8 @@ agents at once.
   `bubble.left.and.bubble.right`). A tile makes no web view, proxy or transcript read, and takes no web
   view from its card (one that did drew blank as it went back).
 - A tile's terminal that streams draws live, scaled by AppKit (a layer transform): libghostty keeps
-  its size and grid, and herdr's PTY keeps the card's size.
+  its size and grid, and herdr's PTY keeps the card's size. The tile takes the terminal's view from
+  its card in the kept page under the overview and gives it back when the tile goes.
 - Cost: a live card keeps its surface at full card size (its swap chain:
   [What streams](/docs/talking-to-herdr#what-streams)), which is why the cap is in megabytes. Tiles cannot
   get smaller surfaces: libghostty-spm takes its content scale only from the window.

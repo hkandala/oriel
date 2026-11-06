@@ -3,7 +3,8 @@ import SwiftUI
 
 extension Page {
     /// The pane's browser or plugin card, made on first use; `make` false: only one made before (a kept page out of
-    /// view must not make again a card the registry dropped).
+    /// view must not make again a card the registry dropped). ponytail: a hidden card holds a dropped card's web view
+    /// until its next body, usually the next snapshot; make the registry observed if that wait matters.
     func cards(_ pane: HostStore.Pane?, make: Bool = true) -> (Browser?, Plugin?) {
         guard make else {
             let id = pane?.terminalID ?? ""
@@ -22,6 +23,25 @@ extension Page {
         return label.manifest.map { plugin in
             plugin.entry == nil || plugin.hasRow
         } ?? false
+    }
+
+    /// The keyboard goes to the previous or next card in the tab's tree, round the ends; not to a floated one.
+    func stepCard(_ offset: Int) {
+        guard let ids = selectedTab?.tree?.paneIDs.filter({ store.pane($0).map { !floats($0) } == true }),
+              let from = keyboardPane,
+              let index = ids.firstIndex(of: from.id),
+              let pane = store.pane(ids[(index + offset + ids.count) % ids.count]) else { return }
+        go(to: pane)
+    }
+
+    /// The chats of a tab that leaves view take their picture (their overview tile) before SwiftUI hides its kept
+    /// page, which leaves them none to give (`ChatProbe`).
+    func leaving(_ tabID: String?) {
+        for id in store.panes(in: tabID).compactMap(\.terminalID) {
+            if let picture = terminals.chatViews[id]?() {
+                terminals.keep(id, picture)
+            }
+        }
     }
 
     /// The card's header: one row or two.

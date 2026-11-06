@@ -10,7 +10,10 @@ final class Page: Identifiable {
     let terminals: PaneViewRegistry
     /// The app's own selection, never herdr's focus (D13).
     var selectedWorkspaceID: String? {
-        didSet { newest = selectedWorkspaceID == oldValue ? newest : nil }
+        didSet {
+            newest = selectedWorkspaceID == oldValue ? newest : nil
+            leaving(oldValue.flatMap { selectedWorkspaceID != $0 ? selectedTabIDs[$0] : nil })
+        }
     }
 
     /// Each workspace's selected tab. Starts at herdr's active tab.
@@ -19,6 +22,7 @@ final class Page: Identifiable {
             for (workspace, tab) in oldValue where selectedTabIDs[workspace] != tab {
                 // A split's newest card is no ⌘D target in another tab.
                 newest = nil
+                leaving(workspace == selectedWorkspaceID ? tab : nil)
                 usedTabIDs[workspace, default: []].removeAll { $0 == tab }
                 usedTabIDs[workspace, default: []].append(tab)
             }
@@ -387,14 +391,5 @@ extension Page {
     /// The snapshot after it selects the new workspace.
     func newWorkspace(label: String? = nil, cwd: String = "~") async {
         arriving = await store.newWorkspace(label: label, cwd: cwd)?.tabID ?? arriving
-    }
-
-    /// The keyboard goes to the previous or next card in the tab's tree, round the ends; not to a floated one.
-    func stepCard(_ offset: Int) {
-        guard let ids = selectedTab?.tree?.paneIDs.filter({ store.pane($0).map { !floats($0) } == true }),
-              let from = keyboardPane,
-              let index = ids.firstIndex(of: from.id),
-              let pane = store.pane(ids[(index + offset + ids.count) % ids.count]) else { return }
-        go(to: pane)
     }
 }

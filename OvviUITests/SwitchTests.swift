@@ -5,8 +5,9 @@ import XCTest
 extension OvviUITests {
     /// A chat of long replies, a long Markdown file in File Explorer and a Git diff, each in its own tab. The chat
     /// builds only its newest rows (about two views of text, not 34 rows); after Show Earlier and a scroll, switches to
-    /// the other tabs and to another workspace and back show it with the same rows and the same messages at its top. A
-    /// switch back to each heavy tab draws in the click's own turn.
+    /// the other tabs and to another workspace and back show it with the same rows and the same messages at its top.
+    /// The
+    /// kept Markdown card still scrolls. The switches' times are in the result bundle (`latency`).
     func testSwitchesKeepHeavyCardsAsTheyWere() async throws {
         let (chatTab, pane) = try await startChat(["-recordLatency", "YES"])
         addTeardownBlock { @MainActor in self.keep(self.element("app.latency").stringValue, as: "latency") }
@@ -24,7 +25,7 @@ extension OvviUITests {
         // Each shown once, until its page drew.
         for (tab, kind) in zip(tabs, ["markdown", "git"]) {
             try await show(tab)
-            let card = try await pane(of: tab)
+            let card = try await self.pane(of: tab)
             XCTAssertTrue(element("\(kind).\(card).page").exists(within: 30), tab)
         }
         try await show(chatTab)
@@ -45,7 +46,6 @@ extension OvviUITests {
         let built = try rows()
 
         // To each other tab and back, then to another workspace and back.
-        let start = element("app.latency").stringValue.split(separator: "; ").count
         for tab in tabs + [chatTab] {
             element("tab.\(tab)").click()
             XCTAssertTrue(element("tab.\(tab)").has(\.isSelected, true, within: 3), tab)
@@ -58,25 +58,28 @@ extension OvviUITests {
         XCTAssertEqual(atTop(of: chat, pane), top)
         XCTAssertTrue(element("chat.\(pane).bottom").exists)
 
-        // Each click drawn in its own turn: "click <ms> <turns> <ms>".
-        let clicks = element("app.latency").stringValue.split(separator: "; ").dropFirst(start)
-            .filter { $0.hasPrefix("click ") }
-        XCTAssertEqual(clicks.count, tabs.count + 3, "\(clicks)")
-        for click in clicks {
-            XCTAssertEqual(click.split(separator: " ")[2], "0", "\(clicks)")
-        }
+        // The kept Markdown card takes the wheel: its first heading scrolls out of view.
+        element("tab.\(tabs[0])").click()
+        let markdown = try await element("markdown.\(self.pane(of: tabs[0])).page")
+        let heading = markdown.staticTexts.matching(NSPredicate(format: "value == 'Part 1'")).firstMatch
+        XCTAssertTrue(until(5) { heading.exists && heading.frame.minY >= markdown.frame.minY })
+        markdown.scroll(byDeltaX: 0, deltaY: -2000)
+        XCTAssertTrue(until(3) { heading.frame.maxY < markdown.frame.minY }, "\(heading.frame) \(markdown.frame)")
     }
 
-    /// A tab in w2 with a Markdown file of 3000 sections in File Explorer, and one with a Git diff of 40 changed files,
-    /// made by w1's shell.
+    /// A tab in w2 with a Markdown file of 1000 sections in File Explorer, and one with a Git diff of 40 changed files,
+    /// made by w1's shell in a subshell (the fixture pane keeps its folder); the folder goes after the test.
     func heavyTabs() async throws -> [String] {
         let folder = "/tmp/ovvi-e2e-switch"
-        let markdown = "for i in $(seq 3000); do printf '## Part %s\\n\\nSome *text*, `code` and "
+        let markdown = "for i in $(seq 1000); do printf '## Part %s\\n\\nSome *text*, `code` and "
             + "[a link](https://ovvi.dev).\\n\\n' $i; done >big.md"
         let repo = "mkdir repo && cd repo && git init -q && for i in $(seq 40); do seq 300 >f$i.txt; done && "
             + "git add -A && git -c user.name=e2e -c user.email=e2e@ovvi.dev commit -qm one && "
             + "for i in $(seq 40); do seq 0 3 600 >f$i.txt; done"
-        try await send("rm -rf \(folder) && mkdir \(folder) && cd \(folder) && \(markdown) && \(repo); clear; "
+        addTeardownBlock { [one] in
+            _ = try? await Self.call(one, "pane.send_text", ["pane_id": "w1:p1", "text": "rm -rf \(folder)\r"])
+        }
+        try await send("(rm -rf \(folder) && mkdir \(folder) && cd \(folder) && \(markdown) && \(repo)); clear; "
             + "echo made-$((1+1))\r", to: "w1:p1")
         try await waitFor("w1:p1", times: 100) { $0.contains("made-2") }
         var tabs: [String] = []

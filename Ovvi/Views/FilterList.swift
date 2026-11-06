@@ -299,6 +299,7 @@ struct RenameField: View {
 
     var body: some View {
         TextField(prompt, text: $draft).textFieldStyle(.plain).focused($focused)
+            .blursWhenHidden($focused)
             .onSubmit {
                 commit(draft)
                 end()
