@@ -15,6 +15,8 @@ struct Palette: View {
     @State private var lit: String?
     /// The choice a preview page opened on: it keeps the checkmark, and leaving without Enter picks it again.
     @State private var kept: String?
+    /// The root's filter when it names a file or folder on the page's machine, and its path: an Open row first.
+    @State private var pasted: (filter: String, path: String)?
 
     var body: some View {
         let list = commands.all
@@ -45,8 +47,8 @@ struct Palette: View {
 
     private func palette(_ command: Command?, _ list: [Command]) -> some View {
         FilterList(
-            prompt: command?.name == nil ? "Search" : "Name",
-            fieldSymbol: command?.name == nil ? "magnifyingglass" : "pencil",
+            prompt: command?.field?.prompt ?? (command?.name == nil ? "Search" : "Name"),
+            fieldSymbol: command?.field != nil ? command?.symbol : command?.name == nil ? "magnifyingglass" : "pencil",
             name: "palette",
             items: command.map(subItems) ?? { rootItems($0, list) },
             // The root lights the selected tab: ↩ on a fresh palette stays put. A floating window's lists no tabs.
@@ -56,7 +58,8 @@ struct Palette: View {
             // Only a preview page reads it: on the others each new light drew the whole palette again.
             lit: command?.previews == true ? $lit : nil,
             text: command?.name?.current ?? "",
-            submit: command?.name.map { name in { text in Task { await name.save(text) } } },
+            submit: command?.name.map { name in { text in Task { await name.save(text) } } } ?? command?.field?.open,
+            typed: command == nil && commands.floating == nil ? { await check($0) } : nil,
             back: sub == nil ? nil : { back() },
             rowHeight: 32,
             inset: 10,
@@ -87,7 +90,11 @@ struct Palette: View {
             let rows = (places + commands).map(\.item)
             return Command.Group.allCases.flatMap { group in rows.filter { $0.section == group.rawValue } }
         }
-        return (commands + places).enumerated().compactMap { index, row in
+        let open = pasted.flatMap { pasted in
+            pasted.filter == filter ? FilterList.Item(id: "open-path", symbol: "doc", title: "Open \(pasted.path)",
+                                                      act: { page.open(path: pasted.path) }) : nil
+        }
+        return [open].compactMap(\.self) + (commands + places).enumerated().compactMap { index, row in
             [row.item.title.fuzzyScore(filter), row.keywords.fuzzyScore(filter).map { $0 + 3 }].compactMap(\.self)
                 .min().map { score in
                     let starts = row.item.title.range(of: filter, options: [.anchored, .caseInsensitive,
@@ -110,7 +117,7 @@ struct Palette: View {
         Command.Section.allCases.filter { ![.tabs, .workspaces, .sessions].contains($0) }
             .flatMap { section in list.filter { $0.section == section } }
             .filter { $0.enabled && $0.key != .palette }.map { command in
-                let opens = !command.menu.isEmpty || command.name != nil
+                let opens = !command.menu.isEmpty || command.name != nil || command.field != nil
                 let title = command.checked
                     .flatMap { command.setting ? "Turn \($0 ? "Off" : "On") \(command.title)" : nil }
                     ?? (opens ? Self.pageTitle(command) : command.title)
@@ -171,6 +178,16 @@ struct Palette: View {
                                            choice.action()
                                        })
             }
+        }
+    }
+
+    /// A filter that looks like a path (`/`, `~`, `./`, `../`) and names a file or folder offers to open it.
+    private func check(_ filter: String) async {
+        let text = filter.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard ["/", "~", "./", "../"].contains(where: text.hasPrefix) else { return pasted = nil }
+        let path = await page.resolve(text)
+        if !Task.isCancelled {
+            pasted = path.map { (filter, $0) }
         }
     }
 

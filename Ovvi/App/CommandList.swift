@@ -105,7 +105,7 @@ struct CommandList {
         let list = file + Self.pane(page, tabs: tabs) { [page] in page?.keyboardPane } + close + edit + Self
             .browser(browser, chooser: page?.keyCardID.flatMap { page?.store.chooser($0) })
             + view + paneKeys
-            + palette(page) + window(page, pages)
+            + palette(page) + Self.opens(page) + window(page, pages)
         let all = list + Self.plugin(page?.keyboardPane?.terminalID.flatMap { page?.terminals.builtPlugin($0) },
                                      besides: list)
         guard pages == nil else { return all }

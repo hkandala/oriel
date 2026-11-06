@@ -286,7 +286,8 @@ ovvi open explorer . --float                      # a file tree in a floating wi
   absolute path.
 - **The argument** follows the kind's `opens`: a URL, a file's path or a
   folder. Git takes a folder of a repository (the card gets its root) and
-  then `uncommitted` or a commit hash (4 to 40 hex digits). File Explorer
+  then `uncommitted` or a commit: a hash (4 to 40 hex digits), or a ref
+  (`main`, `HEAD~2`) that the card gets as its commit's hash. File Explorer
   takes a folder as Open File Explorer Here does: the git root when there is
   one. `browser ./page.html` is a `file://` URL, and a path's `?query` and
   `#fragment` stay the URL's (`browser "./page.html?v=3"`). A file whose

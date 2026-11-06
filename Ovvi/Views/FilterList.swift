@@ -50,6 +50,8 @@ struct FilterList: View {
     var text = ""
     /// Enter acts on the field's text instead of a row (a name page).
     var submit: ((String) -> Void)?
+    /// Each new filter, until a newer one (the palette looks for a pasted path).
+    var typed: ((String) async -> Void)?
     /// ⌫ on an empty field, or Esc: back a page. Without it Esc goes on to close the panel.
     var back: (() -> Void)?
     var rowHeight: CGFloat = 26
@@ -162,6 +164,7 @@ struct FilterList: View {
             scrolls.map(NSEvent.removeMonitor)
             scrolls = nil
         }
+        .task(id: filter) { await typed?(filter) }
         // A cleared filter lights the start row again.
         .onChange(of: filter) {
             pointed = false
@@ -312,8 +315,9 @@ struct RenameField: View {
 }
 
 extension View {
-    /// A text field in a soft capsule; roomier and in a larger font at `.controlSize(.large)` (the palette). `fill`
-    /// off keeps only its padding (New Pane's folder line at rest).
+    /// A text field in a soft capsule; at `.controlSize(.large)` (the palette) roomier, in a larger font and a
+    /// stronger fill, in a rounded rectangle concentric with the panel. `fill` off keeps only its padding (New Pane's
+    /// folder line at rest).
     func fieldCapsule(fill: Bool = true) -> some View {
         modifier(FieldCapsule(fill: fill))
     }
@@ -339,9 +343,11 @@ private struct FieldCapsule: ViewModifier {
 
     func body(content: Content) -> some View {
         let large = size == .large
+        // The palette's radius (14) less its inset (10).
+        let shape = large ? AnyShape(.rect(cornerRadius: 4)) : AnyShape(.capsule)
         content.textFieldStyle(.plain).transformEnvironment(\.font) { font in font = large ? .system(size: 15) : font }
             .padding(.horizontal, large ? 12 : 8).padding(.vertical, large ? 9 : 5)
-            .background(.primary.opacity(fill ? 0.07 : 0), in: .capsule)
+            .background(.primary.opacity(fill ? large ? 0.1 : 0.07 : 0), in: shape)
     }
 }
 

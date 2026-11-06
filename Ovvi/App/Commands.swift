@@ -235,6 +235,9 @@ struct Command {
     var previews = false
     /// The palette's name page: the current name, and what Enter does with the field.
     var name: (current: String, save: (String) async -> Void)?
+    /// The palette's field page that opens what it names (Open File…): the field's prompt, and what Enter does with
+    /// the field, as the key comes in.
+    var field: (prompt: String, open: (String) -> Void)?
     var action: () -> Void = {}
 
     /// What the menu bar shows of it.

@@ -840,7 +840,9 @@ A window that watches a session another window controls (D66).
   the list is scrolled to its end. Open Session's list does the same with its
   8 pt. The search field says
   "Search", in 15 pt text with 12 pt of padding at its sides and 9 pt above
-  and below.
+  and below. It is a rounded rectangle of radius 4 pt, the panel's 14 pt less
+  its 10 pt inset, so its corners follow the panel's. Its fill is the text
+  color at 10 % (other fields use 7 %).
 - **Rows.** 32 pt: a symbol, the title, and on the right the shortcut, or ›
   for a row that opens a sub-page. The shortcut is one keycap per key (⇧, ⌘,
   W), the same caps as the tabs' ⌘1 hints. The selected row is an accent pill,
@@ -874,6 +876,20 @@ A window that watches a session another window controls (D66).
   - Font Size ›: 8 to 32 pt.
   - Start Agent Here ›: Claude Code, Codex, Pi and OpenCode
     ([New pane](/docs/ui/new-pane#commands-that-change-a-panes-kind)).
+  - Open File ›: a field for a path. `~` is the home folder, and a
+    relative path starts at the keyboard card's folder, on its machine.
+    Enter opens the file or folder with its default plugin, as
+    [`ovvi open ‹path›`](/docs/agent-control/cli#open) does, in a new tab;
+    ⌥Enter opens it to the side. A path that names nothing gives a notice.
+  - Open Commit ›: a field for a commit's hash or a ref (`main`,
+    `HEAD~2`). Enter opens Git at that commit of the keyboard card's
+    repository, as `ovvi open git . ‹commit›` does; ⌥Enter to the side.
+- **Open Working Tree** opens Git at the uncommitted changes of the
+  keyboard card's repository, in a new tab (⌥Enter: to the side).
+- **A typed path.** On the first page, a filter that starts with `/`, `~`,
+  `./` or `../` and names a file or folder on the page's machine gets the row
+  **Open ‹path›** first. Enter opens it as Open File does; ⌥Enter to the
+  side.
 - **Go to Directory** (⇧⌘G, which is Find Previous over a File or Markdown
   card) opens the system folder panel at the keyboard
   card's folder. Choosing a folder types `cd -- '‹path›'` and Return into the

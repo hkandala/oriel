@@ -60,6 +60,15 @@ public enum Git {
         return root.isEmpty ? nil : root
     }
 
+    /// The hash of the commit a ref names (`main`, `HEAD~2`, a short hash), or nil when it names none.
+    public static func commit(_ ref: String, in root: String, exec: any Exec) async -> String? {
+        // Never an option.
+        guard !ref.isEmpty, !ref.hasPrefix("-") else { return nil }
+        let hash = await (try? exec.output(["git", "-C", root, "rev-parse", "--verify", "--quiet", "\(ref)^{commit}"],
+                                           timeout: .seconds(5))) ?? ""
+        return hash.isEmpty ? nil : hash
+    }
+
     /// The changed files, each untracked file on its own.
     public static func status(_ root: String, exec: any Exec) async throws -> [Change] {
         try await Change.parse(exec.checkedOutput(["git", "--no-optional-locks", "-C", root, "status",
