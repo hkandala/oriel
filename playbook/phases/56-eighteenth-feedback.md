@@ -507,18 +507,41 @@ Runs: none (no app code).
     jump to different positions, check all of this, and give me good ux experience for agents view overall".
     - A report only: why herdr has both, how T3 Code and others do it, 3–4 options for the states and the order with
       mockups from real screenshots, and a recommendation.
+    - Then, on reading the report: "going back to agent view report, let's do option c, the t3code style, we just list
+      all agents as per recency, that kinda fixes the my ordering ask as well, i would want to extend this bit more
+      though, in t3code, at the bottom of sidebar there is option called settled or archived etc, so let's have like two
+      groups, one group is idle ones but are idle for quite some time like idle for few hours or so, this can be
+      configurable though, and another one is archived, this archived should have all sessions which are closed,
+      basically for those we just need to track session id, title, what agent etc, basically i might want to resume
+      certain session which have been closed quite sometime back, and this should be lazy loaded of course as this can
+      grow, also when these collapsed groups are expanded, they expand only for certain length, may be shows like 5
+      sessions max with scrollable container, but for archived ones, we need to figure out how we track it, is it more
+      of getting all sessions from all the agents from their session transcripts or something like that, basically for
+      all 4 supported agents we have we should show all agents that are started, showing their dir, and sorted by of
+      course most recent ones, and within this archived ones, we can have some filter based on agent type etc, and also
+      one more thing finally, we should have pinned option which should be shown at top in pinned section all the time,
+      this is what my rough idea is, give me bunch of mockups based on this and replace the existing html for agents
+      view", and "check t3code ui for reference".
+    - A second report, replacing the first: option C built out with Pinned, Settled and Archived, how to know the closed
+      sessions of the 4 agents, lettered mockups beside T3 Code's real sidebar, a recommendation and a cost.
 
 ### Findings (Track L)
 
-- herdr's `done` is `idle` plus "not seen" (`pane_agent_status`, `src/app/api_helpers.rs`): an unread flag, not a
-  state. herdr's own Priority sort puts the newest `state_change_seq` first inside each status.
-- Rows jump because a change of state moves a row to another group, where it lands in workspace order, with no motion;
-  and a click on one agent moves the one you leave from Done to Idle in the same frame.
-- T3 Code has no Done group: a green Done mark on an unread thread, cleared by the visit; rows move 2 s late and slide.
-  No app read (Superset, Vibe Kanban, cmux, Conductor, Codex, Claude Code, Cursor) has Done beside Idle.
-- Recommended: Done folds into Idle as the check box on the row (it goes when you leave; the row stays); newest
-  `state_change_seq` first in each group; no move while the pointer is over the list, then a 0.2 s slide; 1 s settle.
-  About 6 agent hours, no herdr change.
+- First report: herdr's `done` is `idle` plus "not seen" (`pane_agent_status`, `src/app/api_helpers.rs`), an unread
+  flag; rows jump because a change of state moves a row into another group in workspace order, with no motion. The
+  user chose its option C, T3 Code's one list by recency (the first report is kept in
+  `~/Downloads/ovvi-research/agents-view-src/v1/`).
+- Second report, recommended: Pinned on top (no label, pinned from the row's menu, as T3 Code); one list of live agents,
+  newest `state_change_seq` first, states as today's boxes; two folded shelves at the sidebar's foot: Settled (idle and
+  seen longer than Settings ▸ Agents ▸ "Settle idle agents after", 3 h; slim rows) and Archived (closed sessions of
+  the 4 agents, read lazily from the agents' own stores, 50 a page, chips by agent, title, folder and age, a click
+  resumes in a new tab of the workspace for its folder); open shelves show 5 rows and scroll; no move while the pointer
+  is over the list, then a 0.2 s slide.
+- Archived: Pi and Claude Code keep one JSONL file a session, Codex and OpenCode a SQLite index; the newest 50 of all
+  four read in 0.3–0.8 s with one process each (never one per file). herdr keeps nothing about closed panes. Claude
+  Code resumes only in the session's folder. Resume reuses `ChatAdapters.launch(_:resume:)`, titles reuse
+  `SessionTitle.swift`.
+- About 16 agent hours in two tracks (the list, Pinned and Settled 7 h; Archived and Resume 9 h). No herdr change.
 - Report: `~/Downloads/ovvi-research/agents-view-ux.html`.
 
 ### Runs (Track L)
