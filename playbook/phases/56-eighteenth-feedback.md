@@ -96,6 +96,8 @@ runs and on-demand on the final head.
   browser, zoom, chooser): 29 green; the new test failed on a capsule out of CI's view.
 - 42159731444: the new test red at its scroll check (the heading leaves WebKit's tree), RevealTests green.
 - 42160486077: the new test green, 1 test executed.
+- 42163183559: on the pushed head (rebased): the new test, RevealTests' every-path test and the tab switch test green,
+  3 tests executed.
 - **Pictures.** The chat tab after a switch back looks the same before and after, dark and light:
   `/tmp/ovvi-shots/p56a/{before,after}-chat-{dark,light}.png`.
 
