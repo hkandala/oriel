@@ -102,6 +102,7 @@ private struct PluginFailure: View {
     let problem: PluginProblem
     @State private var building = false
     @Environment(\.look) private var look
+    @Environment(\.litCard) private var lit
 
     var body: some View {
         let id = "pane.\(plugin.paneID)"
@@ -126,7 +127,7 @@ private struct PluginFailure: View {
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         // Over what the page drew before it stopped.
-        .background(look.cardSolid())
+        .background(look.cardSolid(keyboard: lit))
     }
 
     /// Build runs the package's build script first; Reload and Try Again load the page again.

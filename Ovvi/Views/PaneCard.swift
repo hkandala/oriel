@@ -97,7 +97,7 @@ struct PaneCard: View {
                         }
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity).environment(\.keyboardCard, lit)
+            .frame(maxWidth: .infinity, maxHeight: .infinity).environment(\.litCard, lit)
             // The card's menu also over the chooser, which takes the terminal's clicks.
             .overlay {
                 NewPaneOverlay(chooser: floated ? nil : chooser, page: page, cardID: id)

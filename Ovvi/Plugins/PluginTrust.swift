@@ -71,6 +71,7 @@ struct TrustPrompt: View {
     let plugin: Plugin
     let page: Page
     @Environment(\.look) private var look
+    @Environment(\.litCard) private var lit
 
     var body: some View {
         let manifest = plugin.manifest, id = "pane.\(plugin.paneID).trust"
@@ -110,6 +111,6 @@ struct TrustPrompt: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(look.cardSolid())
+        .background(look.cardSolid(keyboard: lit))
     }
 }

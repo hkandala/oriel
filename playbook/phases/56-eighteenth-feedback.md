@@ -254,7 +254,8 @@ runs and on-demand on the final head.
   out (no API has it). Git's own symbols for Fetch, Pull and Push. A branch with no upstream shows no Push: Git's
   Push publishes it.
 - **Item 7, the padding.** The card's 10 pt inset sits under the page, so the bar's text had 13 pt above and 21 pt
-  below. The bar now adds 10 px above (26 px tall, 16 px buttons): 12.5 pt above and 12.5 pt below, dark and light.
+  below. The bar now adds 10 px above (27 px tall, 16 px buttons): from the line to the text's cap 13 pt (13.5 in light),
+  from its baseline to the card's edge 12.5 pt, dark and light.
 
 ### Runs (Track E)
 

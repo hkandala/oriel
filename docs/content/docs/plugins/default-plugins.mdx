@@ -393,8 +393,9 @@ selection in the accent at 24 %. A 6 pt gap sits under the header.
 - The tree and the letters update after each change under the root while
   the card shows. The open folders list again. A root that cannot be listed
   shows "Can't list ‹root›" in the middle of the card, under a folder icon.
-- **The status bar.** A line under the tree, with the same space above its
-  text as below it to the card's edge. It hides only while the root cannot
+- **The status bar.** A 27 pt line under the tree (16 pt buttons), with
+  10 pt more above its text, so the space above the text and below it to
+  the card's edge (the card's 10 pt inset) is the same. It hides only while the root cannot
   be listed:
   - **At the left**, the folder: on a remote machine the machine's name first
     (`server.rack`), then `folder` and the root's own counts, "3 folders,
@@ -793,10 +794,10 @@ The changes of one source in one scroll (`@pierre/diffs`).
   kept.
 - A file with no hunks (binary, a mode change, a pure rename) shows its
   header alone. `N unmodified lines` rows do not expand.
-- `Look.cardSolid` follows the card: the keyboard card's is its brighter
-  fill. It is exact in Classic. In Glass it is measured over a black window
+- `Look.cardSolid` follows the card: the keyboard card's is its own fill
+  (a step brighter, but darker in Classic dark). It is exact in Classic. In Glass it is measured over a black window
   (dark `#1F`, `#23` on the keyboard card; light `#F1`, `#F5`, the same over
-  a white one). A bright window behind lightens dark Glass's card by up to
+  a white one). A bright window or wallpaper behind lightens dark Glass's card by up to
   18 levels, and the band then shows a little darker than the card.
 
 ## Keys

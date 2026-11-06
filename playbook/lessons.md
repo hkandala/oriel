@@ -106,6 +106,9 @@ Problems that came back across phases, and the rule that stops each. How we work
 - **Never hide and fade to mask a flicker.** Keep the old frame shown until the new one has drawn.
 - **View identity cuts both ways.** A view shared by all workspaces carries stale scroll and lazy state; an
   `.id` per page makes a fresh view that flickers at offset 0.
+- **WebKit scrolls on its own thread: a scroll listener runs a frame or more behind.** A clip or a cover set from one
+  showed rows under a sticky header in a fast scroll (phase 56). Tie what must follow a scroll to CSS (`position:
+  sticky`, opaque), and check a fast scroll frame by frame.
 - **An overlay blocks every input path to the page below:** swipes, the wheel, menu shortcuts and clicks.
   Check all of them when you add one.
 - **A new or lazy scroll view's first layout lies.** The first scroll position gets dropped,

@@ -48,9 +48,9 @@
   align-items: center;
   gap: 7px;
   /* The card's 10 pt inset (PaneCard.inset) sits under the page: 10 px more on top makes the space above the line's
-     text and below it, to the card's edge, the same, and the 16 px buttons still end inside the page. */
+     text and below it, to the card's edge, the same, and the 16 px buttons fit inside the page. */
   box-sizing: border-box;
-  height: 26px;
+  height: 27px;
   padding: 10px 6px 0 12px;
   border-top: 1px solid var(--divider);
   color: var(--dim);
