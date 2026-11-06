@@ -299,8 +299,8 @@ runs and on-demand on the final head.
   rules' `padding-top` lost to CodeMirror's own `.cm-line` padding (a more specific selector), so every heading had only
   its line height: the gaps were all about 29 pt. Fix: `.cm-line:is(.cm-md-h1, …)`, GitHub's 1.25 line height, 0.6 em
   above and 0.2 em below in each heading's own size (more above than below, so a heading sits with the text it
-  introduces), no space above a first-line heading; the sizes stay as they were (the user tried GitHub's larger ones and
-  kept these). Body text unchanged; Rich Text (locked or not) and Source's page share it. Measured on the test file
+  introduces), no space above a first-line heading; the sizes stay as they were ("keep previous font sizes", after a
+  try of GitHub's larger ones). Body text unchanged; Rich Text (locked or not) and Source's page share it. Measured on the test file
   (heading, blank line, paragraph, blank line), ink to ink, in points:
 
   | | h1 | h2 | h3 | h4 | h5 | h6 |
