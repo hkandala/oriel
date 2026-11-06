@@ -164,6 +164,14 @@ runs and on-demand on the final head.
   setting: Git's has one, add one here when a user wants unwrapped files by default.
 - **Runs:** the File test red on the old code (no Word Wrap button, 42142561012) and green with it
   (42143799483, 2 tests). CI's recordings draw no web content, so the pictures are local.
+- **Decisions (12, the user's pick: option A):** row 2 has two icon segments (Rich Text, Source; the one not picked
+  gray) and a lock that always shows (gray `lock.fill`, the accent `lock.open` while the page edits). Locked, neither
+  mode edits; ticks still save. Source is the old Side by Side with the page folded at first; the divider's chevron
+  shows it. ⌘E is Lock Editing. Find works locked, without Replace; a landing at a line keeps the lock. Settings:
+  Markdown opens in Rich Text or Source, and Lock Markdown for reading (on). Segments got an optional symbol.
+- **Migration:** a card's kept mode maps (Read → Rich Text locked, Live Edit → unlocked, Source → Source folded, Side
+  by Side → Source shown). The setting keeps Source; its Read, Live Edit and Side by Side read as the default.
+- **Runs (12):** Markdown and Git tests green (42147118938, 2 tests).
 
 ## Track G: mockups (items 7, 20, 12)
 
