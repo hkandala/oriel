@@ -28,6 +28,10 @@ struct AgentRow<Hover: View, Trailing: View>: View {
                     Text(title).font(.system(size: 13, weight: medium ? .medium : .regular)).lineLimit(1)
                         .foregroundStyle(lit ? look.selected : look.chrome)
                     Spacer(minLength: 0)
+                    // Room for the hover buttons, so the name shortens before them.
+                    if hovering {
+                        hover().hidden().accessibilityHidden(true)
+                    }
                     trailing()
                 }
             }
@@ -45,7 +49,7 @@ struct AgentRow<Hover: View, Trailing: View>: View {
                 lines(line2: false) {
                     Spacer(minLength: 0)
                     hover()
-                    trailing().hidden()
+                    trailing().hidden().accessibilityHidden(true)
                 }
                 .padding(.horizontal, 8)
             }
@@ -58,6 +62,7 @@ struct AgentRow<Hover: View, Trailing: View>: View {
             // The box's and the hover buttons' height, so line 2 stays put.
             HStack(spacing: 6) { first() }.frame(height: 18)
             Text(line2).font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1).opacity(shown ? 1 : 0)
+                .accessibilityHidden(!shown)
         }
     }
 }
@@ -65,10 +70,12 @@ struct AgentRow<Hover: View, Trailing: View>: View {
 /// An age, where a row's state box goes.
 struct AgeText: View {
     let date: Date
-    var now = Date.now
 
     var body: some View {
-        Text(Self.age(date, now: now)).font(.system(size: 11)).monospacedDigit().foregroundStyle(.secondary)
+        TimelineView(.everyMinute) { _ in
+            Text(Self.age(date)).font(.system(size: 11)).monospacedDigit()
+                .foregroundStyle(.secondary)
+        }
     }
 
     /// The time since `date` in a shelf: "5m", "5h", "2d", "1w".

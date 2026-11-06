@@ -87,6 +87,8 @@ final class HostStore {
     /// Program asks in flight, 8 at most: a 600-pane session's first snapshot made 600 herdr runs.
     @ObservationIgnored let asks = Gate(8)
     @ObservationIgnored private var seen: Seen
+    /// The Agents view's settles by hand, by `Pane.settleKey`; each ends at the agent's next change of state.
+    var settles: [String: AgentSettle] = [:]
     /// `seen`'s marks as last kept in the defaults (`keepMarks`).
     @ObservationIgnored private var marks: [String: Seen.Mark]
 
@@ -330,6 +332,11 @@ extension HostStore {
         }
         showStrongest()
         keepMarks()
+        keepPins()
+        let kept = settles.filter { key, settle in panes.contains { $0.settleKey == key && $0.since == settle.since } }
+        if kept != settles {
+            settles = kept
+        }
     }
 
     /// Each tab's strongest agent, each workspace's state and the panes that need you or are done, kept here: views
@@ -357,9 +364,13 @@ extension HostStore {
 
     /// Keeps `seen`'s marks once a snapshot came: before it they are empty.
     private func keepMarks() {
-        if last != nil, seen.marks != marks {
-            marks = seen.marks
-            UserDefaults.standard.set(try? JSONEncoder().encode(marks), forKey: Self.marksKey(session, machine))
+        guard last != nil, seen.marks != marks else { return }
+        marks = seen.marks
+        let key = Self.marksKey(session, machine)
+        if marks.isEmpty {
+            UserDefaults.standard.removeObject(forKey: key)
+        } else {
+            UserDefaults.standard.set(try? JSONEncoder().encode(marks), forKey: key)
         }
     }
 

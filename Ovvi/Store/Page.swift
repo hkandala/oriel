@@ -69,6 +69,8 @@ final class Page: Identifiable {
     var newest: (id: String, from: String?)?
     /// The quick splits' cards before the newest, the latest last: ⌘W closes back through them. Read only with a
     /// newest.
+    /// The Agents view's rows on screen, for ⌥ + swipe (`AgentsList.step`).
+    @ObservationIgnored var agentsShown = AgentsList.Arrangement()
     @ObservationIgnored var splitsBefore: [String] = []
     /// The tab whose terminal last got the keyboard from the app.
     @ObservationIgnored var keyboardTabID: String?

@@ -90,9 +90,9 @@ extension OvviUITests {
         app.typeKey(.escape, modifierFlags: [])
     }
 
-    /// An idle agent you have seen settles after the setting, or by hand; working brings it back. The shelf sits at
-    /// the foot, folded at first, and keeps its fold.
-    func testIdleAgentsSettleAndComeBack() async throws {
+    /// Settle by hand puts an idle agent on the Settled shelf at the sidebar's foot, folded at first; Unsettle brings
+    /// it back. The shelf keeps its fold.
+    func testAnIdleAgentSettlesByHand() async throws {
         relaunch(one, ["-settleAfter", "<real>0</real>"])
         XCTAssertTrue(element("workspace.w1").exists(within: connect))
         let quiet = try await newTab("review", in: "w1").pane
@@ -102,8 +102,6 @@ extension OvviUITests {
         app.typeKey(".", modifierFlags: .command)
         let row = app.buttons["agent.\(quiet)"], shelf = element("agents.shelf.Settled")
         XCTAssertTrue(row.exists(within: 2))
-        // Never: no shelf. Settle by hand.
-        XCTAssertFalse(shelf.exists(within: 1))
         app.buttons["agent.\(busy)"].rightClick()
         XCTAssertFalse(app.menuItems["Settle"].isEnabled, "a working agent settled")
         app.typeKey(.escape, modifierFlags: [])
@@ -118,7 +116,6 @@ extension OvviUITests {
                 shelf.click()
             }
         }
-        // At the sidebar's foot, under the list.
         XCTAssertGreaterThan(shelf.frame.minY, element("sidebar").frame.midY, "\(shelf.frame)")
         keepScreenshot("settled shelf, folded")
         shelf.click()
@@ -129,27 +126,36 @@ extension OvviUITests {
         app.menuItems["Unsettle"].click()
         XCTAssertTrue(shelf.vanishes(within: 2))
         XCTAssertTrue(row.exists)
+        // Settled again: the shelf comes back open, as it was left; folded, as the next test expects it.
+        row.rightClick()
+        app.menuItems["Settle"].click()
+        XCTAssertTrue(until(2) { shelf.value as? String == "expanded" }, "the fold was not kept")
+        shelf.click()
+        XCTAssertTrue(row.vanishes(within: 2))
+    }
 
-        // A short setting settles a new idle agent by itself (the one kept out by hand stays until it changes);
-        // working brings it back to the top of the list.
-        let fresh = try await split(busy)
-        try await report(fresh, "idle", agent: "pi")
-        relaunch(one, ["-settleAfter", "<real>2</real>"])
+    /// An idle agent you have seen settles after the setting (none with Never); working brings it back on top.
+    func testIdleAgentsSettleAfterTheSetting() async throws {
+        XCTAssertTrue(element("workspace.w1").exists(within: connect))
+        let quiet = try await newTab("review", in: "w1").pane
+        try await report(quiet, "idle", agent: "pi")
+        let busy = try await split(quiet)
+        try await report(busy, "working")
+        let row = app.buttons["agent.\(quiet)"], shelf = element("agents.shelf.Settled")
+        relaunch(one, ["-settleAfter", "<real>0</real>"])
+        app.typeKey(".", modifierFlags: .command)
+        XCTAssertTrue(row.exists(within: connect))
+        XCTAssertFalse(shelf.exists, "Never settled it")
+        relaunch(one, ["-settleAfter", "<real>1</real>"])
         app.typeKey(".", modifierFlags: .command)
         XCTAssertTrue(shelf.exists(within: connect))
-        let settled = app.buttons["agent.\(fresh)"]
         XCTAssertEqual(shelf.label, "Settled 1")
-        XCTAssertEqual(shelf.value as? String, "expanded", "the fold was not kept")
-        XCTAssertTrue(settled.exists(within: 2))
-        XCTAssertGreaterThan(settled.frame.minY, shelf.frame.maxY)
-        // Folded again, as the next run expects it.
-        shelf.click()
-        XCTAssertTrue(settled.vanishes(within: 2))
-        try await report(fresh, "working", agent: "pi")
+        XCTAssertFalse(row.exists)
+        try await report(quiet, "working", agent: "pi")
         // Off the list, where rows hold still.
         element("sidebar.header").hover()
         XCTAssertTrue(shelf.vanishes(within: 3))
-        try await expectOrder([settled, app.buttons["agent.\(busy)"]], "back on top")
+        try await expectOrder([row, app.buttons["agent.\(busy)"]], "back on top")
     }
 
     /// The rows' tops are in this order.

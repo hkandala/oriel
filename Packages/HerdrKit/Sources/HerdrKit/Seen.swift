@@ -15,9 +15,8 @@ public struct Seen: Sendable {
         public let state: AgentState
     }
 
-    /// When an agent's state last changed, with its `state_change_seq` then: kept over a relaunch, an agent whose
-    /// number
-    /// is the same keeps its time (herdr gives no times).
+    /// When an agent's state last changed, with its `state_change_seq` then. Kept over a relaunch: an agent whose
+    /// number is the same keeps its time (herdr gives no times).
     public struct Mark: Codable, Equatable, Sendable {
         public let seq: Int
         public let since: Date

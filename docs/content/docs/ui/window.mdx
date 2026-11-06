@@ -361,7 +361,8 @@ or below ([Swiping](/docs/ui/swiping)). The page dots and the footer stay.
     when an agent is settled.
 - **Order and calm.** A state box, a time and a name change at once. A row moves only when the pointer
   is not over the list, and 1 s after the last change; then it slides in 0.2 s (no motion with Reduce
-  Motion). A pin, a settle by hand or a new filter moves rows at once, with the slide. A finish the
+  Motion). Until then a new row waits at the end of its part. ⌥ + swipe steps through the rows as
+  they are on screen. A pin, a settle by hand or a new filter moves rows at once, with the slide. A finish the
   user sees changes no order: it is no change of state for herdr.
 - **Rows.** One row per agent pane, even when several share a tab. 48 pt, two
   lines, 3 pt apart. Line 1: the program tile (with no badge), then the
@@ -381,9 +382,9 @@ or below ([Swiping](/docs/ui/swiping)). The page dots and the footer stay.
   session (herdr's `agent_session`) when herdr reports one, else its terminal, so a pinned agent
   stays pinned across relaunches. A pinned agent never settles.
 - **Settle.** The row's context menu has **Settle** for an idle agent (off for the others) and
-  **Unsettle** in the shelf. Either holds until the agent's next change of state: an agent that
-  works or needs you again comes back to the top of the list, and an unsettled agent settles again
-  only after its next change.
+  **Unsettle** in the shelf. Either holds until the agent's next change of state, for the app's run:
+  an agent that works or needs you again comes back to the top of the list, and an unsettled agent
+  settles again only after its next change.
 - **The shelf.** A header 28 pt tall, 8 pt in: "Settled" (12 pt medium, secondary), then at its end
   the count (tertiary, tabular digits) and a chevron that always shows: right while folded, down while
   open. Under the pointer it fills, as the header buttons do. A click folds or opens it; it is folded

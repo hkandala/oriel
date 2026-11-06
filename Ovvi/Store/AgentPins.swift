@@ -1,4 +1,5 @@
 import Foundation
+import HerdrKit
 
 /// A pinned agent (Agents view), on top of its session's page in pin order. Kept by its agent's session when it has
 /// one, so it stays pinned after its pane closes (Archived resumes it), else by its terminal.
@@ -11,20 +12,26 @@ struct AgentPin: Codable, Hashable {
     /// herdr's agent kind, with a session only: what a resume runs.
     var agent: String?
     var title: String
-    var folder: String?
+    /// Its folder, as herdr has it: where a resume runs.
+    var cwd: String?
+
+    /// The defaults key of the pins, a JSON list (`AppSettings.pins`).
+    static let key = "agentPins"
 }
 
-/// An agent settled, or kept out of Settled, by hand until its next change of state (its `state_change_seq`).
-struct AgentSettle: Codable, Hashable {
-    let machine: String
-    let session: String
-    let key: String
-    let seq: Int?
+/// An agent settled, or kept out of Settled, by hand until its next change of state: while its `since` is the same.
+struct AgentSettle: Equatable {
+    let since: Date?
     let settled: Bool
 }
 
 extension HostStore.Pane {
-    /// What pins and settles it: its agent's session, else its terminal.
+    /// What settles it (`HostStore.settles`): as `Seen` keys it.
+    var settleKey: String {
+        Seen.key(terminalID: terminalID, paneID: id)
+    }
+
+    /// What pins it: its agent's session, else its terminal.
     var pinKey: String? {
         session ?? terminalID.map { "terminal \($0)" }
     }
@@ -38,7 +45,25 @@ extension HostStore.Pane {
     func pin(in store: HostStore) -> AgentPin? {
         pinKey.map {
             AgentPin(machine: store.machine.id, session: store.session, key: $0, agent: session == nil ? nil : agent,
-                     title: agentTitle ?? "Untitled", folder: folder)
+                     title: agentTitle ?? "Untitled", cwd: cwd)
+        }
+    }
+}
+
+extension HostStore {
+    /// Keeps this session's pins as their panes are now, after each snapshot of every open session: the key moves to
+    /// the session once the agent reports one, and the title and folder follow. Drops pins nothing can bring back:
+    /// closed, with no session. Another session's pins and pins of closed sessions stay (Archived resumes them).
+    func keepPins() {
+        guard last != nil else { return }
+        let text = UserDefaults.standard.string(forKey: AgentPin.key) ?? ""
+        let agents = agentPanes
+        let pins = [AgentPin](json: text).compactMap { pin -> AgentPin? in
+            guard pin.machine == machine.id, pin.session == session else { return pin }
+            return agents.first { $0.holds(pin) }?.pin(in: self) ?? (pin.agent == nil ? nil : pin)
+        }
+        if !text.isEmpty, pins.json != text {
+            UserDefaults.standard.set(pins.json, forKey: AgentPin.key)
         }
     }
 }

@@ -9,9 +9,8 @@ struct Shelf<Accessory: View, Content: View>: View {
     let page: Page
     @ViewBuilder var accessory: () -> Accessory
     @ViewBuilder var content: () -> Content
-    /// The open shelves, a line each, "‹machine› ‹session› ‹label›", kept across relaunches.
-    @AppStorage("agentsOpen") private var opened = ""
-    @State private var height = 0.0
+    /// The open shelves (`Page.openShelves`), kept across relaunches.
+    @AppStorage(Page.openShelves) private var opened = ""
     @State private var under = (top: false, bottom: false)
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -21,17 +20,18 @@ struct Shelf<Accessory: View, Content: View>: View {
     }
 
     var body: some View {
-        let key = "\(page.store.machine.id) \(page.id) \(label)"
+        let key = page.shelfKey(label)
         let open = opened.split(separator: "\n").contains { $0 == key }
         VStack(spacing: 4) {
             header(key, open: open)
             if open {
+                // Lazy, for Archived's pages; as tall as its rows, up to five.
                 ScrollView {
-                    VStack(spacing: 4) { content() }
-                        .onGeometryChange(for: Double.self) { $0.size.height } action: { height = $0 }
+                    LazyVStack(spacing: 4) { content() }
                 }
                 .scrollIndicators(.never)
-                .frame(height: min(height, Self.tallest))
+                .frame(maxHeight: Self.tallest)
+                .fixedSize(horizontal: false, vertical: true)
                 .onScrollGeometryChange(for: [Bool].self) { geometry in
                     [geometry.contentOffset.y > 0.5,
                      geometry.contentOffset.y + geometry.containerSize.height < geometry.contentSize.height - 0.5]
@@ -80,5 +80,20 @@ struct Shelf<Accessory: View, Content: View>: View {
 extension Shelf where Accessory == EmptyView {
     init(label: String, count: Int?, page: Page, @ViewBuilder content: @escaping () -> Content) {
         self.init(label: label, count: count, page: page, accessory: { EmptyView() }, content: content)
+    }
+}
+
+extension Page {
+    /// The defaults key of the open shelves, a line each (`shelfKey`).
+    static let openShelves = "agentsOpen"
+
+    /// "‹machine› ‹session› ‹label›".
+    func shelfKey(_ label: String) -> String {
+        "\(store.machine.id) \(id) \(label)"
+    }
+
+    func opens(_ label: String) -> Bool {
+        let lines = UserDefaults.standard.string(forKey: Self.openShelves) ?? ""
+        return lines.split(separator: "\n").contains { $0 == shelfKey(label) }
     }
 }

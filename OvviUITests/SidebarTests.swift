@@ -319,20 +319,24 @@ extension OvviUITests {
         app.typeKey("1", modifierFlags: [.command, .control])
         XCTAssertTrue(until(2) { first.isSelected && inView(first) }, "\(first.frame)")
 
+        // The newest change on top: long23's agent first, long0's last.
         app.typeKey(".", modifierFlags: .command)
         let agents = panes.map { element("agent.\($0)") }
-        XCTAssertTrue(agents[0].exists(within: 2))
-        XCTAssertFalse(inView(agents[23]))
-        app.typeKey("[", modifierFlags: [.command, .control])
-        XCTAssertTrue(until(2) { agents[23].isSelected && inView(agents[23]) }, "\(agents[23].frame)")
+        XCTAssertTrue(agents[23].exists(within: 2))
         XCTAssertFalse(inView(agents[0]))
-        // A view opened anew on a lit row far down shows it.
-        app.typeKey(".", modifierFlags: .command)
-        XCTAssertTrue(last.exists(within: 2))
-        app.typeKey(".", modifierFlags: .command)
-        XCTAssertTrue(until(2) { inView(agents[23]) }, "\(agents[23].frame)")
         app.typeKey("3", modifierFlags: [.command, .control])
         XCTAssertTrue(until(2) { agents[0].isSelected && inView(agents[0]) }, "\(agents[0].frame)")
+        XCTAssertFalse(inView(agents[23]))
+        // A view opened anew on a lit row far down shows it.
+        app.typeKey(".", modifierFlags: .command)
+        XCTAssertTrue(long0.exists(within: 2))
+        app.typeKey(".", modifierFlags: .command)
+        XCTAssertTrue(until(2) { inView(agents[0]) }, "\(agents[0].frame)")
+        // Round the end from alpha to long23, at the top.
+        app.typeKey("1", modifierFlags: [.command, .control])
+        app.typeKey("[", modifierFlags: [.command, .control])
+        XCTAssertTrue(until(2) { agents[23].isSelected && inView(agents[23]) }, "\(agents[23].frame)")
+        app.typeKey("3", modifierFlags: [.command, .control])
         // And the workspaces again, on long0's row.
         app.typeKey(".", modifierFlags: .command)
         XCTAssertTrue(until(2) { inView(long0) }, "\(long0.frame)")

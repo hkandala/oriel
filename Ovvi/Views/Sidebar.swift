@@ -57,7 +57,7 @@ struct Sidebar: View {
                 drag: pages.overview ? nil : drag as (Double, Bool) -> Void,
                 lift: lift,
                 agent: agents && !pages.overview
-                    ? { offset in pages.current.map { AgentsList.step(offset, $0, filter: filter) } }
+                    ? { offset in pages.current.map { AgentsList.step(offset, $0) } }
                     : nil,
                 area: area,
             ))
