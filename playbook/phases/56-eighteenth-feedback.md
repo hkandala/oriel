@@ -671,6 +671,20 @@ is enabeld. don't increase it too much" and "let's make it 300".
 - Pictures in `/tmp/ovvi-shots/p56p/`: `one-{dark,light}.png`, `two-{dark,light}.png` (glass, this Mac) and
   `sidebar-300-agents-dark.png` (CI's 1024 pt screen).
 
+### Round 2 (Track P, item 28)
+
+- **Fix.** The border is phase 53's again: on the keyboard card only while the tab shows two or more cards and none is
+  zoomed. The floating window's border is gone, and the tests and ui/window.mdx say phase 53's rule again. The 300 pt
+  sidebar stays.
+- **Decisions.** A zoomed card and a floating window's card are each one card in view, so they have none, as a tab with
+  one card. The overview stays without one.
+- **Runs.** Chosen-tests run 42171075064 on 83cc10a6: the quick-close and border test, the floating window in each
+  Look, and the zoom, "Executed 3 tests, with 0 failures".
+- **Pictures** in `/tmp/ovvi-shots/p56p2/`, before (round 1's border) and after: `one-{before,after}-{dark,light}.png`
+  (this Mac, glass), `two-after-{dark,light}.png` (unchanged: the border on the keyboard card of two),
+  `float-{before,after}-{dark,light}.png` and `zoom-{before,after}-dark.png` (CI). A zoomed card in light looks as
+  the one card in light.
+
 ## Track N: the tab drag, again (item 25)
 
 25. "also one more bug i noticed, that tab drag and drop thing we fixed in previous phase where it flickers, that
