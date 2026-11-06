@@ -200,3 +200,31 @@ Runs: none (no app code).
 ### Runs (Track K)
 
 - None: a report, no code.
+
+## Track L: the Agents view's Done, Idle and order (item 23)
+
+23. "oh and finally one more thing on the agent sidebar thing, couple of things: this done and idle separation is bit
+    weird i feel, what's the actual purpose or difference between done and idle? like why does herdr maintain those
+    both, and how we can handle those better, coz now i know done moves to idle after we view it and then unfocus it,
+    but it still the experience is weird, how does t3code does it? give me few options on how we can do it, give me a
+    html report, and i also feel within a group we should sort the agents based on recently updated first, now they
+    jump to different positions, check all of this, and give me good ux experience for agents view overall".
+    - A report only: why herdr has both, how T3 Code and others do it, 3–4 options for the states and the order with
+      mockups from real screenshots, and a recommendation.
+
+### Findings (Track L)
+
+- herdr's `done` is `idle` plus "not seen" (`pane_agent_status`, `src/app/api_helpers.rs`): an unread flag, not a
+  state. herdr's own Priority sort puts the newest `state_change_seq` first inside each status.
+- Rows jump because a change of state moves a row to another group, where it lands in workspace order, with no motion;
+  and a click on one agent moves the one you leave from Done to Idle in the same frame.
+- T3 Code has no Done group: a green Done mark on an unread thread, cleared by the visit; rows move 2 s late and slide.
+  No app read (Superset, Vibe Kanban, cmux, Conductor, Codex, Claude Code, Cursor) has Done beside Idle.
+- Recommended: Done folds into Idle as the check box on the row (it goes when you leave; the row stays); newest
+  `state_change_seq` first in each group; no move while the pointer is over the list, then a 0.2 s slide; 1 s settle.
+  About 6 agent hours, no herdr change.
+- Report: `~/Downloads/ovvi-research/agents-view-ux.html`.
+
+### Runs (Track L)
+
+- None: a report, no code.
