@@ -173,3 +173,17 @@ runs and on-demand on the final head.
     and then see if its fully implemetned or anything left, ignore the apple signing stuff etc for now though".
     - A report only: each part of `~/Downloads/ovvi-research/notifications-plan.html` against the code, built, part
       built or not built, with what is left and its cost.
+
+### Findings (Track K)
+
+- The plan is not built. Main has what the plan calls "today" (phases 15 and 50): generic needs-you and finished
+  banners, `ovvi notify` (one per pane every 10 s), three switches (now in Settings ▸ Agents, phase 55), the Dock
+  badge and menu. No commit since the plan touched the notification code beyond the rename.
+- Of 57 parts: 16 built, 10 part built, 28 not built, 5 blocked (herdr-core status, Sparkle), 3 left out (signing).
+- All 8 plan phases remain, 43 agent hours: about 35 can start now (phase 3's Settings window and phase 5's chat
+  channels exist), 8 wait for herdr-core (phase 4) and Sparkle (the update kind). Optional 10 h unchanged.
+- Report: `~/Downloads/ovvi-research/notifications-status.html`.
+
+### Runs (Track K)
+
+- None: a report, no code.
