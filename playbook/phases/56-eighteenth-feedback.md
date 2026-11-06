@@ -264,3 +264,26 @@ Runs: none (no app code).
 ### Runs (Track L)
 
 - None: a report, no code.
+
+## Track M: Fetch, Pull and Push in a workspace's menu (item 24)
+
+24. "also one more thing in the workspace sidebar as well we show the git status right, can we have an option where
+    when we right click we see fetch, pull, push options there, only for theworkspaces with git repos identified, and
+    have a separator for these options".
+    - A row with a git line gets Fetch, Pull and Push between separators in its context menu, run on the session's
+      machine in the folder of the git line, with a notice while git runs, git's message on failure, and the git line
+      read again after.
+
+### Findings (Track M)
+
+- **Decisions:** the Git card's commands, shared (`Git.Sync`): `fetch --all`, `pull`, and `push` with
+  `push.autoSetupRemote`, through `Git.run` (no password prompt, git's stderr is the error). The section sits before
+  Close Workspace; the workspace menu shows only in the sidebar, so nothing else changed.
+- **Decisions:** Pull and Push stay enabled at zero behind or ahead: the counts are from the last fetch (Pull fetches
+  first), and a branch with no upstream shows zero ahead yet Push publishes it.
+- **Decisions:** while git runs, an information notice ("Pulling ‹workspace›…"); on success it goes, and the git line
+  shows the result; on failure git's words in the error notice. The items are disabled with the rest of the menu while
+  the session is stopped.
+- **For the user:** right-click a repository's row: Fetch, Pull, Push; a row outside a repository has none.
+
+### Runs (Track M)

@@ -128,8 +128,19 @@ struct WorkspaceRow: View {
             .disabled(parent != nil || first)
         Button("Move Down") { Task { await store.move(workspace: workspace.id, by: 1) } }
             .disabled(parent != nil || last)
+        // Only where the row shows a branch: the same repository.
+        if workspace.git != nil {
+            Divider()
+            Button("Fetch") { sync(.fetch) }
+            Button("Pull") { sync(.pull) }
+            Button("Push") { sync(.push) }
+        }
         Divider()
         Button("Close Workspace") { page.close(.workspace(workspace.id)) }
+    }
+
+    private func sync(_ sync: Git.Sync) {
+        Task { await page.store.sync(workspace, sync) }
     }
 
     /// Not while the session is stopped (a double-click too): the rename would fail.

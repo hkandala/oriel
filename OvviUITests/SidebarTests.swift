@@ -1,8 +1,9 @@
 import XCTest
 
-/// The sidebar: one page per session open in the window, page dots, workspace rows with git data, the
-/// footer and the Open Session panel. Session one: w1 "alpha", w2 "beta"; session two: w1 "gamma"; three is
-/// stopped; four is made by a test; five is stopped and started by tests; seven is stopped and deleted by a test.
+/// The sidebar: one page per session open in the window, page dots, workspace rows (their git line in
+/// `WorkspaceGitTests`), the footer and the Open Session panel. Session one: w1 "alpha", w2 "beta"; session two: w1
+/// "gamma"; three is stopped; four is made by a test; five is stopped and started by tests; seven is stopped and
+/// deleted by a test.
 extension OvviUITests {
     func testLaunchOpensOnePageAndNoOtherSession() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
@@ -196,54 +197,6 @@ extension OvviUITests {
             try await (Self.snapshot(five)["panes"] as? [[String: Any]])?.first?["pane_id"] as? String
         }
         XCTAssertTrue(element("terminal.\(pane)").exists(within: 5))
-    }
-
-    func testWorkspaceRowsShowGitAndWorktrees() async throws {
-        XCTAssertTrue(element("workspace.w2").exists(within: connect))
-        // The sandboxed runner cannot run git: a pane of w2 (in /tmp) builds a repository one commit ahead of its
-        // upstream and one behind it, and a linked worktree.
-        let root = "/tmp/ovvi-e2e-git-\(Int.random(in: 10000 ... 99999))"
-        let git = "git -c user.name=e2e -c user.email=e2e@ovvi"
-        // In a subshell: w2 stays in /tmp, a folder outside any repository.
-        let script = "(mkdir -p \(root) && cd \(root) && git init -q -b main repo && cd repo && "
-            + "\(git) commit -q --allow-empty -m one && git clone -q --bare . ../up.git && "
-            + "git remote add origin ../up.git && git fetch -q origin && git branch -q -u origin/main && "
-            // Pushed, then replaced: one commit behind the upstream and one ahead of it.
-            + "\(git) commit -q --allow-empty -m two && git push -q origin main && git reset -q --hard HEAD~1 && "
-            + "\(git) commit -q --allow-empty -m three && git worktree add -q ../tree -b feature) && "
-            + "echo built-$((6*7))"
-        try await send("\(script)\r", to: "w2:p1")
-        addTeardownBlock { [one] in
-            _ = try? await Self.call(one, "pane.send_text", ["pane_id": "w2:p1", "text": "rm -rf \(root)\r"])
-        }
-        try await waitFor("w2:p1") { $0.contains("\nbuilt-42") }
-        let repo = try await workspace(of: createWorkspace("repo", cwd: "\(root)/repo").tab)
-        // herdr fills a workspace's worktree fields only through its worktree calls.
-        let tree = try await id(Self.call(one, "worktree.open", ["workspace_id": repo, "path": "\(root)/tree",
-                                                                 "focus": false]), "workspace")
-        closeAfter("workspace", tree)
-
-        let repoRow = element("workspace.\(repo)"), treeRow = element("workspace.\(tree)")
-        XCTAssertTrue(until(5) { repoRow.value as? String == "main ahead 1 behind 1" })
-        XCTAssertTrue(until(5) { treeRow.value as? String == "feature ahead 0 behind 0, worktree of repo" })
-        XCTAssertEqual(repoRow.frame.height, 44, accuracy: 1)
-        XCTAssertEqual(element("workspace.w2").frame.height, 30, accuracy: 1)
-        XCTAssertEqual(treeRow.frame.minX - repoRow.frame.minX, 14, accuracy: 1)
-        keepScreenshot("git rows")
-
-        // A new commit shows within the 10 s refresh.
-        try await send("(cd \(root)/repo && \(git) commit -q --allow-empty -m 3) && echo committed-$((6*7))\r",
-                       to: "w2:p1")
-        try await waitFor("w2:p1") { $0.contains("\ncommitted-42") }
-        XCTAssertTrue(until(12) { repoRow.value as? String == "main ahead 2 behind 1" })
-
-        // The filter matches branches; a matching worktree keeps its repository's row.
-        let filter = element("sidebar.filter")
-        filter.click()
-        filter.typeText("feature")
-        XCTAssertTrue(element("workspace.w2").vanishes(within: 2))
-        XCTAssertTrue(treeRow.exists)
-        XCTAssertTrue(repoRow.exists)
     }
 
     func testHeaderPlusAndRowMenuChangeHerdr() async throws {

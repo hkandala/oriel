@@ -74,6 +74,24 @@ extension HostStore {
         return try result.get()
     }
 
+    /// Fetch, Pull or Push in the workspace's repository on its machine: a notice while git runs, git's message when
+    /// it fails, then the workspace's git line read again.
+    func sync(_ workspace: Workspace, _ sync: Git.Sync) async {
+        guard let root = workspace.gitRoot else { return }
+        let exec = await machine.exec()
+        let running = Notice(text: "\(sync.rawValue.capitalized)ing \(workspace.label)…", tone: .info)
+        notice = running
+        do {
+            try await Git.run(root, sync.arguments, exec: exec)
+            if notice?.id == running.id {
+                notice = nil
+            }
+        } catch {
+            Task { await show(Notice(text: error.localizedDescription)) }
+        }
+        workspace.git = await GitStatus.of(root, exec: exec)
+    }
+
     /// A notice for a few seconds (4 by default), unless a newer one replaced it.
     func show(_ new: Notice, for time: Duration = .seconds(4)) async {
         notice = new

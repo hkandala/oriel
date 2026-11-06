@@ -61,6 +61,20 @@ public extension Git {
         }
     }
 
+    /// Fetch, Pull and Push: the Git card's buttons and a workspace's menu.
+    enum Sync: String, Sendable {
+        case fetch, pull, push
+
+        /// Fetch from every remote; Push sets the upstream of a branch that has none.
+        public var arguments: [String] {
+            switch self {
+            case .fetch: ["fetch", "--all"]
+            case .pull: ["pull"]
+            case .push: ["-c", "push.autoSetupRemote=true", "push"]
+            }
+        }
+    }
+
     /// `git <arguments>` in the repository, for a button: git never asks for a password (it fails instead), and
     /// git's own message is the error. Its output.
     @discardableResult

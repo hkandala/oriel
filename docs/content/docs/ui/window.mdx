@@ -309,11 +309,19 @@ Spaces panel.
 - **Click** selects the workspace in the app only ([Selection and "seen" are
   the app's own](/docs/layout#selection-and-seen-are-the-apps-own)).
 - **Context menu.** New Tab, Rename Workspace, Move Up, Move Down, Close
-  Workspace.
+  Workspace. A row with a git line also has Fetch, Pull and Push, between
+  separators before Close Workspace.
   - New Tab opens in the folder of that workspace's keyboard card, or `$HOME`.
   - Move Up and Move Down move a group past the next group. A group is a
     workspace and its worktrees. Both are disabled on a worktree row (it
     moves with its repository) and at the ends.
+  - Fetch (`git fetch --all`), Pull (`git pull`) and Push (`git push`, which
+    sets the upstream of a branch that has none) run in the folder of the
+    row's git line, on the session's machine. git never asks for a password:
+    it fails instead. An information notice shows while git runs, and git's
+    own message shows as an error notice when it fails. Then the git line is
+    read again. Pull and Push stay enabled at zero behind or ahead: the counts
+    are from the last fetch, and Pull fetches first.
   - Close Workspace asks only when a program besides the shell runs in one of
     its panes, with what runs and the tab and pane count. On a repository
     with worktrees it also closes their workspaces, and the dialog says so.

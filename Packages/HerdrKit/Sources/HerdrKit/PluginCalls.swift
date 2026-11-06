@@ -185,9 +185,9 @@ public struct PluginCalls: Sendable {
             let text = try args.need(\.message, "message").trimmingCharacters(in: .whitespacesAndNewlines)
             guard !text.isEmpty else { throw PluginError("failed", "The message is empty") }
             return (["commit", "-m", text], true)
-        case "git.fetch": return (["fetch", "--all"], true)
-        case "git.pull": return (["pull"], true)
-        case "git.push": return (["-c", "push.autoSetupRemote=true", "push"], true)
+        case "git.fetch": return (Git.Sync.fetch.arguments, true)
+        case "git.pull": return (Git.Sync.pull.arguments, true)
+        case "git.push": return (Git.Sync.push.arguments, true)
         case "git.init": return (["init", "-q"], false)
         default:
             let branch = try args.need(\.branch, "branch")
