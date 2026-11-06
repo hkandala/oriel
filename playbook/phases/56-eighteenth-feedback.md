@@ -804,7 +804,8 @@ is enabeld. don't increase it too much" and "let's make it 300".
   `/tmp/ovvi-shots/p56n/r3/{before,after}-{dark,light}-sheet.png`. Old: the old order under the image for a snapshot,
   then the new one; fix: the new order in the drop's frame, the row gliding in. The row menu test now stops herdr's
   server and checks Move Up shows before herdr answers: red on the old code ("the row waited for herdr",
-  42183809593).
+  42183809593). Green on 90f894d3, six row, tab and pane drag tests: "Executed 6 tests, with 0 failures"
+  (42184622447).
 
 ## Track Q: file drops (item 27)
 
