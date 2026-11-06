@@ -284,6 +284,12 @@ Runs: none (no app code).
 - **Decisions:** while git runs, an information notice ("Pulling ‹workspace›…"); on success it goes, and the git line
   shows the result; on failure git's words in the error notice. The items are disabled with the rest of the menu while
   the session is stopped.
+- **Fix (review):** git puts its `hint:` lines before its error, and the notice shows two lines: it drops the hints and
+  shows the last two lines. The 10 s refresh skips the workspace while a sync runs.
 - **For the user:** right-click a repository's row: Fetch, Pull, Push; a row outside a repository has none.
 
 ### Runs (Track M)
+
+- Chosen-tests runs of `testWorkspaceRowsShowGitWorktreesAndSync`: green at 581b7e6a (dark, 43 s), and green after the
+  review's fixes with a throwaway light relaunch (27 s). Each step fails without the feature: no Fetch item, no
+  behind 2 without a fetch, no notice without Push, no 0/0 without Pull.
