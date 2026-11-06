@@ -110,7 +110,8 @@ extension OvviUITests {
         let heading = markdown.staticTexts.matching(NSPredicate(format: "value == 'Part 1'")).firstMatch
         XCTAssertTrue(until(5) { heading.exists && heading.frame.minY >= markdown.frame.minY })
         markdown.scroll(byDeltaX: 0, deltaY: -2000)
-        XCTAssertTrue(until(3) { heading.frame.maxY < markdown.frame.minY }, "\(heading.frame) \(markdown.frame)")
+        // Above the card, or gone: WebKit leaves text far out of view out of the tree.
+        XCTAssertTrue(until(3) { !heading.exists || heading.frame.maxY < markdown.frame.minY })
     }
 
     /// A tab in w2 with a Markdown file of 1000 sections in File Explorer, and one with a Git diff of 40 changed files,
