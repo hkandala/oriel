@@ -128,6 +128,11 @@ runs and on-demand on the final head.
 
 ### Runs (Track C)
 
+- Chosen tests (the new test, both folder-line tests, the chooser's tab and split tests, the two quick new-tab
+  latency tests): 42148700511 on the first commit, 42149551623 on the reviewed head, 7 of 7 green each. Local UI
+  runs were not possible (the GUI lock was busy, then Automation Mode was off), so no red run on the old code. The
+  test cannot pass on it: the old line never shows on a stand-in, and the test pauses herdr until it checks.
+
 ## Track D: the remote browser (item 4)
 
 4. "so after the update to browser where we can flip between server and this mac, i can't laod any page in browser
