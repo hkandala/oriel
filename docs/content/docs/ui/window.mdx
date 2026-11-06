@@ -118,8 +118,10 @@ One capsule per herdr tab of the selected workspace (D42).
 - **New tabs.** ⌘T, `+` and a pane dropped on `+` or the bar's empty end
   make a new tab at the end of the workspace's tabs, as in Safari. An open
   from a card (⌘-click, Open in New Tab, Git's Open File), a link opened in a
-  new tab and `ovvi open --tab` make it right after the card's tab (the
-  asking pane's for `ovvi open`). herdr adds every tab last, and the app then
+  new tab, the palette's Open File, Open Working Tree and Open Commit, and
+  `ovvi open --tab` make it right after the card's tab (the keyboard card's
+  for the palette, the asking pane's for `ovvi open`); Archived's Resume
+  right after the workspace's selected tab. herdr adds every tab last, and the app then
   moves it (`tab.move`). The bar shows the tab in its place from its first
   frame, never at the end first: the app keeps it there until herdr's order
   matches, or for at most two snapshots after herdr's answer to the move.
@@ -384,7 +386,7 @@ or below ([Swiping](/docs/ui/swiping)). The page dots and the footer stay.
   on a pinned row. The row's context menu has the same **Pin** or **Unpin**. A pin holds the agent's
   session (herdr's `agent_session`) when herdr reports one, else its terminal, so a pinned agent
   stays pinned across relaunches. A pinned agent never settles. A pinned session that no pane runs
-  stays in Pinned, first, as an Archived row with **Resume** and **Unpin** (under the pointer and in
+  stays in Pinned, first, as an Archived row without its age, with **Resume** and **Unpin** (under the pointer and in
   its menu); Unpin lets it go back to Archived.
 - **Settle.** The row's context menu has **Settle** for an idle agent (off for the others) and
   **Unsettle** in the shelf. Either holds until the agent's next change of state, for the app's run:
@@ -438,7 +440,7 @@ kept across relaunches.
   starts the agent with that session (the flags of [Relaunch with
   Chat](/docs/ui/chat-view#relaunch-with-chat)'s table) in a new pane in the session's
   folder: a new tab after the selected tab of the workspace whose folder holds it (the deepest; a
-  folder one or two levels deep, as `/` or a home folder, holds only itself), else a new workspace
+  folder two levels deep or less, as `/` or `/Users/me`, holds only itself), else a new workspace
   there. ⌥-click, and the menu's **Resume to the Side**, split to the right of the keyboard card
   instead. The menu has **Resume**, **Resume to the Side** and **Pin**. A row resumes once: it
   leaves the shelf until its start ends. A folder that is gone says "‹folder› is gone" in a notice
@@ -529,7 +531,7 @@ tab at once.
 
 - The window shows the selected tab's page, full width, and only it. A switch
   replaces it at once (D12).
-- **Kept pages.** The pages of the 8 tabs shown last, over all the session's
+- **Kept tab pages.** The pages of the 8 tabs shown last, over all the session's
   workspaces, stay made under the shown one, hidden. A switch to one of them
   shows it as it was and builds nothing: a chat keeps its rows (Show Earlier's
   too) and its scroll place, and a web card stays in the window. In a hidden
@@ -542,7 +544,7 @@ tab at once.
   window), draws its rows on the next run loop turn, so the switch draws the
   tab and the card frames in the click's own turn.
 - When the page's size changes (the sidebar, the window), the selected
-  workspace's other tabs' kept terminals, and every kept page's terminals,
+  workspace's other tabs' kept terminals, and every kept tab page's terminals,
   take their card's new size once it settles, while hidden, as Ghostty's
   hidden tabs do: their programs hear of it then, and a switch to the tab shows
   no reflow.
@@ -685,8 +687,8 @@ terminal.
   floating window ([New tabs](#tab-bar)). **To the side** is a split to the
   right of the card.
 - **Lists select first.** In File Explorer's tree and Git's commit list a
-  click selects a row and a double-click (or Return) opens it, as in the
-  Finder. ⌘-click and ⌥-click open at once.
+  click selects a row and a double-click opens it (in the tree also ⌘O, in
+  Git's list Return), as in the Finder. ⌘-click and ⌥-click open at once.
 - **Markdown, unlocked,** opens a link on a click too, as locked. On
   the caret's line a link shows its source, and a click there puts the caret
   in it. A Markdown link's menu ends with **Copy Link** (the file's path or
@@ -730,8 +732,8 @@ terminal.
 
 ⌘F (Edit ▸ Find…) opens the find bar on the keyboard card; ⌘F again focuses
 its field. It is disabled on a browser card and on a plugin card that shows
-the tree, Preview, the Git home or a diff. On File and Markdown ⌘F, ⌘G and
-⇧⌘G use the editor's own search
+Preview or the Git home. On File and Markdown ⌘F, ⌘G and ⇧⌘G use the
+editor's own search, and on the tree and a Git diff the page's filter
 ([File Explorer and Git](/docs/plugins/default-plugins#keys)).
 - A glass capsule 320 pt wide and 32 pt tall at the card's top right, 8 pt in
   from its edge and 8 pt under the header: the field ("Find"), the match count
@@ -841,7 +843,7 @@ agents at once.
   view from its card (one that did drew blank as it went back).
 - A tile's terminal that streams draws live, scaled by AppKit (a layer transform): libghostty keeps
   its size and grid, and herdr's PTY keeps the card's size. The tile takes the terminal's view from
-  its card in the kept page under the overview and gives it back when the tile goes.
+  its card in the kept tab page under the overview and gives it back when the tile goes.
 - Cost: a live card keeps its surface at full card size (its swap chain:
   [What streams](/docs/talking-to-herdr#what-streams)), which is why the cap is in megabytes. Tiles cannot
   get smaller surfaces: libghostty-spm takes its content scale only from the window.

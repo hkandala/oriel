@@ -482,7 +482,8 @@ handshake fails, it exits 1 with the reason on stderr.
   highlights. herdr's own
   `pane.copy_search` is not used: it needs a `content_revision` and a cursor
   from herdr's TUI client protocol and otherwise answers `stale_content`.
-- **Links** in terminal output open in the app with ⌘-click, as every link
+- **Links** in terminal output open in the app with ⌘-click in a new tab and
+  ⌥-click to the side, as every link
   opens ([Opening links and files](/docs/ui/window#opening-links-and-files)):
   a web address in a browser pane, a file path that is there with its
   default plugin.
@@ -558,6 +559,7 @@ The sidebar's workspace rows show the branch and the ahead and behind counts
 | Stop in a chat | `pane.send_keys {pane_id, keys: ["escape"]}` (OpenCode: twice), only while the agent works |
 | Chat text that starts with `/` | `pane.send_input` of the text, with no Return; the card shows its terminal |
 | Relaunch with Chat | while the agent works or waits, `pane.send_keys` of its Stop keys; `pane.send_keys {keys: ["ctrl+c"]}`; `pane.send_input` of its quit command and Return; `pane.process_info` and `pane.get` until only the shell runs and herdr reports no agent (10 s at most); then `pane.send_input` of the launch line with the resume arguments, and the loader's calls ([Relaunch with Chat](/docs/ui/chat-view#relaunch-with-chat)) |
+| Archived's Resume ([Archived](/docs/ui/window#archived)) | `tab.create {workspace_id, cwd, focus:false}`, then `tab.move` to right after the workspace's selected tab; with no workspace for the folder `workspace.create {cwd, focus:false}`; to the side the same `tab.create`, then `pane.move` of its pane beside the keyboard card. Then the chooser's start: `pane.send_input` of the agent's launch line with its session, and Return |
 | Browser in the chooser, Open Browser Here | `layout.apply {workspace_id, focus:false, root:{type:"pane", cwd, label:"ovvi:browser#<iid>", command}}` (a new tab with the labeled placeholder pane, never a `tab_id`), then `pane.move` beside the old pane and `pane.close` of the old one; a failed move closes the new pane ([Create](/docs/ui/browser#create)) |
 | An address typed in a browser card | `pane.rename {pane_id, label:"ovvi:browser#<iid> <url>"}` |
 | A link opened in a new tab (⌘-click, `target=_blank`, Open Link in New Tab) | `layout.apply {workspace_id, focus:false, root:{type:"pane", cwd, label:"ovvi:browser#<iid> <url>", command}}`, then `tab.move {tab_id, insert_index}` to right after the card's tab (herdr adds the tab last), with the link in the label ([Popups, links and dialogs](/docs/ui/browser#popups-links-and-dialogs)) |

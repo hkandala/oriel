@@ -121,7 +121,10 @@ The rules below keep that content from taking over the card and its bridge
   (`ovvi-plugin://<id>`), so one plugin never reads another's.
 - **Text is text.** A plugin must insert file and command text with
   `textContent` or its library's text API, not as HTML. The default plugins
-  do: Markdown renders with its HTML turned off in Read.
+  do, except Markdown's Rich Text, which draws a file's HTML as GitHub does:
+  the page's Content Security Policy (D91) runs no script that is not the
+  plugin's own and loads nothing from outside (images only from the plugin,
+  `data:` and `blob:`), so the HTML runs no code and loads nothing.
 - **`run` has no shell.** It takes argv, which goes to the machine inside the
   envelope (D3). The label's argument is never part of a command line.
 - **Installs run no scripts of dependencies.** The app installs with

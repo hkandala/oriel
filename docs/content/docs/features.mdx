@@ -19,7 +19,8 @@ Each part of the window has its own page under UI design.
 - Workspace rows like herdr's: its agents' state as a still icon at the row's
   end (t3code's dashed circle, alert circle and check), the git branch with
   ahead and behind counts, and linked worktrees indented under their
-  repository. Rename in place, add a tab, reorder or close a workspace.
+  repository. Rename in place, add a tab, reorder or close a workspace, and
+  Fetch, Pull or Push a repository's row from its menu.
 - The sidebar resizes from 227 to 480 pt; each window keeps its width.
 ## Tabs and panes
 
@@ -50,13 +51,15 @@ Each part of the window has its own page under UI design.
 - Two default plugins, on any machine, each one card with Back and Forward:
   **File Explorer** (a tree that lists each folder as it opens, with a
   filter, git letters, hidden files on a toggle and the root as a path you
-  type, and in the same card each file as an editor with the diff's syntax
-  colors and breadcrumbs, Markdown in Rich Text or Source, locked for reading or not, and
+  type, a status bar with the folder's counts and the branch with Fetch, Pull
+  and Push, and in the same card each file as an editor with the diff's syntax
+  colors, breadcrumbs and Word Wrap, Markdown in Rich Text or Source, locked for reading or not, and
   an outline, or a preview of images, PDF, audio and video) and **Git** (the
   changes with Stage, Unstage, Revert and Commit, Fetch, Pull and Push, a branch
   menu, the history graph of every branch with Show More, a live Working
   Tree diff, each commit's page, and the diff of any change or commit,
-  unified or side by side, with Word Wrap). Edits show the Edited dot, ⌘S saves, and a file
+  unified or side by side, with Word Wrap, a filter of its files (⌘F), and ]
+  and [ to step through the changes). Edits show the Edited dot, ⌘S saves, and a file
   changed on disk reloads, or asks when there are edits. Links and files
   open one way everywhere: a click in the card (or a new tab when the card
   cannot show it), ⌘-click in a new tab, ⌥-click in a pane to the side, both
@@ -83,7 +86,9 @@ Each part of the window has its own page under UI design.
   They never move the user's view ([Agent control](/docs/agent-control)).
 - The overview (⌃⌘O) shows every tab of the session as a miniature,
   browser pages and chats too.
-- Find in a pane (⌘F) with the matches highlighted, and ⌘-click links.
+- Find in a pane (⌘F) with the matches highlighted. ⌘-click a link or a path
+  in a terminal to open it in a new tab in Ovvi, or ⌥-click it to open it to
+  the side.
 - Drop files on a terminal to paste their paths (copied to the machine first
   on a remote card).
 - Drop folders on the Dock icon to open a workspace in each.
