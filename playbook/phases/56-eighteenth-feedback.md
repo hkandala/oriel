@@ -107,6 +107,27 @@ runs and on-demand on the final head.
      snapshot Ovvi already has, with no wait. The New Pane card shows it in its first frame.
    - The folder is grey like "Opens in" until clicked or tabbed into; then it is a white field.
 
+### Findings (Track C)
+
+- **Cause.** The folder line read only the pane's folder from a snapshot. A new tab's or split's stand-in has no
+  pane until herdr answers and a snapshot comes, so the line came in a moment after the list. It did not wait for
+  the terminal: it waited for herdr's pane.
+- **herdr's rule** (v0.9.5, `src/app/creation.rs` `resolve_new_terminal_cwd`, with `launch_cwd_for_terminal`):
+  with the default `new_cwd = "follow"`, a new terminal starts in the folder of the pane it comes from (its
+  foreground process's folder, else its reported folder), else `$HOME`. `pane.split` (`src/app/api/panes.rs`
+  `handle_pane_split`) follows the split pane. `tab.create` (`src/app/api/tabs.rs` `handle_tab_create`) follows the
+  workspace's focused pane, but Ovvi passes the keyboard card's folder itself, so that is the one.
+- **Fix.** The chooser carries that folder from its creation (`Chooser.cwd`): the split pane's (an earlier
+  stand-in's chooser's for a quick ⌘D ⌘D), the keyboard card's for ⌘T, then herdr's answer's. The line shows the
+  pane's own folder once a snapshot has it. The path is tertiary like "Opens in"; only the field is primary.
+- **Decisions.** herdr's `new_cwd` setting (home, current, a path) is not read: it is the default `follow` on the
+  user's machine, and Ovvi already overrides it for new tabs. A ⌘T in a workspace with no keyboard card passes `~`;
+  its line comes with herdr's answer, as before.
+- **Test.** The e2e helper gets `pause` and `resume` (SIGSTOP and SIGCONT of the throwaway session's server), so
+  a test can see a stand-in before herdr answers.
+
+### Runs (Track C)
+
 ## Track D: the remote browser (item 4)
 
 4. "so after the update to browser where we can flip between server and this mac, i can't laod any page in browser
