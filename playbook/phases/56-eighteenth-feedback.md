@@ -241,3 +241,17 @@ Runs: none (no app code).
 ### Runs (Track L)
 
 - None: a report, no code.
+### Findings (Track B)
+
+- **Fix (item 2).** The palette's field (the one at `.controlSize(.large)`) is a rounded rectangle of 4 pt, the
+  panel's 14 pt less its 10 pt inset, with the text color at 10 % instead of 7 %. The other fields stay capsules.
+- **Fix (items 14, 19).** Open File…, Open Working Tree and Open Commit… resolve through `ovvi open`'s own code
+  (`AgentCall.opening`), then open with `Page.open` as the plugins' links do: a new tab, ⌥ (Return or click) to the
+  side. A path is checked and `~` expanded by one `sh` call on the page's machine, so it works on a remote machine.
+- **Decisions.** A filter starting with `/`, `~`, `./` or `../` is checked as a path, 150 ms after the last key;
+  when it exists, **Open ‹path›** is the first row. Open Commit takes a hash or a ref: the app resolves it with
+  `git rev-parse --verify` (`Git.commit`) and the label holds the whole hash, so `ovvi open git . main` works too
+  and a mistyped hash is a notice. A path or commit that names nothing closes the palette with a warning notice.
+- **Cause (review).** "open file" lit Open File Explorer Here: both titles start with the filter, and the tie went
+  to the earlier row. A title that is the whole filter now wins the tie.
+- **For the user.** Return opens in a new tab at the end until Track J makes new tabs open beside.
