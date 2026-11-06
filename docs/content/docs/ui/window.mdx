@@ -253,8 +253,8 @@ session open in this window (D43).
   "Hari's MacBook Pro") or the remote machine's name from the list. The Open
   Session panel and the palette keep the real names. Its text starts where
   everything under it starts: 18 pt in from the window's edge, on the
-  workspace rows' names and branch lines, and on the Agents view's group
-  labels and program tiles. It stays in the same place in both views. It
+  workspace rows' names and branch lines, and on the Agents view's header
+  and program tiles. It stays in the same place in both views. It
   sits 3 pt above the first
   row, and, at the trailing
   end, a `+` that makes a new workspace in that session, in `$HOME`. The
@@ -359,6 +359,9 @@ or below ([Swiping](/docs/ui/swiping)). The page dots and the footer stay.
     longer than **Settle idle agents after** in [Settings ▸ Agents](/docs/ui/settings) (3 hours by
     default; Never turns it off), and agents settled by hand. Newest change first. It shows only
     when an agent is settled.
+  - **Archived**, a second folded shelf under Settled: the closed sessions of Claude Code, Codex, Pi
+    and OpenCode on the page's machine ([Archived](#archived)). Settings ▸ Agents ▸ **Show closed
+    sessions** (on by default) hides it, and then nothing is read.
 - **Order and calm.** A state box, a time and a name change at once. A row moves only when the pointer
   is not over the list, and 1 s after the last change; then it slides in 0.2 s (no motion with Reduce
   Motion). Until then a new row waits at the end of its part. ⌥ + swipe steps through the rows as
@@ -380,7 +383,9 @@ or below ([Swiping](/docs/ui/swiping)). The page dots and the footer stay.
 - **Pin.** Under the pointer a row shows an 18 pt pin button before its box: **Pin**, or **Unpin**
   on a pinned row. The row's context menu has the same **Pin** or **Unpin**. A pin holds the agent's
   session (herdr's `agent_session`) when herdr reports one, else its terminal, so a pinned agent
-  stays pinned across relaunches. A pinned agent never settles.
+  stays pinned across relaunches. A pinned agent never settles. A pinned session that no pane runs
+  stays in Pinned, first, as an Archived row with **Resume** and **Unpin** (under the pointer and in
+  its menu); Unpin lets it go back to Archived.
 - **Settle.** The row's context menu has **Settle** for an idle agent (off for the others) and
   **Unsettle** in the shelf. Either holds until the agent's next change of state, for the app's run:
   an agent that works or needs you again comes back to the top of the list, and an unsettled agent
@@ -407,6 +412,38 @@ or below ([Swiping](/docs/ui/swiping)). The page dots and the footer stay.
 - Rest the pointer on a row to see the [hover card](#hover-card) of its tab.
 
 How it works: [Agents and notifications](/docs/status#agents-and-notifications).
+
+### Archived
+
+The Archived shelf's header has no count (it is not known without reading every store). At
+its end, before the chevron, a filter button (`line.3.horizontal.decrease.circle`, filled while it
+shows one agent, "Show Agent") opens a menu: **All Agents**, then the four agents. The choice is
+kept across relaunches.
+- **Rows.** The list's rows: the agent's tile, the session's title, its folder on line 2 (`~` for
+  the home folder), and its age where the box goes. Newest first, over the four agents. Left out:
+  the sessions a pane of any open session of the machine runs, the pinned ones, and one being
+  resumed. The footer filter matches the title and the folder.
+- **Reading.** The shelf reads each time it opens, 50 sessions an agent a page, and the next page
+  when the list's end scrolls into view. One shell script an agent runs once a page on the machine
+  (never a process per file), and nothing writes to the stores. Pi and Claude Code keep a JSONL file a
+  session under `~/.pi/agent/sessions/` and `~/.claude/projects/`; the title is the last rename,
+  else Claude Code's own title, else the first typed prompt. Codex and OpenCode keep an SQLite
+  index, read with `sqlite3 -readonly`; without sqlite3 Codex reads its rollout files, and
+  OpenCode's line says "OpenCode needs sqlite3 on ‹machine›." Left out: subagents and child sessions,
+  `codex exec` runs and Claude Code's Agent SDK sessions, archived ones, and sessions with no prompt.
+- **Lines.** While a page takes over 0.3 s: "Reading sessions…". With no row: "No closed sessions on
+  ‹machine›.", "No ‹Agent› sessions." or "No matching sessions.". A machine that did not answer in
+  10 s: "Could not read ‹machine›'s sessions." with **Retry**.
+- **Resume.** A click, or the hover **Resume** (`arrow.uturn.backward`) after the hover **Pin**,
+  starts the agent with that session (the flags of [Relaunch with
+  Chat](/docs/ui/chat-view#relaunch-with-chat)'s table) in a new pane in the session's
+  folder: a new tab after the selected tab of the workspace whose folder holds it (the deepest; a
+  folder one or two levels deep, as `/` or a home folder, holds only itself), else a new workspace
+  there. ⌥-click, and the menu's **Resume to the Side**, split to the right of the keyboard card
+  instead. The menu has **Resume**, **Resume to the Side** and **Pin**. A row resumes once: it
+  leaves the shelf until its start ends. A folder that is gone says "‹folder› is gone" in a notice
+  (Pi resumes in the home folder: it keeps its own folder), and an agent the machine does not have
+  says "‹Agent› is not on ‹machine›".
 
 ## Open Session
 
@@ -650,7 +687,7 @@ terminal.
 - **Lists select first.** In File Explorer's tree and Git's commit list a
   click selects a row and a double-click (or Return) opens it, as in the
   Finder. ⌘-click and ⌥-click open at once.
-- **Markdown's edit modes** open a link on a click too, as Read does. On
+- **Markdown, unlocked,** opens a link on a click too, as locked. On
   the caret's line a link shows its source, and a click there puts the caret
   in it. A Markdown link's menu ends with **Copy Link** (the file's path or
   the address).

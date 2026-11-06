@@ -180,7 +180,7 @@ private struct AgentsPanel: View {
                     ForEach([AgentState.needsYou, .finishedUnseen], id: \.self) { state in
                         let group = agents.filter { $0.state == state }
                         if !group.isEmpty {
-                            // The Agents view's group label, without its fold.
+                            // The group: its state and count.
                             Text("\(state.title) · \(group.count)")
                                 .font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary)
                                 .accessibilityIdentifier("agents.popover.group.\(state.title)")
