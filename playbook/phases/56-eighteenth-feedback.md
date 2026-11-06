@@ -352,6 +352,13 @@ The user's words: "so couple of things i notced with settings window:
   (`http`) would approve an origin that an `https` page never matches. The field adds the origin, not the path, the
   newest 200 as the browser keeps them, in lowercase (`Browser.origin`), as WebKit gives a page's address. An emptied
   list leaves no key. The test uses a machine id of its own run: the approvals are the user's defaults.
+
+### Runs (Track O)
+
+- Chosen-tests runs of `testSettingsPagesSearchAndLook` and `testSettingsPrivacyAddsAndRemovesAWebsite`: 42147502248
+  on a014ba2d and 42149135235 on a7254f12 (after the review's fixes), both "Executed 2 tests, with 0 failures". The
+  sidebar from the second run's pictures: `/tmp/ovvi-shots/settings-polish/icons/ci-{dark,light}-sidebar.png`.
+  `make test`'s HerdrKit timing tests failed locally at a load of 370 (untouched here; CI's checks run them).
 - **Icons.** Five options rendered with ImageRenderer from a copy of `SettingsIcon` and the row layout (no window):
   `/tmp/ovvi-shots/settings-polish/icons/options-2.png`. System Settings' glyphs fill 70–80 % of its 20 pt tiles
   (measured); the 11 pt glyph filled about 55 %. **Fix:** 14 pt semibold in pure white, about 70 %, in the sidebar and
