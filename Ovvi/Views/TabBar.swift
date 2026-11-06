@@ -67,6 +67,15 @@ struct TabBar: View {
                                         DropIndicator(radius: Self.radius)
                                     }
                                 }
+                                // The selected tab's: it dims, slides and lands with its capsule, and jumps to another.
+                                .background {
+                                    if index == selected {
+                                        Pill(shape: RoundedRectangle(cornerRadius: Self.radius - Self.inset,
+                                                                     style: .continuous))
+                                            .padding(.vertical, Self.inset).allowsHitTesting(false)
+                                            .transition(.identity)
+                                    }
+                                }
                                 .scaleEffect(pulsing == tab.id ? 1.04 : 1)
                                 .opacity(page.lifted == .tab(tab.id) ? 0.4 : 1)
                                 .offset(x: shift(index))
@@ -93,7 +102,7 @@ struct TabBar: View {
                     land: { tab, offset, under in
                         // Its capsule moved under the pointer with no hover event.
                         hovered = under
-                        if !reduceMotion {
+                        if !reduceMotion || Animation.forceMotion {
                             landing = Landing(tab: tab, offset: offset, count: (landing?.count ?? 0) + 1)
                         }
                     },
@@ -104,10 +113,7 @@ struct TabBar: View {
                     end = false
                 }
                 .background {
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(look.track).opacity(tabs.count > 1 ? 1 : 0)
-                        marker(selected)
-                    }
+                    Capsule().fill(look.track).opacity(tabs.count > 1 ? 1 : 0)
                 }
                 // Room for the Classic pill's shadow (radius 3.5, y 1.5): the scroll view clips.
                 .padding(.vertical, 5)
@@ -190,16 +196,6 @@ struct TabBar: View {
             try? await Task.sleep(for: .milliseconds(100))
             withAnimation(.easeOut(duration: 0.1)) { pulsing = nil }
         }
-    }
-
-    /// The look's pill on the selected tab.
-    private func marker(_ selected: Int) -> some View {
-        Pill(shape: RoundedRectangle(cornerRadius: Self.radius - Self.inset, style: .continuous))
-            .frame(width: Self.width, height: Self.height - 2 * Self.inset)
-            .offset(x: CGFloat(selected) * (Self.width + 1))
-            // It jumps, also in another change's animation (a tab drag's slide).
-            .animation(nil, value: selected)
-            .allowsHitTesting(false)
     }
 }
 

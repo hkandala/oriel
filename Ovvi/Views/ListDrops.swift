@@ -3,7 +3,7 @@ import SwiftUI
 
 /// A drag over the tab track. A pane over another tab's capsule highlights it and spring-loads it after 0.65 s; a
 /// drop moves the pane into that tab. Its own tab's capsule is not a target (herdr refuses `same_tab`). A tab of
-/// the workspace goes to the place under the pointer (`tab.move`).
+/// the workspace goes to the place under its drag image (`tab.move`), so its drop lands within half a tab of it.
 struct TrackDrop: DropDelegate {
     let tabs: [HostStore.Tab]
     let page: Page
@@ -26,9 +26,8 @@ struct TrackDrop: DropDelegate {
     func dropUpdated(info: DropInfo) -> DropProposal? {
         // A late update after the drag ended.
         guard page.dragging != nil else { return nil }
-        let place = info.location.x / max(slot, 1)
         if let id = page.dragging?.paneID {
-            let index = min(max(Int(place), 0), tabs.count - 1)
+            let index = min(max(Int(info.location.x / max(slot, 1)), 0), tabs.count - 1)
             guard tabs.indices.contains(index), page.store.pane(id)?.tabID != tabs[index].id else {
                 dropExited(info: info)
                 return DropProposal(operation: .forbidden)
@@ -39,8 +38,11 @@ struct TrackDrop: DropDelegate {
                 let tabID = tabs[index].id
                 spring = springTask(page) { springLoad(tabID) }
             }
-        } else {
-            let index = min(max(Int(place.rounded()), 0), tabs.count)
+        } else if case let .tab(id) = page.dragging, let from = tabs.firstIndex(where: { $0.id == id }) {
+            let image = (info.location.x - DragSource.grabbed.x) / max(slot, 1)
+            let place = min(max(Int(image.rounded()), 0), tabs.count - 1)
+            // herdr's index: before the tab now there.
+            let index = place >= from ? place + 1 : place
             if over != index {
                 withAnimation(.slide) { over = index }
             }
@@ -74,10 +76,9 @@ struct TrackDrop: DropDelegate {
             // starts before that end.
             page.dragging = nil
             page.lifted = nil
-            let place = over > from ? over - 1 : over
-            var order = tabs.map(\.id)
-            order.remove(at: from)
-            order.insert(id, at: place)
+            // The order the bar draws now.
+            let order = page.store.workspace(of: id)?.tabs.map(\.id) ?? [id]
+            let place = order.firstIndex(of: id) ?? from
             land(id, info.location.x - DragSource.grabbed.x - CGFloat(place) * slot,
                  order[min(max(Int(info.location.x / max(slot, 1)), 0), order.count - 1)])
         default:

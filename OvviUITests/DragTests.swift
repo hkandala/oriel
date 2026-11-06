@@ -168,15 +168,15 @@ extension OvviUITests {
         try await expect("herdr's tab order") {
             try await tabIDs().filter { $0.hasPrefix("\(workspace(of: tabs[0])):") } == [tabs[2], tabs[0], tabs[1]]
         }
-        // The last one, dropped beside the first: the first is under the pointer, so it has the ×, not the dropped
-        // tab, at once (no hover event came, and the × changes where the titles cut).
-        let first = element("tab.\(tabs[2])")
-        during(element("tab.\(tabs[1])").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)),
-               to: first.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.5)))
+        // The last one, grabbed near its end (left of its ×) and let go with its capsule 0.3 of a tab into the first
+        // place: it goes there (the place under the capsule, not the pointer), and the pointer is then over the
+        // second tab, which has the × at once, not the dropped one (no hover event came; the × cuts the titles anew).
+        during(element("tab.\(tabs[1])").coordinate(withNormalizedOffset: CGVector(dx: 0.8, dy: 0.5)),
+               to: element("tab.\(tabs[0])").coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.5)))
         XCTAssertFalse(element("tab.\(tabs[1]).close").exists, "the dropped tab kept the hover")
         XCTAssertTrue(element("tab.\(tabs[2]).close").exists(within: 1))
         try await expect("herdr's tab order") {
-            try await tabIDs().filter { $0.hasPrefix("\(workspace(of: tabs[0])):") } == [tabs[2], tabs[1], tabs[0]]
+            try await tabIDs().filter { $0.hasPrefix("\(workspace(of: tabs[0])):") } == [tabs[1], tabs[2], tabs[0]]
         }
     }
 
