@@ -114,6 +114,9 @@ Problems that came back across phases, and the rule that stops each. How we work
 - **A lazy stack anchored at the bottom guesses its height** from the rows it built, often 2–3× off: a resize jumps
   to the end, or past it to a blank view. Lay out a short plain stack instead (the chat, D95). Test a one-step resize
   too (Reduce Motion).
+- **An environment change alone does not call `updateNSView`.** A representable that reads a value from
+  `context.environment` there misses its changes (kept pages' hosts never hid or showed again). Pass the value as a
+  stored property, read in a view's body.
 - **SwiftUI lifecycle traps:** it keeps the first closure (read current state inside actions); a first
   responder set during an update is undone (take focus on the next run-loop turn); a `@State` initializer
   runs again on every parent rebuild (no side effects in it); the menu bar refreshes only when the focused

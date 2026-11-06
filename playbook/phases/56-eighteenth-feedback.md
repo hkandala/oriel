@@ -44,6 +44,61 @@ runs and on-demand on the final head.
    - A test: a switch to a tab with each heavy card finishes in one frame budget; the chat keeps its scroll offset
      and loaded rows.
 
+### Findings (Track A)
+
+- **Cause.** A switch made the new tab's page and dropped the old one (`Detail` gave each tab's page its own id). Every
+  card's views went with their tab: a chat built and laid out its rows again (and lost its scroll place and Show
+  Earlier's rows, phase 53's block), web cards moved back into the window, and leaving tore it all down. The kept
+  cards (D46) kept only the terminal and web views, not the SwiftUI around them.
+- **Fix.** `TabPages`: the pages of the 8 tabs shown last, over all the session's workspaces, stay made under the shown
+  one, at opacity 0, with no hit testing, out of the accessibility tree, also under the overview (`Detail` stays there,
+  hidden). Their terminal and web hosts are hidden views (no mouse moves, cursor or hover) that give the keyboard to the
+  window first; a view asked for the keyboard while hidden takes it as its page shows; text fields blur. A hidden card
+  makes no web card the registry dropped; a tab that leaves takes its chats' pictures before SwiftUI hides it; a live
+  overview tile gives its terminal view back to the kept page's host. A chat's view draws its rows one turn after it is
+  made, so a first visit draws the tab and the card frames in the click's turn.
+- **Cause, blank cards on the way back.** SwiftUI does not call `updateNSView` for an environment change alone, so a
+  host that read `pageHidden` from its context never hid or showed again. The hosts take it as an input.
+- **Numbers** (CI, `-recordLatency`, the app's time from the click to the turn that drew it, medians; 29 switches
+  among a chat, a Markdown file of 3000 sections in File Explorer, a Git diff, a terminal tab and another workspace):
+  279 ms before, 110 ms with kept pages. Locally (Release, an in-app driver that switched every 1.5 s, main-thread CPU
+  / wall ms to the commit that drew it, medians after a first round of visits; the chat here was a short one):
+
+  | Switch | Before | Kept pages |
+  |---|---|---|
+  | to a terminal tab | 22 / 23 | 19 / 20 |
+  | to the chat's tab | 46 / 51 | 28 / 43 |
+  | to File Explorer on a 650 KB Markdown file | 88 / 152 | 36 / 44 |
+  | to a Git diff of 37 files | 42 / 50 | 37 / 44 |
+  | to another workspace (a terminal) | 31 / 32 | 32 / 34 |
+  | to the workspace whose tab is the chat / Markdown / Git | 57 / 64, 86 / 104, 50 / 60 | 53 / 60, 54 / 63, 53 / 69 |
+
+  The Markdown tab's wall time over its CPU time was the main thread waiting on WebKit as the web view came back into
+  the window; a kept one never leaves it.
+- **Decisions.** 8 kept pages, a fixed count (a `ponytail:` note): a hidden page costs its cards' updates, and a hidden
+  chat goes on following its transcript (an exec per chat on a remote machine), so the chat is current when it shows.
+  A hidden chat that got a long reply took 456 ms of main thread over 5 s, in turns of at most 28 ms; at rest 8–65 ms
+  per 5 s, as before. A session switch and a tab past the 8 still make the page again. `ForEach` in herdr's order, no `zIndex`: a switch
+  moves no platform view.
+- **Left.** A switch to a kept tab still costs the window's own update (the tab bar, the sidebar, each card's header:
+  19–37 ms of main thread here, 50–60 ms for a workspace), over one 16 ms frame. A first visit to a web card still makes
+  its web view in the click's turn.
+- **For the user.** In a chat tab, scroll up and click Show Earlier, then switch to another tab, another workspace and
+  the overview and back: the chat shows the same rows at the same place. Switch to a File Explorer tab with a long
+  Markdown file and back: it shows at once and scrolls.
+
+### Runs (Track A)
+
+- 42143543148: a temporary bench test (old code by a switch, then kept pages): 279 ms against 110 ms; the new test's
+  first version failed on a click that missed a new capsule.
+- 42147868464: 28 chosen tests on the first fixes, 9 red (blank cards on the way back, see the cause above).
+- 42150197991: 30 chosen tests (tabs, keys, palette, reveal, drag, float, overview, chats, replace, Markdown, Git,
+  browser, zoom, chooser): 29 green; the new test failed on a capsule out of CI's view.
+- 42159731444: the new test red at its scroll check (the heading leaves WebKit's tree), RevealTests green.
+- 42160486077: the new test green, 1 test executed.
+- **Pictures.** The chat tab after a switch back looks the same before and after, dark and light:
+  `/tmp/ovvi-shots/p56a/{before,after}-chat-{dark,light}.png`.
+
 ## Track B: the palette (items 2, 14, 19)
 
 2. "in cmd+k search input is fully round with actual cmd+k border radius less round, basically search input border
