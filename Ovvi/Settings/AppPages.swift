@@ -244,7 +244,7 @@ struct TerminalPage: View {
     }
 }
 
-/// Settings ▸ Agents: the first view of new agents, the agents in New Pane, and the notifications.
+/// Settings ▸ Agents: the first view of new agents, the Agents view, the agents in New Pane, and the notifications.
 struct AgentsPage: View {
     private var settings = AppSettings()
 
@@ -260,8 +260,21 @@ struct AgentsPage: View {
                 }
                 .accessibilityIdentifier("settings.agents.view").settingsRow("agents.view")
             }
+            Section("Agents view") {
+                Picker(selection: settings.$settleAfter) {
+                    Text("1 hour").tag(3600.0)
+                    Text("3 hours").tag(3 * 3600.0)
+                    Text("8 hours").tag(8 * 3600.0)
+                    Text("1 day").tag(24 * 3600.0)
+                    Text("Never").tag(0.0)
+                } label: {
+                    Text("Settle idle agents after")
+                    Text("An idle agent you have seen moves to Settled.")
+                }
+                .accessibilityIdentifier("settings.agents.settle").settingsRow("agents.settle")
+            }
             Section {
-                ForEach(Chooser.agents, id: \.command) { AgentRow(agent: $0) }
+                ForEach(Chooser.agents, id: \.command) { AgentSettingsRow(agent: $0) }
             } header: {
                 Text("Agents in New Pane").settingsRow("agents.new-pane")
             } footer: {
@@ -295,7 +308,7 @@ struct AgentsPage: View {
 }
 
 /// An agent's tile, name and command, its extra arguments, and whether New Pane lists it.
-private struct AgentRow: View {
+private struct AgentSettingsRow: View {
     let agent: Chooser.Agent
     @AppStorage private var arguments: String
 

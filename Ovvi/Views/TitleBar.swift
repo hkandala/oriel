@@ -156,14 +156,15 @@ private struct AgentsButton: View {
         .accessibilityLabel("Agents")
         .accessibilityIdentifier("titlebar.agents")
         .accessibilityValue("\(waiting) need you")
+        .accessibilityAddTraits(showing ? .isSelected : [])
         .hoverPanel(place: .underTrailing, enabled: waiting > 0 || page.store.done > 0) { close in
             AgentsPanel(page: page, close: close)
         }
     }
 }
 
-/// The Agents button's panel: the page's agents that need you, then those whose finish is not seen yet, under the
-/// Agents view's group labels. A click on a done row shows its tab, which clears it.
+/// The Agents button's panel: the page's agents that need you, then those whose finish is not seen yet, under group
+/// labels. A click on a done row shows its tab, which clears it.
 private struct AgentsPanel: View {
     let page: Page
     let close: () -> Void

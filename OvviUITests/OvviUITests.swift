@@ -222,7 +222,8 @@ extension OvviUITests {
         let shipped = ["notifyNeedsYou": "YES", "notifyFinished": "YES", "notifyFromAgents": "YES",
                        "terminalFont": "", "cursorStyle": "block", "cursorBlink": "YES", "optionKey": "characters",
                        "copyOnSelect": "NO", "agentView": "terminal", "agentArguments.claude": "",
-                       "agentArguments.codex": "", "agentArguments.pi": "", "agentArguments.opencode": ""]
+                       "agentArguments.codex": "", "agentArguments.pi": "", "agentArguments.opencode": "",
+                       "settleAfter": "<real>10800</real>"]
         let notify = pin ? shipped.sorted { $0.key < $1.key }.filter { !args.contains("-\($0.key)") }
             .flatMap { ["-\($0.key)", $0.value] } : []
         app.launchArguments = ["-session", session ?? one, "-ApplePersistenceIgnoreState", "YES"] + config + notify

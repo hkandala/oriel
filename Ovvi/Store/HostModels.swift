@@ -79,8 +79,10 @@ extension HostStore {
         var terminalTitle: String?
         /// Its agent's state (D14); nil without an agent.
         var state: AgentState?
-        /// When the app saw the state change, for the ages.
+        /// When the app saw the state change, for the ages and Settled.
         var since: Date?
+        /// herdr's `state_change_seq`: the Agents view lists the newest change first.
+        var changeSeq: Int?
         /// The agent's name: herdr's `display_agent`, else its kind.
         var agentName: String?
         /// Its agent's session (herdr's `agent_session` value, of this agent), and that session's title (`watchTitle`).

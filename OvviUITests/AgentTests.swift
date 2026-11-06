@@ -126,153 +126,6 @@ extension OvviUITests {
         XCTAssertFalse(row(done).exists)
     }
 
-    func testAgentsViewListsEveryAgentByPriorityOrWorkspaceOrder() async throws {
-        XCTAssertTrue(element("workspace.w1").exists(within: connect))
-        let idle = try await newTab("review", in: "w1").pane
-        try await report(idle, "idle", agent: "pi")
-        // A split, not a fourth tab in w1: 220 pt tabs, and only 3 fit on CI's window.
-        let working = try await split(idle)
-        try await report(working, "working")
-        try await Self.call(one, "pane.rename", ["pane_id": working, "label": "fixer"])
-        let blocked = try await newTab("deploy").pane
-        try await report(blocked, "blocked", agent: "claude")
-        let done = try await finish(newTab("docs"))
-
-        app.typeKey(".", modifierFlags: .command)
-        XCTAssertTrue(element("agents.sort").exists(within: 2))
-        // The session's name alone.
-        XCTAssertEqual(element("sidebar.header").value as? String, one)
-        let rows = [blocked, working, done, idle].map { element("agent.\($0)") }
-        // The finish lands a moment after its tab's report.
-        try await expect("each row's state") {
-            rows.map { $0.value as? String } == ["Needs you", "Working", "Done", "Idle"]
-        }
-        // The pane's name, else its session's title ("Untitled" before one); line 2 names the workspace.
-        try await expect("the pane's name as the title") { rows[1].label.hasPrefix("fixer, alpha · ") }
-        XCTAssertTrue(rows[3].label.hasPrefix("Untitled, alpha · "), rows[3].label)
-        // Each group's header, with its count, sits above its row and below the row before.
-        let groups = ["Needs you", "Working", "Done", "Idle"].map { element("agents.group.\($0)") }
-        XCTAssertEqual(groups.map(\.label), ["Needs you 1", "Working 1", "Done 1", "Idle 1"])
-        let tops = zip(groups, rows).flatMap { [$0.frame.minY, $1.frame.minY] }
-        XCTAssertEqual(tops, tops.sorted())
-        // One leading edge: the page header, the group labels and the row icons (8 pt into each row); the sort
-        // label's text (8 pt into its capsule) ends where the rows' boxes do (8 pt before each row's end).
-        let header = element("sidebar.header").frame, sort = element("agents.sort").frame
-        let frames = "header \(header), sort \(sort), group \(groups[0].frame), row \(rows[0].frame)"
-        let edges = zip(groups, rows).flatMap { [$0.frame.minX, $1.frame.minX + 8] }
-        XCTAssertEqual(edges, Array(repeating: header.minX, count: 8), frames)
-        XCTAssertEqual(sort.maxX, rows[0].frame.maxX, accuracy: 0.5, frames)
-        // The name is the title, the rows' size, larger than the section labels; each group has room above it.
-        XCTAssertGreaterThan(header.height, groups[0].frame.height, frames)
-        XCTAssertLessThanOrEqual(header.height, 17, frames)
-        XCTAssertGreaterThanOrEqual(groups[1].frame.minY - rows[0].frame.maxY, 14, frames)
-        keepScreenshot("agents view by priority")
-
-        // The footer filter keeps the rows of one workspace, or of a pane's name.
-        filter("beta", keeps: rows, [true, false, true, false])
-        filter("fixer", keeps: rows, [false, true, false, false])
-
-        element("agents.sort").click()
-        app.menuItems["Workspace"].click()
-        try await waitForValue("agents.sort", containing: "workspace")
-        XCTAssertTrue(element("agents.group.Idle").vanishes(within: 2))
-        // Each workspace's name above its rows, whose line 2 drops it.
-        let alpha = element("agents.workspace.w1"), beta = element("agents.workspace.w2")
-        try await expect("rows in workspace order under their workspaces") {
-            let order = [alpha, rows[3], rows[1], beta, rows[0], rows[2]].map(\.frame.minY)
-            return order == order.sorted()
-        }
-        XCTAssertEqual([alpha, beta].map(\.label), ["alpha 2", "beta 2"])
-        XCTAssertEqual(alpha.frame.minX, rows[0].frame.minX + 8, accuracy: 0.5)
-        XCTAssertFalse(rows.contains { $0.label.contains("alpha") || $0.label.contains("beta") },
-                       rows.map(\.label).joined(separator: "; "))
-        keepScreenshot("agents view in workspace order")
-
-        app.typeKey(".", modifierFlags: .command)
-        XCTAssertTrue(element("workspace.w1").exists(within: 2))
-        XCTAssertEqual(element("sidebar.header").value as? String, one)
-    }
-
-    /// A group label folds its rows and keeps its count; the fold is per session and order and outlives a relaunch.
-    /// Only in workspace order and on a priority group for a moment: other tests read this session's priority groups.
-    func testAgentGroupsFoldAndStayFoldedAfterARelaunch() async throws {
-        XCTAssertTrue(element("workspace.w1").exists(within: connect))
-        let first = try await newTab("review", in: "w1").pane
-        try await report(first, "working")
-        let second = try await split(first)
-        try await report(second, "idle", agent: "pi")
-        let other = try await newTab("deploy").pane
-        // A failure on the way must not leave a fold for the next tests: the folds outlive the app. Added after the
-        // tabs' teardown blocks, so it runs before them: while the app took in their closes, the open sort menu
-        // closed by itself before its click (on CI).
-        addTeardownBlock { @MainActor [self] in unfold() }
-        try await report(other, "blocked", agent: "claude")
-        app.typeKey(".", modifierFlags: .command)
-        let sort = element("agents.sort"), rows = [first, second, other].map { element("agent.\($0)") }
-        XCTAssertTrue(rows[0].exists(within: 2))
-
-        // The sort control is a small button: a fill shows under the pointer.
-        element("sidebar.header").hover()
-        let rest = median(sort)
-        sort.hover()
-        try await expect("a fill on the hovered sort button") { abs(median(sort) - rest) >= 4 }
-        keepScreenshot("hovered sort button")
-
-        let working = element("agents.group.Working")
-        working.click()
-        XCTAssertTrue(rows[0].vanishes(within: 2))
-        XCTAssertEqual(working.label, "Working 1")
-        XCTAssertEqual(working.value as? String, "collapsed")
-        XCTAssertTrue(rows[1].exists)
-        working.click()
-        XCTAssertTrue(rows[0].exists(within: 2))
-        XCTAssertEqual(working.value as? String, "expanded")
-
-        sort.click()
-        app.menuItems["Workspace"].click()
-        let alpha = element("agents.workspace.w1")
-        XCTAssertTrue(alpha.exists(within: 2))
-        alpha.click()
-        XCTAssertTrue(rows[1].vanishes(within: 2))
-        XCTAssertFalse(rows[0].exists)
-        XCTAssertTrue(rows[2].exists)
-        XCTAssertEqual(alpha.label, "alpha 2")
-        keepScreenshot("folded workspace group")
-        // Per order: priority shows every row.
-        sort.click()
-        app.menuItems["Priority"].click()
-        XCTAssertTrue(rows[1].exists(within: 2))
-
-        relaunch()
-        XCTAssertTrue(element("workspace.w1").exists(within: connect))
-        app.typeKey(".", modifierFlags: .command)
-        XCTAssertTrue(rows[1].exists(within: 2))
-        sort.click()
-        app.menuItems["Workspace"].click()
-        XCTAssertTrue(alpha.exists(within: 2))
-        XCTAssertEqual(alpha.value as? String, "collapsed")
-        XCTAssertFalse(rows[1].exists)
-        alpha.click()
-        XCTAssertTrue(rows[1].exists(within: 2))
-        XCTAssertTrue(rows[0].exists)
-    }
-
-    /// Opens what `testAgentGroupsFoldAndStayFoldedAfterARelaunch` folds.
-    private func unfold() {
-        for (order, id) in [("Priority", "agents.group.Working"), ("Workspace", "agents.workspace.w1")] {
-            let sort = element("agents.sort")
-            if !sort.exists {
-                app.typeKey(".", modifierFlags: .command)
-            }
-            guard sort.exists(within: 2) else { return }
-            sort.click()
-            app.menuItems[order].click()
-            if element(id).exists(within: 2), element(id).value as? String == "collapsed" {
-                element(id).click()
-            }
-        }
-    }
-
     /// The shown tab's keyboard card lights its agent's row, as the selected workspace row.
     func testTheKeyboardCardsAgentIsLitInTheAgentsView() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
@@ -315,27 +168,22 @@ extension OvviUITests {
         element("titlebar.sidebar").click()
         XCTAssertTrue(element("sidebar").vanishes(within: 2))
         element("titlebar.agents").click()
-        XCTAssertTrue(element("agents.sort").exists(within: 2))
+        XCTAssertTrue(element("titlebar.agents").has(\.isSelected, true, within: 2))
         let row = element("agent.\(pane)")
         try await waitForValue("agent.\(pane)", containing: "Done")
         // Opened, it stays Done while the user looks at it, also with the app in the background.
         row.click()
         XCTAssertTrue(element("tab.\(created.tab)").has(\.isSelected, true, within: 2))
         XCTAssertTrue(hasKeyboard("terminal.\(pane)"))
-        let done = element("agents.group.Done"), idle = element("agents.group.Idle")
-        XCTAssertFalse(until(1) { !done.exists })
-        XCTAssertEqual(row.value as? String, "Done")
-        XCTAssertGreaterThan(row.frame.minY, done.frame.minY)
-        XCTAssertEqual(idle.label, "Idle 1")
+        XCTAssertFalse(until(1) { row.value as? String != "Done" })
         XCUIApplication(bundleIdentifier: "com.apple.finder").activate()
         XCTAssertFalse(until(1) { row.value as? String != "Done" })
         app.activate()
-        // Another agent opened: it moves to Idle.
+        // Another agent opened: it is idle, and its row stays where it is (the finish was its last change).
+        let place = row.frame
         element("agent.\(other)").click()
-        XCTAssertTrue(done.vanishes(within: 3))
         try await waitForValue("agent.\(pane)", containing: "Idle")
-        XCTAssertEqual(idle.label, "Idle 2")
-        XCTAssertGreaterThan(row.frame.minY, idle.frame.minY)
+        XCTAssertFalse(until(1.5) { row.frame != place }, "\(row.frame) \(place)")
         // View ▸ Show Agents turns it off; the sidebar stays.
         app.menuBars.menuBarItems["View"].click()
         app.menuItems["Show Agents"].click()
@@ -357,7 +205,7 @@ extension OvviUITests {
     }
 
     /// Types in the footer filter, checks which rows stay, then clears it with Esc.
-    private func filter(_ text: String, keeps rows: [XCUIElement], _ kept: [Bool]) {
+    func filter(_ text: String, keeps rows: [XCUIElement], _ kept: [Bool]) {
         element("sidebar.filter").click()
         element("sidebar.filter").typeText(text)
         XCTAssertTrue(until(2) { rows.map(\.exists) == kept }, text)

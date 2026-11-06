@@ -86,11 +86,16 @@ final class HostStore {
     @ObservationIgnored var gitRuns: Set<String> = []
     /// Program asks in flight, 8 at most: a 600-pane session's first snapshot made 600 herdr runs.
     @ObservationIgnored let asks = Gate(8)
-    @ObservationIgnored private var seen = Seen()
+    @ObservationIgnored private var seen: Seen
+    /// `seen`'s marks as last kept in the defaults (`keepMarks`).
+    @ObservationIgnored private var marks: [String: Seen.Mark]
 
     private init(session: String, machine: Machine) {
         self.session = session
         self.machine = machine
+        let saved = UserDefaults.standard.data(forKey: Self.marksKey(session, machine))
+        marks = saved.flatMap { try? JSONDecoder().decode([String: Seen.Mark].self, from: $0) } ?? [:]
+        seen = Seen(marks: marks)
     }
 
     /// The app's stores, one per machine and session open in a window (design D43). A session with no page has none.
@@ -232,37 +237,6 @@ final class HostStore {
         sessions = await (try? client.sessions()) ?? sessions
     }
 
-    private var looking: Set<String> {
-        Set([lookingKey].compactMap(\.self))
-    }
-
-    private func showStates() {
-        for pane in panes {
-            let key = Seen.key(terminalID: pane.terminalID, paneID: pane.id)
-            pane.state = seen.states[key]
-            pane.since = seen.since[key]
-        }
-        showStrongest()
-    }
-
-    /// Each tab's strongest agent, each workspace's state and the panes that need you or are done, kept here: views
-    /// that read every pane's state for them drew again on any agent's change, every capsule and sidebar row.
-    private func showStrongest() {
-        for workspace in workspaces {
-            for tab in workspace.tabs {
-                let tabAgents = panes(in: tab.id).filter { $0.state != nil }
-                let strongest = tabAgents.max { $0.state ?? .idle < $1.state ?? .idle }
-                // Observation skips an equal value, but not an identical object.
-                if tab.agent !== strongest {
-                    tab.agent = strongest
-                }
-            }
-            workspace.state = workspace.tabs.compactMap { $0.agent?.state }.max()
-        }
-        waiting = panes.count { $0.state == .needsYou }
-        done = panes.count { $0.state == .finishedUnseen }
-    }
-
     /// The last snapshot drawn again, with what the app shows ahead of herdr.
     func redraw() {
         if let last {
@@ -314,6 +288,7 @@ final class HostStore {
         let agents = Dictionary(snapshot.agents.map { ($0.paneID, $0) }, uniquingKeysWith: { first, _ in first })
         for pane in panes {
             pane.agentName = agents[pane.id].flatMap { $0.displayAgent ?? $0.agent }
+            pane.changeSeq = agents[pane.id]?.stateChangeSeq
         }
         let changes = seen.update(snapshot.agents, looking: looking)
         showStates()
@@ -343,6 +318,51 @@ final class HostStore {
 }
 
 extension HostStore {
+    private var looking: Set<String> {
+        Set([lookingKey].compactMap(\.self))
+    }
+
+    private func showStates() {
+        for pane in panes {
+            let key = Seen.key(terminalID: pane.terminalID, paneID: pane.id)
+            pane.state = seen.states[key]
+            pane.since = seen.since[key]
+        }
+        showStrongest()
+        keepMarks()
+    }
+
+    /// Each tab's strongest agent, each workspace's state and the panes that need you or are done, kept here: views
+    /// that read every pane's state for them drew again on any agent's change, every capsule and sidebar row.
+    private func showStrongest() {
+        for workspace in workspaces {
+            for tab in workspace.tabs {
+                let tabAgents = panes(in: tab.id).filter { $0.state != nil }
+                let strongest = tabAgents.max { $0.state ?? .idle < $1.state ?? .idle }
+                // Observation skips an equal value, but not an identical object.
+                if tab.agent !== strongest {
+                    tab.agent = strongest
+                }
+            }
+            workspace.state = workspace.tabs.compactMap { $0.agent?.state }.max()
+        }
+        waiting = panes.count { $0.state == .needsYou }
+        done = panes.count { $0.state == .finishedUnseen }
+    }
+
+    /// Where `seen`'s marks are kept, so an idle agent's time outlives a relaunch (Settled).
+    private static func marksKey(_ session: String, _ machine: Machine) -> String {
+        "agentMarks.\(machine.id) \(session)"
+    }
+
+    /// Keeps `seen`'s marks once a snapshot came: before it they are empty.
+    private func keepMarks() {
+        if last != nil, seen.marks != marks {
+            marks = seen.marks
+            UserDefaults.standard.set(try? JSONEncoder().encode(marks), forKey: Self.marksKey(session, machine))
+        }
+    }
+
     /// The user looks at `pane` of `store` (a key window's), and at nothing in the other sessions.
     static func look(_ pane: Pane?, in store: HostStore) {
         let key = pane.map { Seen.key(terminalID: $0.terminalID, paneID: $0.id) }

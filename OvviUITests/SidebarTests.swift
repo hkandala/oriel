@@ -116,7 +116,7 @@ extension OvviUITests {
 
         let place = header.frame.origin
         app.typeKey(".", modifierFlags: .command)
-        XCTAssertTrue(element("agents.sort").exists(within: 2))
+        XCTAssertTrue(element("titlebar.agents").has(\.isSelected, true, within: 2))
         // The name stays where it is: the rows' names and the tiles share its edge.
         XCTAssertEqual(header.frame.origin, place)
         try await swipe(sidebar, until: header, \.stringValue, two)

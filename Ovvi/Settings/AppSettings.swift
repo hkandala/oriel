@@ -20,6 +20,11 @@ struct AppSettings: DynamicProperty {
     @AppStorage("copyOnSelect") var copyOnSelect = false
     /// What a new agent's card shows first.
     @AppStorage("agentView") var agentView = AgentView.terminal
+    /// Seconds an idle agent the user has seen waits before it moves to Settled; 0: never.
+    @AppStorage("settleAfter") var settleAfter = 3 * 3600.0
+    /// The Agents view's pins (`AgentPin`) in pin order, and its settles by hand (`AgentSettle`), as JSON lists.
+    @AppStorage("agentPins") var pins = ""
+    @AppStorage("agentSettles") var settles = ""
 
     /// What the terminals take from the settings (`PaneTerminal.configure`): a change configures them again.
     var terminal: [String] {

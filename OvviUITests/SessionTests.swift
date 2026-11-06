@@ -279,7 +279,7 @@ extension OvviUITests {
         element("sidebar.dot.\(two)").click()
         try await waitForValue("titlebar.agents", containing: "1 need you")
         app.typeKey(".", modifierFlags: .command)
-        XCTAssertTrue(element("agents.sort").exists(within: 2))
+        XCTAssertTrue(element("titlebar.agents").has(\.isSelected, true, within: 2))
         XCTAssertEqual(element("sidebar.header").value as? String, two)
         try await waitForValue("agent.w1:p1", containing: "Needs you")
     }

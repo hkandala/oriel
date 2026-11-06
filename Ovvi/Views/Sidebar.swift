@@ -13,8 +13,6 @@ struct Sidebar: View {
     let agents: Bool
     @Binding var width: Double
     let openSession: () -> Void
-    /// Not the old `agentSort` key: windows had kept Workspace there, and Priority is what the user wants to see first.
-    @SceneStorage("agentOrder") private var sort = AgentSort.priority
     @State private var filter = ""
     @State private var swipe = Swipe()
     /// The pages' frame in the window, for the router.
@@ -44,7 +42,7 @@ struct Sidebar: View {
                     // sidebar's accessibility frame (which takes in laid-out views past the clip) and in AppKit's
                     // hit tests.
                     ForEach(swipe.moving ? pages.list : pages.list.filter { $0 === pages.current }) { page in
-                        SidebarPage(page: page, pages: pages, filter: filter, agents: agents ? $sort : nil)
+                        SidebarPage(page: page, pages: pages, filter: filter, agents: agents)
                             .frame(width: width - gap)
                             .accessibilityHidden(page !== pages.current)
                             .allowsHitTesting(page === pages.current)
@@ -59,7 +57,7 @@ struct Sidebar: View {
                 drag: pages.overview ? nil : drag as (Double, Bool) -> Void,
                 lift: lift,
                 agent: agents && !pages.overview
-                    ? { offset in pages.current.map { AgentsList.step(offset, $0, filter: filter, sort: sort) } }
+                    ? { offset in pages.current.map { AgentsList.step(offset, $0, filter: filter) } }
                     : nil,
                 area: area,
             ))
@@ -88,13 +86,13 @@ struct Sidebar: View {
     }
 }
 
-/// One session's page: its name and `+`, then its workspace rows; or its Agents view and sort menu.
+/// One session's page: its name and `+`, then its workspace rows; or its name and its Agents view.
 private struct SidebarPage: View {
     let page: Page
     let pages: WindowPages
     let filter: String
-    /// The Agents view's order while it is on.
-    let agents: Binding<AgentSort>?
+    /// The Agents view instead of the workspaces.
+    let agents: Bool
     typealias Row = (workspace: HostStore.Workspace, parent: HostStore.Workspace?)
 
     /// Rows above or below the scrolled list's edges, for the fades.
@@ -112,18 +110,17 @@ private struct SidebarPage: View {
         let store = page.store
         let rowsDrop = RowsDrop(page: page, frames: frames, state: $drop, reorders: filter.isEmpty)
         VStack(alignment: .leading, spacing: 0) {
-            // The name and the sort menu's label on one baseline; the `+` has no text to align.
-            HStack(alignment: agents == nil ? .center : .firstTextBaseline) {
+            HStack {
                 // The rows' size, bold; a long session name gives way in its middle.
                 Text(store.title).truncationMode(.middle)
                     .font(.system(size: 13, weight: .bold)).foregroundStyle(.primary).lineLimit(1)
                     .accessibilityIdentifier("sidebar.header")
-                    // The `+`'s height in both views, so the name stays put by the shorter sort capsule.
+                    // The `+`'s height in both views, so the name stays put.
                     .frame(height: 28)
+                    // A right-click on it reaches the row's menu.
+                    .allowsHitTesting(false)
                 Spacer()
-                if let agents {
-                    SortMenu(sort: agents)
-                } else {
+                if !agents {
                     IconButton(symbol: "plus", help: "New Workspace") { Task { await page.newWorkspace() } }
                         .disabled(store.state != .live)
                         .accessibilityIdentifier("sidebar.new-workspace")
@@ -138,17 +135,20 @@ private struct SidebarPage: View {
                         .clearsDrop(page) { plus = false }
                 }
             }
-            // On one edge in both views: the workspace rows' names, the Agents view's group labels and tiles.
+            // On one edge in both views: the workspace rows' names, the Agents view's tiles and shelf labels.
             .padding(.leading, Sidebar.rowInsets.leading + WorkspaceRow.textInset)
-            // The `+` and the sort capsule end where the rows do: the sort label's text where the times end.
+            // The `+` ends where the rows do.
             .padding(.trailing, Sidebar.rowInsets.trailing)
             // Rex's first row sits 31.5 pt below the header's baseline.
             .padding(.bottom, 3)
-            .contentShape(.rect)
-            // The herdr session keeps running.
-            .contextMenu { Button("Detach Session") { pages.close(page) }.disabled(pages.list.count < 2) }
-            if let agents {
-                AgentsList(page: page, filter: filter, sort: agents.wrappedValue)
+            // The herdr session keeps running. Behind the row: on the row, a menu takes the row's frame for the name
+            // when it is the row's only element (the Agents view).
+            .background {
+                Color.clear.contentShape(.rect)
+                    .contextMenu { Button("Detach Session") { pages.close(page) }.disabled(pages.list.count < 2) }
+            }
+            if agents {
+                AgentsList(page: page, filter: filter)
             } else if store.state == .live, store.workspaces.isEmpty {
                 Button("New Workspace", systemImage: "plus") { Task { await page.newWorkspace() } }
                     .accessibilityIdentifier("new-workspace")
@@ -227,32 +227,6 @@ private struct SidebarPage: View {
             guard let head = group.first, !shown.isEmpty else { return [] }
             return (shown.first === head ? shown : [head] + shown).map { Row($0, $0 === head ? nil : head) }
         }
-    }
-}
-
-private struct SortMenu: View {
-    @Binding var sort: AgentSort
-
-    var body: some View {
-        Menu {
-            Picker("Sort", selection: $sort) {
-                Text("Priority").tag(AgentSort.priority)
-                Text("Workspace").tag(AgentSort.workspace)
-            }
-            .pickerStyle(.inline)
-            .labelsHidden()
-        } label: {
-            Text("\(Image(systemName: "arrow.up.arrow.down")) \(sort.rawValue.capitalized)")
-                .font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1).padding(.horizontal, 8)
-                .frame(height: 22)
-        }
-        .menuStyle(.button)
-        // A small button, as the header buttons: a capsule filled on hover.
-        .buttonStyle(ChromeStyle(radius: 11))
-        // Whole: the session's name gives way.
-        .fixedSize()
-        .accessibilityIdentifier("agents.sort")
-        .accessibilityValue(sort.rawValue)
     }
 }
 
