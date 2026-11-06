@@ -22,8 +22,9 @@ description: "The Agents button and view, notifications and the Dock"
   app going to the background does not change it. A
   finish counts as seen when the user leaves the pane: another pane, tab,
   workspace or session gets the keyboard. Until then it stays Done.
-- Each change carries the time the app saw it. The Agents view shows a
-  Working agent's time from that time.
+- Each change carries the time the app saw it, kept across relaunches while
+  herdr's `state_change_seq` of the agent stays the same. The Agents view
+  shows a Working agent's time from that time, and settles idle agents by it.
 
 ### Agents
 
@@ -34,10 +35,10 @@ The Agents button (D61) covers the session of the page in view.
   that session that need you. A click on one selects its workspace, tab and
   pane; the sidebar does not change.
 - **Agents view.** A click, ⌘. or View ▸ Show Agents turns the sidebar page into the list of every
-  agent pane of that session, idle ones too, sorted by priority (needs you,
-  working, done, idle) or by workspace, in groups that fold. A click on a row selects that
-  workspace, tab and pane and gives the pane the keyboard. Its row stays
-  under Done until the user leaves the pane.
+  agent pane of that session: pinned agents on top, then one list with the newest change of state
+  first, then a Settled shelf of agents idle for hours. A click on a row selects that
+  workspace, tab and pane and gives the pane the keyboard. Its unread check stays until the user
+  leaves the pane; the row does not move for it.
 
 The look is in [Main window: Agents button](/docs/ui/window#agents-button)
 and [Agents view](/docs/ui/window#agents-view).

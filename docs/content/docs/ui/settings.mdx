@@ -103,6 +103,7 @@ without opening a stream again.
 | Setting | Control | Key | Default |
 |---|---|---|---|
 | Open new agents in | pop-up: Terminal, Chat | `agentView` | `terminal` |
+| Settle idle agents after (group "Agents view") | pop-up: 1 hour, 3 hours, 8 hours, 1 day, Never | `settleAfter` (seconds; 0 is Never) | 3 hours |
 | Extra arguments, per agent | text field | `agentArguments.<command>` | empty |
 | Show in New Pane, per agent | switch | `hideInNewPane` in `settings.json` | on |
 | When an agent needs you | switch | `notifyNeedsYou` | on |
@@ -112,6 +113,9 @@ without opening a stream again.
 - Open new agents in: what the card of an agent that New Pane or Start Agent
   Here starts shows first. The header's Chat | TUI switch changes it later
   ([Chat view](/docs/ui/chat-view#switching-views)).
+- Settle idle agents after: an idle agent the user has seen moves to the
+  Agents view's Settled shelf once it has been idle this long; Never keeps
+  every agent in the list ([Agents view](/docs/ui/window#agents-view)).
 - Agents in New Pane lists Claude Code, Codex, Pi and OpenCode, each with its
   program tile, its command and two controls:
   - The extra arguments go into the agent's typed line right after its

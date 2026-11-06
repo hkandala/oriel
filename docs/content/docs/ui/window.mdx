@@ -199,8 +199,8 @@ One capsule per herdr tab of the selected workspace (D42).
   "Agents · ‹page title›" (11 pt, secondary; the title as in the
   [page header](#sidebar)) it lists the agents of the page in view in two
   groups: those that need you, then those that finished since you last
-  left them (Done), each under the Agents view's group label with its count
-  ("Needs you · 1", "Done · 2"; the panel's groups do not fold). The rows are the
+  left them (Done), each under a group label with its count (11 pt semibold,
+  secondary: "Needs you · 1", "Done · 2"; the groups do not fold). The rows are the
   same as in the Agents view. A click on a row selects that workspace and tab
   and gives the pane the keyboard; a Done clears once the user leaves that
   pane. The sidebar does not change. With both groups empty it does not show at all. The orange dot
@@ -346,52 +346,60 @@ The Agents button turns the sidebar page into a list of the agents of that
 session only (D61). A sideways swipe or a page dot shows the next open
 session's agents; a ⌥ + swipe up or down goes to the agent row above
 or below ([Swiping](/docs/ui/swiping)). The page dots and the footer stay.
-- **Header.** The page's title (the session's name, the machine's name for `default`, as in the
-  page header; a long name shortens in its middle) and,
-  on the same baseline, a sort menu: **Priority** (the groups Needs you, Working, Done and Idle,
-  each with a count, herdr's order inside a group) or **Workspace**
-  (the groups are the workspaces, under each name with a count, in herdr's order of
-  workspaces, tabs and panes). Priority is the default.
-  Each window keeps its choice (scene storage `agentOrder`). The name sits where it sits in the
-  workspaces view: on the `+`'s 28 pt row, 18 pt in, on the edge of the group
-  labels and the program tiles. The sort label's text ends where the state
-  boxes end.
-  The name is the title (13 pt bold, primary, as in the workspaces view); the sort menu is a
-  small quiet button (11 pt, secondary, a capsule filled on hover, its edge on the rows' edge); a long
-  name shortens before it does.
-  The group labels ("Working · 1", "alpha · 2") are
-  section labels, as in a macOS sidebar: 11 pt semibold, secondary (the
-  count too), with 12 pt of room above each group. No line under the
-  header.
-- **Done stays while you look.** A done agent stays Done (its row under
-  Done, its box, its icon on the tab and the workspace) while its pane has the
-  keyboard, also while the app is in the background. When the user gives the
-  keyboard to another pane, tab, workspace or session, it moves to Idle.
-- **Folding.** A click on a group label folds its rows or shows them again; a
-  chevron at the label's end points right while folded; while open it shows,
-  pointing down, only under the pointer, as in a macOS sidebar. A
-  folded group keeps its label and count. The folds are kept per session and
-  per order, across relaunches.
+- **Header.** The page's title only (the session's name, the machine's name for `default`, as in the
+  page header; a long name shortens in its middle). It sits where it sits in the workspaces view: on the
+  `+`'s 28 pt row, 18 pt in, on the edge of the program tiles. 13 pt bold, primary. There is no sort
+  menu and no line under the header.
+- **Parts.** From top to bottom (D109):
+  - **Pinned**, only when an agent of the session is pinned: the pinned rows in the order they were
+    pinned, with no label, then a hairline 8 pt in from the rows' edges.
+  - **The list**, with no label: every other live agent pane of the session. The newest change of
+    state is on top (herdr's `state_change_seq`). Settled agents are not in it.
+  - **Settled**, a folded shelf at the foot of the sidebar: idle agents the user has seen, idle for
+    longer than **Settle idle agents after** in [Settings ▸ Agents](/docs/ui/settings) (3 hours by
+    default; Never turns it off), and agents settled by hand. Newest change first. It shows only
+    when an agent is settled.
+- **Order and calm.** A state box, a time and a name change at once. A row moves only when the pointer
+  is not over the list, and 1 s after the last change; then it slides in 0.2 s (no motion with Reduce
+  Motion). A pin, a settle by hand or a new filter moves rows at once, with the slide. A finish the
+  user sees changes no order: it is no change of state for herdr.
 - **Rows.** One row per agent pane, even when several share a tab. 48 pt, two
   lines, 3 pt apart. Line 1: the program tile (with no badge), then the
   pane's name (its label, else its session's title, else "Untitled":
   [Session titles](/docs/ui/chat-view#session-titles)), then at the line's
   end the state box: the state icon (12 pt) in the state's color, on a 14 %
   tint of it with a 1 pt border at 45 % and 6 pt corners. Only a Working box
-  adds a time after the icon: how long since the app saw the agent start
-  working, 11 pt semibold in the state's color with tabular digits. It shows "&lt;1m" for the first
-  minute, then "1m", "2m", … and "1h 5m", and changes once a minute. After a
-  launch it counts from the launch: herdr gives no start time. Needs you and
-  Done show the icon alone. An idle agent shows no box and no time. The name is medium weight
-  for needs you and done. Line 2, under the name and the box, full width:
-  "‹workspace› · ‹tab title›" in
-  secondary text (the tab bar's title, D65); only the tab title in Workspace
-  order, where the group names the workspace.
+  adds a time after the icon: how long since the agent started working, 11 pt semibold in the
+  state's color with tabular digits. It shows "&lt;1m" for the first
+  minute, then "1m", "2m", … and "1h 5m", and changes once a minute. Needs you shows its icon
+  alone; a finish the user has not seen shows the green check (the unread mark) until the user
+  leaves that pane. An idle agent shows no box and no time. The name is medium weight
+  for needs you and an unseen finish; the others recede. Line 2, under the name and the box, full width:
+  "‹workspace› · ‹tab title›" in secondary text (the tab bar's title, D65).
+- **Pin.** Under the pointer a row shows an 18 pt pin button before its box: **Pin**, or **Unpin**
+  on a pinned row. The row's context menu has the same **Pin** or **Unpin**. A pin holds the agent's
+  session (herdr's `agent_session`) when herdr reports one, else its terminal, so a pinned agent
+  stays pinned across relaunches. A pinned agent never settles.
+- **Settle.** The row's context menu has **Settle** for an idle agent (off for the others) and
+  **Unsettle** in the shelf. Either holds until the agent's next change of state: an agent that
+  works or needs you again comes back to the top of the list, and an unsettled agent settles again
+  only after its next change.
+- **The shelf.** A header 28 pt tall, 8 pt in: "Settled" (12 pt medium, secondary), then at its end
+  the count (tertiary, tabular digits) and a chevron that always shows: right while folded, down while
+  open. Under the pointer it fills, as the header buttons do. A click folds or opens it; it is folded
+  at first, and the folds are kept per machine and session across relaunches. Open, it is at most 5
+  rows tall (256 pt) and scrolls inside, with an 18 pt fade at an edge that has more rows. Its rows are
+  the list's rows; where the box goes an idle agent shows its age instead: the time since its last
+  change ("5h", "2d", "1w"; 11 pt, secondary, tabular digits). While the list is short the shelf sits at
+  the sidebar's foot; under a long list it follows the list.
+- **Times.** herdr gives no times. The app records when it saw each agent's state change, with its
+  `state_change_seq`, per machine and session, across relaunches: an agent whose number did not
+  change keeps its time. An agent first seen after a launch counts from then.
 - The row of the shown tab's keyboard card is lit like the selected
-  workspace row. When another row lights, and when the view opens or changes
-  order, the list scrolls just enough to show it, without motion.
-- Idle agents show. With no agents the list is empty, with no text.
-- The footer filter keeps the rows whose pane, agent, workspace or tab name
+  workspace row. When another row lights, and when the view opens, the list scrolls just enough to
+  show it, without motion.
+- With no agents the list is empty, with no text.
+- The footer filter keeps the rows, in every part, whose pane, agent, workspace or tab name
   matches.
 - A click goes to that workspace, tab and pane and gives the pane the
   keyboard. Its finish counts as seen when the user leaves the pane.
