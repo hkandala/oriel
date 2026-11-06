@@ -272,3 +272,8 @@ this" after this plan:
 - **For the user.** Put a plugin folder into `~/.config/ovvi/plugins/` by hand and open its card: the confirmation in
   the card's middle, in Glass and in Classic. Run `ovvi plugins install <folder>` from an agent's pane: the sheet comes
   on that session's window, and Return does not install it.
+- **Runs.** Chosen-tests run 42133078830 on 78df0b35 (the five plugin tests): four green, and the plugin settings
+  test's click on the card's Install hit the Settings window over it on CI's small screen. It installs before opening
+  Settings now (green locally), and 42134608881 on 36c29915 ran the five green (Executed 5). Pictures of the
+  confirmation in a card and in the agent's dialog, and of a plugin's page, dark and light, are in
+  `/tmp/ovvi-shots/trust/`.
