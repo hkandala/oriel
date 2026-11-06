@@ -1,4 +1,4 @@
-/* The Markdown place (markdown.ts): the outline column, then the one editor of Read and Edit. */
+/* The Markdown place (markdown.ts): the outline column, then the one editor, locked or not. */
 [data-place="markdown"] {
   display: flex;
   overflow: hidden;
@@ -36,7 +36,7 @@ nav button:hover {
   background: color-mix(in srgb, var(--text) 8%, transparent);
 }
 
-/* The live preview (live.ts): CodeMirror's lines drawn as rendered Markdown, the same in Read and Edit. */
+/* The live preview (live.ts): CodeMirror's lines drawn as rendered Markdown, the same locked or not. */
 .cm-md-h1,
 .cm-md-h2,
 .cm-md-h3 {
@@ -204,7 +204,7 @@ nav button:hover {
   max-width: 100%;
 }
 
-/* Side by Side (split.ts): Source, the divider with its fold button, the rendered page. */
+/* Source (split.ts): the source, the divider with its fold button, the rendered page. */
 main:has(> .split-divider) {
   display: flex;
 }

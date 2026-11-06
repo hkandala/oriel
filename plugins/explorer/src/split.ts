@@ -39,7 +39,7 @@ export function sideBySide(source: EditorView, parent: HTMLElement, extensions: 
     parent,
     state: EditorState.create({
       doc: source.state.doc,
-      // First: the first read only value wins, and the page's Read look says read only.
+      // First: the first read only value wins, and the page's locked look says read only.
       extensions: [EditorState.readOnly.of(source.state.readOnly), extensions],
     }),
     dispatchTransactions(transactions, view) {

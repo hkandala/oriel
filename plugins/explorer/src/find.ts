@@ -69,8 +69,14 @@ export function finder(ovvi: Ovvi) {
       make("button", { type: "button", className: "find-button", textContent, title, ariaLabel: title,
         onclick: run(command) })
     const findRow = make("div", { className: "find-row" }), replaceRow = make("div", { className: "find-row" })
+    /** The keyboard back to the editor, or to a locked page's scroller (its text takes none), so the keys scroll it. */
+    const close = () => {
+      closeSearchPanel(view)
+      if (view.state.facet(EditorView.editable)) view.focus()
+      else view.scrollDOM.focus({ preventScroll: true })
+    }
     findRow.append(field, counted, ...toggles, icon("chevron.up", "Find Previous", run(findPrevious)),
-      icon("chevron.down", "Find Next", run(findNext)), icon("xmark", "Close", () => closeSearchPanel(view)))
+      icon("chevron.down", "Find Next", run(findNext)), icon("xmark", "Close", close))
     replaceRow.append(swap, button("Replace", "Replace", replaceNext), button("All", "Replace All", replaceAll))
     const dom = make("div", { className: "find" })
     dom.append(findRow, replaceRow)
@@ -111,8 +117,7 @@ export function finder(ovvi: Ovvi) {
     dom.onkeydown = (event) => {
       if (event.key === "Escape") {
         event.preventDefault()
-        closeSearchPanel(view)
-        view.focus()
+        close()
       } else if (event.key === "Enter" && event.target === field) {
         event.preventDefault()
         ;(event.shiftKey ? findPrevious : findNext)(view)

@@ -119,8 +119,7 @@ extension OvviUITests {
     }
 
     /// Rich Text renders what Markdown means, not what it says: `1. 1.` counts up, an item's second paragraph hangs at
-    /// its
-    /// text, a reference link is a link (its definition hidden), an entity is its character.
+    /// its text, a reference link is a link (its definition hidden), an entity is its character.
     private func constructs(_ page: XCUIElement) {
         let text = { (value: String) in
             page.staticTexts.matching(NSPredicate(format: "value == %@", value)).firstMatch
@@ -168,8 +167,7 @@ extension OvviUITests {
     }
 
     /// A task's box sits at the text's left edge, as the heading's; a click on it while locked writes `[x]` to the file
-    /// and
-    /// leaves the card clean.
+    /// and leaves the card clean.
     private func tick(_ card: String, page: XCUIElement, shell: String) async throws {
         let box = page.checkBoxes.firstMatch
         let heading = page.staticTexts.matching(NSPredicate(format: "value == 'Second'")).firstMatch
@@ -189,11 +187,17 @@ extension OvviUITests {
         XCTAssertTrue(element("pane.\(card).dirty").vanishes(within: 3))
     }
 
-    /// Select All and Copy while locked give the whole source, past the lines drawn.
+    /// The find bar works while locked, and Esc gives the keyboard back to the page: Select All and Copy there give the
+    /// whole source, past the lines drawn.
     private func copyAll(_ page: XCUIElement) {
         keepPasteboard()
         NSPasteboard.general.clearContents()
         page.staticTexts.matching(NSPredicate(format: "value == 'Third'")).firstMatch.click()
+        app.typeKey("f", modifierFlags: .command)
+        let search = page.searchFields.firstMatch
+        XCTAssertTrue(search.exists(within: 2) && hasKeyboard(search))
+        app.typeKey(.escape, modifierFlags: [])
+        XCTAssertTrue(search.vanishes(within: 2))
         app.typeKey("a", modifierFlags: .command)
         app.typeKey("c", modifierFlags: .command)
         XCTAssertTrue(until(3) {

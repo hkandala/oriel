@@ -68,7 +68,7 @@ const theme = EditorView.theme({
   },
 })
 
-/** The selection in the accent, also Side by Side's page's (WebKit's own there). As specific as CodeMirror's light
+/** The selection in the accent, also Source's page's (WebKit's own there). As specific as CodeMirror's light
  *  selection, which would win otherwise: a pale lilac under light text. */
 export const selected = EditorView.theme({
   "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground, ::selection": {
@@ -243,7 +243,7 @@ export async function editor(place: Place, extensions: Extension[], parent: HTML
   ovvi.on("save", () => void save())
   ovvi.on("find", () => find.open(view, false))
   // Find and Replace, as in the Mac's editors: the menu has no item for it, so the page takes the key, also from
-  // Markdown's Read, whose keyboard is on the scroller.
+  // a locked Markdown page, whose keyboard is on the scroller.
   const replace = (event: KeyboardEvent) => {
     if (!place.shown() || event.code !== "KeyF" || !event.metaKey || !event.altKey || event.shiftKey || event.ctrlKey) {
       return

@@ -1,5 +1,5 @@
-// The Markdown place's live preview (markdown.ts): CodeMirror's lines drawn as rendered Markdown, the same in Read and
-// Edit but for the marks of the caret's lines in Edit. What crosses a line (a paragraph's soft breaks, a setext
+// The Markdown place's live preview (markdown.ts): CodeMirror's lines drawn as rendered Markdown, the same locked and
+// unlocked but for the marks of the caret's lines unlocked. What crosses a line (a paragraph's soft breaks, a setext
 // heading's underline) or replaces whole lines (tables, HTML blocks, reference definitions) lives in a state field; the
 // rest is drawn per viewport.
 import { HighlightStyle, syntaxHighlighting, syntaxTree } from "@codemirror/language"
@@ -23,7 +23,7 @@ export const switched = (start: EditorState, now: EditorState) => editing(start)
 /** The nodes that hold blocks: the walks over the document's blocks go into these only. */
 export const containers = ["Document", "Blockquote", "BulletList", "OrderedList", "ListItem"]
 
-/** The lines the caret or the selection touches in Edit, as ranges; none in Read. */
+/** The lines the caret or the selection touches unlocked, as ranges; none locked. */
 function active(state: EditorState) {
   if (!editing(state)) return []
   return state.selection.ranges.map((range) => ({
@@ -189,7 +189,7 @@ function blocks(state: EditorState): DecorationSet {
 }
 const blockField = StateField.define<DecorationSet>({
   create: blocks,
-  // A selection that keeps its lines (a drag in Read, a move in one line) changes nothing here.
+  // A selection that keeps its lines (a drag while locked, a move in one line) changes nothing here.
   update: (set, tr) =>
     tr.docChanged || switched(tr.startState, tr.state) || changed(tr.startState, tr.state)
       || (tr.selection && JSON.stringify(active(tr.startState)) !== JSON.stringify(active(tr.state)))
