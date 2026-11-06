@@ -283,6 +283,23 @@ Runs: none (no app code).
     and pressing [ should jump to previous file, it will be actually better if it can jump based on hunks instead of
     files, but check how feasible it is to do the hunk jumps correctly, if not fallback to file jump".
 
+### Findings (Track I)
+
+- **Decisions: ] and [ step through changes, not files.** Next and Previous Change already stepped through each run of
+  changed lines, correctly, into files not drawn yet (pierre's `getLinePosition` estimates lines it has not drawn) and
+  folded ones. ] and [ are their keys. git's own `@@` hunks were not taken as the unit: one hunk holds every change
+  within six lines of the next, so it can hold several changes and be taller than the view, and a jump would skip
+  them. A run of changed lines is what editors call a hunk (VS Code's Next Change, vim-gitgutter's `]c`).
+- **Cause (a step ignored the user's scroll):** a step went from the last change stepped to, so after a scroll back to
+  the top ] jumped past everything in view. **Fix:** after a scroll (a wheel or a press on the scroll bar) or a new
+  filter, a step goes from the top of the view: ] to the first change at or below it, [ to the last above.
+- **Decisions: the filter.** ⌘F opens a find bar like the tree's (field, count, close) that filters the files by
+  path, case blind, in the scroll and the file list; steps skip the hidden files. It floats under the sticky header,
+  not over it, so Viewed and Open File stay in reach. Return gives the keyboard back to the diff and keeps the filter.
+  ⌘F is enabled in a diff only (`Plugin.handles`): the Git home has nothing to filter.
+- **Decisions:** the bar's CSS is Git's own (13 lines in `diff.css`), not File Explorer's `find.css`: plugins are
+  separate packages, and a shared one belongs in `card.css` under an `ovvi-` name, which renames the tree's.
+
 ## Track J: new tabs beside (item 21)
 
 21. "let's say i have so many tabs where not all tabs are in view, and when we open a new tab now that opens at the

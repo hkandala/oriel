@@ -168,10 +168,14 @@ final class Plugin {
     }
 
     /// A plugin's page takes what its manifest `handles` (`save`, `find`); a File Explorer saves in File and Markdown,
-    /// and finds there and in the tree (its filter).
+    /// and finds there and in the tree (its filter); Git finds (filters) in a diff, not on its home.
     func handles(_ command: String) -> Bool {
+        guard manifest.handles.contains(command) else { return false }
+        if manifest.id == "git" {
+            return PaneLabel(plugin: "git", iid: "", arg: web.arg).diffSource != nil
+        }
         let place = manifest.id == "explorer" ? ExplorerPlace(web.arg) : nil
-        return manifest.handles.contains(command) && place != .preview && (place != .files || command == "find")
+        return place != .preview && (place != .files || command == "find")
     }
 
     /// A menu command for the card's page: `save`, `find`, `findNext` or `findPrevious`.

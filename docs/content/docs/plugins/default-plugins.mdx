@@ -757,9 +757,25 @@ The changes of one source in one scroll (`@pierre/diffs`).
   (`M A D R`, in the tree's colors). A click scrolls to the file. The file
   list button slides it out and in (0.25 s, the plugins' shared sidebar in
   `card.css`; at once with Reduce Motion).
-- **Previous and next change** step through the change blocks in order, from
-  the last one stepped to or the file picked in the list. They open a folded
-  file.
+- **Previous and next change** (also **]** and **[** while the page has the
+  keyboard) step through the change blocks in order: each run of changed
+  lines, as editors step through changes. git's own hunks (`@@`) are not the
+  unit, because one hunk can hold several changes and be taller than the view.
+  A step goes from the last change stepped to, or from the first change of the
+  file picked in the list. After the user scrolls (or changes the filter), it
+  goes from the top of the view: ] to the first change at or below it, [ to
+  the last one above it. A step opens a folded file and puts the change in the
+  middle of the view.
+- **The find bar** (⌘F) filters the files, as the tree's does: a capsule with
+  the field ("Filter"), the number of files that match and a close button. It
+  floats at the top right under the sticky header, so the header's Viewed and
+  Open File stay in reach. The filter matches the file's path, case blind, and
+  hides the other files in the scroll and in the file list. Previous and next
+  change step through the shown files only. When none match, the middle shows
+  a magnifying glass and "No matching files". Esc or the close button closes
+  the bar and clears the filter; the file in view stays where it is. Return
+  gives the keyboard back to the diff, for ] and [, and keeps the filter. A
+  refresh keeps the filter.
 - ⌘-click on a line opens the file at that line in a new tab, ⌥-click to the
   side. On a removed line it opens the line after the change.
 - "No changes" shows when the patch is empty. A failed first read (not a
@@ -794,7 +810,7 @@ over the card that uses it, because a disabled menu item swallows its key.
 | ⌘[ ⌘] | Back, Forward in the card | while the card has a place that way. Else they select a pane |
 | ⌘← ⌘→ | Back, Forward in the card | while no text field in the page has the keyboard: there they move the caret |
 | ⌘S | Save (File menu): the editor's text to disk | only while File or Markdown has the keyboard |
-| ⌘F | Find… (Edit menu): the editor's find bar; on the tree, its find bar | on File, Markdown and the tree. Disabled on Preview, the Git home and a diff |
+| ⌘F | Find… (Edit menu): the editor's find bar; on the tree and a Git diff, its find bar (a filter of the files) | on File, Markdown, the tree and a Git diff. Disabled on Preview and the Git home |
 | ⌥⌘F | Find and Replace: the find bar with its Replace row (the page's own key) | on File and Markdown, in a file that is not read only (Markdown unlocked) |
 | ⌘G | Find Next (Edit menu) | always. Over a terminal it steps the find bar |
 | ⇧⌘G | Find Previous (Edit menu) | only while File or Markdown has the keyboard. Elsewhere ⇧⌘G is Go to Directory |
@@ -802,6 +818,7 @@ over the card that uses it, because a disabled menu item swallows its key.
 | ⌥⌘R | Reload Plugin (the card's menu, View ▸ Pane) | over a plugin card |
 | ⌘↩ | Commit | in the Git home's message field |
 | ↑ ↓, Return | select a commit, open it | in the Git home, outside its message field |
+| ] [ | Next Change, Previous Change | in a Git diff, outside its find bar |
 | ⌘+ ⌘− ⌘0 | the app's text size. Cards keep their own size, as native ones do | always |
 | ⇧⌘← ⇧⌘→ | Move Tab Left, Right | the page gets it first (select to the line's start or end). When the page does not take it, the tab moves |
 

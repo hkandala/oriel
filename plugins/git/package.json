@@ -1,6 +1,6 @@
 {
   "name": "@ovvi/git",
-  "version": "1.9.1",
+  "version": "1.10.0",
   "private": true,
   "description": "Changes and history",
   "keywords": ["diff", "changes", "commit", "uncommitted", "history"],
@@ -32,6 +32,7 @@
     "opens": { "git": true },
     "chooser": "Git",
     "history": true,
+    "handles": ["find"],
     "settings": [
       { "id": "diff-layout", "type": "choice", "title": "Diff layout", "default": "unified",
         "options": [{ "value": "unified", "title": "Unified" }, { "value": "split", "title": "Side by Side" }] },

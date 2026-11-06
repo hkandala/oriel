@@ -1,6 +1,7 @@
 // A Git card's diff, a page of its own (`ovvi.pages`): a source's patch in one scroll, each file a box with a sticky
 // header and its lines in @pierre/diffs' VirtualizedFileDiff, and the file list beside it; a commit's subject, body and
-// facts above its files. Row 2 has Git Home, the layout, the wrap, the list and previous / next change.
+// facts above its files. Row 2 has Git Home, the layout, the wrap, the list and previous / next change (also [ and ]);
+// ⌘F's find bar filters the files by path.
 import type { Page } from "@ovvi/plugin-api"
 import {
   type FileDiffMetadata,
@@ -106,15 +107,21 @@ export async function make(place: Page, root: string, source: string) {
   const content = element("div", "content")
   /** git's message when the first read failed. */
   const failure = element("p", "failure")
-  /** No changes: the home's placeholder, in the middle; the file list gives way. */
+  /** No changes, or none that the filter matches: the home's placeholder, in the middle; the file list gives way. */
   const clean = element("div", "placeholder")
   clean.hidden = true
-  clean.innerHTML = `<span class="symbol" style="--symbol: var(--sf-checkmark-circle)"></span><h2>No changes</h2>`
+  clean.innerHTML = `<span class="symbol"></span><h2></h2>`
+  /** ⌘F's find bar, as File Explorer's tree has it: the filter's field, how many files match and Close. */
+  const find = element("div", "find")
+  find.hidden = true
+  find.innerHTML = `<input class="find-field" name="search" placeholder="Filter" aria-label="Filter" spellcheck="false"><span
+    class="find-count"></span><button class="find-icon" aria-label="Close Filter" title="Close"></button>`
+  const field = find.querySelector("input")!, count = find.querySelector<HTMLElement>(".find-count")!
   /** A commit's subject, body and facts, at the top of the scroll; empty for the working tree. */
   const about = element("header", "about")
   content.append(about)
   main.append(content)
-  page.append(nav, main, failure, clean)
+  page.append(nav, main, failure, clean, find)
   place.element.append(page)
 
   /** The patch drawn, "" before the first; a failed read is undefined. */
@@ -126,6 +133,9 @@ export async function make(place: Page, root: string, source: string) {
   // the next one after a pick in the list.
   let changes: { id: string; lineNumber: number; side: "additions" | "deletions" }[] = []
   let change = -1
+  /** The filter's text, lower case, and how many files it lets show. */
+  let filter = ""
+  let matched = 0
   /** The files marked Viewed, with their text then: a file that changes since drops the mark. */
   const viewed = new Map<string, string>()
   // Side by Side, the wrap and the file list as the user chose them in the card, else as the settings say.
@@ -272,7 +282,8 @@ export async function make(place: Page, root: string, source: string) {
     const anchor = [...boxes.values()].find((box) => box.node.getBoundingClientRect().bottom > view)
     const offset = anchor ? top(anchor.node) - main.scrollTop : 0
     work()
-    if (anchor?.node.isConnected) main.scrollTop = top(anchor.node) - offset
+    // A box the filter hid: the matches from the top.
+    if (anchor?.node.isConnected) main.scrollTop = anchor.node.hidden ? 0 : top(anchor.node) - offset
   }
 
   /** A commit's subject (also the card's title), its body, and its author, date, hash and parents; none for the working
@@ -317,9 +328,22 @@ export async function make(place: Page, root: string, source: string) {
     patch = next
     files = parsePatchFiles(patch).flatMap((parsed) => parsed.files)
     steady(() => put(files))
-    changes = files.flatMap(blocks)
-    shown()
     listFiles(files)
+    sift()
+  }
+
+  /** The files whose path has the filter's text, in the scroll and the list; previous / next step through theirs. */
+  function sift() {
+    const shows = (name: string) => name.toLowerCase().includes(filter)
+    steady(() => {
+      for (const [name, box] of boxes) box.node.hidden = !shows(name)
+    })
+    for (const node of nav.querySelectorAll<HTMLElement>(".row")) node.hidden = !shows(node.dataset.id!)
+    const kept = files.filter((file) => shows(file.name))
+    matched = kept.length
+    count.textContent = filter ? String(matched) : ""
+    changes = kept.flatMap(blocks)
+    shown()
   }
 
   /** Each file in its box, in the patch's order. */
@@ -396,8 +420,11 @@ export async function make(place: Page, root: string, source: string) {
 
   /** The file list and its button only with files to list; No changes when a read found none. */
   function shown() {
+    const none = Boolean(filter) && !matched
     nav.hidden = !files.length
-    clean.hidden = Boolean(files.length) || patch === undefined
+    clean.hidden = (Boolean(files.length) || patch === undefined) && !none
+    clean.querySelector("h2")!.textContent = none ? "No matching files" : "No changes"
+    clean.style.setProperty("--symbol", `var(--sf-${none ? "magnifyingglass" : "checkmark-circle"})`)
     api.controls.set("diff.file-list", { enabled: files.length > 0 })
   }
 
@@ -410,9 +437,19 @@ export async function make(place: Page, root: string, source: string) {
     return node.getBoundingClientRect().top - main.getBoundingClientRect().top + main.scrollTop
   }
 
-  /** The user's scrolls so far. */
-  let wheels = 0
-  main.addEventListener("wheel", () => wheels++, { passive: true })
+  /** The user's scrolls so far (a press on the scroll bar too), and their count at the last step or pick in the list:
+   *  a step after a scroll (or a new filter) goes from the top of the view, under the sticky header. */
+  let moves = 0
+  let stepped = 0
+  main.addEventListener("wheel", () => moves++, { passive: true })
+  main.addEventListener("pointerdown", () => moves++)
+
+  /** Where a change block's first line is in the scroll; a folded or far file's top. */
+  function where(block: (typeof changes)[number]) {
+    const box = boxes.get(block.id)!
+    const line = box.folded ? undefined : box.view?.getLinePosition(block.lineNumber, block.side)
+    return line ? top(box.lines) + line.top + line.height / 2 : top(box.node)
+  }
 
   /** A change block in the middle of the view; its file opens first. Wrapped lines take their heights once drawn,
    *  a frame later: then once more. */
@@ -422,15 +459,12 @@ export async function make(place: Page, root: string, source: string) {
     if (box.folded) collapse(block.id, false)
     box.near = true
     show(box)
-    const aim = () => {
-      const line = box.view?.getLinePosition(block.lineNumber, block.side)
-      if (line) main.scrollTop = top(box.lines) + line.top + line.height / 2 - main.clientHeight / 2
-    }
+    const aim = () => (main.scrollTop = where(block) - main.clientHeight / 2)
     aim()
     // Not after another step or the user's scroll meanwhile (pierre's own fixes of the scroll still aim again).
-    const was = { change, wheels }
+    const was = { change, moves }
     if (options.overflow === "wrap") {
-      requestAnimationFrame(() => requestAnimationFrame(() => change === was.change && wheels === was.wheels && aim()))
+      requestAnimationFrame(() => requestAnimationFrame(() => change === was.change && moves === was.moves && aim()))
     }
   }
 
@@ -459,6 +493,7 @@ export async function make(place: Page, root: string, source: string) {
     const order = (name: string) => files.findIndex((file) => file.name === name)
     const next = changes.findIndex((block) => order(block.id) >= order(id))
     change = (next < 0 ? changes.length : next) - 0.5
+    stepped = moves
   }
 
   api.on("theme", (theme) => {
@@ -536,6 +571,11 @@ export async function make(place: Page, root: string, source: string) {
 
   function step(by: 1 | -1) {
     if (!changes.length) return
+    if (stepped !== moves) {
+      const view = main.scrollTop + 32, below = changes.findIndex((block) => where(block) > view)
+      change = (below < 0 ? changes.length : below) - 0.5
+      stepped = moves
+    }
     const next = by > 0 ? Math.floor(change) + 1 : Math.ceil(change) - 1
     change = Math.min(Math.max(next, 0), changes.length - 1)
     scrollToChange(changes[change])
@@ -553,6 +593,43 @@ export async function make(place: Page, root: string, source: string) {
     else if (id === "diff.previous") step(-1)
     else if (id === "diff.next") step(1)
   })
+
+  /** ⌘F: the find bar, its text selected. */
+  api.on("find", () => {
+    find.hidden = false
+    field.select()
+    field.focus()
+  })
+  /** Esc or Close: the bar goes, with its filter. */
+  function closeFind() {
+    find.hidden = true
+    field.value = ""
+    field.blur()
+    filtered()
+  }
+  function filtered() {
+    if (filter === field.value.toLowerCase()) return
+    filter = field.value.toLowerCase()
+    stepped = -1
+    sift()
+  }
+  field.oninput = filtered
+  // Esc closes the bar; Return gives the keyboard to the diff, for ] and [, and keeps the filter.
+  field.onkeydown = (event) => {
+    if (event.key === "Escape") closeFind()
+    else if (event.key === "Enter") field.blur()
+  }
+  find.querySelector("button")!.onclick = closeFind
+  // ] and [ step to the next and previous change, as Next and Previous Change; not while the filter has the keyboard.
+  const keys = (event: KeyboardEvent) => {
+    if (!place.shown || event.metaKey || event.ctrlKey || event.target === field) return
+    if (event.key === "]") step(1)
+    else if (event.key === "[") step(-1)
+    else return
+    event.preventDefault()
+  }
+  document.addEventListener("keydown", keys)
+  place.keep(() => document.removeEventListener("keydown", keys))
   // While the page shows, the working tree asks for its patch again after each change under the root (and draws only
   // the files that changed), and a diff whose first read failed tries again; also once when it shows again.
   // A change while it draws calls once when it shows.

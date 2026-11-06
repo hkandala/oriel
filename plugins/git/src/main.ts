@@ -18,8 +18,8 @@ export default async function main(ovvi: Ovvi) {
   // The SF Symbols the rows draw, as masks in the text's color. While the app draws them, the first place reads and
   // draws under the card's loader, which goes once both are done (`main` returns). One the app lacks draws nothing.
   // The placeholders' at their size.
-  const big = ["checkmark.circle", "folder.badge.questionmark"]
-  const names = ["plus", "arrow.uturn.backward", "minus", "source.branch", "cloud", "tag", ...big]
+  const big = ["checkmark.circle", "folder.badge.questionmark", "magnifyingglass"]
+  const names = ["plus", "arrow.uturn.backward", "minus", "source.branch", "cloud", "tag", "xmark", ...big]
   const symbols = Promise.all(names.map((name) => ovvi.symbol(name, big.includes(name) ? 30 : 12).catch(() => "")))
   .then((urls) => {
     const sheet = document.createElement("style")
