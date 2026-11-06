@@ -157,13 +157,13 @@ extension HostStore {
     }
 
     /// A chooser on herdr's new pane; with an agent, its loader while the agent starts.
-    func choose(_ pane: HerdrKit.Pane?, starting agent: Chooser.Agent? = nil) {
+    func choose(_ pane: HerdrKit.Pane?, starting agent: Chooser.Agent? = nil, closed: String? = nil) {
         guard let pane else { return }
         let chooser = Chooser()
         chooser.made(pane)
         choosers.append(chooser)
         if let agent {
-            start(agent, chooser)
+            start(agent, chooser, closed: closed)
         }
     }
 
@@ -238,15 +238,16 @@ extension HostStore {
     /// as Go to Directory types its `cd`, and shows the loader until the agent is ready: herdr reports it with a status
     /// (all four agents, read from their screens on any machine).
     /// The terminal shows sooner when the shell is in front again (the command failed or ended), or after 10 s.
-    /// `resume`: Relaunch with Chat's session; the agent in the pane quits first.
-    func start(_ agent: Chooser.Agent, _ chooser: Chooser, resume: String? = nil) {
+    /// `resume`: Relaunch with Chat's session; the agent in the pane quits first. `closed`: a closed session's
+    /// (Archived's Resume), in this new pane.
+    func start(_ agent: Chooser.Agent, _ chooser: Chooser, resume: String? = nil, closed: String? = nil) {
         // Once: a double click's second click lands on the row as it fades out.
         guard chooser.starting == nil else { return }
         chooser.starting = agent
         Task {
             defer { drop(chooser) }
-            let resumed = await restart(agent, chooser, resume)
-            guard resume == nil || resumed != nil else { return }
+            let resumed = await resumed(agent, chooser, resume: resume, closed: closed)
+            guard resume ?? closed == nil || resumed != nil else { return }
             let clock = ContinuousClock(), begun = clock.now
             var sent: ContinuousClock.Instant?, shells = 0, line: String?
             // A new tab's stand-in waits for herdr's pane. A chooser dropped meanwhile (its pane closed) ends it.
@@ -286,7 +287,7 @@ extension HostStore {
                         shells = await (try? client.program(id))?.isShell == true ? shells + 1 : 0
                         if shells == 2 {
                             // A resume's plain command would start another session.
-                            guard line != agent.command, resume == nil else { return }
+                            guard line != agent.command, resume ?? closed == nil else { return }
                             (sent, shells) = (nil, 0)
                         }
                     }

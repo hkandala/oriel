@@ -46,6 +46,19 @@ extension HostStore {
         return line
     }
 
+    /// A resume's launch line: Relaunch with Chat's (`restart`), else a closed session's, with Ovvi's flags; nil (with
+    /// a notice) when the value is not one the agent takes or the run on the machine failed.
+    func resumed(_ agent: Chooser.Agent, _ chooser: Chooser, resume: String?, closed: String?) async -> String? {
+        guard let closed else { return await restart(agent, chooser, resume) }
+        guard let line = await ChatAdapters.launch(agent.command, resume: closed,
+                                                   arguments: Chooser.arguments(agent.command), on: machine.exec())
+        else {
+            await show(Notice(text: "\(agent.name) could not resume the session"))
+            return nil
+        }
+        return line
+    }
+
     /// Quits the agent as its user would: a turn or a dialog stopped first, the prompt cleared (⌃C, which alone ends
     /// OpenCode with an empty prompt), then its quit command. True once only the shell runs and herdr let go of the
     /// agent, within 10 s, while its chooser is there (its pane did not close).

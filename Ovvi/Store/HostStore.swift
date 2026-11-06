@@ -306,8 +306,7 @@ final class HostStore {
         for workspace in workspaces {
             // The page left view (or closed) during the runs before.
             guard showsGit, !Task.isCancelled else { return }
-            let root = workspace.worktree?.checkoutPath
-                ?? workspace.tabs.first.flatMap { panes(in: $0.id).first?.cwd }
+            let root = root(of: workspace)
             // A root that changes during a run waits for the next tick.
             guard let root, all || root != workspace.gitRoot, !gitRuns.contains(workspace.id) else { continue }
             workspace.gitRoot = root
@@ -372,6 +371,11 @@ extension HostStore {
         } else {
             UserDefaults.agents.set(try? JSONEncoder().encode(marks), forKey: key)
         }
+    }
+
+    /// A workspace's folder: its worktree's, else its first pane's.
+    func root(of workspace: Workspace) -> String? {
+        workspace.worktree?.checkoutPath ?? workspace.tabs.first.flatMap { panes(in: $0.id).first?.cwd }
     }
 
     /// The user looks at `pane` of `store` (a key window's), and at nothing in the other sessions.

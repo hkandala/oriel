@@ -373,8 +373,11 @@ extension Page {
         store.madeTab(standIn, made.tabID)
     }
 
-    /// The snapshot after it selects the new workspace.
-    func newWorkspace(label: String? = nil, cwd: String = "~") async {
-        arriving = await store.newWorkspace(label: label, cwd: cwd)?.tabID ?? arriving
+    /// The snapshot after it selects the new workspace. Its first pane.
+    @discardableResult
+    func newWorkspace(label: String? = nil, cwd: String = "~") async -> HerdrKit.Pane? {
+        let pane = await store.newWorkspace(label: label, cwd: cwd)
+        arriving = pane?.tabID ?? arriving
+        return pane
     }
 }
