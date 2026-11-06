@@ -149,51 +149,68 @@ extension OvviUITests {
         }
     }
 
-    /// A terminal's links open as every link does: ⌘-click in a new tab behind (a browser pane; an `ftp:` link opens
-    /// nothing), ⌘⌥-click beside the card, and the card's menu over a link starts with the opens, Open in Default
-    /// Browser and Copy Link.
+    /// A terminal's links open as every link does, behind the card: ⌘-click in a new tab, ⌥-click to the side. A
+    /// link ends before the punctuation after it; an `ftp:` link and a path that is not there open nothing; Markdown
+    /// opens in File Explorer, HTML in the browser. The card's menu has no link items.
     func testCommandClickOnALinkOpensIt() async throws {
-        relaunch(one, ["-recordLinks", "YES"])
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, pane) = try await newTab("link")
         element("tab.\(tab)").click()
-        let address = "https://example.com/ovvi"
-        try await send("clear; echo ftp://example.com/x; echo \(address)\r", to: pane)
-        try await waitFor(pane) { $0.hasPrefix("ftp://example.com/x\n\(address)\n") }
-
-        // ⌘-click the sixth cell of each line: only the https link opens.
+        let folder = "/tmp/ovvi-e2e-links", address = "https://example.com/ovvi"
+        try await send(
+            "rm -rf \(folder) && mkdir -p \(folder) && touch \(folder)/notes.md \(folder)/page.html && clear; "
+                + "echo ftp://example.com/x; echo \(address).; echo /reload your open pi; echo \(folder)/notes.md.; "
+                + "echo \(folder)/page.html\r",
+            to: pane,
+        )
+        try await waitFor(pane) { $0.hasPrefix("ftp://example.com/x\n\(address).\n") }
+        addTeardownBlock { [one] in
+            _ = try? await Self.call(one, "pane.send_text", ["pane_id": pane, "text": "rm -rf \(folder)\r"])
+        }
         let terminal = element("terminal.\(pane)")
         let grid = try XCTUnwrap(terminal.value as? String).split(separator: " ").compactMap { Double($0) }
         let cell = CGSize(width: terminal.frame.width / grid[1], height: terminal.frame.height / grid[0])
         let link = { (row: Double) in
             terminal.coordinate(withNormalizedOffset: .zero)
-                .withOffset(CGVector(dx: cell.width * 5.5, dy: cell.height * row))
+                .withOffset(CGVector(dx: cell.width * 5.5, dy: cell.height * (row + 0.5)))
         }
+        // ⌘-click: only the https link opens, without its period.
         let before = try await tabIDs()
-        for row in [0.5, 1.5] {
+        for row in [0.0, 2.0, 1.0] {
             link(row).hover()
             XCUIElement.perform(withKeyModifiers: .command) { link(row).click() }
         }
-        let opened = try await newTabID(after: before)
-        closeAfter("tab", opened)
-        let behind = try await self.pane(of: opened)
-        try await expect("a browser pane in \(opened)") { try await paneLabel(behind).hasSuffix(" \(address)") }
+        try await expectLabel(newTabID(after: before), " \(address)", "ovvi:browser#")
+        let tabs = try await tabIDs()
+        XCTAssertEqual(tabs.count, before.count + 1, "\(tabs)")
         XCTAssertTrue(element("tab.\(tab)").isSelected)
+        XCUIElement.perform(withKeyModifiers: .command) { link(4).click() }
+        try await expectLabel(newTabID(after: tabs), "\(folder)/page.html", "ovvi:browser#")
 
-        XCUIElement.perform(withKeyModifiers: [.command, .option]) { link(1.5).click() }
+        // ⌥-click: Markdown beside the card, without the period.
+        XCUIElement.perform(withKeyModifiers: .option) { link(3).click() }
         let side = try await poll("a pane beside the card") { () async throws -> String? in
             try await (snapshot()["panes"] as? [[String: Any]] ?? []).first {
                 $0["tab_id"] as? String == tab && $0["pane_id"] as? String != pane
             }?["pane_id"] as? String
         }
-        try await expect("a browser pane beside the card") { try await paneLabel(side).hasSuffix(" \(address)") }
+        try await labelEnds(side, " \(folder)/notes.md")
 
-        link(1.5).rightClick()
-        XCTAssertTrue(app.menuItems["Open to the Side"].exists(within: 2))
-        XCTAssertTrue(app.menuItems["Open in New Tab"].exists && app.menuItems["Copy Link"].exists)
-        keepScreenshot("terminal link menu")
-        app.menuItems["Open in Default Browser"].click()
-        XCTAssertTrue(element("app.links").has(\.stringValue, address, within: 2))
+        link(1).rightClick()
+        XCTAssertTrue(app.windows.menuItems["Select All"].exists(within: 2))
+        XCTAssertFalse(app.windows.menuItems["Open to the Side"].exists)
+        keepScreenshot("terminal menu over a link")
+        app.typeKey(.escape, modifierFlags: [])
+    }
+
+    /// The new tab's pane's label: its kind and its end.
+    private func expectLabel(_ tab: String, _ end: String, _ kind: String) async throws {
+        closeAfter("tab", tab)
+        let pane = try await pane(of: tab)
+        try await expect("\(kind)…\(end) in \(tab)") {
+            let label = try await paneLabel(pane)
+            return label.hasPrefix(kind) && label.hasSuffix(end)
+        }
     }
 
     /// A card opened for the first time shows its terminal only once herdr's frames settled at the card's size: the

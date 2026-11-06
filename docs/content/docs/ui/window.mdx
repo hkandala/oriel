@@ -560,8 +560,7 @@ How it works: [Layout and sizing](/docs/layout).
   once, with no fade.
 - The buttons show on the keyboard card and on a hovered card.
 - **Context menu** on the header, and on the terminal, where it starts with
-  Copy, Paste and Select All (after a link's items over a link, [Opening
-  links and files](#opening-links-and-files)). As in herdr, a right click in the terminal opens
+  Copy, Paste and Select All. As in herdr, a right click in the terminal opens
   the menu even when the program reads the mouse. ⌥-right click sends the
   click, without the ⌥, to a program that reads the mouse, and does nothing
   in one that does not (herdr's `right_click_passthrough_modifier = "alt"`).
@@ -656,20 +655,28 @@ terminal.
   itself](/docs/ui/browser#when-a-page-loads-by-itself)). One opened from
   the browser is approved: the user picked it there.
 - **A terminal's links** are the addresses and file paths libghostty finds
-  in its text, and OSC 8 links. The program gets plain clicks and ⌥-clicks
-  (a shell moves its cursor, ⌥-right click is its right click), so ⌘ marks a
-  link click there: ⌘-click opens a new tab in the background and
-  ⌘⌥-click to the side. A right click over a link starts the card's menu
-  with **Open**, **Open in New Tab**, **Open to the Side**, **Open in Default
-  Browser** (a web address) and **Copy Link**.
-  - A web address opens a browser pane, a file path (absolute, `file:`, `~`
-    on This Mac, or `./` and `../` from the card's folder) its default plugin
-    on the card's machine; a `:line`
-    after the path lands on that line. Other schemes (`ftp:`) open nothing.
-  - libghostty reports a link only while ⌘ is down, so for a ⌘⌥-click and
-    a right click the app moves libghostty's pointer to the click with ⌘ for
-    a moment (first off the view: libghostty looks again only on a new
-    cell) and reads the link it reports.
+  in its text, and OSC 8 links. A terminal has no Open: a plain click is
+  the program's. ⌘-click opens a link in a new tab and ⌥-click to the side,
+  both in the background. An ⌥-click anywhere else is still the program's
+  (a shell moves its cursor). The right click stays the card's menu, with no
+  link items.
+  - A link ends before the punctuation after it: `.`, `,`, `;`, `:`, `!`,
+    `?`, and a closing bracket or quote it did not open.
+  - A web address opens a browser pane. A file path (absolute, `file:`, `~`,
+    or from the card's folder) opens only when a file or folder is there on
+    the card's machine, so text that only looks like a path (`/reload your
+    open pi`) opens nothing. libghostty still underlines it while ⌘ is down:
+    the app cannot veto its highlight. A `:line` after the path lands on
+    that line. Other schemes (`ftp:`) open nothing.
+  - Markdown opens in File Explorer's Markdown, other files with their
+    default plugin. HTML on This Mac opens in a browser pane (a `file:`
+    page); on a remote machine it opens as a file, since a remote card never
+    shows a file over `file:`.
+  - libghostty reports a link only while ⌘ is down, so for a ⌥-click the
+    app moves libghostty's pointer to the click with ⌘ for a moment (first
+    off the view: libghostty looks again only on a new cell) and reads the
+    link it reports. On a remote machine a ⌥-click on any path is taken,
+    and the open checks the path there.
 - A `mailto:` or an app's link in a page or a chat reply opens its app.
 
 ## Find bar

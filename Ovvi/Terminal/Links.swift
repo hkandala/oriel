@@ -5,58 +5,88 @@ import Observation
 import SwiftUI
 
 /// A terminal's links (ui/window#opening-links-and-files): addresses and paths libghostty finds in the text, and OSC 8
-/// links. libghostty opens one on ⌘-click; ⌘⌥-click opens it to the side, and the card's menu has the link's opens.
-@MainActor @Observable
-final class Links {
-    static let shared = Links()
-    /// With `-recordLinks YES` (e2e), Open in Default Browser keeps its link in `recorded` instead of opening it.
-    static let record = UserDefaults.standard.bool(forKey: "recordLinks")
-    private(set) var recorded: [String] = []
-
+/// links. libghostty opens one on ⌘-click; ⌥-click over one opens it to the side.
+enum Links {
     struct Target {
         let plugin: PluginManifest, arg: String, line: String?
     }
 
-    /// What a link opens with, and its argument: a web address with the browser (or a plugin for its URLs), a file
-    /// path (also `file:`, `~` on This Mac, `./` and `../` from the card's folder, a `:line` after it) with its
-    /// default plugin and that line. Nil for anything else (`ftp:`, `mailto:`).
-    static func target(_ text: String, remote: Bool, cwd: String?) -> Target? {
-        let url = URL(string: text), scheme = url?.scheme?.lowercased()
+    /// The link without what the text puts after it: `.,;:!?`, and a closing bracket or quote it did not open, as
+    /// GitHub reads `(see https://x.y/a).`.
+    static func trimmed(_ text: String) -> String {
+        var text = Substring(text)
+        let pairs: [Character: Character] = [")": "(", "]": "[", "}": "{"]
+        func unopened(_ last: Character) -> Bool {
+            let closes = text.count(where: { $0 == last })
+            if let open = pairs[last] {
+                return text.count(where: { $0 == open }) < closes
+            }
+            return "\"'".contains(last) && closes % 2 == 1
+        }
+        while let last = text.last, ".,;:!?".contains(last) || unopened(last) {
+            text.removeLast()
+        }
+        return String(text)
+    }
+
+    /// What a link opens with: a web address with the browser (or a plugin for its URLs); a file or folder that is
+    /// there on the card's machine (`file:`, absolute, `~`, or from the card's folder; a `:line` after it lands
+    /// there) with its default plugin, Markdown in File Explorer's Markdown, HTML on This Mac in the browser. Nil for
+    /// anything else: other schemes, and text that only looks like a path (`/reload your open pi`).
+    static func target(_ text: String, store: HostStore, cwd: String) async -> Target? {
+        let text = trimmed(text), url = URL(string: text), scheme = url?.scheme?.lowercased()
         if scheme == "http" || scheme == "https" {
             return Registry.openers(for: text).first.map { Target(plugin: $0, arg: text, line: nil) }
         }
+        guard scheme == nil || scheme == "file" else { return nil }
         var path = scheme == "file" ? url?.path ?? "" : text
-        if !remote, path.hasPrefix("~/") {
-            path = (path as NSString).expandingTildeInPath
-        } else if let cwd, path.hasPrefix("./") || path.hasPrefix("../") {
-            path = PathField.tidy("\(cwd)/\(path)")
-        }
-        guard path.hasPrefix("/") else { return nil }
         let line = path.firstMatch(of: /:(\d+)(?::\d+)?$/)
         if let line {
             path = String(path[..<line.range.lowerBound])
         }
-        return Registry.openers(for: path).first.map { Target(plugin: $0, arg: path, line: line.map { String($0.1) }) }
+        guard !path.isEmpty, let found = await there(path, store: store, cwd: cwd) else { return nil }
+        let landing = line.map { String($0.1) }
+        if !store.machine.isRemote, ["html", "htm"].contains(URL(filePath: found).pathExtension.lowercased()) {
+            return Target(plugin: Registry.browser, arg: URL(filePath: found).absoluteString, line: nil)
+        }
+        return Registry.openers(for: found).first.map { Target(plugin: $0, arg: found, line: landing) }
     }
 
-    /// Opens a link of terminal `terminalID`'s card as every link opens: ⌘ and ⌥ open behind, Open in front.
-    static func open(_ text: String, how: Opening, from terminalID: String, page: Page?) {
-        let cwd = page?.store.panes.first { $0.terminalID == terminalID }?.cwd
-        guard let page, let target = target(text, remote: page.store.machine.isRemote, cwd: cwd) else { return }
+    /// The path's absolute form on the card's machine when a file (or a folder, with its `/`) is there.
+    private static func there(_ path: String, store: HostStore, cwd: String) async -> String? {
+        let script = #"""
+        case $1 in "~"|"~/"*) p=$HOME${1#"~"} ;; /*) p=$1 ;; *) p=$2/$1 ;; esac
+        if [ -d "$p" ]; then printf '%s/' "$p"; elif [ -e "$p" ]; then printf '%s' "$p"; fi
+        """#
+        let found = await (try? store.machine.exec().output(["sh", "-c", script, "sh", path, cwd])) ?? ""
+        return found.isEmpty ? nil : PathField.tidy(found) + (found.hasSuffix("/") ? "/" : "")
+    }
+
+    /// Opens a link of terminal `terminalID`'s card as every link opens, behind the card. False for one that opens
+    /// nothing for sure (a path not on This Mac): a ⌥-click on it is the program's.
+    @discardableResult
+    static func open(_ text: String, how: Opening, from terminalID: String, page: Page?) -> Bool {
+        guard let page else { return false }
+        let cwd = page.store.panes.first { $0.terminalID == terminalID }?.cwd ?? "/"
+        guard likely(text, remote: page.store.machine.isRemote, cwd: cwd) else { return false }
         Task {
+            guard let target = await target(text, store: page.store, cwd: cwd) else { return }
             await page.open(target.plugin, arg: target.arg, at: target.line, from: terminalID, how: how,
-                            background: how != .here)
+                            background: true)
         }
+        return true
     }
 
-    /// Open in Default Browser: web addresses only.
-    func openInBrowser(_ text: String) {
-        guard let url = URL(string: text), ["http", "https"].contains(url.scheme?.lowercased()) else { return }
-        if Self.record {
-            recorded.append(text)
-        } else {
-            NSWorkspace.shared.open(url)
+    /// The link may open, at once: a web address, a path on This Mac that is there, any path on a remote machine
+    /// (`target` asks it).
+    private static func likely(_ text: String, remote: Bool, cwd: String) -> Bool {
+        let text = trimmed(text), scheme = URL(string: text)?.scheme?.lowercased()
+        if scheme == "http" || scheme == "https" || remote && scheme == nil {
+            return true
         }
+        guard scheme == nil else { return scheme == "file" }
+        let path = (text.replacing(/:\d+(?::\d+)?$/, with: "") as NSString).expandingTildeInPath
+        return FileManager.default.fileExists(atPath: path.hasPrefix("/") ? path : "\(cwd)/\(path)")
     }
 }
 
@@ -78,7 +108,7 @@ extension PaneSurfaceView {
 extension PaneSurfaceView: TerminalSurfaceOpenURLDelegate, TerminalSurfaceHoverLinkDelegate {
     /// ⌘-click: a new tab behind the card.
     func terminalDidRequestOpenURL(_ url: String, kind _: TerminalOpenURLKind) {
-        openLink?(url, .tab)
+        _ = openLink?(url, .tab)
     }
 
     /// A pointing hand while ⌘ is down over a link.
@@ -88,28 +118,12 @@ extension PaneSurfaceView: TerminalSurfaceOpenURLDelegate, TerminalSurfaceHoverL
     }
 }
 
-/// A terminal card's own menu items, before the pane's: over a link (`PaneSurfaceView.menuLink`) its opens, Open in
-/// Default Browser for a web address and Copy Link; then Copy, Paste and Select All on this terminal, not on the
+/// A terminal card's own menu items, before the pane's: Copy, Paste and Select All on this terminal, not on the
 /// keyboard card.
 struct TerminalItems: View {
     let view: PaneSurfaceView
 
     var body: some View {
-        // Relative paths too (any folder): the open resolves them from the card's.
-        let remote = view.store()?.machine.isRemote ?? false
-        if let link = view.menuLink, Links.target(link, remote: remote, cwd: "/") != nil {
-            Button("Open") { view.openLink?(link, .here) }
-            Button("Open in New Tab") { view.openLink?(link, .tab) }
-            Button("Open to the Side") { view.openLink?(link, .side) }
-            if link.lowercased().hasPrefix("http") {
-                Button("Open in Default Browser") { Links.shared.openInBrowser(link) }
-            }
-            Button("Copy Link") {
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(link, forType: .string)
-            }
-            Divider()
-        }
         edit("Copy", #selector(NSText.copy(_:)))
         edit("Paste", #selector(NSText.paste(_:)))
         edit("Select All", #selector(NSText.selectAll(_:)))

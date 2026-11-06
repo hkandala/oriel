@@ -401,6 +401,15 @@ Runs: none (no app code).
 - **Cause (⌘1–⌘9 after a link).** A browser card that asks "Open this page?" has the keyboard on a web view with no
   page: WebKit takes every ⌘ key for the page and, with none there, drops it. With no page the menu goes first now.
 
+- **Round 2 (item 30).** Terminal links: ⌘-click a new tab, ⌥-click on a link to the side (⌥-click elsewhere stays the
+  program's), no link items in the right click. A link drops the punctuation after it (`.,;:!?` and an unopened
+  closing bracket or quote). **Cause** of `/reload your open pi` and of `notes.md.` opening as a file: libghostty
+  matches path-looking text with its trailing period; a path now opens only when it is there on the card's machine
+  (one `sh` test there), and `.md` then reaches File Explorer's Markdown. HTML on This Mac opens a browser pane on its
+  `file:` URL; on a remote machine it opens as a file (a remote card never shows `file:`). **Decisions:** libghostty
+  still underlines such text with ⌘ down (no API to veto its highlight); on a remote machine a ⌥-click on any path is
+  taken before the check (the check is a round trip).
+
 ### Runs (Track H)
 
 - 42150968413 (3 tests): terminal and browser links green; Markdown red on a test query (Services ▸ Open matched).

@@ -15,14 +15,13 @@ final class PaneSurfaceView: AppTerminalView {
     private var dragged: (column: Int, row: Int)?
     /// The button went down with ⌘ (a link click): its drag and release stay local too.
     private var commandClick = false
-    /// The button went down with ⌘⌥ on a link, which opened to the side: its drag and release go nowhere.
+    /// The button went down with ⌥ on a link, which opened to the side: its drag and release go nowhere.
     private var sideClick = false
-    /// Links (`Links`): libghostty's surface, the link it reports under the pointer with ⌘ down, the link under the
-    /// last right click (the card's menu), and the card's opens.
+    /// Links (`Links`): libghostty's surface, the link it reports under the pointer with ⌘ down, and the card's
+    /// opens (false: the link opens nothing).
     weak var linkSurface: TerminalSurface?
     var hoveredLink: String?
-    var menuLink: String?
-    var openLink: ((String, Opening) -> Void)?
+    var openLink: ((String, Opening) -> Bool)?
     private var scrolled: CGFloat = 0
 
     /// Takes the keyboard once it is in a window (again).
@@ -170,14 +169,11 @@ final class PaneSurfaceView: AppTerminalView {
     // ponytail: in a mouse app a drag also draws libghostty's highlight; select locally only on
     // Shift+drag if that noise bothers users.
     override func mouseDown(with event: NSEvent) {
-        // ⌘⌥-click: a link to the side. libghostty opens a link only with ⌘ alone; ⌥-click is the program's.
-        let side = event.modifierFlags.intersection(.deviceIndependentFlagsMask) == [.command, .option]
-            ? link(at: event) : nil
-        sideClick = side != nil
-        if let side {
-            openLink?(side, .side)
-            return
-        }
+        // ⌥-click on a link: to the side (libghostty opens one only with ⌘). Elsewhere it is the program's (a shell
+        // moves its cursor).
+        sideClick = event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .option
+            && link(at: event).map { openLink?($0, .side) == true } == true
+        guard !sideClick else { return }
         super.mouseDown(with: event)
         mouse(.down, .left, event)
     }
@@ -203,8 +199,6 @@ final class PaneSurfaceView: AppTerminalView {
         // Only ⌥, as herdr matches the modifiers exactly: ⌥⇧ opens the menu.
         rightToProgram = event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .option
         guard rightToProgram else {
-            // The card's menu starts with the link's opens.
-            menuLink = link(at: event)
             nextResponder?.rightMouseDown(with: event)
             return
         }
