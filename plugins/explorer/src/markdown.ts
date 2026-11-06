@@ -10,7 +10,7 @@ import { ensureSyntaxTree, syntaxTree, syntaxTreeAvailable } from "@codemirror/l
 import { closeSearchPanel } from "@codemirror/search"
 import { Compartment, EditorState, Prec } from "@codemirror/state"
 import { EditorView } from "@codemirror/view"
-import { code, type Editor, editor } from "./editor"
+import { code, type Editor, editor, selected } from "./editor"
 import { containers, editing, live, referenceField, ticked } from "./live"
 import { choose, how, open, own, type Place, type Reveal, symbols } from "./place"
 import { sideBySide } from "./split"
@@ -228,7 +228,7 @@ export async function show(place: Place): Promise<Reveal> {
   /** Source: the file as code cards draw it. */
   const source = [code, Prec.highest(EditorView.theme({ ".cm-content": { paddingBottom: "48px" } }))]
   /** Side by Side's page: Read's look, its links and its ticks. */
-  const page = [language, rendered, markdownMode(false), EditorView.lineWrapping, links]
+  const page = [language, rendered, selected, markdownMode(false), EditorView.lineWrapping, links]
   shown = await editor(place, [
     language,
     look.of(rendered),

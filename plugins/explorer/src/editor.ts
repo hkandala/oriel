@@ -60,15 +60,19 @@ const theme = EditorView.theme({
   ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--text)" },
   ".cm-gutters": { background: "transparent", color: "var(--dim)", border: "none" },
   ".cm-activeLine, .cm-activeLineGutter": { background: "color-mix(in srgb, var(--text) 6%, transparent)" },
-  // As specific as CodeMirror's own light selection, which would win otherwise: a pale lilac under light text.
-  "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground, ::selection": {
-    background: "color-mix(in srgb, var(--accent) 35%, transparent)",
-  },
   ".cm-searchMatch": { background: "color-mix(in srgb, var(--finished) 35%, transparent)" },
   // The find bar floats at the top right over the text, as the terminal's (find.css); a match scrolls below it.
   ".cm-panels.cm-panels-top": {
     position: "absolute", top: "8px", right: "12px", left: "auto", background: "none", border: "none",
     maxWidth: "calc(100% - 24px)",
+  },
+})
+
+/** The selection in the accent, also Side by Side's page's (WebKit's own there). As specific as CodeMirror's light
+ *  selection, which would win otherwise: a pale lilac under light text. */
+export const selected = EditorView.theme({
+  "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground, ::selection": {
+    background: "color-mix(in srgb, var(--accent) 35%, transparent)",
   },
 })
 
@@ -120,6 +124,7 @@ export async function editor(place: Place, extensions: Extension[], parent: HTML
         search({ top: true, createPanel: find.createPanel }),
         keymap.of([...defaultKeymap, ...searchKeymap, ...historyKeymap, indentWithTab]),
         theme,
+        selected,
         EditorView.updateListener.of((u) => u.docChanged && update(u.state)),
         extensions,
       ],

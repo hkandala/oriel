@@ -31,7 +31,8 @@ the card shows, and it picks the card's page. A relaunch, a cold restart of
 herdr or another device makes the card at that place. The instance state
 file on the pane's machine keeps the rest: Git's commit message, the diff's
 Side by Side, Word Wrap and its file list, and File Explorer's Show Hidden
-Files and Markdown mode once the user changed them in the card
+Files, File's Word Wrap and Markdown mode once the user changed them in the
+card
 ([State](/docs/plugins/api#state)).
 
 ## Settings
@@ -169,7 +170,8 @@ apply:
 - **Kept pages.** Each card keeps the last five places it showed as pages
   ([One plugin, many places](/docs/plugins/api#one-plugin-many-places)). So
   Back and Forward show a place at once, as the user left it: its scroll, its
-  open folders, its selection, its filter, its file list and its row 2. A kept page reads
+  open folders, its selection, its filter, its file list and its row 2
+  (File's Word Wrap follows the card's last choice). A kept page reads
   again only what changed on the machine while it was hidden, after it
   shows. A place not kept draws in a new page while the old one stays on
   screen.
@@ -408,11 +410,11 @@ An editable text view (CodeMirror 6).
   (`ovvi › Ovvi › App › OvviApp.swift › {} OvviApp`).
 - **Text:** line numbers, the current line lit, bracket matching, the other
   matches of the selection marked, undo and redo, and Tab to indent. The
-  selection is the accent at 35 %, in File and in Markdown, so the text
-  stays readable in light and dark. Lines wrap, because cards are often
-  narrow, and a wrapped line goes on at its own indent. Row 2's **Word Wrap**
-  (`text.wrap`) turns the wrap off and on for every file the card shows; the
-  line at the top stays in place.
+  selection is the accent at 35 %, in File and in every Markdown mode, so
+  the text stays readable in light and dark. Lines wrap, because cards are
+  often narrow, and a wrapped line goes on at its own indent. Row 2's **Word
+  Wrap** (`text.wrap`) turns the wrap off and on for every file the card
+  shows; the line at the top stays in place.
 - **Colors** for Swift, TypeScript, JavaScript, Python, Go, Rust, C, C++,
   Java, Kotlin, Ruby, shell, JSON, YAML, TOML, HTML and CSS, by extension.
   The colors are the diff's: Pierre Light and Pierre Dark, the default

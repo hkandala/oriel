@@ -141,7 +141,7 @@ export async function show(place: Place): Promise<Reveal> {
   const view = shown?.view
   // The info view has no lines to wrap.
   if (!view) return void ovvi.controls.set("wrap", { hidden: true })
-  const show = (now: boolean) => {
+  const rewrap = (now: boolean) => {
     if (now === on) return
     on = now
     ovvi.controls.set("wrap", { value: on })
@@ -152,9 +152,11 @@ export async function show(place: Place): Promise<Reveal> {
   ovvi.on("control", ({ id, value }) => {
     if (id !== "wrap") return
     choose(ovvi, { wrap: value === true })
-    show(value === true)
+    rewrap(value === true)
   })
-  // A kept page shown again takes the card's choice from another file's page.
-  ovvi.on("place", () => show(own(ovvi).wrap ?? true))
+  // A kept page shown again takes the card's choice from another file's page, and so does this one if another
+  // changed it while this one drew.
+  ovvi.on("place", () => rewrap(own(ovvi).wrap ?? true))
+  rewrap(own(ovvi).wrap ?? true)
   return shown.land
 }
