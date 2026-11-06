@@ -480,3 +480,34 @@ The user's words: "so couple of things i notced with settings window:
   `/tmp/ovvi-shots/settings-polish/icons/options-2.png`. System Settings' glyphs fill 70–80 % of its 20 pt tiles
   (measured); the 11 pt glyph filled about 55 %. **Fix:** 14 pt semibold in pure white, about 70 %, in the sidebar and
   the search results.
+
+## Track P: the active border on a card alone
+
+The user's words: "one more thing, i remember we added a border to the active pane and said that we won't add any
+border if only one pane is there, let's change that, even if one pane is there let's show the active border on it".
+
+- The keyboard card always has phase 53's 1 pt border: also with one card in the tab, and on a zoomed card.
+- A floating window's card has it too; the overview has none.
+
+Then: "let's also increase default sidebar width a bit, right now sidebar is bit too narrow especially when agents view
+is enabeld. don't increase it too much" and "let's make it 300".
+
+- A new window's sidebar is 300 pt (was 240); a window keeps the width it has (scene storage), the range stays
+  227–480 pt.
+
+### Findings (Track P)
+
+- **Fix.** The border's condition is the lit card alone: the count of shown cards and the zoom are gone from it. The
+  floating window's card draws the same border. Its view moved to `PaneCardParts.swift`, as two files use it.
+- **Decisions.** A zoomed card fills the tab as a tab's only card does, so it has the border too. A floating window
+  holds one pane, always its window's active pane: its border shows always, as the main window's lit card shows
+  whether or not its window is key. The overview's tiles are tabs, not panes, and its selected tile already has the
+  keyboard surface: no border there.
+- **Sidebar.** Only the default changed. A window the user already resized, or one restored after a relaunch, keeps
+  its own width: only a new window opens at 300 pt. At 300 the window still fits CI's 1024 pt screen (480 already did).
+
+### Runs (Track P)
+
+- Chosen-tests run 42154034629 on 13496cee: `testCloseRightAfterQuickSplitsAndTheActiveBorder` (now checks the border
+  on one card and after a zoom) and `testFloatingWindowInEachLook` (the float's border and the main window's lone
+  card), "Executed 2 tests, with 0 failures".
