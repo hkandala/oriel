@@ -198,6 +198,8 @@ runs and on-demand on the final head.
 
 - The changed Finder test and the two other tree tests, chosen on CI at the first commit: 3 executed, green
   (42142849197).
+- With the status bar and the clipped sticky folders, the two Finder tests and two other tree tests: 4 executed,
+  green (42145865419).
 
 ## Track F: file cards (items 11, 13, 15, then 12)
 
