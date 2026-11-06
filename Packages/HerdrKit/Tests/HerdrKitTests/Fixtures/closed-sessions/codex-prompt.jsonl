@@ -1,0 +1,2 @@
+{"timestamp":"t","type":"session_meta","payload":{"id":"0202-plain","cwd":"/tmp/e","source":"cli"}}
+{"timestamp":"t","type":"event_msg","payload":{"type":"item_completed","item":{"type":"UserMessage","id":"u","content":[{"type":"text","text":"hello codex"}]}}}

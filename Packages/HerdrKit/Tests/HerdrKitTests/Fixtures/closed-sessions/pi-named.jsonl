@@ -1,0 +1,4 @@
+{"type":"session","version":3,"id":"01a2","timestamp":"2026-11-01T10:00:00Z","cwd":"/tmp/a"}
+{"type":"session_info","id":"a","parentId":null,"name":"first"}
+{"type":"message","id":"b","parentId":"a","message":{"role":"user","content":[{"type":"text","text":"name it"}]}}
+{"type":"session_info","id":"c","parentId":"b","name":"Trip notes"}

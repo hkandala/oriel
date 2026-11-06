@@ -1,0 +1,2 @@
+{"timestamp":"t","type":"session_meta","payload":{"id":"0203-sub","cwd":"/tmp/e","source":{"subagent":"review"}}}
+{"timestamp":"t","type":"event_msg","payload":{"type":"user_message","message":"sub task"}}

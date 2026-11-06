@@ -1,0 +1,4 @@
+{"type":"permission-mode","permissionMode":"default","sessionId":"1b77b9f3-ed25-4373-964e-295a0158d7e8"}
+{"parentUuid":null,"isSidechain":false,"type":"user","message":{"role":"user","content":"say hi"},"cwd":"/tmp/b","sessionId":"1b77b9f3-ed25-4373-964e-295a0158d7e8"}
+{"type":"custom-title","customTitle":"say hi (Branch)","sessionId":"1b77b9f3-ed25-4373-964e-295a0158d7e8"}
+{"type":"ai-title","aiTitle":"Greeting","sessionId":"1b77b9f3-ed25-4373-964e-295a0158d7e8"}
