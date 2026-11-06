@@ -54,7 +54,13 @@ const look = {
   }
   /* As the Finder's list: the selection in gray while the tree does not have the keyboard. */
   :host(:not(:focus-within)) { --trees-selected-bg-override: color-mix(in srgb, var(--text) 12%, transparent); }
+  /* The open folders at the top hide the rows that scroll under them, and a nested one that the next folder pushes
+     up slides under its parent: each sticky row is opaque, its hover or selection over the card's color. */
   [data-file-tree-sticky-overlay-content] { background-color: var(--card); }
+  [data-file-tree-sticky-row="true"] { --state: transparent;
+    background: linear-gradient(var(--state), var(--state)), var(--card); }
+  [data-file-tree-sticky-row="true"]:is(:hover, [data-item-context-hover="true"]) { --state: var(--trees-bg-muted); }
+  [data-file-tree-sticky-row="true"][data-item-selected="true"] { --state: var(--trees-selected-bg); }
   [data-item-contains-git-change="true"] > [data-item-section="git"] { opacity: 1; }
   [data-type="item"] > [data-item-section="icon"] { width: 34px; justify-content: flex-end; color: var(--dim); }
   [data-item-type="folder"] > [data-item-section="icon"] { justify-content: space-between; }
@@ -62,7 +68,9 @@ const look = {
     background: var(--folder-blue); -webkit-mask: var(--folder) center / 16px no-repeat; }
   [data-item-path="${UP}"] > [data-item-section="icon"] > svg { visibility: hidden; }
   [data-item-selected="true"] > [data-item-section="icon"] { color: var(--dim); }
-  [data-item-rename-input] { border-radius: 4px; background: var(--card); outline: 1.5px solid var(--accent); }
+  /* Inside its box: the row's name clips what goes past it. */
+  [data-item-rename-input] { border-radius: 4px; background: var(--card); outline: 1.5px solid var(--accent);
+    outline-offset: -1.5px; }
   :host(:not([data-keys])) [data-type="item"]::before { outline: none !important; }`,
 }
 /** Whether a name is a dotfile's, which the tree hides unless row 2's Hidden Files is on. */
@@ -505,11 +513,12 @@ export async function show(place: Place): Promise<Reveal> {
       true,
     )
     trees.addEventListener("keydown", keys, true)
-    // The app's menu: Open (Open as Root on a folder), Open in New Tab, Open to the Side.
+    // The app's menu: Open (Open as Root on a folder), Open in New Tab, Open to the Side, Rename (not on `..`).
     trees.addEventListener("contextmenu", (event) => {
       const at = row(event)
-      if (at) void menu(ovvi, event, at.arg)
-      else event.preventDefault()
+      if (!at) return event.preventDefault()
+      const shown = filter ? results : tree
+      void menu(ovvi, event, at.arg, at.id === UP ? undefined : () => shown.startRenaming(at.id) && stem(shown, at.id))
     })
   }
 

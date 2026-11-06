@@ -5,8 +5,8 @@ import XCTest
 extension OvviUITests {
     /// Row 2's Filter opens the find bar with the keyboard, and a second click closes it; a letter typed in the tree
     /// opens it with that letter, and Esc closes it with its filter. A click selects `..` like any row, and a click on
-    /// no row clears the selection. Return renames the selected row on disk (Return saves); ⌘↓ opens a folder as the
-    /// root and ⌘↑ goes back up.
+    /// no row clears the selection. Return renames the selected row on disk (Return saves), as a folder's menu does;
+    /// ⌘↓ opens a folder as the root and ⌘↑ goes back up.
     func testFileExplorerFindBarAndFinderKeys() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (_, shell) = try await newTab("files-finder")
@@ -40,7 +40,20 @@ extension OvviUITests {
         keepScreenshot("file explorer find bar closed")
 
         try await selection(card, tree, root)
+        try await renames(card, tree, shell)
 
+        row("src", in: tree).click()
+        app.typeKey(.downArrow, modifierFlags: .command)
+        try await labelEnds(card, " \(root)/src/")
+        XCTAssertTrue(row("deep", in: tree).exists(within: 10))
+        app.typeKey(.upArrow, modifierFlags: .command)
+        try await labelEnds(card, " \(root)/")
+        try await send("rm -rf \(repo)\r", to: shell)
+    }
+
+    /// Return renames the selected file with its stem selected, a name the tree refuses keeps the old one, and a
+    /// folder's menu renames it with its whole name selected.
+    private func renames(_ card: String, _ tree: XCUIElement, _ shell: String) async throws {
         row("a.txt", in: tree).click()
         app.typeKey(.return, modifierFlags: [])
         let rename = tree.textFields.matching(NSPredicate(format: "value == 'a.txt'")).firstMatch
@@ -55,16 +68,14 @@ extension OvviUITests {
         XCTAssertTrue(element("pane.\(card).toast").exists(within: 3))
         element("pane.\(card).toast.main").click()
         XCTAssertTrue(row("b.txt", in: tree).exists)
-        try await send("clear; test -f b.txt && test ! -e a.txt && echo renamed-$((6*7))\r", to: shell)
+        // A folder's menu renames it, its whole name selected.
+        row("build", in: tree).rightClick()
+        app.menuItems["Rename"].click()
+        XCTAssertTrue(tree.textFields.matching(NSPredicate(format: "value == 'build'")).firstMatch.exists(within: 3))
+        app.typeText("built\r")
+        XCTAssertTrue(row("built", in: tree).exists(within: 5))
+        try await send("clear; test -f b.txt && test ! -e a.txt && test -d built && echo renamed-$((6*7))\r", to: shell)
         try await waitFor(shell) { $0.contains("renamed-42") }
-
-        row("src", in: tree).click()
-        app.typeKey(.downArrow, modifierFlags: .command)
-        try await labelEnds(card, " \(root)/src/")
-        XCTAssertTrue(row("deep", in: tree).exists(within: 10))
-        app.typeKey(.upArrow, modifierFlags: .command)
-        try await labelEnds(card, " \(root)/")
-        try await send("rm -rf \(repo)\r", to: shell)
     }
 
     /// A click on no row, or on row 2's Collapse All, leaves nothing selected: ⌘O opens nothing. A click selects `..`

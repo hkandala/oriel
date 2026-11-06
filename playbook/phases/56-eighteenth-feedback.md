@@ -166,6 +166,26 @@ runs and on-demand on the final head.
    folder, give me some ui mockups for the footer including git and with no git etc, and i can confirm which on to go
    with".
 
+### Findings (Track E)
+
+- **Cause, item 6.** The app sets the page root's inline style to its colors with each theme (`WebCardContent`'s
+  `onChange(initial: true)` runs again whenever the card's view comes back, as after Open in Git's new tab). File
+  Explorer kept its SF Symbol masks (`--sf-*`) in that same inline style, so they went and every mask drew a full
+  grey square. **Fix:** the masks live in a style sheet of their own; the API's `Theme` says to do so.
+- **Cause, item 5.** The rename field fills the row's name section, which clips what goes past it: the outline
+  outside the box lost its sides. **Fix:** the outline sits inside the box.
+- **Cause, item 10.** The tree's rows are transparent (the card shows through), and the band under the sticky
+  folders used `--card`, a measured stand-in for Glass's translucent card fill that was 18 steps off on the
+  user's screen (`#34` on `#22`). A nested sticky folder that the next folder pushes up slides under its parent's
+  transparent row: both names drew. **Fix:** each sticky row is opaque, its hover or selection over the card's
+  color; ‹band›.
+- **Item 8.** A row's menu adds Rename (not on `..`), the same rename as Return.
+- **Decisions, item 9.** ⌘[ and ⌘] already go Back and Forward in every view, the editor too (the web view's key
+  equivalent runs before CodeMirror's indent keys), and the Back and Forward tooltips name them. Checked in the tree,
+  a file's editor, a preview and Git's diff; no code change.
+
+### Runs (Track E)
+
 ## Track F: file cards (items 11, 13, 15, then 12)
 
 11. and 13. "selected text color is whitish and making the text not readable fix that, make sure it looks good in

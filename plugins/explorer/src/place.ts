@@ -62,24 +62,30 @@ export const how = (event: MouseEvent | KeyboardEvent): How => (event.metaKey ? 
 export const open = (ovvi: Ovvi, arg: string, how: How) =>
   void ovvi.open(arg, { how, background: how !== "card" }).catch((error) => console.error(error))
 
-/** A row's menu at the pointer: Open (Open as Root for a folder), Open in New Tab, Open to the Side. */
-export async function menu(ovvi: Ovvi, event: MouseEvent, arg: string) {
+/** A row's menu at the pointer: Open (Open as Root for a folder), Open in New Tab, Open to the Side, and Rename when
+ *  the row can be renamed. */
+export async function menu(ovvi: Ovvi, event: MouseEvent, arg: string, rename?: () => void) {
   event.preventDefault()
   const picked = await ovvi.menu.show([
     { value: "card", title: arg.endsWith("/") ? "Open as Root" : "Open" },
     { value: "tab", title: "Open in New Tab" },
     { value: "side", title: "Open to the Side" },
+    ...(rename ? ["-" as const, { value: "rename", title: "Rename" }] : []),
   ])
-  if (picked) open(ovvi, arg, picked as How)
+  if (picked === "rename") rename?.()
+  else if (picked) open(ovvi, arg, picked as How)
 }
 
-/** SF Symbols as masks (`ovvi.symbol`), each loaded once: CSS draws `--sf-<name with - for .>`. */
+/** SF Symbols as masks (`ovvi.symbol`), each loaded once: CSS draws `--sf-<name with - for .>`. In a sheet of their
+ *  own: the app sets the root's inline style to its colors on each theme change (a new tab's too), which drops any
+ *  property set there. */
 const loaded = new Set<string>()
+const sheet = document.head.appendChild(document.createElement("style")).sheet!
 export function symbols(ovvi: Ovvi, names: string[], size = 12) {
   for (const name of names.filter((name) => !loaded.has(name))) {
     loaded.add(name)
     void ovvi.symbol(name, size).then(
-      (url) => document.documentElement.style.setProperty(`--sf-${name.replaceAll(".", "-")}`, `url(${url})`),
+      (url) => sheet.insertRule(`:root { --sf-${name.replaceAll(".", "-")}: url(${url}) }`),
       () => loaded.delete(name),
     )
   }

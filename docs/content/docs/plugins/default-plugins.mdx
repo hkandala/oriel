@@ -180,7 +180,9 @@ apply:
   that row is out of view.
 - A Git home drawn anew (not kept) lands at the change or the commit that
   the card came back from.
-- ⌘[ and ⌘] move the card only while it has a place that way. Otherwise
+- ⌘[ and ⌘] work in every view: the tree, a file and its editor (where they
+  take the place of CodeMirror's indent keys), Markdown, a preview and Git's
+  pages. They move the card only while it has a place that way. Otherwise
   they select the pane to the left or right, as elsewhere. ⌘← and ⌘→ also
   go Back and Forward, as in a browser, except in a text field such as the
   editor, where they move the caret. A card made from
@@ -332,7 +334,9 @@ selection in the accent at 24 %. A 6 pt gap sits under the header.
   scrolls away with the rows, and hides while the filter has text.
 - **Sticky folders.** When the tree scrolls, each open folder above the view
   stays at its top, nested, until its last row scrolls past, as in Xcode's
-  navigator. So the folders the rows are in always show.
+  navigator. So the folders the rows are in always show. Each sticky folder
+  is opaque in the card's color, so the rows under it, and a nested folder
+  that the next one pushes up, slide under it and never show through.
 - **The tree** shows the root's listing first and lists a folder only when
   it opens. `.git` is hidden, and links to folders are folders. Files and
   folders whose name starts with `.` show only while Show Hidden Files is on.
@@ -379,7 +383,7 @@ selection in the accent at 24 %. A 6 pt gap sits under the header.
   |---|---|---|
   | ↑ ↓ | move; the first ↓ on a tree with no selected row goes to the first row, the first ↑ to the last | the same |
   | → ← | open and close a folder; ← on a closed row goes to its folder | the same |
-  | Return | renames the selected row in place, its name selected without the extension: Return saves, Esc cancels. A name in use, an empty one or one with `/` keeps the old name and says why in a toast | the same |
+  | Return | renames the selected row in place, its name selected without the extension: Return saves, Esc cancels. A name in use, an empty one or one with `/` keeps the old name and says why in a toast. A row's menu has **Rename** too (not `..`) | the same |
   | ⌘O, ⌘↓ | open the selected row: a folder becomes the root, a file shows in the card | the same |
   | ⌘↑ | the parent folder becomes the root | the same |
   | ⌘← ⌘→, ⌘[ ⌘] | Back and Forward | ⌘[ ⌘] |
