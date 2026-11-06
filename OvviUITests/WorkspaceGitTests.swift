@@ -71,6 +71,7 @@ extension OvviUITests {
         XCTAssertTrue(until(10) { row.value as? String == "main ahead 2 behind 2" }, "\(row.value ?? "")")
 
         row.rightClick()
+        XCTAssertTrue(app.menuItems["Push"].exists(within: 2))
         app.menuItems["Push"].click()
         XCTAssertTrue(element("detail.notice").staticTexts.matching(NSPredicate(format: "value CONTAINS 'rejected'"))
             .firstMatch.exists(within: 10))
@@ -79,6 +80,7 @@ extension OvviUITests {
         try await send("(cd \(root)/repo && git reset -q --hard origin/main~1) && echo reset-$((6*7))\r", to: "w2:p1")
         try await waitFor("w2:p1") { $0.contains("\nreset-42") }
         row.rightClick()
+        XCTAssertTrue(app.menuItems["Pull"].exists(within: 2))
         app.menuItems["Pull"].click()
         XCTAssertTrue(until(10) { row.value as? String == "main ahead 0 behind 0" }, "\(row.value ?? "")")
     }

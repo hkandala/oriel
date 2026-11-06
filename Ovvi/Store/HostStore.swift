@@ -83,7 +83,7 @@ final class HostStore {
     @ObservationIgnored private(set) var client: (any Multiplexer)?
     @ObservationIgnored private var task: Task<Void, Never>?
     /// Workspaces with a git run in flight: one at a time each.
-    @ObservationIgnored private var gitRuns: Set<String> = []
+    @ObservationIgnored var gitRuns: Set<String> = []
     /// Program asks in flight, 8 at most: a 600-pane session's first snapshot made 600 herdr runs.
     @ObservationIgnored let asks = Gate(8)
     @ObservationIgnored private var seen = Seen()

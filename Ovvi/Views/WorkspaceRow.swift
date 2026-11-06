@@ -131,16 +131,12 @@ struct WorkspaceRow: View {
         // Only where the row shows a branch: the same repository.
         if workspace.git != nil {
             Divider()
-            Button("Fetch") { sync(.fetch) }
-            Button("Pull") { sync(.pull) }
-            Button("Push") { sync(.push) }
+            Button("Fetch") { Task { await store.sync(workspace, .fetch) } }
+            Button("Pull") { Task { await store.sync(workspace, .pull) } }
+            Button("Push") { Task { await store.sync(workspace, .push) } }
         }
         Divider()
         Button("Close Workspace") { page.close(.workspace(workspace.id)) }
-    }
-
-    private func sync(_ sync: Git.Sync) {
-        Task { await page.store.sync(workspace, sync) }
     }
 
     /// Not while the session is stopped (a double-click too): the rename would fail.
