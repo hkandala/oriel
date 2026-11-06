@@ -15,6 +15,14 @@ final class PaneSurfaceView: AppTerminalView {
     private var dragged: (column: Int, row: Int)?
     /// The button went down with ⌘ (a link click): its drag and release stay local too.
     private var commandClick = false
+    /// The button went down with ⌘⌥ on a link, which opened to the side: its drag and release go nowhere.
+    private var sideClick = false
+    /// Links (`Links`): libghostty's surface, the link it reports under the pointer with ⌘ down, the link under the
+    /// last right click (the card's menu), and the card's opens.
+    weak var linkSurface: TerminalSurface?
+    var hoveredLink: String?
+    var menuLink: String?
+    var openLink: ((String, Opening) -> Void)?
     private var scrolled: CGFloat = 0
 
     /// Takes the keyboard once it is in a window (again).
@@ -162,16 +170,22 @@ final class PaneSurfaceView: AppTerminalView {
     // ponytail: in a mouse app a drag also draws libghostty's highlight; select locally only on
     // Shift+drag if that noise bothers users.
     override func mouseDown(with event: NSEvent) {
+        // ⌘⌥-click: a link to the side. libghostty opens a link only with ⌘ alone; ⌥-click is the program's.
+        sideClick = event.modifierFlags.intersection(.deviceIndependentFlagsMask) == [.command, .option]
+            && link(at: event).map { openLink?($0, .side) } != nil
+        guard !sideClick else { return }
         super.mouseDown(with: event)
         mouse(.down, .left, event)
     }
 
     override func mouseDragged(with event: NSEvent) {
+        guard !sideClick else { return }
         super.mouseDragged(with: event)
         mouse(.drag, .left, event)
     }
 
     override func mouseUp(with event: NSEvent) {
+        guard !sideClick else { return }
         super.mouseUp(with: event)
         mouse(.up, .left, event)
     }
@@ -185,6 +199,8 @@ final class PaneSurfaceView: AppTerminalView {
         // Only ⌥, as herdr matches the modifiers exactly: ⌥⇧ opens the menu.
         rightToProgram = event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .option
         guard rightToProgram else {
+            // The card's menu starts with the link's opens.
+            menuLink = link(at: event)
             nextResponder?.rightMouseDown(with: event)
             return
         }
@@ -356,7 +372,8 @@ extension PaneSurfaceView: TerminalSurfaceGridResizeDelegate, TerminalSurfaceLif
     /// A new surface starts focused (a filled cursor) until it first loses the keyboard, and
     /// libghostty-spm has no public way to set a surface's focus; resigning is the one that
     /// tells the surface it is not focused.
-    func terminalDidAttachSurface(_: TerminalSurface) {
+    func terminalDidAttachSurface(_ surface: TerminalSurface) {
+        linkSurface = surface
         if window?.firstResponder !== self {
             _ = resignFirstResponder()
         }
@@ -364,15 +381,4 @@ extension PaneSurfaceView: TerminalSurfaceGridResizeDelegate, TerminalSurfaceLif
     }
 
     func terminalDidDetachSurface() {}
-}
-
-extension PaneSurfaceView: TerminalSurfaceOpenURLDelegate, TerminalSurfaceHoverLinkDelegate {
-    func terminalDidRequestOpenURL(_ url: String, kind _: TerminalOpenURLKind) {
-        Links.shared.open(url)
-    }
-
-    /// A pointing hand while ⌘ is down over a link.
-    func terminalDidUpdateHoverLink(_ url: String?) {
-        (url == nil ? NSCursor.arrow : .pointingHand).set()
-    }
 }

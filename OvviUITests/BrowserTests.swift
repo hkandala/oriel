@@ -192,7 +192,7 @@ extension OvviUITests {
                 $0["tab_id"] as? String == tab && !panes.contains($0["pane_id"] as? String ?? "")
             }?["pane_id"] as? String
         }
-        try await labelEnds(side, " \(two)")
+        try await expect("two.html beside the card") { try await paneLabel(side).hasSuffix(" \(two)") }
         XCTAssertTrue(pageText("ovvi-page-one").exists)
     }
 

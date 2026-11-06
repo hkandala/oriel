@@ -548,7 +548,8 @@ How it works: [Layout and sizing](/docs/layout).
   tabs, not panes. The border moves with the keyboard at once, with no fade.
 - The buttons show on the keyboard card and on a hovered card.
 - **Context menu** on the header, and on the terminal, where it starts with
-  Copy, Paste and Select All. As in herdr, a right click in the terminal opens
+  Copy, Paste and Select All (after a link's items over a link, [Opening
+  links and files](#opening-links-and-files)). As in herdr, a right click in the terminal opens
   the menu even when the program reads the mouse. ⌥-right click sends the
   click, without the ⌥, to a program that reads the mouse, and does nothing
   in one that does not (herdr's `right_click_passthrough_modifier = "alt"`).
@@ -596,8 +597,6 @@ How it works: [Layout and sizing](/docs/layout).
   Pane, Stop or Delete Session) shows that action's button in red, the
   macOS destructive style. AppKit draws a red button only when it is not the
   dialog's default button, so the app gives Return to the red button itself.
-- ⌘-click on a link in a terminal opens it in the default browser, `http` and
-  `https` only.
 - **Reveal.** When an agent runs `ovvi reveal` on a card in view, the card's
   border lights in the accent color, 2 pt, for 0.6 s, and fades out over
   0.25 s ([CLI](/docs/agent-control/cli#reveal)). A floating card flashes in
@@ -606,7 +605,8 @@ How it works: [Layout and sizing](/docs/layout).
 ## Opening links and files
 
 A link or a file opens the same way in every card that shows one: File
-Explorer's tree and its Markdown, Git, the browser and the chat view.
+Explorer's tree and its Markdown, Git, the browser, the chat view and the
+terminal.
 
 | Gesture | Opens |
 |---|---|
@@ -643,9 +643,20 @@ Explorer's tree and its Markdown, Git, the browser and the chat view.
   rule ([When a page loads by
   itself](/docs/ui/browser#when-a-page-loads-by-itself)). One opened from
   the browser is approved: the user picked it there.
-- **Not covered:** a link in a terminal opens with ⌘-click only, in the
-  Mac's default browser: the terminal's program gets every other click
-  ([Pane card](#pane-card)). A `mailto:` or an app's link opens its app.
+- **A terminal's links** are the addresses and file paths libghostty finds
+  in its text, and OSC 8 links. The program gets plain clicks and ⌥-clicks
+  (a shell moves its cursor, ⌥-right click is its right click), so ⌘ marks a
+  link click there: ⌘-click opens a new tab in the background and
+  ⌘⌥-click to the side. A right click over a link starts the card's menu
+  with **Open**, **Open in New Tab**, **Open to the Side**, **Open in Default
+  Browser** (a web address) and **Copy Link**.
+  - A web address opens a browser pane, a file path (absolute, `file:`, or
+    `~` on This Mac) its default plugin on the card's machine; a `:line`
+    after the path lands on that line. Other schemes (`ftp:`) open nothing.
+  - libghostty reports a link only while ⌘ is down, so for a ⌘⌥-click and
+    a right click the app moves libghostty's pointer to the click with ⌘ for
+    a moment and reads the link it reports.
+- A `mailto:` or an app's link in a page or a chat reply opens its app.
 
 ## Find bar
 

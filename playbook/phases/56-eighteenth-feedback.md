@@ -307,6 +307,13 @@ Runs: none (no app code).
   keeps WebKit's Copy Link. The terminal stays as it is (⌘-click, default browser): the program owns every other
   click, and ⌥-click moves the shell's cursor. A chat link has no menu: SwiftUI's text has no link menu. A
   diff line is not a link: ⌘- and ⌥-click only.
+- **Terminal links (the user's later ask).** "is there a way to enable similar cmd+click, option+click and right click
+  optoin menu as well". ⌘-click opens a new tab behind (a browser pane, or a file path's default plugin) instead of
+  the default browser; ⌘⌥-click opens to the side, since plain and ⌥-clicks belong to the program (cursor moves, ⌥ alone
+  sends right clicks); the card's menu over a link starts with Open, Open in New Tab, Open to the Side, Open in
+  Default Browser and Copy Link. libghostty-spm reports links only through `open_url` (⌘-click) and `mouse_over_link`
+  (with ⌘ down), so for ⌘⌥-click and the right click the app sends libghostty the pointer with ⌘ for a moment and
+  reads the link it reports.
 
 ## Track I: Git's diff (items 17, 18)
 

@@ -86,10 +86,7 @@ struct PaneCard: View {
                         // The terminal sends a right click here (without ⌥, see `PaneSurfaceView`), as herdr opens
                         // its pane menu. Copy and the rest act on this terminal, not on the keyboard card.
                         .contextMenu {
-                            edit("Copy", #selector(NSText.copy(_:)), terminal)
-                            edit("Paste", #selector(NSText.paste(_:)), terminal)
-                            edit("Select All", #selector(NSText.selectAll(_:)), terminal)
-                            Divider()
+                            TerminalItems(view: terminal.view)
                             PaneItems(page: page, pane: pane)
                         }
                 }
@@ -258,10 +255,6 @@ struct PaneCard: View {
             .allowsHitTesting(false)
             .accessibilityIdentifier("pane.\(id).title")
         }
-    }
-
-    private func edit(_ title: String, _ action: Selector, _ terminal: PaneTerminal) -> some View {
-        Button(title) { NSApp.sendAction(action, to: terminal.view, from: nil) }
     }
 
     private func buttons(zoomed: Bool) -> some View {
