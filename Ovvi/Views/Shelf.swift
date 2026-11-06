@@ -10,7 +10,7 @@ struct Shelf<Accessory: View, Content: View>: View {
     @ViewBuilder var accessory: () -> Accessory
     @ViewBuilder var content: () -> Content
     /// The open shelves (`Page.openShelves`), kept across relaunches.
-    @AppStorage(Page.openShelves) private var opened = ""
+    @AppStorage(Page.openShelves, store: .agents) private var opened = ""
     @State private var under = (top: false, bottom: false)
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -93,7 +93,7 @@ extension Page {
     }
 
     func opens(_ label: String) -> Bool {
-        let lines = UserDefaults.standard.string(forKey: Self.openShelves) ?? ""
+        let lines = UserDefaults.agents.string(forKey: Self.openShelves) ?? ""
         return lines.split(separator: "\n").contains { $0 == shelfKey(label) }
     }
 }

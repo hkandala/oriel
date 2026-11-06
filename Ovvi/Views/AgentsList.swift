@@ -78,7 +78,7 @@ struct AgentsList: View {
                 moves += 1
             }
             // What ⌥ + swipe steps through: the rows on screen.
-            .onChange(of: shown, initial: true) { page.agentsShown = shown }
+            .onChange(of: shown, initial: true) { _, new in page.agentsShown = new }
     }
 
     /// `shown` on screen; the menus and buttons act on `target`, where each row is now.
@@ -152,8 +152,10 @@ struct AgentsList: View {
     /// The user's own move: at once, with the slide. Only a write that changes the order is waited for.
     private func act(_ write: () -> Void) {
         let before = Self.arrange(page, filter: filter, settings: settings, now: .now)
-        held = nil
-        slide(write)
+        slide {
+            held = nil
+            write()
+        }
         acted = Self.arrange(page, filter: filter, settings: settings, now: .now) != before
     }
 

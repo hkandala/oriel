@@ -23,7 +23,7 @@ struct AppSettings: DynamicProperty {
     /// Seconds an idle agent the user has seen waits before it moves to Settled; 0: never.
     @AppStorage("settleAfter") var settleAfter = 3 * 3600.0
     /// The Agents view's pins (`AgentPin`) in pin order, a JSON list.
-    @AppStorage(AgentPin.key) var pins = ""
+    @AppStorage(AgentPin.key, store: .agents) var pins = ""
 
     /// What the terminals take from the settings (`PaneTerminal.configure`): a change configures them again.
     var terminal: [String] {

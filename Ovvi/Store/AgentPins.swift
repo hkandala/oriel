@@ -56,16 +56,25 @@ extension HostStore {
     /// closed, with no session. Another session's pins and pins of closed sessions stay (Archived resumes them).
     func keepPins() {
         guard last != nil else { return }
-        let text = UserDefaults.standard.string(forKey: AgentPin.key) ?? ""
+        let text = UserDefaults.agents.string(forKey: AgentPin.key) ?? ""
         let agents = agentPanes
         let pins = [AgentPin](json: text).compactMap { pin -> AgentPin? in
             guard pin.machine == machine.id, pin.session == session else { return pin }
-            return agents.first { $0.holds(pin) }?.pin(in: self) ?? (pin.agent == nil ? nil : pin)
+            // A pane whose agent herdr lost for a moment keeps its pin.
+            let gone = pin.agent == nil && !panes.contains { $0.holds(pin) }
+            return agents.first { $0.holds(pin) }?.pin(in: self) ?? (gone ? nil : pin)
         }
         if !text.isEmpty, pins.json != text {
-            UserDefaults.standard.set(pins.json, forKey: AgentPin.key)
+            UserDefaults.agents.set(pins.json, forKey: AgentPin.key)
         }
     }
+}
+
+@MainActor
+extension UserDefaults {
+    /// The Agents view's own state: pins, open shelves and the agents' times, in `agents.plist` in the config folder,
+    /// so a test's `-configFolder` keeps its writes out of the user's.
+    static let agents = UserDefaults(suiteName: Registry.config.appending(path: "agents").path) ?? .standard
 }
 
 extension Array where Element: Codable {

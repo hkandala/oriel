@@ -854,8 +854,9 @@ The user's words, item by item, with the track that takes each:
 - **Decisions:** herdr gives no times, so the app keeps each agent's time with its `state_change_seq`
   (`agentMarks.‹machine› ‹session›`): an agent whose number did not change keeps its time over a relaunch, so idle
   agents stay settled and a Working time counts from the real start. Pins are kept by the agent's session, else its
-  terminal, with the title and folder, in `agentPins`; a pin of a closed session stays for L2's Resume. Settles by hand
-  are in memory and end at the agent's next change.
+  terminal, with the title and folder; a pin of a closed session stays for L2's Resume, and a pane whose agent herdr
+  loses for a moment keeps its pin. Pins, open shelves and times live in `agents.plist` in the config folder, so a
+  test's `-configFolder` never writes the user's. Settles by hand are in memory and end at the agent's next change.
 - **Decisions:** Settled reads the time once a minute. The settings pop-up offers 1 hour, 3 hours, 8 hours, 1 day and
   Never (default 3 hours). `titlebar.agents` carries the selected trait while the Agents view is on; tests use it where
   they used the sort menu.

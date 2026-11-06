@@ -24,14 +24,8 @@ seven=ovvi-e2e-$id-g
 eight=ovvi-e2e-$id-h
 # A session joins the cleanup only once it is up: a failed `up` must not remove a session it did not make.
 made=("$four" "$six" "$eight")
-# Browser panes' state files (plugins/api#state) go with their sessions, and so do the app's agent times
-# (`agentMarks.‹machine› ‹session›`, in the defaults the tests share with the user's Ovvi).
-cleanup() {
-    for s in "${made[@]}"; do scripts/herdr-session.sh down "$s" || true; rm -rf "$HOME/.local/state/ovvi/$s"; done
-    defaults read dev.ovvi.app 2>/dev/null | grep -o "\"agentMarks\.[^\"]* ovvi-e2e-$id-[a-z]\"" | tr -d '"' |
-        while read -r key; do defaults delete dev.ovvi.app "$key" || true; done
-}
-trap cleanup EXIT
+# Browser panes' state files (plugins/api#state) go with their sessions.
+trap 'for s in "${made[@]}"; do scripts/herdr-session.sh down "$s" || true; rm -rf "$HOME/.local/state/ovvi/$s"; done' EXIT
 for s in "$one" "$two" "$three" "$five" "$seven"; do
     scripts/herdr-session.sh up "$s"
     made+=("$s")
