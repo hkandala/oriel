@@ -33,8 +33,8 @@ enum Links {
     /// there on the card's machine (`file:`, absolute, `~`, or from the card's folder; a `:line` after it lands
     /// there) with its default plugin, Markdown in File Explorer's Markdown, HTML on This Mac in the browser. Nil for
     /// anything else: other schemes, and text that only looks like a path (`/reload your open pi`).
-    static func target(_ text: String, store: HostStore, cwd: String) async -> Target? {
-        let text = trimmed(text), url = URL(string: text), scheme = url?.scheme?.lowercased()
+    private static func target(_ text: String, store: HostStore, cwd: String) async -> Target? {
+        let url = URL(string: text), scheme = Self.scheme(text)
         if scheme == "http" || scheme == "https" {
             return Registry.openers(for: text).first.map { Target(plugin: $0, arg: text, line: nil) }
         }
@@ -46,10 +46,17 @@ enum Links {
         }
         guard !path.isEmpty, let found = await there(path, store: store, cwd: cwd) else { return nil }
         let landing = line.map { String($0.1) }
-        if !store.machine.isRemote, ["html", "htm"].contains(URL(filePath: found).pathExtension.lowercased()) {
+        if !store.machine.isRemote, !found.hasSuffix("/"),
+           ["html", "htm"].contains(URL(filePath: found).pathExtension.lowercased())
+        {
             return Target(plugin: Registry.browser, arg: URL(filePath: found).absoluteString, line: nil)
         }
         return Registry.openers(for: found).first.map { Target(plugin: $0, arg: found, line: landing) }
+    }
+
+    /// A link's scheme, only with `://`: `notes.md:12` is a path and its line.
+    private static func scheme(_ text: String) -> String? {
+        text.contains("://") ? URL(string: text)?.scheme?.lowercased() : nil
     }
 
     /// The path's absolute form on the card's machine when a file (or a folder, with its `/`) is there.
@@ -64,9 +71,9 @@ enum Links {
 
     /// Opens a link of terminal `terminalID`'s card as every link opens, behind the card. False for one that opens
     /// nothing for sure (a path not on This Mac): a ⌥-click on it is the program's.
-    @discardableResult
     static func open(_ text: String, how: Opening, from terminalID: String, page: Page?) -> Bool {
         guard let page else { return false }
+        let text = trimmed(text)
         let cwd = page.store.panes.first { $0.terminalID == terminalID }?.cwd ?? "/"
         guard likely(text, remote: page.store.machine.isRemote, cwd: cwd) else { return false }
         Task {
@@ -80,7 +87,7 @@ enum Links {
     /// The link may open, at once: a web address, a path on This Mac that is there, any path on a remote machine
     /// (`target` asks it).
     private static func likely(_ text: String, remote: Bool, cwd: String) -> Bool {
-        let text = trimmed(text), scheme = URL(string: text)?.scheme?.lowercased()
+        let scheme = scheme(text)
         if scheme == "http" || scheme == "https" || remote && scheme == nil {
             return true
         }
