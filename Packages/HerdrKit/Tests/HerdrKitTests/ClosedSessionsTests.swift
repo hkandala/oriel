@@ -137,7 +137,9 @@ private struct Fixture {
         withDestinationURL: URL(filePath: "/bin/sh"),
     )
     let bare = ProcessExec(["HOME": fixture.home.path, "PATH": bin.path], herdr: nil, asked: .now)
-    #expect(try await bare.closedSessions(agent: "opencode", offset: 0) == ClosedPage(problem: "needs sqlite3"))
+    let none = try await bare.closedSessions(agent: "opencode", offset: 0)
+    #expect(none.problem == "needs sqlite3")
+    #expect(none.sessions.isEmpty && !none.more)
 }
 
 @Test func `rows with an unsafe value or no folder are left out, and a cut escape still reads`() {
@@ -158,4 +160,38 @@ private struct Fixture {
     let script = ClosedSessions.perl + #" row(1, "v", "/tmp", "ab\\u00e9\\u00"); row(2, "v", "/tmp", "x\\ud83d");"#
     let text = try await localExec.output(["perl", "-e", script])
     #expect(ClosedSessions.parse(agent: "codex", text, limit: 50).sessions.map(\.title) == ["abé", "x"])
+}
+
+@Test func `the list shows only as far back as every agent with more pages was read`() {
+    func page(_ agent: String, _ times: [Double], more: Bool) -> ClosedPage {
+        var page = ClosedPage(sessions: times.map {
+            ClosedSession(
+                agent: agent,
+                value: "\(agent)\(Int($0))",
+                title: "t",
+                folder: "/",
+                date: Date(timeIntervalSince1970: $0),
+            )
+        }, more: more)
+        (page.looked, page.oldest) = (times.count, times.last.map { Date(timeIntervalSince1970: $0) })
+        return page
+    }
+    var list = ClosedList()
+    list.add(page("codex", [90, 80], more: true), for: "codex")
+    list.add(page("pi", [95, 50, 10], more: false), for: "pi")
+    // pi's 50 waits: codex's next page may be newer.
+    #expect(list.sessions(of: ["codex", "pi"]).map(\.value) == ["pi95", "codex90", "codex80"])
+    #expect(list.next(of: ["codex", "pi"]) == ["codex"])
+    #expect(list.sessions(of: ["pi"]).map(\.value) == ["pi95", "pi50", "pi10"])
+    #expect(list.next(of: ["pi"]).isEmpty)
+    list.add(page("codex", [60], more: false), for: "codex")
+    #expect(list.sessions(of: ["codex", "pi"]).map(\.value) == [
+        "pi95",
+        "codex90",
+        "codex80",
+        "codex60",
+        "pi50",
+        "pi10",
+    ])
+    #expect(list.agents["codex"]?.looked == 3)
 }

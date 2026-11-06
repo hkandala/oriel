@@ -29,9 +29,45 @@ public struct ClosedPage: Sendable, Equatable {
     public var more = false
     /// Why the store could not be read, for the user ("needs sqlite3").
     public var problem: String?
+    /// The sessions looked at, those left out too: the next page's offset.
+    public var looked = 0
+    /// The last activity of the oldest one looked at.
+    public var oldest: Date?
 
     public init(sessions: [ClosedSession] = [], more: Bool = false, problem: String? = nil) {
         (self.sessions, self.more, self.problem) = (sessions, more, problem)
+    }
+}
+
+/// The pages read so far of each agent, as one list newest first.
+public struct ClosedList: Sendable, Equatable {
+    public private(set) var agents: [String: ClosedPage] = [:]
+
+    public init() {}
+
+    public mutating func add(_ page: ClosedPage, for agent: String) {
+        var all = agents[agent] ?? ClosedPage()
+        all.sessions += page.sessions
+        (all.more, all.problem, all.looked) = (page.more, page.problem, all.looked + page.looked)
+        all.oldest = page.oldest ?? all.oldest
+        agents[agent] = all
+    }
+
+    /// The sessions of the `shown` agents, newest first, down to where every one with more pages has been read: an
+    /// agent's next page may hold newer ones than another's last.
+    public func sessions(of shown: [String]) -> [ClosedSession] {
+        let cutoff = cutoff(shown) ?? .distantPast
+        return shown.flatMap { agents[$0]?.sessions ?? [] }.filter { $0.date >= cutoff }.sorted { $0.date > $1.date }
+    }
+
+    /// The agents whose next page the list's end needs: those read least far back.
+    public func next(of shown: [String]) -> [String] {
+        let cutoff = cutoff(shown)
+        return shown.filter { agents[$0]?.more == true && agents[$0]?.oldest == cutoff }
+    }
+
+    private func cutoff(_ shown: [String]) -> Date? {
+        shown.compactMap { agents[$0].flatMap { $0.more ? $0.oldest : nil } }.max()
     }
 }
 
@@ -114,12 +150,15 @@ enum ClosedSessions {
                 continue
             }
             page.problem = object["problem"] as? String ?? page.problem
-            guard let time = object["t"] as? Double, let value = object["v"] as? String, valid(agent, value),
+            guard let time = object["t"] as? Double else { continue }
+            page.oldest = min(page.oldest ?? .distantFuture, Date(timeIntervalSince1970: time))
+            guard let value = object["v"] as? String, valid(agent, value),
                   let folder = object["c"] as? String, folder.hasPrefix("/"),
                   let title = (object["n"] as? String).flatMap(clean) else { continue }
             page.sessions.append(ClosedSession(agent: agent, value: value, title: title, folder: folder,
                                                date: Date(timeIntervalSince1970: time)))
         }
+        page.looked = lines.count
         page.more = lines.count >= limit && page.problem == nil
         return page
     }
