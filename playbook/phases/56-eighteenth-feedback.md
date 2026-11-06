@@ -905,3 +905,48 @@ The user's words, item by item, with the track that takes each:
   touched agent, sidebar and session tests green.
 - CI chosen tests on the final head f5fc23eb (run 42179741098): Executed 13 tests, 0 failures, with
   `testTheSelectedRowScrollsIntoView`, which needs CI's small screen.
+
+## Track L2: the Agents view's Archived shelf and Resume (item 34)
+
+34. (Round 2 above.) Archived: the closed sessions of the four agents from their own stores (report variant A),
+    header and folding B, rows A, the agent filter as a menu, Pin and Resume under the pointer and in the row's menu,
+    a pinned closed session in Pinned with Resume.
+
+### Findings (Track L2)
+
+- **Fix:** one reader an agent (`ClosedSessions`, HerdrKit): a shell script run once a page over the machine's exec,
+  newest first, 50 a page. pi and Claude Code: one perl over their JSONL files by modification time (pi: line 1's
+  folder, the last `/name` else the first prompt; Claude Code: `/rename`, else its own title, else the first typed
+  prompt). Codex and OpenCode: one `sqlite3 -readonly` on their index, left out subagents, `codex exec` runs, empty,
+  child, archived and placeholder-titled sessions. Without sqlite3, Codex reads its rollouts and OpenCode says
+  "needs sqlite3" (only where OpenCode has a database). A file is read for its first lines and its last 256 KB, where
+  the agents append titles. About 0.15 s an agent here (pi 0.5 s for 50). Nothing writes to the stores.
+- **Fix:** the shelf reads each time it opens, and the next page when the list's end shows (anew after each page, so a
+  short filtered list reads on); one list of the four, cut where every agent with more pages has been read, so a later
+  page never lands above shown rows, and a session that moved up comes once. Live sessions (every page of the machine),
+  pinned ones and ones resuming are left out. A click or the hover Resume resumes, once, ⌥ to the side; the menu has
+  Resume, Resume to the Side and Pin.
+- **Fix:** Resume types `ChatAdapters.launch(_:resume:)`'s line in a new pane in the session's folder: a new tab after
+  the selected tab of the workspace whose folder holds it (the deepest; a folder two levels deep or less, as `/` or a
+  home, holds only itself), else a new workspace there, or a split beside the keyboard card.
+- **Cause:** L1's `UserDefaults.agents` was a suite at a path. Once its file exists, a new process's writes read back
+  the old value and notify no view: after a relaunch no shelf opened and no pin changed (a 10-line script shows it
+  over three runs). **Fix:** a named domain per config folder, `dev.ovvi.app.agents.‹folder›`.
+- **Decisions:** no "Folder missing" line on a row (a check per row on every machine): Resume checks the folder and
+  says "‹folder› is gone", except pi's, which resume in the home folder (pi keeps its folder); an agent the window
+  did not find says "‹Agent› is not on ‹machine›". No ⌘-click. Only OpenCode's main database (not `opencode-nwr`),
+  and `$HOME`'s stores (not `PI_CODING_AGENT_SESSION_DIR` or `CLAUDE_CONFIG_DIR`); Claude Code's Agent SDK sessions
+  are left out, as Codex's exec runs. No count in the header: it is not known without reading all. Pinned sessions no
+  pane runs sit first in Pinned. Settings ▸ Agents ▸ Show closed sessions (on) hides the shelf and reads nothing.
+- **Decisions:** UI tests read fixture stores only: every launch passes `-archivedHome /tmp/ovvi-e2e-archived`.
+- **For the user:** open Archived on This Mac and on devvm; resume a Claude Code session and a pi one; ⌥-click one;
+  pin one, quit and relaunch: it stays in Pinned with Resume. The move to the new defaults domain drops, once, the
+  pins, open shelves and idle times kept since L1 landed (`~/.config/ovvi/agents.plist` can go).
+
+### Runs (Track L2)
+
+- Local, under the GUI lock: both Archived tests green (the resume step skips on this Mac, whose real `claude` the
+  new pane would start); a picture run of every state, dark and light.
+- CI chosen tests on the final head 6d98baae (run 42185606318): Executed 2 tests, 0 failures, none skipped, so the
+  resume step ran with CI's stand-in. The review's checks fail on the old code: the row's vanish and return around a
+  resume (5337b816), and the 1 MB transcript's title (the whole-file read gives "Not read").
