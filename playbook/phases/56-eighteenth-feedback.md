@@ -325,6 +325,7 @@ Runs: none (no app code).
 - **For the user.** Install a build with this fix (`make app`): the running app is an old build, and any test
   run until then can break it again. Then, in a devvm-aai browser card through the machine, open a page and a
   `localhost` port. Both load.
+
 ## Track O: Settings ▸ Privacy and the sidebar icons
 
 The user's words: "so couple of things i notced with settings window:
