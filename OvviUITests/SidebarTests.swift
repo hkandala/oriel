@@ -169,7 +169,8 @@ extension OvviUITests {
 
         // No -session, which wins over the saved pages; if they did not come back, the window opens one, never the
         // user's default.
-        app.launchArguments = ["-defaultSession", one] + Self.noConfig
+        // -machines: none of the user's machines, whose masters a test must not touch.
+        app.launchArguments = ["-defaultSession", one, "-machines", "[]"] + Self.noConfig
         app.launch()
         XCTAssertTrue(until(connect) { header == two })
         XCTAssertTrue(element("sidebar.dot.\(one)").exists)

@@ -45,8 +45,8 @@ description: "What a machine is, its sessions, the SSH connection, the health ch
   ssh -M -N -f -o ControlPersist=10m -o ServerAliveInterval=5 \
       -o ServerAliveCountMax=3 -o ConnectTimeout=10 \
       -o ForwardAgent=no -o ForwardX11=no -o ClearAllForwardings=yes \
-      -o LogLevel=ERROR -o BatchMode=yes -S ~/Library/Caches/ovvi/<h8> <target>
-  ssh -F /dev/null -S ~/Library/Caches/ovvi/<h8> -O check <target>    # its pid
+      -o LogLevel=ERROR -o BatchMode=yes -S ~/Library/Caches/ovvi/<h8>-<pid> <target>
+  ssh -F /dev/null -S ~/Library/Caches/ovvi/<h8>-<pid> -O check <target>    # its pid
   ```
   - With `-f`, ssh goes to the background once it is authenticated and the
     socket serves, so the start's exit status says whether it worked. Its
@@ -58,7 +58,7 @@ description: "What a machine is, its sessions, the SSH connection, the health ch
     connection to ‹target› closed".
   - The relay's session (below), which carries every later run, uses
     `-F /dev/null -o ControlMaster=no -o BatchMode=yes
-    -o ProxyCommand=/usr/bin/false -S ~/Library/Caches/ovvi/<h8>`. Without a
+    -o ProxyCommand=/usr/bin/false -S ~/Library/Caches/ovvi/<h8>-<pid>`. Without a
     master it fails at once instead of opening their own connection and
     prompting again. They send none of the user's configured forwards to the
     master. With a master, ssh never reads the target's config, so an alias
@@ -68,16 +68,18 @@ description: "What a machine is, its sessions, the SSH connection, the health ch
     is gone (killed, or ended by its keepalive) is started again by the next
     run. Its socket stays behind when it was killed, and a new master does not
     bind over it, so the app removes it first. A master that outlived an app
-    that crashed is not used: it may still hold that app's sessions. It ends
-    10 min after its last one.
+    that crashed is never used, as its socket has that app's pid: it may still
+    hold that app's sessions. It ends 10 min after its last one.
   - Starting the master first means one password, OTP or key prompt per host.
     With `ControlMaster=auto`, parallel first calls each prompt. Starts are
     one at a time per host; runs that need a master wait for the start in
     flight.
-  - `<h8>` is 8 hex characters of a hash of the SSH target. The folder is per
-    user, mode 0700, with no spaces. The path stays under the 104-byte socket
-    limit for user names up to 50 characters, with ssh's 17-character
-    temporary suffix.
+  - `<h8>` is 8 hex characters of a hash of the SSH target, and `<pid>` is the
+    app's process id. Each running app has its own masters: a second Ovvi (a
+    test's, another build) removes no socket and ends no master of this one.
+    The folder is per user, mode 0700, with no spaces. The path stays under the
+    104-byte socket limit for user names up to 44 characters, with ssh's
+    17-character temporary suffix.
   - Forwarding is off, so a machine cannot reach the Mac's SSH agent or ports
     through the app's long-lived connection. The app's own `-O forward` calls
     still work.

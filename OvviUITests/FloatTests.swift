@@ -136,7 +136,8 @@ extension OvviUITests {
 
         app.typeKey("q", modifierFlags: .command)
         XCTAssertTrue(app.wait(for: .notRunning, timeout: 5))
-        app.launchArguments = ["-defaultSession", one] + Self.noConfig
+        // -machines: none of the user's machines, whose masters a test must not touch.
+        app.launchArguments = ["-defaultSession", one, "-machines", "[]"] + Self.noConfig
         app.launch()
         let back = app.windows.containing(.any, identifier: "float.\(second)").firstMatch
         XCTAssertTrue(back.exists(within: connect))

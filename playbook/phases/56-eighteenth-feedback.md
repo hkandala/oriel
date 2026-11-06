@@ -304,3 +304,24 @@ Runs: none (no app code).
 - Chosen-tests runs of `testWorkspaceRowsShowGitWorktreesAndSync`: green at 581b7e6a (dark, 43 s), and green after the
   review's fixes with a throwaway light relaunch (27 s). Each step fails without the feature: no Fetch item, no
   behind 2 without a fetch, no notice without Push, no 0/0 without Pull.
+
+### Findings (Track D)
+
+- **Cause.** The browser code was not the cause. Every Ovvi used the same ControlMaster socket for a target
+  (`~/Library/Caches/ovvi/<h8>`). Two UI tests relaunch with `-defaultSession` and no `-session` or `-machines`,
+  so their app read the user's machines and connected to devvm-aai. Its start removed the user's app's socket, and
+  its quit ended the master on that path. The user's app still had its master's pid and its connected relay, so
+  terminals worked. But every later `ssh -O` failed, so the browser proxy's `-O forward -D` never came, and no page
+  loaded through the machine. This Mac's network needs no ssh, so it worked. Seen on the user's Mac twice: a
+  master alive with its socket gone, after a test app (pid 73907) connected to devvm at 13:33:53. The tests and the
+  forward are older than the network switch: the switch only made the user try remote pages while local UI runs
+  were frequent.
+- **Fix.** The socket's name carries the app's pid (`<h8>-<pid>`), so no other app removes or ends this app's
+  masters. The two relaunches and the helper's `open-url` pass `-machines []`. A lint rule (`isolated_launches`)
+  rejects a test launch without `-session` or `-machines`; it fails on the old tests.
+- **Decisions.** No self-recovery when the socket goes: with a socket per app, only this app removes it.
+- **Runs.** Green: 42141419673 (5 chosen tests: the remote browser test, two remote connection tests, both
+  relaunch tests).
+- **For the user.** Install a build with this fix (`make app`): the running app is an old build, and any test
+  run until then can break it again. Then, in a devvm-aai browser card through the machine, open a page and a
+  `localhost` port. Both load.

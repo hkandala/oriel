@@ -27,6 +27,11 @@ custom_rules:
     regex: '#expect\([^\n]*(ContinuousClock\.now|firstRead)[^\n]*<\s*\.(milli)?seconds\('
     message: 'Compare against a ten times larger input or count the work, not the wall clock'
     severity: error
+  isolated_launches: # a launch without -session or -machines reads the user's machines and ends their masters
+    included: '/OvviUITests/'
+    regex: 'launchArguments = \[(?![^\n]*"-(session|machines)")'
+    message: 'Launch with -session or -machines: tests never use the machines of the user'
+    severity: error
   fast_waits: # playbook/ci.md, Writing fast tests: XCTest's waits take a second or more even when the condition already holds
     included: '/OvviUITests/'
     regex: '\.waitFor(Non)?Existence\(|\.wait\(for: \\\.|XCTNSPredicateExpectation|XCTWaiter'

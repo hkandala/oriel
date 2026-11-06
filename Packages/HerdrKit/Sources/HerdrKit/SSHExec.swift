@@ -38,7 +38,9 @@ public actor SSHExec: Exec {
         self.target = target
         environment = local.environment
         let hash = SHA256.hash(data: Data(target.utf8)).prefix(4).map { String(format: "%02x", $0) }.joined()
-        socket = Self.folder + "/" + hash
+        // Per app: another Ovvi (a test's, a second build) unlinks a socket at start and ends its master at quit,
+        // which left this app's master with no socket, so its browser proxy could not forward.
+        socket = Self.folder + "/" + hash + "-\(getpid())"
     }
 
     /// A target the user may add: ssh would read a leading `-` as an option, and argv takes no spaces.
@@ -162,8 +164,8 @@ public actor SSHExec: Exec {
     private func start(_ ask: Ask?) async throws {
         connection = nil
         // A master killed hard leaves its socket, and a new one does not bind over it. One that outlived an app
-        // that crashed is not used: it may still hold that app's sessions (sshd allows 10); it ends by itself
-        // 10 min after its last one.
+        // that crashed has that app's pid in its socket, so it is never used: it may still hold that app's sessions
+        // (sshd allows 10); it ends by itself 10 min after its last one.
         unlink(socket)
         // Forwarding off: a machine cannot reach the Mac's agent or ports through the long-lived connection.
         // ssh's keepalive ends a dead link's master within 15 s; the next run starts a new one. LogLevel=ERROR:
