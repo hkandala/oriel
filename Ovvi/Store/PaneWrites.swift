@@ -214,7 +214,7 @@ extension HostStore {
             if let from = ids.firstIndex(of: tabID) {
                 ids.remove(at: from)
                 ids.insert(tabID, at: min(from < index ? index - 1 : index, ids.count))
-                ahead.order = Ahead.NewOrder(workspaceID: workspace.id, tabs: ids)
+                ahead.order = Ahead.NewOrder(workspaceID: workspace.id, ids: ids)
                 asked = ids
                 redraw()
             }
@@ -222,7 +222,7 @@ extension HostStore {
         Task {
             let done = await write { try await $0.move(tab: tabID, to: index) }
             // Not a later move's order.
-            guard let asked, ahead.order?.tabs == asked else { return }
+            guard let asked, ahead.order?.ids == asked else { return }
             ahead.order?.after = 0
             if !done {
                 ahead.order = nil
@@ -232,18 +232,32 @@ extension HostStore {
     }
 
     /// One row group (a workspace and its worktrees) up (-1) or down (1) past the next group; none past the ends.
-    func move(workspace workspaceID: String, by offset: Int) async {
+    func move(workspace workspaceID: String, by offset: Int) {
         let groups = groups
         guard let index = groups.firstIndex(where: { $0.first?.id == workspaceID }),
               groups.indices.contains(index + offset) else { return }
         let before = offset < 0 ? groups[index - 1].first?.id : groups.indices.contains(index + 2)
             ? groups[index + 2].first?.id : nil
-        await move(workspaces: groups[index].map(\.id), before: before)
+        move(workspaces: groups[index].map(\.id), before: before)
     }
 
-    /// The workspaces, in this order, before another one, or last.
-    func move(workspaces workspaceIDs: [String], before workspaceID: String?) async {
-        await write { try await $0.move(workspaces: workspaceIDs, before: workspaceID) }
+    /// The workspaces, in this order, before another one, or last. Shown before this returns (`Ahead.rows`).
+    func move(workspaces workspaceIDs: [String], before workspaceID: String?) {
+        var ids = workspaces.map(\.id).filter { !workspaceIDs.contains($0) }
+        ids.insert(contentsOf: workspaceIDs, at: workspaceID.flatMap(ids.firstIndex) ?? ids.count)
+        let asked = ids
+        ahead.rows = Ahead.NewOrder(workspaceID: nil, ids: ids)
+        redraw()
+        Task {
+            let done = await write { try await $0.move(workspaces: workspaceIDs, before: workspaceID) }
+            // Not a later move's order.
+            guard ahead.rows?.ids == asked else { return }
+            ahead.rows?.after = 0
+            if !done {
+                ahead.rows = nil
+                redraw()
+            }
+        }
     }
 }
 

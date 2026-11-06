@@ -76,7 +76,7 @@ final class DragSource: NSObject, NSDraggingSource {
 
     /// For a drop that shows its own landing. SwiftUI's drop target sets `animatesToDestination` on every drop and
     /// names no place, so AppKit keeps the image where it was let go for about 0.35 s before the session ends: over
-    /// the tab gliding into its place. An empty image takes it away at once.
+    /// the view gliding into its place. An empty image takes it away at once.
     static func dropImage() {
         let empty: (NSDraggingItem, Int, UnsafeMutablePointer<ObjCBool>) -> Void = { item, _, _ in
             item.imageComponentsProvider = { [] }
@@ -328,7 +328,22 @@ extension UnitCurve {
                                         endControlPoint: UnitPoint(x: 0.3, y: 1))
 }
 
+/// The views dropped last (a tab, or a workspace's rows), and how far from their place the drag image left them: they
+/// glide in from there.
+struct Landing: Equatable {
+    let ids: [String]
+    let offset: CGFloat
+    /// A new drop at the same offset glides too.
+    let count: Int
+}
+
 extension View {
+    /// Glides in from `landing`'s offset when it names `id`, over 0.22 s on the slide's curve. No hover meanwhile:
+    /// passing under the still pointer, a tab took the × and kept it once there (no hover event came after).
+    func lands(_ id: String, _ landing: Landing?, axis: Axis) -> some View {
+        modifier(Lands(landing: landing?.ids.contains(id) == true ? landing : nil, axis: axis))
+    }
+
     /// Clears a target's drop state when a drag starts or ends: after a drop, a `dropUpdated` can come after
     /// `performDrop` with no `dropExited` to follow (seen by hand: the highlight stayed), even after the session
     /// ended.
@@ -356,5 +371,20 @@ private struct DragSourceModifier: ViewModifier {
             .simultaneousGesture(DragGesture(minimumDistance: 4).onChanged { value in
                 DragSource.begin(item, page: page, grabbed: value.location, size: previewSize ?? size)
             })
+    }
+}
+
+private struct Lands: ViewModifier {
+    let landing: Landing?
+    let axis: Axis
+
+    func body(content: Content) -> some View {
+        content.keyframeAnimator(initialValue: 0, trigger: landing) { content, offset in
+            content.offset(x: axis == .horizontal ? offset : 0, y: axis == .vertical ? offset : 0)
+                .allowsHitTesting(offset == 0)
+        } keyframes: { _ in
+            MoveKeyframe(landing?.offset ?? 0)
+            LinearKeyframe(0, duration: 0.22, timingCurve: .slide)
+        }
     }
 }

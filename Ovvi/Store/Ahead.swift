@@ -34,6 +34,8 @@ struct Ahead {
     /// A workspace's tabs in the order a drop or a move asked for, until a snapshot has herdr's: the bar shows it
     /// at once, never the old order between.
     var order: NewOrder?
+    /// The workspaces so, for the sidebar's rows.
+    var rows: NewOrder?
     /// New tabs that open right after a tab, oldest first (`Beside`).
     var beside: [Beside] = []
 
@@ -51,13 +53,6 @@ struct Ahead {
     /// until then).
     struct NewSplit {
         let tabID: String, standIn: String, tree: SplitNode, known: Set<String>
-        var after: Int?
-    }
-
-    /// The snapshots since herdr answered (nil until then): the first with the order, else the second, ends it (a
-    /// snapshot may be read before the answer).
-    struct NewOrder {
-        let workspaceID: String, tabs: [String]
         var after: Int?
     }
 
@@ -137,11 +132,12 @@ struct Ahead {
         var tabs = snapshot.tabs.filter {
             !closing.contains($0.id) && !closing.contains($0.workspaceID) && !emptied.contains($0.id)
         }
-        tabs = placed(ordered(tabs), herdr: snapshot.tabs)
+        let space = order?.workspaceID
+        tabs = placed(Self.ordered(tabs, by: &order, id: \.id) { $0.workspaceID == space }, herdr: snapshot.tabs)
         let left = Set(tabs.map(\.workspaceID)), had = Set(snapshot.tabs.map(\.workspaceID))
-        let workspaces = snapshot.workspaces.filter {
+        let workspaces = Self.ordered(snapshot.workspaces.filter {
             !closing.contains($0.id) && (left.contains($0.id) || !had.contains($0.id))
-        }
+        }, by: &rows, id: \.id) { _ in true }
         let shownTabs = Set(tabs.map(\.id))
         let panes = snapshot.panes.filter { !hidden.contains($0.id) && shownTabs.contains($0.tabID) }
         for standIn in self.tabs where !standIn.closed && workspaces.contains(where: { $0.id == standIn.workspaceID }) {
@@ -158,26 +154,6 @@ struct Ahead {
         closing = closing.filter { ids.contains($0) || split != nil && (Self.isStandIn($0) || made.contains($0)) }
         fresh.formIntersection(ids)
         fresh.formUnion(made.filter(ids.contains))
-    }
-
-    /// The tabs in the asked order, until herdr's matches it or a tab of the workspace came or went.
-    /// ponytail: a tab that comes before herdr's answer (a ⌘T's) ends it early, and a redraw counts as a snapshot
-    /// (`after`): the old order can show until herdr's answer. Keep the asked order for its tabs if that shows.
-    private mutating func ordered(_ tabs: [Tab]) -> [Tab] {
-        guard let order else { return tabs }
-        let mine = tabs.indices.filter { tabs[$0].workspaceID == order.workspaceID }
-        let ids = mine.map { tabs[$0].id }
-        guard ids != order.tabs, Set(ids) == Set(order.tabs), order.after.map({ $0 < 1 }) ?? true else {
-            self.order = nil
-            return tabs
-        }
-        self.order?.after = order.after.map { $0 + 1 }
-        var tabs = tabs
-        let byID = Dictionary(mine.map { (tabs[$0].id, tabs[$0]) }, uniquingKeysWith: { first, _ in first })
-        for (index, id) in zip(mine, order.tabs) {
-            tabs[index] = byID[id] ?? tabs[index]
-        }
-        return tabs
     }
 }
 

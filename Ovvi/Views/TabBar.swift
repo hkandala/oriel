@@ -79,14 +79,7 @@ struct TabBar: View {
                                 .scaleEffect(pulsing == tab.id ? 1.04 : 1)
                                 .opacity(page.lifted == .tab(tab.id) ? 0.4 : 1)
                                 .offset(x: shift(index))
-                                .keyframeAnimator(initialValue: 0, trigger: landing?.tab == tab.id ? landing : nil) {
-                                    // No hover while it glides: passing under the still pointer, it took the ×
-                                    // and kept it once there (no hover event came after).
-                                    $0.offset(x: $1).allowsHitTesting($1 == 0)
-                                } keyframes: { _ in
-                                    MoveKeyframe(landing?.tab == tab.id ? landing?.offset ?? 0 : 0)
-                                    LinearKeyframe(0, duration: 0.22, timingCurve: .slide)
-                                }
+                                .lands(tab.id, landing, axis: .horizontal)
                         }
                         .onAppear {
                             if SettlingHost.record {
@@ -105,7 +98,7 @@ struct TabBar: View {
                         // Its capsule moved under the pointer with no hover event.
                         hovered = under
                         if !reduceMotion || Animation.forceMotion {
-                            landing = Landing(tab: tab, offset: offset, count: (landing?.count ?? 0) + 1)
+                            landing = Landing(ids: [tab], offset: offset, count: (landing?.count ?? 0) + 1)
                         }
                     },
                 ))
@@ -179,13 +172,6 @@ struct TabBar: View {
         let place = slot > from ? slot - 1 : slot
         return (Self.width + 1) * CGFloat(index == from ? place - from
             : from < index && index <= place ? -1 : place <= index && index < from ? 1 : 0)
-    }
-
-    struct Landing: Equatable {
-        let tab: String
-        let offset: CGFloat
-        /// A new drop of the same tab at the same offset glides too.
-        let count: Int
     }
 
     /// Holding a pane over a capsule selects its tab, which pulses once.

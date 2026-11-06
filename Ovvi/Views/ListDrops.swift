@@ -145,6 +145,8 @@ struct RowsDrop: DropDelegate {
     @Binding var state: State
     /// Not while the filter hides rows: a reorder needs them all.
     let reorders: Bool
+    /// A workspace dropped here: its rows, and their offset in their new place from where the drag image was.
+    let land: (_ rows: [String], _ offset: CGFloat) -> Void
 
     func validateDrop(info _: DropInfo) -> Bool {
         switch page.dragging {
@@ -195,7 +197,15 @@ struct RowsDrop: DropDelegate {
         withAnimation(state.slot == nil ? .highlight : .slide) { state = State() }
     }
 
-    func performDrop(info _: DropInfo) -> Bool {
+    func performDrop(info: DropInfo) -> Bool {
+        // From where the drag's slide put the rows, before it ends.
+        let shifted = page.dragging.flatMap { dragging in
+            if case let .workspace(id) = dragging {
+                (frames[id]?.minY ?? 0) + shift(id)
+            } else {
+                nil
+            }
+        }
         let dropped = state
         state.spring?.cancel()
         state = State()
@@ -209,9 +219,17 @@ struct RowsDrop: DropDelegate {
             Task { await page.drop(tab: id, on: dropped.over) }
         case let .workspace(id):
             let blocks = blocks(id)
-            guard let slot = dropped.slot, let from = blocks.firstIndex(where: { $0.contains { $0.id == id } }),
-                  slot != from, slot != from + 1 else { return false }
-            Task { await page.store.move(workspaces: blocks[from].map(\.id), before: before(slot, blocks)) }
+            guard let slot = dropped.slot, let shifted,
+                  let from = blocks.firstIndex(where: { $0.contains { $0.id == id } }) else { return false }
+            // Its own place or the next is no move. The new order shows in this same update, as the slide ends.
+            if slot != from, slot != from + 1 {
+                page.store.move(workspaces: blocks[from].map(\.id), before: before(slot, blocks))
+            }
+            // The dim and the image go now too, as a tab's (`TrackDrop`).
+            page.dragging = nil
+            page.lifted = nil
+            DragSource.dropImage()
+            land(blocks[from].map(\.id), info.location.y - DragSource.grabbed.y - shifted)
         default:
             return false
         }

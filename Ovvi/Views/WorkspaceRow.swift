@@ -124,9 +124,9 @@ struct WorkspaceRow: View {
         Button("New Tab") { Task { await page.newTab(in: workspace) } }
         Button("Rename Workspace") { startRenaming() }
         // A worktree moves with its repository's row.
-        Button("Move Up") { Task { await store.move(workspace: workspace.id, by: -1) } }
+        Button("Move Up") { store.move(workspace: workspace.id, by: -1) }
             .disabled(parent != nil || first)
-        Button("Move Down") { Task { await store.move(workspace: workspace.id, by: 1) } }
+        Button("Move Down") { store.move(workspace: workspace.id, by: 1) }
             .disabled(parent != nil || last)
         // Only where the row shows a branch: the same repository.
         if workspace.git != nil {

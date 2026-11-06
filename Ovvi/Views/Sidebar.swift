@@ -100,6 +100,9 @@ private struct SidebarPage: View {
     /// Each row's frame in the list's visible space, for drops; measured while nothing is dragged.
     @State private var frames: [String: CGRect] = [:]
     @State private var drop = RowsDrop.State()
+    /// The workspace dropped last: its rows glide into their place.
+    @State private var landing: Landing?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// A pane or a tab dragged over the header's `+`.
     @State private var plus = false
     /// ⌘ or ⌃⌘ held for 0.7 s: keycaps on the first nine workspaces (their jump keys).
@@ -108,7 +111,11 @@ private struct SidebarPage: View {
 
     var body: some View {
         let store = page.store
-        let rowsDrop = RowsDrop(page: page, frames: frames, state: $drop, reorders: filter.isEmpty)
+        let rowsDrop = RowsDrop(page: page, frames: frames, state: $drop, reorders: filter.isEmpty) { rows, offset in
+            if !reduceMotion || Animation.forceMotion {
+                landing = Landing(ids: rows, offset: offset, count: (landing?.count ?? 0) + 1)
+            }
+        }
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 // The rows' size, bold; a long session name gives way in its middle.
@@ -179,6 +186,7 @@ private struct SidebarPage: View {
                                 }
                                 .opacity(page.lifted == .workspace(id) ? 0.4 : 1)
                                 .offset(y: rowsDrop.shift(id))
+                                .lands(id, landing, axis: .vertical)
                                 .background { Color.clear.id("into view \(id)").padding(.vertical, -18) }
                         }
                         if drop.ghost, page.dragging != nil {
