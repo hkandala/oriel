@@ -832,3 +832,35 @@ The user's words, item by item, with the track that takes each:
 34. Tracks L1 and L2, the Agents view (report `~/Downloads/ovvi-research/agents-view-ux.html`): "for headers and
     folding go with B, settled and archived rows go with A, agent filter go with menu, pin icon should be shown only
     on hover and on right click there should be option as well, same for resume, go ahead and impl everything".
+
+## Track L1: the Agents view's list, Pinned and Settled (item 34)
+
+34. (Round 2 above.) Picked from the report: headers and folding B (T3 Code's shelves at the foot), rows A (the list's
+    48 pt rows, the age where the box goes), the pin only under the pointer and Pin/Unpin in the row's menu. Archived,
+    its agent filter menu and Resume are Track L2's.
+
+### Findings (Track L1)
+
+- **Fix:** one list of the live agents, newest herdr `state_change_seq` first, under Pinned and over a folded Settled
+  shelf; the Priority/Workspace groups, their folds (`agentsFolded`) and the sort menu (`agentOrder`) are gone. Done is
+  only the row's green check, and a finish the user sees moves no row: it is no change of state for herdr (D109).
+- **Fix:** rows hold still while the pointer is over the list and slide in 0.2 s 1 s after the last change. A row that
+  changes part, or a new one, waits in its old place; a pin, a settle by hand or a new filter moves rows at once.
+- **Cause:** a lazy stack keeps a row's view by its id, so a row moved from the list's `ForEach` into Pinned's kept its
+  unpinned view (its hover button said Pin). One `ForEach` for Pinned and the list.
+- **Cause:** a `Button` inside a row button's label is part of the row's one accessibility element: XCUITest could not
+  click the hover pin. `AgentRow` draws the hover buttons over the row, in a copy of its line 1. A context menu on the
+  header row with the name as its only element gave the name the row's frame; the menu moved behind the row.
+- **Decisions:** herdr gives no times, so the app keeps each agent's time with its `state_change_seq`
+  (`agentMarks.‹machine› ‹session›`): an agent whose number did not change keeps its time over a relaunch, so idle
+  agents stay settled and a Working time counts from the real start. Pins are kept by the agent's session, else its
+  terminal, with the title and folder, in `agentPins`; a pin of a closed session stays for L2's Resume. Settles by hand
+  are in memory and end at the agent's next change.
+- **Decisions:** Settled reads the time once a minute. The settings pop-up offers 1 hour, 3 hours, 8 hours, 1 day and
+  Never (default 3 hours). `titlebar.agents` carries the selected trait while the Agents view is on; tests use it where
+  they used the sort menu.
+- **For the user:** ⌥ + swipe in the Agents view steps through the rows as they are on screen (no UI test drives it).
+  Pin an agent, quit and relaunch: it stays on top. Leave an idle agent for 3 hours: it moves to Settled.
+
+### Runs (Track L1)
+
