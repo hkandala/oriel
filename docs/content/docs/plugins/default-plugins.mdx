@@ -292,8 +292,8 @@ File, Preview and Markdown share one row 2, with the same order, spacing and
 
 - **On the left:** Back and Forward, the outline toggle (Markdown only, and
   only while the file has a heading), then the breadcrumbs.
-- **On the right:** Preview's page and zoom, Show in File Explorer, the mode
-  (Markdown only), then Open With.
+- **On the right:** Preview's page and zoom, Word Wrap (File only), Show in
+  File Explorer, the mode (Markdown only), then Open With.
 - **The breadcrumbs** are the file's path, its parts with `›` between them
   and the first part in secondary text. Inside a Git repository the path
   starts at the repository's root, with the root's name first
@@ -407,9 +407,12 @@ An editable text view (CodeMirror 6).
   scopes around the caret, outermost first, after a `curlybraces` glyph
   (`ovvi › Ovvi › App › OvviApp.swift › {} OvviApp`).
 - **Text:** line numbers, the current line lit, bracket matching, the other
-  matches of the selection marked, undo and redo, and Tab to indent. Lines
-  wrap, because cards are often narrow. A wrapped line goes on at its own
-  indent.
+  matches of the selection marked, undo and redo, and Tab to indent. The
+  selection is the accent at 35 %, in File and in Markdown, so the text
+  stays readable in light and dark. Lines wrap, because cards are often
+  narrow, and a wrapped line goes on at its own indent. Row 2's **Word Wrap**
+  (`text.wrap`) turns the wrap off and on for every file the card shows; the
+  line at the top stays in place.
 - **Colors** for Swift, TypeScript, JavaScript, Python, Go, Rust, C, C++,
   Java, Kotlin, Ruby, shell, JSON, YAML, TOML, HTML and CSS, by extension.
   The colors are the diff's: Pierre Light and Pierre Dark, the default

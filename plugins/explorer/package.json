@@ -74,6 +74,7 @@
         "hidden": true },
       { "type": "button", "id": "zoom.in", "symbol": "plus.magnifyingglass", "title": "Zoom In", "gap": 0,
         "hidden": true },
+      { "type": "toggle", "id": "wrap", "symbol": "text.wrap", "title": "Word Wrap", "value": true, "hidden": true },
       { "type": "button", "id": "reveal", "symbol": "list.bullet.indent", "title": "Show in File Explorer",
         "hidden": true },
       { "type": "menu", "id": "mode", "value": "read", "title": "Mode", "symbol": "book", "style": "icon",

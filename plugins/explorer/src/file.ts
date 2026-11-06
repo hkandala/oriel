@@ -1,10 +1,10 @@
 // File: the card's file in CodeMirror with its language's colors, and the breadcrumbs `repo › … › file › {} symbol`.
 import { StreamLanguage, type StreamParser, syntaxTree } from "@codemirror/language"
-import { type EditorState, type Extension, RangeSetBuilder } from "@codemirror/state"
+import { Compartment, type EditorState, type Extension, RangeSetBuilder } from "@codemirror/state"
 import { Decoration, type DecorationSet, EditorView, ViewPlugin, type ViewUpdate } from "@codemirror/view"
 import type { SyntaxNode } from "@lezer/common"
 import { code, editor } from "./editor"
-import { name, type Place, type Reveal } from "./place"
+import { choose, name, own, type Place, type Reveal } from "./place"
 
 const legacy = (parser: Promise<StreamParser<unknown>>) => parser.then((p) => StreamLanguage.define(p))
 
@@ -125,15 +125,36 @@ export async function show(place: Place): Promise<Reveal> {
   const jump = (scope: string) =>
     ovvi.controls.set("jump", { value: [...trail, ...(scope ? [scope] : [])], symbol: scope ? "curlybraces" : "" })
   let last = ""
+  /** Word Wrap, on until the card turns it off: cards are often narrow. */
+  const wrap = new Compartment(), wrapped = (on: boolean) => (on ? [EditorView.lineWrapping, hanging] : [])
+  let on = own(ovvi).wrap ?? true
+  ovvi.controls.set("wrap", { value: on })
   const shown = await editor(place, [
     code,
-    EditorView.lineWrapping,
-    hanging,
+    wrap.of(wrapped(on)),
     await language(arg),
     EditorView.updateListener.of((update) => {
       const now = symbol(update.state)
       if (now !== last) jump((last = now))
     }),
   ], place.root)
-  return shown?.land
+  const view = shown?.view
+  // The info view has no lines to wrap.
+  if (!view) return void ovvi.controls.set("wrap", { hidden: true })
+  const show = (now: boolean) => {
+    if (now === on) return
+    on = now
+    ovvi.controls.set("wrap", { value: on })
+    // The line at the top stays in place.
+    const top = view.lineBlockAtHeight(view.scrollDOM.scrollTop - view.documentPadding.top).from
+    view.dispatch({ effects: [wrap.reconfigure(wrapped(on)), EditorView.scrollIntoView(top, { y: "start" })] })
+  }
+  ovvi.on("control", ({ id, value }) => {
+    if (id !== "wrap") return
+    choose(ovvi, { wrap: value === true })
+    show(value === true)
+  })
+  // A kept page shown again takes the card's choice from another file's page.
+  ovvi.on("place", () => show(own(ovvi).wrap ?? true))
+  return shown.land
 }

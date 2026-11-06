@@ -5,8 +5,9 @@ import XCTest
 extension OvviUITests {
     /// The file in CodeMirror; the breadcrumbs follow the caret; an edit shows the dirty dot and ⌘Z clears it; ⌘S
     /// saves; a change on disk reloads a clean file, and a dirty one gets the toast (Keep Mine, then Reload); ⌘F opens
-    /// the editor's search, as do ⌘G and ⇧⌘G; the overview's tile shows it. ⇧⌘← selects in the editor, not Move Tab
-    /// Left; ⌘[ reaches the app before CodeMirror. Closing it with edits asks, and Discard closes it.
+    /// the editor's search, as do ⌘G and ⇧⌘G; the overview's tile shows it; Word Wrap turns the wrap off and on.
+    /// ⇧⌘← selects in the editor, not Move Tab Left; ⌘[ reaches the app before CodeMirror. Closing it with edits asks,
+    /// and Discard closes it.
     func testAFileCardEditsSavesAndReloadsItsFile() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
         let (tab, left) = try await newTab("file")
@@ -30,6 +31,7 @@ extension OvviUITests {
         let jump = element("pane.\(card).jump"), dirty = element("pane.\(card).dirty")
         // The caret's scope may follow already (`Box` on line 1).
         XCTAssertTrue(until(3) { jump.stringValue.hasPrefix("ovvi-e2e-file › src › main.swift") }, jump.stringValue)
+        try await wraps(card, file: file, shell: left)
         editor.click()
         app.typeKey(.upArrow, modifierFlags: .command)
         app.typeKey(.downArrow, modifierFlags: [])
@@ -98,6 +100,19 @@ extension OvviUITests {
         XCTAssertTrue(until(3) { editor.stringValue.hasPrefix("let w = 5") }, editor.stringValue)
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(replace.vanishes(within: 2))
+    }
+
+    /// Word Wrap off: the long last line runs past the card; on again, it wraps.
+    private func wraps(_ card: String, file: String, shell: String) async throws {
+        try await send("printf '// \(String(repeating: "word ", count: 80))\\n' >>\(file)\r", to: shell)
+        let editor = element("file.\(card).page").textViews.firstMatch, wrap = element("pane.\(card).wrap")
+        let width = element("pane.\(card)").frame.width
+        XCTAssertTrue(until(5) { editor.stringValue.contains("word word") })
+        XCTAssertTrue(editor.frame.width < width, "\(editor.frame.width) in \(width)")
+        wrap.click()
+        XCTAssertTrue(until(3) { editor.frame.width > width }, "\(editor.frame.width) in \(width)")
+        wrap.click()
+        XCTAssertTrue(until(3) { editor.frame.width < width }, "\(editor.frame.width) in \(width)")
     }
 
     /// The card's breadcrumbs read `value` within 3 s.

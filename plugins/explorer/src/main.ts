@@ -17,7 +17,7 @@ type Kind = ReturnType<typeof kind>
  *  outline's toggle. */
 const CONTROLS: Record<Kind, string[]> = {
   files: ["root", "filter", "collapse", "hidden-files"],
-  file: ["jump", "spacer", "reveal", "open-with"],
+  file: ["jump", "spacer", "wrap", "reveal", "open-with"],
   preview: ["jump", "spacer", "reveal", "open-with"],
   markdown: ["jump", "spacer", "reveal", "mode", "open-with"],
 }
