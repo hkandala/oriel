@@ -1,10 +1,10 @@
 import AppKit
 import XCTest
 
-/// File Explorer's Markdown place: Read draws the file rendered, Live Edit (⌘E) is the same view with the marks of the
-/// caret's line shown, the outline lists the headings, ⌘S saves, Read follows the file on disk, the
-/// overview's tile shows the page and a relative link shows its file in the card, or a new tab with ⌘. Side by Side
-/// shows the source beside the page.
+/// File Explorer's Markdown place: Rich Text draws the file rendered, locked; unlocked (⌘E) it is the same view with
+/// the marks of the caret's line shown; the outline lists the headings, ⌘S saves, a locked page follows the file on
+/// disk, the overview's tile shows the page and a relative link shows its file in the card, or a new tab with ⌘.
+/// Source shows the source, its page folded beside it.
 extension OvviUITests {
     func testMarkdownCardReadsEditsSavesAndLinks() async throws {
         XCTAssertTrue(element("workspace.w2").exists(within: connect))
@@ -22,10 +22,11 @@ extension OvviUITests {
         try await waitFor(shell) { $0.contains("ready-42") }
         let (tab, card) = try await markdownCard("\(folder)/notes.md")
 
-        // Read: the rendered page with no marks (`Second` alone), a table drawn; no text box.
+        // Rich Text, locked: the rendered page with no marks (`Second` alone), a table drawn; no text box.
         let page = element("markdown.\(card).page")
         XCTAssertTrue(page.staticTexts.matching(NSPredicate(format: "value == 'Second'")).firstMatch.exists(within: 10))
-        XCTAssertEqual(element("pane.\(card).mode").stringValue, "Read")
+        XCTAssertTrue(element("pane.\(card).mode.rich text").isSelected)
+        XCTAssertFalse(element("pane.\(card).lock").isSelected)
         XCTAssertTrue(page.staticTexts.matching(NSPredicate(format: "value == 'B'")).firstMatch.exists)
         XCTAssertFalse(page.textViews.firstMatch.exists)
         element("pane.\(card).outline").click()
@@ -44,13 +45,13 @@ extension OvviUITests {
         app.typeKey(.escape, modifierFlags: [])
         XCTAssertTrue(element("overview").vanishes(within: 2))
 
-        // Back in Read through ⌘K, which finds Edit Mode by its manifest keywords; clean: a change on disk shows; a
+        // Locked again through ⌘K, which finds Lock Editing by its manifest keywords; clean: a change on disk shows; a
         // relative link shows its file in the card, ⌘-click in a new tab at the end.
         openPalette()
         app.typeText("markdown read")
-        XCTAssertTrue(element("palette.command.Edit Mode").has(\.isSelected, true, within: 2))
+        XCTAssertTrue(element("palette.command.Lock Editing").has(\.isSelected, true, within: 2))
         app.typeKey(.return, modifierFlags: [])
-        XCTAssertTrue(element("pane.\(card).mode").has(\.stringValue, "Read", within: 3))
+        XCTAssertTrue(element("pane.\(card).lock").has(\.isSelected, false, within: 3))
         try await send("printf '## Third\\n' >>notes.md\r", to: shell)
         XCTAssertTrue(page.staticTexts.matching(NSPredicate(format: "value == 'Third'")).firstMatch.exists(within: 5))
         copyAll(page)
@@ -63,23 +64,33 @@ extension OvviUITests {
         XCTAssertTrue(label.hasPrefix("ovvi:explorer#") && label.hasSuffix(" \(folder)/other.md"), label)
         try await show(tab)
         follow(card, page: page)
-        try await sideBySide(card, page: page, shell: shell)
+        try await source(card, page: page, shell: shell)
     }
 
-    /// Side by Side from the mode menu: the source as text beside the rendered page; a tick in the page is an edit of
-    /// the source, saved with ⌘S; the divider's button hides the page and shows it again.
-    private func sideBySide(_ card: String, page: XCUIElement, shell: String) async throws {
-        let mode = element("pane.\(card).mode")
+    /// Source from the mode's segments: the source alone, its page folded; locked, a typed letter changes nothing. ⌘E
+    /// unlocks it to text; the divider's button shows the page, where a tick is an edit of the source, saved with ⌘S;
+    /// the button folds it and shows it again. The card keeps its mode, lock and fold: a link in the page shows
+    /// other.md in Source with its page.
+    private func source(_ card: String, page: XCUIElement, shell: String) async throws {
+        let mode = element("pane.\(card).mode.source"), lock = element("pane.\(card).lock")
         mode.click()
-        mode.menuItems["Side by Side"].click()
-        XCTAssertTrue(mode.has(\.stringValue, "Side by Side", within: 3))
-        let source = page.textViews.firstMatch, box = page.checkBoxes.firstMatch
+        XCTAssertTrue(mode.has(\.isSelected, true, within: 3))
+        let box = page.checkBoxes.firstMatch, dirty = element("pane.\(card).dirty")
+        XCTAssertTrue(page.buttons["Show Preview"].exists(within: 5))
+        XCTAssertFalse(box.exists)
+        page.click()
+        app.typeText("q")
+        app.typeKey("e", modifierFlags: .command)
+        XCTAssertTrue(lock.has(\.isSelected, true, within: 3))
+        let source = page.textViews.firstMatch
         XCTAssertTrue(until(5) { source.exists && source.stringValue.contains("Some *words*.") }, source.stringValue)
+        // The file has no q.
+        XCTAssertFalse(source.stringValue.contains("q") || dirty.exists, source.stringValue)
+        page.buttons["Show Preview"].click()
         XCTAssertTrue(box.exists(within: 5))
-        keepScreenshot("markdown card, side by side")
+        keepScreenshot("markdown card, source")
         box.click()
         XCTAssertTrue(until(3) { source.stringValue.contains("- [ ] Ship it") }, source.stringValue)
-        let dirty = element("pane.\(card).dirty")
         XCTAssertTrue(dirty.exists(within: 3))
         source.click()
         app.typeKey("s", modifierFlags: .command)
@@ -90,11 +101,11 @@ extension OvviUITests {
         XCTAssertTrue(box.vanishes(within: 3))
         page.buttons["Show Preview"].click()
         XCTAssertTrue(box.exists(within: 3))
-        // The card keeps its mode: a link in the page shows other.md in Side by Side.
         page.links["Other"].click()
         // Shown once its outline toggle hides (other.md has no heading): the old page's row is gone.
         XCTAssertTrue(element("pane.\(card).outline").vanishes(within: 5))
-        XCTAssertTrue(mode.has(\.stringValue, "Side by Side", within: 3))
+        XCTAssertTrue(mode.has(\.isSelected, true, within: 3))
+        XCTAssertTrue(lock.isSelected && page.buttons["Hide Preview"].exists)
     }
 
     /// A relative link shows its file in the card: with no heading, the outline's toggle hides; Back shows it.
@@ -107,7 +118,8 @@ extension OvviUITests {
         XCTAssertTrue(element("pane.\(card).outline").exists(within: 3))
     }
 
-    /// Read renders what Markdown means, not what it says: `1. 1.` counts up, an item's second paragraph hangs at its
+    /// Rich Text renders what Markdown means, not what it says: `1. 1.` counts up, an item's second paragraph hangs at
+    /// its
     /// text, a reference link is a link (its definition hidden), an entity is its character.
     private func constructs(_ page: XCUIElement) {
         let text = { (value: String) in
@@ -130,12 +142,12 @@ extension OvviUITests {
     /// its source; an outline row puts the caret on its heading, whose mark shows while the other heading's hides. A
     /// typed letter shows the dirty dot and ⌘S writes it to the file.
     private func editAndSave(_ card: String, page: XCUIElement, shell: String) async throws {
-        // Read takes no typing: the dot stays off below.
+        // Locked takes no typing: the dot stays off below.
         page.staticTexts.matching(NSPredicate(format: "value == 'Second'")).firstMatch.click()
         app.typeText("q")
         let link = page.links["Other"].frame
         app.typeKey("e", modifierFlags: .command)
-        XCTAssertTrue(element("pane.\(card).mode").has(\.stringValue, "Live Edit", within: 3))
+        XCTAssertTrue(element("pane.\(card).lock").has(\.isSelected, true, within: 3))
         let editor = page.textViews.firstMatch
         XCTAssertTrue(until(5) { editor.exists && editor.stringValue.contains("## Second") }, editor.stringValue)
         XCTAssertTrue(editor.stringValue.contains("Some words."))
@@ -155,7 +167,8 @@ extension OvviUITests {
         try await waitFor(shell) { $0.contains("saved-42") }
     }
 
-    /// A task's box sits at the text's left edge, as the heading's; a click on it in Read writes `[x]` to the file and
+    /// A task's box sits at the text's left edge, as the heading's; a click on it while locked writes `[x]` to the file
+    /// and
     /// leaves the card clean.
     private func tick(_ card: String, page: XCUIElement, shell: String) async throws {
         let box = page.checkBoxes.firstMatch
@@ -176,7 +189,7 @@ extension OvviUITests {
         XCTAssertTrue(element("pane.\(card).dirty").vanishes(within: 3))
     }
 
-    /// Select All and Copy in Read give the whole source, past the lines drawn.
+    /// Select All and Copy while locked give the whole source, past the lines drawn.
     private func copyAll(_ page: XCUIElement) {
         keepPasteboard()
         NSPasteboard.general.clearContents()

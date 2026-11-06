@@ -1,6 +1,6 @@
 {
   "name": "@ovvi/explorer",
-  "version": "1.10.2",
+  "version": "1.10.3",
   "private": true,
   "description": "Files and folders",
   "keywords": ["files", "tree", "folder", "finder"],
@@ -77,25 +77,23 @@
       { "type": "toggle", "id": "wrap", "symbol": "text.wrap", "title": "Word Wrap", "value": true, "hidden": true },
       { "type": "button", "id": "reveal", "symbol": "list.bullet.indent", "title": "Show in File Explorer",
         "hidden": true },
-      { "type": "menu", "id": "mode", "value": "read", "title": "Mode", "symbol": "book", "style": "icon",
-        "hidden": true,
-        "items": [{ "value": "read", "title": "Read", "symbol": "book" },
-          { "value": "live", "title": "Live Edit", "symbol": "pencil" },
-          { "value": "source", "title": "Source", "symbol": "chevron.left.forwardslash.chevron.right" },
-          { "value": "split", "title": "Side by Side", "symbol": "rectangle.split.2x1" }] },
+      { "type": "segmented", "id": "mode", "value": "rich", "hidden": true,
+        "options": [{ "value": "rich", "title": "Rich Text", "symbol": "doc.richtext" },
+          { "value": "source", "title": "Source", "symbol": "chevron.left.forwardslash.chevron.right" }] },
+      { "type": "toggle", "id": "lock", "symbol": "lock.fill", "title": "Unlock", "value": false, "hidden": true },
       { "type": "openWith", "id": "open-with", "hidden": true }
     ],
     "settings": [
       { "id": "hidden-files", "type": "toggle", "title": "Show hidden files",
         "description": "Names that start with a dot.", "default": false },
       { "id": "ignored", "type": "toggle", "title": "Dim files that Git ignores", "default": true },
-      { "id": "markdown", "type": "choice", "title": "Markdown opens in", "default": "read",
-        "options": [{ "value": "read", "title": "Read" }, { "value": "live", "title": "Live Edit" },
-          { "value": "source", "title": "Source" }, { "value": "split", "title": "Side by Side" }] }
+      { "id": "markdown", "type": "choice", "title": "Markdown opens in", "default": "rich",
+        "options": [{ "value": "rich", "title": "Rich Text" }, { "value": "source", "title": "Source" }] },
+      { "id": "markdown-lock", "type": "toggle", "title": "Lock Markdown for reading", "default": true }
     ],
     "commands": [
-      { "id": "edit-mode", "title": "Edit Mode", "menu": "view", "key": "cmd+e", "symbol": "pencil",
-        "keywords": ["markdown", "read"] }
+      { "id": "lock-editing", "title": "Lock Editing", "menu": "view", "key": "cmd+e", "symbol": "lock",
+        "keywords": ["markdown", "read", "edit", "unlock"] }
     ]
   }
 }

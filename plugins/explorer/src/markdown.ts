@@ -1,9 +1,9 @@
-// The Markdown place: one CodeMirror view of the file in four modes. Read and Live Edit draw it as rendered Markdown (a
-// live preview, live.ts): Read is the view not editable with every line drawn; Live Edit puts back the marks of the
-// caret's lines, so a switch between them moves nothing on screen but the caret's line. Source draws the file as code
-// cards do; Side by Side puts the rendered page beside Source (split.ts). The outline lists the headings; row 2 picks
-// the mode and the outline (its toggle shows only while the file has a heading), and the page sets them when it
-// changes them itself.
+// The Markdown place: one CodeMirror view of the file in two modes, each locked or not. Rich Text draws it as rendered
+// Markdown (a live preview, live.ts): locked, the view is not editable and every line is drawn; unlocked, the marks of
+// the caret's lines come back, so the lock moves nothing on screen but the caret's line. Source draws the file as code
+// cards do, with the rendered page beside it, folded until the user shows it (split.ts); locked, neither edits. The
+// outline lists the headings; row 2 picks the mode, the lock and the outline (its toggle shows only while the file has a
+// heading), and the page sets them when it changes them itself.
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown"
 import { yamlFrontmatter } from "@codemirror/lang-yaml"
 import { ensureSyntaxTree, syntaxTree, syntaxTreeAvailable } from "@codemirror/language"
@@ -15,10 +15,19 @@ import { containers, editing, live, referenceField, ticked } from "./live"
 import { choose, how, open, own, type Place, type Reveal, symbols } from "./place"
 import { sideBySide } from "./split"
 
-type Mode = "read" | "live" | "source" | "split"
-const MODES: Mode[] = ["read", "live", "source", "split"]
-/** The card's mode, the last its Markdown pages showed: a page shown anew or again shows it. */
-let cardMode: Mode | undefined
+type Mode = "rich" | "source"
+/** The mode, the lock, and Source's page shown or folded. */
+type Look = { mode: Mode; locked: boolean; preview: boolean }
+const mode = (value: unknown): Mode | undefined => (value === "rich" || value === "source" ? value : undefined)
+/** The card's look, the last its Markdown pages showed: a page shown anew or again shows it. */
+let cardLook: Look | undefined
+/** A card's mode from before the lock: Read and Live Edit are Rich Text, locked and not; Side by Side is Source with
+ *  its page shown (Source is Source, folded). */
+const OLD: Record<string, Partial<Look>> = {
+  read: { mode: "rich", locked: true },
+  live: { mode: "rich", locked: false },
+  split: { mode: "source", preview: true },
+}
 
 /** GitHub's anchor of a heading's text, for `#` links. */
 const slug = (text: string) => text.trim().toLowerCase().replace(/[^\p{L}\p{N}\s_-]/gu, "").replace(/\s/g, "-")
@@ -96,69 +105,88 @@ export async function show(place: Place): Promise<Reveal> {
   outline.hidden = true
   outline.toggleAttribute("data-closed", true)
   root.append(outline, pane)
-  // The card's mode: as another Markdown page left it, else as the card's own choice (a relaunch), else the setting.
-  const kept = (own(ovvi).mode ?? ovvi.settings.get("markdown")) as Mode
-  const first = cardMode ?? (MODES.includes(kept) ? kept : "read")
-  let mode: Mode = "read"
-  /** Every mode but Read edits; ⌘E goes back to the last one. */
-  let edit = false
-  let lastEdit: Mode = first === "read" ? "live" : first
+  // The card's look: as another Markdown page left it, else as the card's own choices (a relaunch), else the settings.
+  const choices = own(ovvi), old = OLD[choices.mode ?? ""]
+  const kept = { ...old, ...choices, mode: old?.mode ?? choices.mode }
+  const first: Look = cardLook ?? {
+    mode: mode(kept.mode) ?? mode(ovvi.settings.get("markdown")) ?? "rich",
+    locked: kept.locked ?? ovvi.settings.get<boolean>("markdown-lock") !== false,
+    preview: kept.preview ?? false,
+  }
+  /** As drawn: the editor starts as Rich Text, locked. */
+  let now: Look = { mode: "rich", locked: true, preview: false }
   let outlined = false
   /** The file has a heading: the outline's toggle shows only then. */
   let titled = false
   const editable = new Compartment(), look = new Compartment()
-  /** Side by Side's page, while it shows. */
+  /** Source's page, while Source shows. */
   let split: ReturnType<typeof sideBySide> | undefined
   keep(() => split?.destroy())
 
-  /** Shows the mode and the outline or not, and sets row 2 and Edit Mode to match. */
-  function present(view: EditorView, now: Mode, nowOutlined: boolean) {
-    const nowEdit = now !== "read", coded = (each: Mode) => each === "source" || each === "split"
-    if (now !== mode) {
-      // Read keeps no selection drawn, nor a search panel (its Replace would write).
-      if (!nowEdit) closeSearchPanel(view)
-      const selection = nowEdit ? undefined : { anchor: view.state.selection.main.head }
-      const effects = [editable.reconfigure(markdownMode(nowEdit)), look.reconfigure(coded(now) ? source : rendered)]
-      // A new look keeps the line at the top in place.
-      if (coded(now) !== coded(mode)) {
-        const top = view.lineBlockAtHeight(view.scrollDOM.scrollTop - view.documentPadding.top).from
-        effects.push(EditorView.scrollIntoView(top, { y: "start" }))
-      }
-      view.dispatch({ selection, effects })
-      split?.destroy()
-      split = now === "split" ? sideBySide(view, pane, page) : undefined
+  /** Shows the look and the outline or not, and sets row 2 and Lock Editing to match. */
+  function present(view: EditorView, next: Look, nowOutlined: boolean) {
+    const effects = []
+    if (next.locked !== now.locked) {
+      // Locked keeps no selection drawn, nor a search panel opened with Replace's row.
+      if (next.locked) closeSearchPanel(view)
+      effects.push(editable.reconfigure(markdownMode(!next.locked)))
     }
-    mode = cardMode = now
-    edit = nowEdit
-    if (edit) lastEdit = mode
+    if (next.mode !== now.mode) {
+      effects.push(look.reconfigure(next.mode === "source" ? source : rendered))
+      // A new look keeps the line at the top in place.
+      const top = view.lineBlockAtHeight(view.scrollDOM.scrollTop - view.documentPadding.top).from
+      effects.push(EditorView.scrollIntoView(top, { y: "start" }))
+    }
+    const selection = next.locked ? { anchor: view.state.selection.main.head } : undefined
+    if (effects.length) view.dispatch({ selection, effects })
+    if (next.mode !== now.mode || (split && next.preview !== now.preview)) {
+      split?.destroy()
+      split = next.mode === "source" ? sideBySide(view, pane, page, next.preview, folded) : undefined
+    }
+    now = cardLook = next
     outlined = nowOutlined && titled
     outline.hidden = false
     outline.toggleAttribute("data-closed", !outlined)
     if (outlined) list(view, all(view.state))
     focus(view)
-    ovvi.controls.set("mode", { value: mode })
+    ovvi.controls.set("mode", { value: next.mode })
+    // Lit while the page edits; its help says what a click does.
+    ovvi.controls.set("lock", {
+      value: !next.locked, symbol: next.locked ? "lock.fill" : "lock.open", title: next.locked ? "Unlock" : "Lock",
+    })
     ovvi.controls.set("outline", { value: outlined })
-    ovvi.controls.set("edit-mode", { enabled: true, checked: edit })
+    ovvi.controls.set("lock-editing", { enabled: true, checked: next.locked })
   }
 
-  /** An edit mode's editor takes the keyboard; Read's page, so the keys scroll it. */
+  /** The user folded Source's page or showed it: the card keeps it. */
+  function folded(preview: boolean) {
+    now = cardLook = { ...now, preview }
+    choose(ovvi, { preview })
+  }
+
+  /** The look's change the user made in row 2 or with ⌘E: the card keeps it. */
+  function change(view: EditorView, to: Partial<Look>) {
+    choose(ovvi, to)
+    present(view, { ...now, ...to }, outlined)
+  }
+
+  /** Unlocked, the editor takes the keyboard; locked, the page, so the keys scroll it. */
   function focus(view: EditorView) {
-    if (edit) view.focus()
+    if (!now.locked) view.focus()
     else view.scrollDOM.focus({ preventScroll: true })
   }
 
   /** The outline's toggle shows while the file has headings; with none, the outline closes. */
   function titles(view: EditorView, found: ReturnType<typeof headings>) {
-    const now = found.length > 0
-    if (now !== titled) {
-      titled = now
+    if (found.length > 0 !== titled) {
+      titled = found.length > 0
       ovvi.controls.set("outline", { hidden: !titled })
-      if (!titled && outlined) present(view, mode, false)
+      if (!titled && outlined) present(view, now, false)
     }
     if (outlined) list(view, found)
   }
 
-  /** The outline's rows; a click scrolls to its heading, and in an edit mode puts the caret there. */
+  /** The outline's rows; a click scrolls to its heading, and unlocked puts the caret there. */
   function list(view: EditorView, found: ReturnType<typeof headings>) {
     outline.replaceChildren(...found.map((heading) => {
       const row = document.createElement("button")
@@ -166,7 +194,7 @@ export async function show(place: Place): Promise<Reveal> {
       row.style.paddingLeft = `${12 * heading.level}px`
       row.onclick = () => {
         const effects = EditorView.scrollIntoView(heading.from, { y: "start" })
-        view.dispatch(edit ? { selection: { anchor: heading.from }, effects } : { effects })
+        view.dispatch(!now.locked ? { selection: { anchor: heading.from }, effects } : { effects })
         focus(view)
       }
       return row
@@ -208,26 +236,19 @@ export async function show(place: Place): Promise<Reveal> {
   }
 
   // The outline closed until the file shows.
-  ovvi.controls.set("mode", { value: first })
+  ovvi.controls.set("mode", { value: first.mode })
   ovvi.controls.set("outline", { value: false })
-  ovvi.controls.set("edit-mode", { enabled: true, checked: false })
+  ovvi.controls.set("lock-editing", { enabled: true, checked: first.locked })
   symbols(ovvi, ["chevron.left", "chevron.right"])
   let shown: Editor
-  /** The saves of Read's ticks, one after the other: a save under way skips a second one. */
+  /** The saves of ticks made while locked, one after the other: a save under way skips a second one. */
   let ticks = Promise.resolve()
-  // Before the editor's own: ⌘F, ⌘G and ⇧⌘G in Read show the last edit mode, where the search panel is; ⌥⌘F too.
-  const finding = () => shown && !edit && present(shown.view, lastEdit, outlined)
-  for (const name of ["find", "findNext", "findPrevious"] as const) ovvi.on(name, finding)
-  const replacing = (event: KeyboardEvent) =>
-    place.shown() && event.code === "KeyF" && event.metaKey && event.altKey && finding()
-  addEventListener("keydown", replacing)
-  keep(() => removeEventListener("keydown", replacing))
   // Front matter as YAML, not as a rule and a heading.
   const language = yamlFrontmatter({ content: markdown({ base: markdownLanguage }) })
   const links = EditorView.domEventHandlers({ click: (event, view) => follow(view, event) })
   /** Source: the file as code cards draw it. */
   const source = [code, Prec.highest(EditorView.theme({ ".cm-content": { paddingBottom: "48px" } }))]
-  /** Side by Side's page: Read's look, its links and its ticks. */
+  /** Source's page: Rich Text's look, locked, with its links and its ticks. */
   const page = [language, rendered, selected, markdownMode(false), EditorView.lineWrapping, links]
   shown = await editor(place, [
     language,
@@ -237,9 +258,11 @@ export async function show(place: Place): Promise<Reveal> {
     links,
     EditorView.updateListener.of((update) => {
       split?.follow(update)
-      // A box ticked in Read is saved at once, as the card's ⌘S, after any save under way; in an edit mode it waits
-      // for ⌘S as any edit.
-      if (!edit && update.transactions.some((tr) => tr.annotation(ticked))) ticks = ticks.then(() => shown?.save())
+      // A box ticked while locked is saved at once, as the card's ⌘S, after any save under way; unlocked it waits for
+      // ⌘S as any edit.
+      if (now.locked && update.transactions.some((tr) => tr.annotation(ticked))) {
+        ticks = ticks.then(() => shown?.save())
+      }
       // Also as the background parse reaches more headings.
       if (update.docChanged || syntaxTree(update.startState) !== syntaxTree(update.state)) {
         const found = headings(update.state)
@@ -249,17 +272,18 @@ export async function show(place: Place): Promise<Reveal> {
     }),
   ], pane)
 
-  // None when the file is too large to show: the info view is there instead, and Edit Mode does nothing.
+  // None when the file is too large to show: the info view is there instead, and Lock Editing does nothing.
   if (!shown) {
-    ovvi.controls.set("edit-mode", { enabled: false })
+    ovvi.controls.set("lock-editing", { enabled: false })
     ovvi.controls.set("mode", { hidden: true })
+    ovvi.controls.set("lock", { hidden: true })
     return undefined
   }
   const { view, land } = shown
-  // Copy in Read, whose keyboard is on the scroller: the source of the selection, also of lines not drawn (Select
-  // All's selection reaches past the editor).
+  // Copy while locked, when the keyboard is on the scroller: the source of the selection, also of lines not drawn
+  // (Select All's selection reaches past the editor).
   const copy = (event: ClipboardEvent) => {
-    const text = edit || event.defaultPrevented || !place.shown() ? undefined : copied(view)
+    const text = !now.locked || event.defaultPrevented || !place.shown() ? undefined : copied(view)
     if (text === undefined) return
     event.clipboardData?.setData("text/plain", text)
     event.preventDefault()
@@ -267,28 +291,25 @@ export async function show(place: Place): Promise<Reveal> {
   document.addEventListener("copy", copy)
   keep(() => document.removeEventListener("copy", copy))
   ovvi.on("control", ({ id, value }) => {
-    if (id === "outline") return present(view, mode, value === true)
-    const picked = id === "mode" && MODES.includes(value as Mode) ? value as Mode
-      : id === "edit-mode" ? edit ? "read" : lastEdit : undefined
-    if (!picked) return
-    choose(ovvi, { mode: picked })
-    present(view, picked, outlined)
+    if (id === "outline") present(view, now, value === true)
+    if (id === "mode" && mode(value)) change(view, { mode: mode(value) })
+    if (id === "lock") change(view, { locked: value !== true })
+    if (id === "lock-editing") change(view, { locked: !now.locked })
   })
   // A new setting, while the card has no choice of its own.
-  ovvi.on("settings", ({ markdown }) => {
-    if (MODES.includes(markdown as Mode) && own(ovvi).mode === undefined) present(view, markdown as Mode, outlined)
+  ovvi.on("settings", (changed) => {
+    const choices = own(ovvi), next = mode(changed.markdown), locked = changed["markdown-lock"]
+    if (next && choices.mode === undefined) present(view, { ...now, mode: next }, outlined)
+    if (typeof locked === "boolean" && choices.locked === undefined) present(view, { ...now, locked }, outlined)
   })
   titles(view, all(view.state))
-  // A linked open at a line (a diff's): an edit mode, with the caret there (`editor`). Back's landing is a path.
-  present(view, Number(place.at) >= 1 && first === "read" ? lastEdit : first, false)
-  // A kept page shown again (Back, Forward, a link) takes the card's mode.
-  ovvi.on("place", () => cardMode && present(view, cardMode, outlined))
+  // A linked open at a line (a diff's) puts the caret there (`editor`), unlocked or not. Back's landing is a path.
+  present(view, first, false)
+  // A kept page shown again (Back, Forward, a link) takes the card's look.
+  ovvi.on("place", () => cardLook && present(view, cardLook, outlined))
   // The app gives the card the keyboard: after the editor's own handler, Read's page takes it.
   const take = () => place.shown() && focus(view)
   addEventListener("focus", take)
   keep(() => removeEventListener("focus", take))
-  return (at) => {
-    if (Number(at) >= 1 && !edit) present(view, lastEdit, outlined)
-    land(at)
-  }
+  return land
 }

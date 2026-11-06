@@ -31,8 +31,8 @@ the card shows, and it picks the card's page. A relaunch, a cold restart of
 herdr or another device makes the card at that place. The instance state
 file on the pane's machine keeps the rest: Git's commit message, the diff's
 Side by Side, Word Wrap and its file list, and File Explorer's Show Hidden
-Files, File's Word Wrap and Markdown mode once the user changed them in the
-card
+Files, File's Word Wrap and Markdown's mode, lock and fold once the user
+changed them in the card
 ([State](/docs/plugins/api#state)).
 
 ## Settings
@@ -46,7 +46,8 @@ changed that value in the card's header: the card keeps its own choice.
 |---|---|---|---|---|
 | File Explorer | Show hidden files (`hidden-files`), "Names that start with a dot." | switch | off | row 2's Show Hidden Files in new trees |
 | File Explorer | Dim files that Git ignores (`ignored`) | switch | on | whether the tree dims the files git ignores, in every tree at once |
-| File Explorer | Markdown opens in (`markdown`): Read, Live Edit, Source, Side by Side | pop-up menu | Read | the mode of a Markdown file in a card with no mode of its own |
+| File Explorer | Markdown opens in (`markdown`): Rich Text, Source | segmented | Rich Text | the mode of a Markdown file in a card with no mode of its own |
+| File Explorer | Lock Markdown for reading (`markdown-lock`) | switch | on | the lock of a Markdown file in a card with no lock of its own |
 | Git | Diff layout (`diff-layout`): Unified, Side by Side | segmented | Unified | row 2's layout in new diffs |
 | Git | Wrap long lines (`wrap`) | switch | off | row 2's Word Wrap in new diffs |
 | Git | Show the file list when a diff opens (`file-list`) | switch | off | whether a diff opens with its file list |
@@ -282,7 +283,7 @@ its icon (`NSWorkspace`), then the other plugins that open the file. A pick
 of a plugin turns the card into that plugin's card. A file with no default
 app shows a plain "Open With" menu. The Mac's apps show on This Mac only: on
 a remote machine, Open With shows only when another plugin opens the file.
-Before it (and before Markdown's mode), **Show in File Explorer**
+Before it (and before Markdown's mode and lock), **Show in File Explorer**
 (`list.bullet.indent`) shows the tree with the file's folder as its root, the
 file selected and scrolled into view.
 Back returns to the file.
@@ -454,27 +455,34 @@ An editable text view (CodeMirror 6).
 
 - **Row 2** ([A file's row 2](#a-files-row-2)): the outline toggle
   (`sidebar.left`, in the accent while the outline shows) after Back and
-  Forward, and the mode menu before Open With. The menu shows the mode's
-  symbol, with its name as the tooltip.
-- **Four modes**, picked in the menu:
+  Forward; the mode and the lock before Open With. The mode is two icon
+  segments, **Rich Text** (`doc.richtext`) and **Source**
+  (`chevron.left.forwardslash.chevron.right`), with their names as the
+  tooltips; the segment not picked is gray, as Show in File Explorer. The
+  lock is `lock.fill` in gray while locked ("Unlock") and `lock.open` in
+  the accent while the page edits ("Lock").
+- **Two modes, each locked or not:**
 
-  | Mode | Symbol | What it shows |
+  | Mode | Locked | Unlocked |
   |---|---|---|
-  | **Read** | `book` | the file rendered, read only |
-  | **Live Edit** | `pencil` | the file rendered, editable, the caret's lines in Markdown |
-  | **Source** | `chevron.left.forwardslash.chevron.right` | the whole file as File draws code: monospace, line numbers, Markdown's colors |
-  | **Side by Side** | `rectangle.split.2x1` | Source on the left, Read on the right |
+  | **Rich Text** | the file rendered, no caret | the file rendered, editable, the caret's lines in Markdown |
+  | **Source** | the source as File draws code, beside the rendered page; nothing edits | the same, the source editable |
 
-  The card keeps its mode: another Markdown file in the card, Back and
-  Forward, and a relaunch show the mode last picked. A card where the user
-  never picked one opens Markdown in the setting's mode.
-- **Read and Live Edit are one view.** Both are the same editor (CodeMirror
+  The lock shows in both modes. Locked, nothing edits but a task box (below).
+  The card keeps its mode, its lock and Source's fold: another Markdown file in
+  the card, Back and Forward, and a relaunch show them as last left. A card
+  whose user never chose opens in the settings' mode and lock (Rich Text,
+  locked). A card kept from before the lock maps its mode: Read is Rich Text
+  locked, Live Edit Rich Text unlocked, Source is Source folded, Side by Side
+  Source with the page shown. The setting kept Source; Read, Live Edit and
+  Side by Side became Rich Text.
+- **Rich Text is one view, locked or not.** It is one editor (CodeMirror
   with Markdown, GitHub's flavor), drawn as rendered Markdown: a live
   preview. It is a 640 pt column, 28 pt under row 2, in the system font 1 pt
-  larger than the text size. So a switch moves nothing on screen but the
+  larger than the text size. So the lock moves nothing on screen but the
   caret's line. A switch to or from Source keeps the line at the top in
   place.
-- **Read** is the view with every line drawn and no caret. It draws
+- **Rich Text, locked,** is the view with every line drawn and no caret. It draws
   CommonMark and GitHub's flavor (GFM). The fixture
   `resources/research/ui/markdown-syntax.md` holds every construct.
   - **Marks** are hidden: a heading's `#`, a setext heading's underline,
@@ -518,44 +526,46 @@ An editable text view (CodeMirror 6).
     HTML block in a list item starts at the item's text.
   - **Front matter** shows as YAML in 12 pt monospace, secondary.
   - Copy gives the Markdown source of the selection, and Select All the whole
-    file. For VoiceOver, Read is an article with headings, not a text box.
+    file. For VoiceOver, a locked view is an article with headings, not a text
+    box.
 - **Task boxes.** A click on a box ticks it or clears it: one character, `x`
-  or a space, changes in the file. In Read the card saves it at once, as ⌘S
-  does, with any edits not saved yet. In the other modes it is an edit like a typed one, saved with ⌘S. Undo
+  or a space, changes in the file. Locked, the card saves it at once, as ⌘S
+  does, with any edits not saved yet. Unlocked it is an edit like a typed one,
+  saved with ⌘S. Undo
   takes it back. The boxes of a file that is read only are dimmed and do not
   change.
-- **Live Edit** makes the view editable. The lines with the caret or the
-  selection show their marks; every other line looks as in Read. The
+- **Rich Text, unlocked,** makes the view editable. The lines with the caret
+  or the selection show their marks; every other line looks as locked. The
   caret's line is its own source line: the lines of its paragraph above and
   below it still flow. A table, an HTML block, a
   setext heading's underline and a hidden definition or comment show their
   source while the caret is in them. A click on a table or an HTML block puts
-  the caret there. A click in Read and then ⌘E keeps the caret where
+  the caret there. A click while locked and then ⌘E keeps the caret where
   the click was.
 - **Source** uses the code colors of File (Pierre Light and Pierre Dark):
   marks in the punctuation color, headings as tags, links and addresses in
   blue, code in the string color, quotes in the comment color, emphasis in
   italics and strong text in bold.
-- **Side by Side.** Source and the rendered page split the card in halves,
-  with a 1 pt divider between them. The two scroll together by source line:
+- **Source's page.** Source and the rendered page split the card in halves,
+  with a 1 pt divider between them. The page starts folded: Source opens
+  alone until the user shows the page. The two scroll together by source line:
   the side that the user last scrolled, clicked or typed in leads. A tick in
   the page edits the source. A
   small button on the divider (`chevron.right`, "Hide Preview") folds the
   page away, and Source takes the whole width; the button then sits at the
   right edge (`chevron.left`, "Show Preview").
-- **⌘E** (View ▸ Edit Mode, checked in every mode but Read) switches between
-  Read and the last edit mode (Live Edit at first). ⌘F, ⌘G, ⇧⌘G and ⌥⌘F in
-  Read switch to the last edit mode, where the find bar is. Read closes the
-  find bar.
+- **⌘E** (View ▸ Lock Editing, checked while locked) locks and unlocks, as
+  the lock does. The find bar works locked too, without its Replace row
+  (⌥⌘F shows the find row only); locking closes it.
 - **The outline** is a 190 pt column at the left with the document's
   headings, indented by level. A file with no heading hides the toggle
   and closes the outline. The outline closes when the last heading goes. It slides in and out (0.25 s). A click
-  scrolls to the heading and in an edit mode puts the caret on it. `#section` links
+  scrolls to the heading and, unlocked, puts the caret on it. `#section` links
   scroll to the heading with GitHub's id. A second heading of the same name is
   `#section-1`.
-- Links open from Read and Side by Side's page ([Opening](#opening)). A
-  landing with a line opens the card's edit mode (the last one, from Read)
-  with the caret on that line. A page that loads again has the outline
+- Links open from Rich Text, locked, and Source's page
+  ([Opening](#opening)). A landing with a line scrolls to that line and puts
+  the caret there; the lock stays as it was. A page that loads again has the outline
   closed.
 - Dirty, ⌘S, the reload and the toast are as in
   [Edits, saves and reloads](#edits-saves-and-reloads).
@@ -762,10 +772,10 @@ over the card that uses it, because a disabled menu item swallows its key.
 | ⌘← ⌘→ | Back, Forward in the card | while no text field in the page has the keyboard: there they move the caret |
 | ⌘S | Save (File menu): the editor's text to disk | only while File or Markdown has the keyboard |
 | ⌘F | Find… (Edit menu): the editor's find bar; on the tree, its find bar | on File, Markdown and the tree. Disabled on Preview, the Git home and a diff |
-| ⌥⌘F | Find and Replace: the find bar with its Replace row (the page's own key) | on File and Markdown, in a file that is not read only |
+| ⌥⌘F | Find and Replace: the find bar with its Replace row (the page's own key) | on File and Markdown, in a file that is not read only (Markdown unlocked) |
 | ⌘G | Find Next (Edit menu) | always. Over a terminal it steps the find bar |
 | ⇧⌘G | Find Previous (Edit menu) | only while File or Markdown has the keyboard. Elsewhere ⇧⌘G is Go to Directory |
-| ⌘E | Edit Mode (View menu, while a File Explorer card has the keyboard; disabled outside Markdown): Read and the last edit mode | only while Markdown has the keyboard |
+| ⌘E | Lock Editing (View menu, while a File Explorer card has the keyboard; disabled outside Markdown): locks and unlocks Markdown | only while Markdown has the keyboard |
 | ⌥⌘R | Reload Plugin (the card's menu, View ▸ Pane) | over a plugin card |
 | ⌘↩ | Commit | in the Git home's message field |
 | ↑ ↓, Return | select a commit, open it | in the Git home, outside its message field |
@@ -773,7 +783,7 @@ over the card that uses it, because a disabled menu item swallows its key.
 | ⇧⌘← ⇧⌘→ | Move Tab Left, Right | the page gets it first (select to the line's start or end). When the page does not take it, the tab moves |
 
 - ⌘D, ⌘W and the other app keys work over a plugin card as over a terminal.
-- A floating window's menu bar and palette offer Save, Edit Mode, Find, Find
+- A floating window's menu bar and palette offer Save, Lock Editing, Find, Find
   Next and Find Previous with the same keys.
 - Replace Pane (⇧⌘R) gives a fresh shell with the chooser. Close, Replace Pane
   and the commands that change a pane's kind ask nothing while the pane runs
@@ -851,7 +861,7 @@ the machine. The limits:
   text).
 - A landing and Back and Forward kept over a relaunch, and Viewed marks
   saved.
-- Images in Markdown's Read, and a table view in Live Edit.
+- Images in Markdown's Rich Text, and a table view while it is unlocked.
 - Markdown's footnotes gathered at the end of the page, as on GitHub, and
   `~sub~` and `^sup^`, which GitHub does not draw either.
 

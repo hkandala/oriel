@@ -197,7 +197,7 @@ const blockField = StateField.define<DecorationSet>({
   provide: (field) => EditorView.decorations.from(field),
 })
 
-/** A task's box ticked by a click: Read saves it (`show`). */
+/** A task's box ticked by a click: a locked page saves it (`show`). */
 export const ticked = Annotation.define<boolean>()
 
 /** A list item's bullet, number or task box, at the end of its depth's indent: the text and its wrapped lines start

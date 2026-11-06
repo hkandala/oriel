@@ -63,8 +63,11 @@ private struct HeaderItem: View {
         case "button": button(id).accessibilityIdentifier(identifier)
         case "toggle": toggle(id).accessibilityIdentifier(identifier)
         case "segmented":
-            Segments(id: identifier, options: (control.options ?? []).map { ($0.title ?? "", $0.value ?? "") },
-                     selection: Binding { control.value?.text ?? "" } set: { plugin.header.pick(id, .text($0)) })
+            let options = control.options ?? []
+            let symbols = options.compactMap { option in option.symbol.map { (option.title ?? "", $0) } }
+            Segments(id: identifier, options: options.map { ($0.title ?? "", $0.value ?? "") },
+                     selection: Binding { control.value?.text ?? "" } set: { plugin.header.pick(id, .text($0)) },
+                     symbols: Dictionary(symbols) { first, _ in first })
                 .fixedSize()
         case "menu": HeaderMenu(control: control, header: plugin.header).accessibilityIdentifier(identifier)
         case "field" where control.style == "path":

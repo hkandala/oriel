@@ -1,6 +1,7 @@
 // The find bar of File and Markdown (CodeMirror's search panel, drawn as the terminal's ⌘F bar): a capsule at the
 // editor's top right with the field, the match count, Match Case, Whole Word and Regular Expression, Previous, Next
-// and Close. ⌥⌘F adds a second row, Replace's field with Replace and Replace All, in a file that is not read only.
+// and Close. ⌥⌘F adds a second row, Replace's field with Replace and Replace All, in a file that is not read only and
+// a view that edits (not a locked Markdown file).
 import {
   closeSearchPanel,
   findNext,
@@ -13,7 +14,7 @@ import {
   setSearchQuery,
 } from "@codemirror/search"
 import type { EditorState } from "@codemirror/state"
-import type { EditorView, Panel, ViewUpdate } from "@codemirror/view"
+import { EditorView, type Panel, type ViewUpdate } from "@codemirror/view"
 import type { Ovvi } from "@ovvi/plugin-api"
 import { symbols } from "./place"
 
@@ -89,7 +90,7 @@ export function finder(ovvi: Ovvi) {
       counted.textContent = count(state, query)
     }
     function show(replace: boolean) {
-      replaceRow.hidden = !replace || view.state.readOnly
+      replaceRow.hidden = !replace || view.state.readOnly || !view.state.facet(EditorView.editable)
       ;(replaceRow.hidden ? field : swap).select()
     }
 

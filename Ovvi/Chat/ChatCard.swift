@@ -82,20 +82,31 @@ struct CardState: View {
     }
 }
 
-/// A small segmented control in the app's own style, as the tab bar.
+/// A small segmented control in the app's own style, as the tab bar. A segment with a symbol shows it alone, the
+/// title as its help, and dims while not picked, as the pane buttons beside it (Markdown's mode).
 struct Segments<Value: Hashable>: View {
     let id: String
     let options: [(String, Value)]
     @Binding var selection: Value
+    /// By title.
+    var symbols: [String: String] = [:]
     @Environment(\.look) private var look
 
     var body: some View {
         HStack(spacing: 0) {
             ForEach(options, id: \.0) { title, value in
                 Button { selection = value } label: {
-                    Text(title).font(.system(size: 11, weight: .medium)).padding(.horizontal, 8).frame(height: 20)
+                    if let symbol = symbols[title] {
+                        Image(symbol: symbol).font(.system(size: 11)).frame(width: 26, height: 20)
+                            .foregroundStyle(selection == value ? AnyShapeStyle(.primary) :
+                                AnyShapeStyle(look.paneButton))
+                    } else {
+                        Text(title).font(.system(size: 11, weight: .medium)).padding(.horizontal, 8).frame(height: 20)
+                    }
                 }
                 .buttonStyle(ChromeStyle(selected: selection == value, radius: 6))
+                .help(symbols[title] == nil ? "" : title)
+                .accessibilityLabel(title)
                 .accessibilityAddTraits(selection == value ? .isSelected : [])
                 .accessibilityIdentifier("\(id).\(title.lowercased())")
             }

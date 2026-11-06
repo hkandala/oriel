@@ -19,7 +19,7 @@ const CONTROLS: Record<Kind, string[]> = {
   files: ["root", "filter", "collapse", "hidden-files"],
   file: ["jump", "spacer", "wrap", "reveal", "open-with"],
   preview: ["jump", "spacer", "reveal", "open-with"],
-  markdown: ["jump", "spacer", "reveal", "mode", "open-with"],
+  markdown: ["jump", "spacer", "reveal", "mode", "lock", "open-with"],
 }
 const ALL = [
   ...new Set([...Object.values(CONTROLS).flat(), "outline", "page", "zoom.fit", "zoom.actual", "zoom.out", "zoom.in"]),
@@ -47,7 +47,7 @@ export default async function main(ovvi: Ovvi) {
       scoped.controls.set(id, id === "filter" ? { hidden, value: false } : { hidden })
     }
     scoped.controls.set("open-with", { value: place === "files" ? "" : arg })
-    if (place !== "markdown") scoped.controls.set("edit-mode", { enabled: false, checked: false })
+    if (place !== "markdown") scoped.controls.set("lock-editing", { enabled: false, checked: false })
     root.dataset.place = place
     // A text file's read starts while its place's code loads.
     const read = place === "file" || place === "markdown" ? ovvi.files.read(arg) : undefined

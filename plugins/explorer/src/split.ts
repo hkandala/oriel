@@ -1,9 +1,10 @@
-// Markdown's Side by Side (markdown.ts): the rendered page beside the source, a second CodeMirror view of the same
+// Markdown's Source (markdown.ts): the rendered page beside the source, a second CodeMirror view of the same
 // text. The source's changes go to the page, and a tick in the page goes to the source as an edit. The two scroll
 // together by source line: the one the user last scrolled, clicked or typed in leads. A button on the divider folds
 // the page away and back.
 import { Annotation, EditorState, type Extension } from "@codemirror/state"
 import { EditorView, type ViewUpdate } from "@codemirror/view"
+import { ticked } from "./live"
 
 /** A change one view passed to the other: it goes no further. */
 const synced = Annotation.define<boolean>()
@@ -15,18 +16,22 @@ function align(from: EditorView, to: EditorView) {
   to.scrollDOM.scrollTop = line.top + to.documentPadding.top + into * line.height
 }
 
-/** The page beside `source` in `parent`, drawn with `extensions`; `follow` passes on the source's changes. */
-export function sideBySide(source: EditorView, parent: HTMLElement, extensions: Extension) {
+/** The page beside `source` in `parent`, drawn with `extensions`, folded unless `preview`; `follow` passes on the
+ *  source's changes. A click on the fold button tells `folded` whether the page shows. */
+export function sideBySide(source: EditorView, parent: HTMLElement, extensions: Extension, preview: boolean,
+  folded: (preview: boolean) => void) {
   const divider = Object.assign(document.createElement("div"), { className: "split-divider" })
   const fold = Object.assign(document.createElement("button"), { type: "button", className: "split-fold" })
-  const folded = (yes: boolean) => {
-    parent.toggleAttribute("data-folded", yes)
-    fold.title = fold.ariaLabel = yes ? "Show Preview" : "Hide Preview"
+  const show = (yes: boolean) => {
+    parent.toggleAttribute("data-folded", !yes)
+    fold.title = fold.ariaLabel = yes ? "Hide Preview" : "Show Preview"
   }
-  folded(false)
+  show(preview)
   fold.onclick = () => {
-    folded(!parent.hasAttribute("data-folded"))
-    if (!parent.hasAttribute("data-folded")) align(source, page)
+    const yes = parent.hasAttribute("data-folded")
+    show(yes)
+    if (yes) align(source, page)
+    folded(yes)
   }
   divider.append(fold)
   parent.append(divider)
@@ -40,7 +45,9 @@ export function sideBySide(source: EditorView, parent: HTMLElement, extensions: 
     dispatchTransactions(transactions, view) {
       view.update(transactions)
       for (const tr of transactions) {
-        if (tr.docChanged && !tr.annotation(synced)) source.dispatch({ changes: tr.changes, annotations: synced.of(true) })
+        // A tick stays a tick: a locked source saves it at once.
+        const annotations = [synced.of(true), ...(tr.annotation(ticked) ? [ticked.of(true)] : [])]
+        if (tr.docChanged && !tr.annotation(synced)) source.dispatch({ changes: tr.changes, annotations })
       }
     },
   })
