@@ -3,6 +3,9 @@ import XCTest
 /// The Agents view's Archived shelf (ui/window#archived): the closed sessions in the agents' stores of a fixture home
 /// (`OvviUITests.archivedHome`), never the user's.
 extension OvviUITests {
+    /// The home folder whose agents' stores the Archived shelf reads (`-archivedHome`).
+    static let archivedHome = "/tmp/ovvi-e2e-archived"
+
     /// Newest first with the title and folder, the agent menu, then Resume: the agent's resume line in a new workspace
     /// in the session's folder (no workspace holds it). The resume only past a check for Claude Code: the new pane's
     /// shell would start the real one.
@@ -14,14 +17,7 @@ extension OvviUITests {
         let (_, shell) = try await newTab("archived")
         try await waitForPrompt(shell)
         try await writeSessions(id, in: folder, shell)
-        app.typeKey(".", modifierFlags: .command)
-        addTeardownBlock { [app] in app.typeKey(".", modifierFlags: .command) }
-        let shelf = element("agents.shelf.Archived")
-        XCTAssertTrue(shelf.exists(within: 3))
-        if shelf.value as? String == "collapsed" {
-            shelf.click()
-        }
-        XCTAssertTrue(shelf.has(\.stringValue, "expanded", within: 2))
+        let shelf = openArchived()
         let first = element("agents.archived.claude.\(id)"), second = element("agents.archived.pi.2026_\(id).jsonl")
         XCTAssertTrue(first.exists(within: 5))
         XCTAssertTrue(second.exists(within: 2))
@@ -33,6 +29,53 @@ extension OvviUITests {
         filters(first, second)
         pins(first, id, below: shelf)
         try await resumes(first, id, in: folder, shell)
+    }
+
+    /// Many sessions: the open shelf builds only the rows in view, and reads an agent's next page (pi's 51st to 55th
+    /// sessions, the oldest) once its end scrolls into view.
+    func testArchivedReadsTheNextPageAtItsEnd() async throws {
+        XCTAssertTrue(element("workspace.w1").exists(within: connect))
+        let (_, shell) = try await newTab("archived-pages")
+        try await waitForPrompt(shell)
+        let dir = "\(Self.archivedHome)/.pi/agent/sessions/--p--"
+        let line = #"{"type":"session","version":3,"cwd":"/tmp"}"#
+        let prompt = #"{"type":"message","message":{"role":"user","content":[{"type":"text","text":"Page '$i'"}]}}"#
+        let write = "f=\(dir)/page-$i.jsonl; printf '%s\\n' '\(line)' '\(prompt)' >$f; "
+            + "touch -t $(date -v-${i}H +%Y%m%d%H%M.%S) $f"
+        try await send("rm -rf \(Self.archivedHome) && mkdir -p \(dir) && for i in $(seq 1 55); do \(write); done && "
+            + "clear && echo ready-$((6*7))\r", to: shell)
+        try await waitFor(shell) { $0.contains("ready-42") }
+        let shelf = openArchived()
+        let first = element("agents.archived.pi.page-1.jsonl"), last = element("agents.archived.pi.page-55.jsonl")
+        XCTAssertTrue(first.exists(within: 5))
+        XCTAssertEqual(first.label, "Page 1, /tmp")
+        let rows = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'agents.archived.pi.page-'"))
+        XCTAssertLessThan(rows.count, 20, "the lazy shelf built every row")
+        let inside = shelf.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+            .withOffset(CGVector(dx: 0, dy: 100))
+        XCTAssertTrue(until(20) {
+            inside.scroll(byDeltaX: 0, deltaY: -2000)
+            return last.exists
+        }, "the 55th session never came")
+    }
+
+    /// Opens the Agents view and its Archived shelf, which shows all agents; back to the workspaces after the test.
+    private func openArchived() -> XCUIElement {
+        app.typeKey(".", modifierFlags: .command)
+        addTeardownBlock { [app] in app.typeKey(".", modifierFlags: .command) }
+        let shelf = element("agents.shelf.Archived")
+        XCTAssertTrue(shelf.exists(within: 3))
+        if shelf.value as? String == "collapsed" {
+            shelf.click()
+        }
+        XCTAssertTrue(shelf.has(\.stringValue, "expanded", within: 2))
+        // A run that stopped in the middle left another agent picked.
+        let menu = element("agents.archived.filter")
+        if menu.value as? String != "All Agents" {
+            menu.click()
+            menu.menuItems["All Agents"].click()
+        }
+        return shelf
     }
 
     /// The menu shows Pi's sessions only, then all again.
@@ -91,11 +134,13 @@ extension OvviUITests {
         try await waitFor(shell) { $0.contains("ready-42") }
     }
 
-    /// A click on Claude Code's row types its resume line in a new workspace in the folder.
+    /// A click on Claude Code's row types its resume line in a new workspace in the folder. Not where the new pane's
+    /// shell would start a real Claude Code (this Mac); CI's is the stand-in (`OvviUITests.agents`), which only exits.
     private func resumes(_ row: XCUIElement, _ id: String, in folder: String, _ pane: String) async throws {
-        try await send("command -v claude >/dev/null; echo installed-$((6*7))-$?\r", to: pane)
-        try await waitFor(pane) { $0.contains("\ninstalled-42-") }
-        if try await read(pane).contains("\ninstalled-42-0") {
+        try await send("case $(command -v claude) in \(Self.agents)/*) echo stand-$((6*7));; *) echo real-$((6*7));; "
+            + "esac\r", to: pane)
+        try await waitFor(pane) { $0.contains("\nstand-42") || $0.contains("\nreal-42") }
+        if try await read(pane).contains("\nreal-42") {
             throw XCTSkip("this Mac has claude, which the resume would start")
         }
         let before = try await workspaceIDs()

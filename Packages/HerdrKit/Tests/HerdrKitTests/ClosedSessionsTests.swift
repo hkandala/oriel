@@ -78,6 +78,17 @@ private struct Fixture {
     // A UI test's home, not the machine's.
     let elsewhere = ProcessExec(["HOME": "/nonexistent", "PATH": "/usr/bin:/bin"], herdr: nil, asked: .now)
     #expect(try await elsewhere.closedSessions(agent: "claude", offset: 0, home: fixture.home.path) == page)
+
+    // A long transcript: its first lines and its last 256 KB, where the rename is. The Agent SDK's are left out.
+    let filler = #"{"type":"assistant","text":""# + String(repeating: "x", count: 1 << 20) + "\"}\n"
+    let user = #"{"type":"user","message":{"role":"user","content":"long one"},"cwd":"/tmp/d"}"#
+    try fixture.write(".claude/projects/-tmp-d/3d99d1b5-0a47-4595-b86c-4b7c2379f9fa.jsonl", user + "\n" + filler
+        + #"{"type":"custom-title","customTitle":"Long, renamed"}"#, age: 10)
+    try fixture.write(".claude/projects/-tmp-d/4eaae2c6-1b58-46a6-c97d-5c8d3480aa0b.jsonl",
+                      #"{"type":"user","message":{"role":"user","content":"hi"},"cwd":"/tmp/d","entrypoint":"sdk-ts"}"#)
+    let long = try await fixture.exec.closedSessions(agent: "claude", offset: 0)
+    #expect(long.sessions.map(\.title) == ["Long, renamed", "write the docs", "say hi (Branch)"])
+    #expect(long.looked == 4)
 }
 
 @Test func `codex: its state database without subagents, exec runs and empty threads, else its rollouts`(
@@ -143,26 +154,27 @@ private struct Fixture {
     let none = try await bare.closedSessions(agent: "opencode", offset: 0)
     #expect(none.problem == "needs sqlite3")
     #expect(none.sessions.isEmpty && !none.more)
+    try FileManager.default.removeItem(at: fixture.home.appending(path: ".local"))
+    #expect(try await bare.closedSessions(agent: "opencode", offset: 0) == ClosedPage())
 }
 
-@Test func `rows with an unsafe value or no folder are left out, and a cut escape still reads`() {
+@Test func `rows with no value or no folder are left out, and a cut character goes`() {
     let text = #"""
-    {"t":1,"v":"x' or '1'='1","c":"/tmp","n":"bad id"}
+    {"t":1,"v":"","c":"/tmp","n":"no value"}
     {"t":2,"v":"ok-1","c":"","n":"no folder"}
     {"t":3,"v":"ok-2","c":"/tmp","n":"  "}
-    {"t":4,"v":"ok-3","c":"/tmp","n":"fine"}
+    {"t":4,"v":"ok-3","c":"/tmp","n":"caf\ufffd"}
     """#
     let page = ClosedSessions.parse(agent: "claude", text, limit: 4)
-    #expect(page.sessions.map(\.value) == ["ok-3"])
-    #expect(page.more)
-    #expect(ClosedSessions.parse(agent: "pi", #"{"t":1,"v":"rel.jsonl","c":"/tmp","n":"x"}"#, limit: 50).sessions
-        .isEmpty)
+    #expect(page.sessions.map(\.title) == ["caf"])
+    #expect(page.more && page.looked == 4)
 }
 
 @Test func `perl cuts a title inside an escape to whole characters`() async throws {
     let script = ClosedSessions.perl + #" row(1, "v", "/tmp", "ab\\u00e9\\u00"); row(2, "v", "/tmp", "x\\ud83d");"#
+        + #" row(3, "v", "/tmp", "a\\\\u12");"#
     let text = try await localExec.output(["perl", "-e", script])
-    #expect(ClosedSessions.parse(agent: "codex", text, limit: 50).sessions.map(\.title) == ["abé", "x"])
+    #expect(ClosedSessions.parse(agent: "codex", text, limit: 50).sessions.map(\.title) == ["abé", "x", #"a\u12"#])
 }
 
 @Test func `the list shows only as far back as every agent with more pages was read`() {
@@ -197,4 +209,7 @@ private struct Fixture {
         "pi10",
     ])
     #expect(list.agents["codex"]?.looked == 3)
+    // A session that moved up comes again on the next page: once.
+    list.add(page("pi", [95], more: false), for: "pi")
+    #expect(list.sessions(of: ["pi"]).map(\.value) == ["pi95", "pi50", "pi10"])
 }

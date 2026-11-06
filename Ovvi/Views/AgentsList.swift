@@ -93,6 +93,7 @@ struct AgentsList: View {
                 // row's view by its id, so a row moved to another ForEach kept its old one (not pinned).
                 let top = rows(shown.pinned), items = top + rows(shown.live)
                 LazyVStack(alignment: .leading, spacing: 4) {
+                    // Pinned sessions no pane runs, first: not in the live pins' order.
                     ForEach(closed, id: \.key) { pin in
                         ClosedPin(pin: pin, page: page)
                         if pin == closed.last, top.isEmpty {

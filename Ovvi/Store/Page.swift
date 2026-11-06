@@ -69,6 +69,8 @@ final class Page: Identifiable {
     var newest: (id: String, from: String?)?
     /// The Agents view's rows on screen, for ⌥ + swipe (`AgentsList.step`).
     @ObservationIgnored var agentsShown = AgentsList.Arrangement()
+    /// The closed sessions a Resume started, out of Archived (once, before herdr reports them) until it reads anew.
+    var resuming: Set<String> = []
     /// The quick splits' cards before the newest, the latest last: ⌘W closes back through them. Read only with a
     /// newest.
     @ObservationIgnored var splitsBefore: [String] = []

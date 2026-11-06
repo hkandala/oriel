@@ -238,9 +238,6 @@ extension OvviUITests {
     /// its own folder. CI puts both folders on its login shell's PATH.
     static let agents = URL(filePath: #filePath).deletingLastPathComponent().appending(path: "Fixtures/agents").path
 
-    /// The home folder whose agents' stores the Archived shelf reads (`-archivedHome`).
-    static let archivedHome = "/tmp/ovvi-e2e-archived"
-
     /// A config folder of the tests' own: the app installs its default plugins there, never in the user's.
     static let noConfig = ["-configFolder", "/tmp/ovvi-e2e-no-config"]
 

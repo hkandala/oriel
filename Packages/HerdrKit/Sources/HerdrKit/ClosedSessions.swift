@@ -47,7 +47,9 @@ public struct ClosedList: Sendable, Equatable {
 
     public mutating func add(_ page: ClosedPage, for agent: String) {
         var all = agents[agent] ?? ClosedPage()
-        all.sessions += page.sessions
+        // A session that moved up since the page before comes again.
+        let seen = Set(all.sessions.map(\.id))
+        all.sessions += page.sessions.filter { !seen.contains($0.id) }
         (all.more, all.problem, all.looked) = (page.more, page.problem, all.looked + page.looked)
         all.oldest = page.oldest ?? all.oldest
         agents[agent] = all
@@ -73,47 +75,62 @@ public struct ClosedList: Sendable, Equatable {
 
 /// One script per agent, one process for a page of 50, never one per session file (a process costs about 20 ms on a
 /// Mac with endpoint security). `$1` the page's size, `$2` how many newer ones to skip, `$3` the perl prelude. Each
-/// prints a JSON line per
-/// session it looked at, `{"t": seconds, "v": value, "c": folder, "n": title}`, with an empty title for one with no
-/// prompt (left out here, but counted, so a page of noise still has a next one). pi and Claude Code keep a JSONL file
-/// a session, newest by its modification time; their strings are cut from the JSON as they are (still escaped), so
-/// perl decodes nothing. Codex and OpenCode keep an SQLite index, sorted on its own index. Only reads.
+/// prints a JSON line per session it looked at, `{"t": seconds, "v": value, "c": folder, "n": title}`, with an empty
+/// title for one with no prompt (left out here, but counted, so a page of noise still has a next one). pi and Claude
+/// Code keep a JSONL file a session, newest by its modification time; their strings are cut from the JSON as they are
+/// (still escaped), so perl decodes nothing. Codex and OpenCode keep an SQLite index, sorted on its own index. Only
+/// reads.
+/// ponytail: pages are offsets into lists that change while the shelf is open: a session that moves to the top shifts
+/// the next page (`ClosedList.add` drops the repeat), and one deleted between pages hides one row until a new open.
 enum ClosedSessions {
-    /// Prints a line; a string cut inside a `\u` escape or a surrogate pair loses the part.
+    /// `cut`: a string cut inside a `\u` escape or a surrogate pair loses the part. `tail`: past a file's first lines,
+    /// on to its last 256 KB at a line's start, where the agents append their titles (a transcript can be 100 MB).
     static let perl = #"""
-    sub cut { my $s = shift // ""; $s =~ s/\\u[0-9a-fA-F]{0,3}$//; $s =~ s/\\u[dD][89abAB][0-9a-fA-F]{2}$//; $s }
+    use File::Glob ':bsd_glob';
+    sub cut { my $s = shift // ""; $s =~ s/(?<!\\)((?:\\\\)*)\\u[0-9a-fA-F]{0,3}$/$1/;
+      $s =~ s/(?<!\\)((?:\\\\)*)\\u[dD][89abAB][0-9a-fA-F]{2}$/$1/; $s }
     sub row { my ($t, $v, $c, $n) = @_; $v =~ s/(["\\])/\\$1/g;
       print qq({"t":$t,"v":"$v","c":"), cut($c), qq(","n":"), cut($n), qq("}\n) }
     sub newest { my ($n, $k, @f) = @_; @f = sort { $b->[1] <=> $a->[1] } map { [$_, (stat)[9]] } @f;
       $k > $#f ? () : @f[$k .. ($k + $n - 1 > $#f ? $#f : $k + $n - 1)] }
+    sub tail { my $h = shift; if (-s $h > tell($h) + 262144) { seek $h, -262144, 2; <$h> } }
     my $S = qr/((?:[^"\\]|\\.){0,300})/;
     """#
 
     static let scripts = [
-        // Line 1 holds the folder; the title is the last `/name` (anywhere in the file), else the first prompt.
+        // Line 1 holds the folder, the next 40 the first prompt; the title is the last `/name`, else the first prompt.
         "pi": #"""
         perl -e "$3"'
         for (newest(@ARGV, glob("$ENV{HOME}/.pi/agent/sessions/*/*.jsonl"))) { my ($p, $m) = @$_;
-          open my $h, "<", $p; my $l = <$h> // ""; my ($c) = $l =~ /"cwd":"((?:[^"\\]|\\.)*)"/; my ($u, $s) = ("", "");
-          while (<$h>) { $u = $2 if $u eq "" && /"message":\{"role":"user","content":(\[\{"type":"text","text":)?"$S/;
-            $s = $1 if index($_, q({"type":"session_info")) == 0 && /"name":"$S"/ }
+          open my $h, "<", $p; my $l = <$h> // ""; my ($c) = $l =~ /"cwd":"((?:[^"\\]|\\.)*)"/;
+          my ($u, $s, $i) = ("", "", 0);
+          my $name = sub { $s = $1 if index($_, q({"type":"session_info")) == 0 && /"name":"$S"/ };
+          while ($i++ < 40 && defined($_ = <$h>)) { $name->();
+            $u = $2 if $u eq "" && /"message":\{"role":"user","content":(\[\{"type":"text","text":)?"$S/ }
+          tail($h); while (<$h>) { $name->() }
           row($m, $p, $c, $s ne "" ? $s : $u) }' "$1" "$2"
         """#,
-        // The id is the file's name; the title the last `/rename`, else Claude Code's own, else the first typed prompt
-        // (not its commands' wrappers, which start with `<`).
+        // The id is the file's name; the folder and the first typed prompt (not its commands' wrappers, which start
+        // with `<`) in the first 100 lines; the title the last `/rename`, else Claude Code's own, else the prompt. Left
+        // out: the Agent SDK's sessions, as Codex's exec runs.
         "claude": #"""
         perl -e "$3"'
         for (newest(@ARGV, glob("$ENV{HOME}/.claude/projects/*/*.jsonl"))) { my ($p, $m) = @$_;
-          my ($id) = $p =~ m{([^/]+)\.jsonl$}; open my $h, "<", $p; my ($c, $u, $a, $r) = ("", "", "", "");
-          while (<$h>) { $c = $1 if $c eq "" && /"cwd":"((?:[^"\\]|\\.)*)"/;
-            $r = $1 if /^\{"type":"custom-title","customTitle":"$S/; $a = $1 if /^\{"type":"ai-title","aiTitle":"$S/;
-            $u = $2 if $u eq "" && !/"isMeta":true/
+          my ($id) = $p =~ m{([^/]+)\.jsonl$}; open my $h, "<", $p;
+          my ($c, $u, $a, $r, $sdk, $i) = ("", "", "", "", 0, 0);
+          my $title = sub { $r = $1 if /^\{"type":"custom-title","customTitle":"$S/;
+            $a = $1 if /^\{"type":"ai-title","aiTitle":"$S/ };
+          while ($i++ < 100 && defined($_ = <$h>)) { $title->(); $c = $1 if $c eq "" && /"cwd":"((?:[^"\\]|\\.)*)"/;
+            $sdk ||= /"entrypoint":"sdk-/; $u = $2 if $u eq "" && !/"isMeta":true/
               && /"message":\{"role":"user","content":(\[\{"type":"text","text":)?"(?!<)$S/ }
-          row($m, $id, $c, $r || $a || $u) }' "$1" "$2"
+          tail($h); while (<$h>) { $title->() }
+          row($m, $id, $c, $sdk ? "" : $r || $a || $u) }' "$1" "$2"
         """#,
         // The newest state database (its number is a schema version). Left out: subagents, `codex exec` runs and
         // empty threads. With no sqlite3, or a schema without these columns: the rollout files, whose line 1 holds the
         // id and folder, with the name from `session_index.jsonl`, else the first prompt.
+        // ponytail: a database busy past its 1 s for one page reads that page from the rollouts, whose offsets count
+        // files: the pages mix two lists (the repeats are dropped).
         "codex": #"""
         d=$(ls -t "$HOME"/.codex/state_*.sqlite | head -n 1)
         [ -n "$d" ] && sqlite3 -readonly -cmd '.timeout 1000' "$d" "select json_object('t', recency_at_ms / 1000,
@@ -133,9 +150,10 @@ enum ClosedSessions {
         """#,
         // Left out: child sessions (a task's), archived ones, and OpenCode's placeholder titles (no prompt yet).
         "opencode": #"""
+        d=${XDG_DATA_HOME:-$HOME/.local/share}/opencode/opencode.db; [ -e "$d" ] || exit
         command -v sqlite3 >/dev/null || { echo '{"problem":"needs sqlite3"}'; exit; }
-        sqlite3 -readonly -cmd '.timeout 1000' "${XDG_DATA_HOME:-$HOME/.local/share}/opencode/opencode.db" "select
-          json_object('t', time_updated / 1000, 'v', id, 'c', directory, 'n', substr(title, 1, 300)) from session
+        sqlite3 -readonly -cmd '.timeout 1000' "$d" "select json_object('t', time_updated / 1000, 'v', id,
+          'c', directory, 'n', substr(title, 1, 300)) from session
           where parent_id is null and time_archived is null and title not like 'New session - %'
           order by time_updated desc limit $1 offset $2"
         """#,
@@ -152,7 +170,7 @@ enum ClosedSessions {
             page.problem = object["problem"] as? String ?? page.problem
             guard let time = object["t"] as? Double else { continue }
             page.oldest = min(page.oldest ?? .distantFuture, Date(timeIntervalSince1970: time))
-            guard let value = object["v"] as? String, valid(agent, value),
+            guard let value = object["v"] as? String, !value.isEmpty,
                   let folder = object["c"] as? String, folder.hasPrefix("/"),
                   let title = (object["n"] as? String).flatMap(clean) else { continue }
             page.sessions.append(ClosedSession(agent: agent, value: value, title: title, folder: folder,
@@ -166,17 +184,9 @@ enum ClosedSessions {
     /// One line, no control characters, at most 200 characters; nil when nothing is left.
     static func clean(_ text: String) -> String? {
         let line = text.map { $0.isNewline || $0 == "\t" ? " " : $0 }.filter { !$0.isControl }
-        let clean = String(line).trimmingCharacters(in: .whitespaces).prefix(200)
+        // A 300-byte cut can end inside a character.
+        let clean = String(line).trimmingCharacters(in: .whitespaces.union(["\u{FFFD}"])).prefix(200)
         return clean.isEmpty ? nil : String(clean)
-    }
-
-    /// A value as herdr gives `agent_session`'s: pi's an absolute path, the others' letters, digits, `-` and `_` only
-    /// (they go into OpenCode's SQL and Claude Code's file name, and every one into a typed line).
-    static func valid(_ agent: String, _ value: String) -> Bool {
-        if agent == "pi" {
-            return value.hasPrefix("/")
-        }
-        return !value.isEmpty && value.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || "-_".contains($0)) }
     }
 }
 
@@ -186,8 +196,9 @@ public extension Exec {
     /// `home`: the stores' home folder, for UI tests (never the user's).
     func closedSessions(agent: String, offset: Int, limit: Int = 50, home: String? = nil) async throws -> ClosedPage {
         guard let script = ClosedSessions.scripts[agent] else { return ClosedPage() }
-        let text = try await output(["sh", "-c", "{ [ -z \"$4\" ] || HOME=$4\n\(script)\n} 2>/dev/null", "sh",
-                                     "\(limit)", "\(offset)", ClosedSessions.perl, home ?? ""])
+        let reset = "[ -z \"$4\" ] || { HOME=$4; unset XDG_DATA_HOME; }"
+        let text = try await output(["sh", "-c", "{ \(reset)\n\(script)\n} 2>/dev/null", "sh", "\(limit)", "\(offset)",
+                                     ClosedSessions.perl, home ?? ""])
         return ClosedSessions.parse(agent: agent, text, limit: limit)
     }
 }
