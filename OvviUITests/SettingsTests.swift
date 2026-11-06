@@ -223,26 +223,29 @@ extension OvviUITests {
     /// Privacy shows with no approved website; a typed address adds its origin (https when it has no scheme), a
     /// non-address adds nothing, and Remove takes it off. On a test machine: the approvals are the user's defaults.
     func testSettingsPrivacyAddsAndRemovesAWebsite() {
-        let machines = #"[{"id":"e2e-p1","name":"privbox","target":"ovvi-e2e@localhost","icon":"server.rack"}]"#
+        // A machine of this run's own: a failed run's site stays under its key, not the next run's.
+        let id = "e2e-p\(Int.random(in: 100_000 ... 999_999))"
+        let machines = #"[{"id":""#
+            + id + #"","name":"privbox","target":"ovvi-e2e@localhost","icon":"server.rack"}]"#
         relaunch(one, ["-machines", machines])
         XCTAssertTrue(element("terminal.w1:p1").exists(within: connect))
         openSettings("privacy")
-        XCTAssertTrue(element("settings.privacy.e2e-p1.empty", in: settingsWindow).exists(within: 3))
-        let field = element("settings.privacy.e2e-p1.field", in: settingsWindow)
-        let add = element("settings.privacy.e2e-p1.add", in: settingsWindow)
+        XCTAssertTrue(element("settings.privacy.\(id).empty", in: settingsWindow).exists(within: 3))
+        let field = element("settings.privacy.\(id).field", in: settingsWindow)
+        let add = element("settings.privacy.\(id).add", in: settingsWindow)
         field.click()
         field.typeText("not an address")
         XCTAssertFalse(add.isEnabled, "Add takes a non-address")
         field.typeKey("a", modifierFlags: .command)
         field.typeText("example.com\r")
-        let remove = element("settings.privacy.e2e-p1.https://example.com.remove", in: settingsWindow)
+        let remove = element("settings.privacy.\(id).https://example.com.remove", in: settingsWindow)
         XCTAssertTrue(remove.exists(within: 3), "no row for https://example.com")
-        XCTAssertFalse(element("settings.privacy.e2e-p1.empty", in: settingsWindow).exists)
+        XCTAssertFalse(element("settings.privacy.\(id).empty", in: settingsWindow).exists)
         // Away and back: the page stays in the sidebar with the site; then Remove empties it again.
         openSettings("general")
         openSettings("privacy")
         remove.click()
-        XCTAssertTrue(element("settings.privacy.e2e-p1.empty", in: settingsWindow).exists(within: 3))
+        XCTAssertTrue(element("settings.privacy.\(id).empty", in: settingsWindow).exists(within: 3))
         openSettings("general")
         XCTAssertTrue(element("settings.page.privacy", in: settingsWindow).exists, "Privacy left the sidebar")
     }

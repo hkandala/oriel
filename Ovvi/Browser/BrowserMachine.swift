@@ -10,8 +10,9 @@ extension Browser {
     static let safe = ["github.com", "gitlab.com", "bitbucket.org", "developer.apple.com",
                        "developer.mozilla.org", "docs.github.com", "vercel.com"]
 
+    /// In lowercase, as WebKit gives a page's address: a typed `Example.COM` matches it.
     static func origin(_ url: URL) -> String {
-        "\(url.scheme ?? "")://\(url.host ?? "")" + (url.port.map { ":\($0)" } ?? "")
+        ("\(url.scheme ?? "")://\(url.host ?? "")" + (url.port.map { ":\($0)" } ?? "")).lowercased()
     }
 
     /// `http`, `https`, and `file` on This Mac only; at most 1024 characters (the label's argument).

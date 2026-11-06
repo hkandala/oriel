@@ -349,7 +349,8 @@ The user's words: "so couple of things i notced with settings window:
   `PrivacyPage.hasItems` are gone, and the browser's page always links to Privacy.
 - **Decisions.** A typed site with no scheme is `https` (`http` for a loopback name): the address bar's own default
   (`http`) would approve an origin that an `https` page never matches. The field adds the origin, not the path, the
-  newest 200 as the browser keeps them.
+  newest 200 as the browser keeps them, in lowercase (`Browser.origin`), as WebKit gives a page's address. An emptied
+  list leaves no key. The test uses a machine id of its own run: the approvals are the user's defaults.
 - **Icons.** Five options rendered with ImageRenderer from a copy of `SettingsIcon` and the row layout (no window):
   `/tmp/ovvi-shots/settings-polish/icons/options-2.png`. System Settings' glyphs fill 70–80 % of its 20 pt tiles
   (measured); the 11 pt glyph filled about 55 %. **Fix:** 14 pt semibold in pure white, about 70 %, in the sidebar and

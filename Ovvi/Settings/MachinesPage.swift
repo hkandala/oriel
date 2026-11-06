@@ -79,7 +79,8 @@ struct PrivacyPage: View {
                 Section {
                     ForEach(sites, id: \.self) { site in
                         LabeledContent(site) {
-                            Button("Remove") { set(sites.filter { $0 != site }, machine) }
+                            // The list as it is now: a card may have approved a site since this drew.
+                            Button("Remove") { set(Browser.approvals(machine).filter { $0 != site }, machine) }
                                 .accessibilityIdentifier("settings.privacy.\(machine.id).\(site).remove")
                         }
                     }
@@ -88,7 +89,7 @@ struct PrivacyPage: View {
                             .accessibilityIdentifier("settings.privacy.\(machine.id).empty")
                     }
                     AddSite(machine: machine) { site in
-                        set(Array((sites.filter { $0 != site } + [site]).suffix(200)), machine)
+                        set(Array((Browser.approvals(machine).filter { $0 != site } + [site]).suffix(200)), machine)
                     }
                 } header: {
                     HStack {
@@ -108,8 +109,14 @@ struct PrivacyPage: View {
         }
     }
 
+    /// An empty list leaves no key behind.
     private func set(_ sites: [String], _ machine: Machine) {
-        UserDefaults.standard.set(sites, forKey: "browserApprovals.\(machine.id)")
+        let key = "browserApprovals.\(machine.id)"
+        if sites.isEmpty {
+            UserDefaults.standard.removeObject(forKey: key)
+        } else {
+            UserDefaults.standard.set(sites, forKey: key)
+        }
         version += 1
     }
 }
@@ -123,7 +130,7 @@ private struct AddSite: View {
 
     private var origin: String? {
         let typed = text.trimmingCharacters(in: .whitespaces)
-        let host = typed.split(separator: "/").first?.split(separator: ":").first.map(String.init)?.lowercased() ?? ""
+        let host = URL(string: "http://\(typed)")?.host?.lowercased() ?? ""
         let loopback = Browser.loopback.contains(host) || host.hasSuffix(".localhost")
         let full = typed.contains("://") ? typed : (loopback ? "http://" : "https://") + typed
         return Browser.url(full, local: false).map(Browser.origin)
