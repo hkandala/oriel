@@ -34,7 +34,7 @@ struct Ahead {
     /// A workspace's tabs in the order a drop or a move asked for, until a snapshot has herdr's: the bar shows it
     /// at once, never the old order between.
     var order: NewOrder?
-    /// The workspaces so, for the sidebar's rows.
+    /// The workspaces in the order a drop or a move asked for, the same way: the sidebar shows it at once.
     var rows: NewOrder?
     /// New tabs that open right after a tab, oldest first (`Beside`).
     var beside: [Beside] = []

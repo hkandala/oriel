@@ -229,13 +229,16 @@ extension OvviUITests {
         XCTAssertEqual(workspace(of: tab), made)
         XCTAssertTrue(element("tab.\(tab)").has(\.isSelected, true, within: 3))
 
-        // Last; Move Up puts it before beta in herdr's order.
+        // Last; Move Up puts it before beta, in the sidebar before herdr answers (its server stopped), then in herdr.
         row.rightClick()
         XCTAssertFalse(app.menuItems["Move Down"].isEnabled)
+        addTeardownBlock { [one] in _ = try? await Self.post("\(one)/resume") }
+        _ = try await Self.post("\(one)/pause")
         app.menuItems["Move Up"].click()
+        let moved = until(3) { row.frame.maxY <= element("workspace.w2").frame.minY }
+        _ = try await Self.post("\(one)/resume")
+        XCTAssertTrue(moved, "the row waited for herdr")
         try await expect("herdr's order") { try await workspaceIDs().suffix(2) == [made, "w2"] }
-        // The sidebar shows the new order before the next move.
-        XCTAssertTrue(until(3) { row.frame.maxY <= element("workspace.w2").frame.minY })
         row.rightClick()
         app.menuItems["Move Down"].click()
         try await expect("herdr's order back") { try await workspaceIDs().last == made }

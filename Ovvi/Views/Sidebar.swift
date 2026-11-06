@@ -172,13 +172,6 @@ private struct SidebarPage: View {
                                          ends: (groups.first?.first?.id, groups.last?.first?.id),
                                          keycap: hints ? page.sidebarWorkspaces.prefix(9)
                                              .firstIndex { $0.id == id }.map { $0 + 1 } : nil)
-                                .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("rows")) } action: {
-                                    if page.dragging == nil {
-                                        frames[id] = $0
-                                    }
-                                }
-                                // Hidden by the filter or closed: no stale target.
-                                .onDisappear { frames[id] = nil }
                                 .overlay {
                                     if drop.over == id, page.dragging != nil {
                                         DropIndicator()
@@ -187,6 +180,12 @@ private struct SidebarPage: View {
                                 .opacity(page.lifted == .workspace(id) ? 0.4 : 1)
                                 .offset(y: rowsDrop.shift(id))
                                 .lands(id, landing, axis: .vertical)
+                                // Its place in the list, outside the drag's slide and the drop's glide.
+                                .onGeometryChange(for: CGRect.self) { $0.frame(in: .named("rows")) } action: {
+                                    frames[id] = $0
+                                }
+                                // Hidden by the filter or closed: no stale target.
+                                .onDisappear { frames[id] = nil }
                                 .background { Color.clear.id("into view \(id)").padding(.vertical, -18) }
                         }
                         if drop.ghost, page.dragging != nil {
