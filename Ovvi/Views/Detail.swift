@@ -113,10 +113,8 @@ struct Detail: View {
                 .accessibilityIdentifier("new-tab")
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                // As the tab bar's marker: the first tab until a snapshot settles the selection. A view of its own
-                // per tab: a shared one would carry its cards' places into the next tab's.
-                let tab = workspace.tabs[page.selectedIndex(in: workspace)]
-                TabPage(tab: tab, page: page).id("\(page.id) \(tab.id)")
+                // As the tab bar's marker: the first tab until a snapshot settles the selection.
+                TabPages(tab: workspace.tabs[page.selectedIndex(in: workspace)], page: page).id(page.id)
             }
         } else if page.store.state == .live {
             // Not while it reconnects before its first snapshot.
@@ -191,6 +189,42 @@ struct Detail: View {
             }
         }
     }
+}
+
+/// The selected tab's page over the pages of the tabs shown last, which stay made, hidden: a switch to one of them
+/// shows it as it was, with nothing built again (a chat's rows, its scroll place, a web card in the window). A view of
+/// its own per tab: a shared one would carry its cards' places into the next tab's.
+private struct TabPages: View {
+    let tab: HostStore.Tab
+    let page: Page
+    /// The tabs shown before, the latest last.
+    @State private var shown: [String] = []
+    /// ponytail: a fixed count; a kept page costs its cards' updates while hidden. Bound by the cards' cost if a
+    /// session of heavy tabs needs more.
+    static let kept = 8
+
+    var body: some View {
+        let recent = (shown.filter { $0 != tab.id } + [tab.id]).suffix(Self.kept)
+        // In herdr's order, which a switch does not change: a moved page would host its cards' views again.
+        let tabs = page.store.workspaces.flatMap(\.tabs).filter { recent.contains($0.id) }
+        ZStack {
+            ForEach(tabs.contains { $0 === tab } ? tabs : tabs + [tab]) { kept in
+                let selected = kept === tab
+                TabPage(tab: kept, page: page)
+                    .opacity(selected ? 1 : 0)
+                    .allowsHitTesting(selected)
+                    .accessibilityHidden(!selected)
+                    .zIndex(selected ? 1 : 0)
+                    .environment(\.pageHidden, !selected)
+            }
+        }
+        .onChange(of: tab.id, initial: true) { shown = Array(recent) }
+    }
+}
+
+extension EnvironmentValues {
+    /// In a kept tab's page out of view (`TabPages`).
+    @Entry var pageHidden = false
 }
 
 /// A spinner and one line, after `delay`.

@@ -20,7 +20,8 @@ struct TerminalHost: NSViewRepresentable {
         return host
     }
 
-    func updateNSView(_ host: SettlingHost, context _: Context) {
+    func updateNSView(_ host: SettlingHost, context: Context) {
+        host.hide(context.environment.pageHidden)
         // A new pane's chooser hid it (ui/new-pane): it fades in as the chooser fades out.
         if host.alphaValue == 0, alpha > 0,
            !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion || Animation.forceMotion

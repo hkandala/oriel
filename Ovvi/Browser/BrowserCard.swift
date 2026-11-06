@@ -189,7 +189,9 @@ struct WebHost: NSViewRepresentable {
         return host
     }
 
-    func updateNSView(_: SettlingHost, context _: Context) {}
+    func updateNSView(_ host: SettlingHost, context: Context) {
+        host.hide(context.environment.pageHidden)
+    }
 }
 
 /// The card header's second row.

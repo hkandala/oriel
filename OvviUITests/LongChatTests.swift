@@ -69,35 +69,6 @@ extension OvviUITests {
         XCTAssertTrue(until(10) { last.exists && last.isHittable })
     }
 
-    /// A chat of long replies builds only its newest rows, about two views of text, not 34 rows (item 40): every show
-    /// of the card lays out each row it builds again. Rows Show Earlier added go with a switch away: the show after it
-    /// builds the newest block again. The stack builds every row it holds, so the rows in its tree are the rows built.
-    func testASwitchToALongChatBuildsOnlyItsNewestRows() async throws {
-        let pane = try await startChat().pane
-        // 12 turns of 31 or 32 paragraphs each: about 50 rows, each reply 85 lines or more.
-        app.typeText("many 12 30\r")
-        let last = row(pane, "reply", "Last.")
-        XCTAssertTrue(until(10) { last.exists && last.isHittable })
-        let chat = element("chat.\(pane)"), earlier = element("chat.\(pane).earlier")
-        let kinds = ["user", "reply", "stack", "worked"].map { "chat.\(pane).\($0)" }
-        let rows = { try self.nodes(of: chat).count { kinds.contains($0.identifier) } }
-        // The last two replies hold 120 lines: 7 rows with the rows between them. 34 before.
-        XCTAssertLessThanOrEqual(try rows(), 10)
-        for _ in 0 ..< 5 where !earlier.isHittable {
-            chat.scroll(byDeltaX: 0, deltaY: 5000)
-        }
-        earlier.click()
-        XCTAssertTrue(until(3) { (try? rows()) ?? 0 > 10 })
-        element("workspace.w1").click()
-        XCTAssertTrue(last.vanishes(within: 3))
-        element("workspace.w2").click()
-        XCTAssertTrue(until(5) { last.exists && last.isHittable })
-        let shown = try rows()
-        XCTAssertLessThanOrEqual(shown, 10)
-        XCTAssertGreaterThanOrEqual(shown, 4)
-        XCTAssertTrue(earlier.exists)
-    }
-
     /// A long chat shows its newest rows under Show Earlier, in its own row, which adds the rows before them without
     /// moving what is in view, until the first message; they stay back at the bottom.
     func testALongChatShowsEarlierRowsInPlace() async throws {
@@ -239,7 +210,7 @@ extension OvviUITests {
     }
 
     /// The values of the replies' blocks and the user's messages along the top 100 pt of the chat, from one snapshot.
-    private func atTop(of chat: XCUIElement, _ pane: String) -> Set<String> {
+    func atTop(of chat: XCUIElement, _ pane: String) -> Set<String> {
         guard let found = try? nodes(of: chat) else { return [] }
         let kinds = ["chat.\(pane).reply", "chat.\(pane).user"], top = found[0].frame.minY
         return Set(found.compactMap { node in
@@ -249,7 +220,7 @@ extension OvviUITests {
     }
 
     /// The element and everything under it, from one snapshot: the element first.
-    private func nodes(of element: XCUIElement) throws -> [XCUIElementSnapshot] {
+    func nodes(of element: XCUIElement) throws -> [XCUIElementSnapshot] {
         var queue = try [element.snapshot()], nodes: [XCUIElementSnapshot] = []
         while let node = queue.popLast() {
             queue += node.children

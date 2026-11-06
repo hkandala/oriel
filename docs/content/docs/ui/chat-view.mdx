@@ -421,10 +421,12 @@ A run is one quiet line with no card: its summary and a chevron.
   break counts as a line, and so does each 90 characters of text. A tool
   row, Worked or a note counts as 2 lines, and a plan as its items plus 1.
   120 lines are about two views of text, so the block fills a usual view.
-  Each time the card shows (a switch to its tab or workspace), the app
-  builds the block and lays it out again, so the block's size is the cost
-  of the switch. (34 rows of long replies took 394 ms of the main thread
-  on a switch; 120 lines take about 124 ms, and a terminal tab 34 ms.)
+  When the card is made (its tab first shows, or shows again after its
+  page left the [kept pages](/docs/ui/window#tab-page)), the app builds the
+  block and lays it out, so the block's size is the cost of that show.
+  (34 rows of long replies took 394 ms of the main thread; 120 lines take
+  about 124 ms, and a terminal tab 34 ms.) A switch to a kept page builds
+  nothing.
 - **The bottom.** One rule holds the bottom: the scroll view's bottom
   anchor (SwiftUI's `defaultScrollAnchor(.bottom)`). The chat opens at the
   bottom. Exactly at the bottom, it stays there as messages come and as the
@@ -434,10 +436,11 @@ A run is one quiet line with no card: its summary and a chevron.
   moves the messages exactly as far as the fingers.
 - **Rows stay.** At the bottom the stack shows the newest block. Once the
   chat leaves the exact bottom, the oldest row shown is fixed: new rows no
-  longer take rows off the top. The rows stay shown until the card leaves
-  view (it closes, or another tab or workspace shows) or shows its TUI, or
-  a new chat starts. When the card shows again, it shows the newest block
-  at the bottom.
+  longer take rows off the top. The rows stay shown until the card closes
+  or shows its TUI, or a new chat starts. A switch to another tab or
+  workspace and back keeps them and the scroll place (its page is kept),
+  and while its page is kept the chat goes on following its transcript.
+  When the card is made again, it shows the newest block at the bottom.
 - **The place on the top row.** Scrolled up, the app knows the row at the
   top of the view and how far the view's top is into it. When the rows
   above that row change height (a new width) or come (Show Earlier), the

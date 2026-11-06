@@ -2,9 +2,14 @@ import HerdrKit
 import SwiftUI
 
 extension Page {
-    /// The pane's browser or plugin card, made on first use.
-    func cards(_ pane: HostStore.Pane?) -> (Browser?, Plugin?) {
-        (pane.flatMap(browser), pane.flatMap(plugin))
+    /// The pane's browser or plugin card, made on first use; `make` false: only one made before (a kept page out of
+    /// view must not make again a card the registry dropped).
+    func cards(_ pane: HostStore.Pane?, make: Bool = true) -> (Browser?, Plugin?) {
+        guard make else {
+            let id = pane?.terminalID ?? ""
+            return (terminals.built(id), terminals.builtPlugin(id))
+        }
+        return (pane.flatMap(browser), pane.flatMap(plugin))
     }
 
     /// A browser's, a plugin's or an agent's card has a second header row; a terminal's, a floated or a choosing one
@@ -46,12 +51,12 @@ struct ChatProbe: NSViewRepresentable {
     let terminalID: String
     let registry: PaneViewRegistry
 
-    func makeNSView(context _: Context) -> NSView {
-        let probe = NSView()
+    func makeNSView(context _: Context) -> Probe {
+        let probe = Probe()
         registry.chatViews[terminalID] = { [weak probe] in
-            // Not one already out of view: a blank picture would replace a good one.
-            guard let probe, let root = probe.window?.contentView?.superview?.layer, !probe.visibleRect.isEmpty,
-                  probe.window != nil else { return nil }
+            // Not one already out of view: a blank picture, or the page over it, would replace a good one.
+            guard let probe, !probe.outOfView, let root = probe.window?.contentView?.superview?.layer,
+                  !probe.visibleRect.isEmpty, probe.window != nil else { return nil }
             // At 1x, as web cards' pictures.
             let rect = probe.convert(probe.bounds, to: nil), scale = 1.0
             let size = CGSize(width: rect.width * scale, height: rect.height * scale)
@@ -62,7 +67,9 @@ struct ChatProbe: NSViewRepresentable {
             context.scaleBy(x: scale, y: scale)
             // The deepest layer that holds the chat's place (its rows, under 1 ms), not the window's (120 ms).
             var layer = root, area = rect
-            while let next = layer.sublayers?.last(where: { !$0.isHidden && $0.frame.contains(area) }) {
+            while let next = layer.sublayers?
+                .last(where: { !$0.isHidden && $0.opacity > 0 && $0.frame.contains(area) })
+            {
                 area = next.convert(area, from: layer)
                 layer = next
             }
@@ -78,7 +85,43 @@ struct ChatProbe: NSViewRepresentable {
         return probe
     }
 
-    func updateNSView(_: NSView, context _: Context) {}
+    func updateNSView(_ probe: Probe, context: Context) {
+        probe.outOfView = context.environment.pageHidden
+    }
+
+    final class Probe: NSView {
+        /// In a kept page out of view (`TabPages`).
+        var outOfView = false
+    }
+}
+
+/// A floated pane's card in its tab, under its header: a line that says where the pane is, Show Window, which
+/// brings its window to the front, and Bring Back Here, which detaches it into this card with the keyboard.
+struct FloatedPlaceholder: View {
+    let page: Page
+    let pane: HostStore.Pane
+
+    var body: some View {
+        VStack(spacing: 12) {
+            Text("This pane is open in a floating window.").foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .accessibilityIdentifier("pane.\(pane.id).floating")
+            HStack(spacing: gap) {
+                Button("Show Window") { page.float(pane) }
+                    .accessibilityIdentifier("pane.\(pane.id).show")
+                Button("Bring Back Here") {
+                    if let terminalID = pane.terminalID {
+                        page.floating[terminalID] = nil
+                    }
+                    page.go(to: pane)
+                }
+                .accessibilityIdentifier("pane.\(pane.id).back")
+            }
+            .buttonStyle(.glass)
+        }
+        .padding(gap)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
 }
 
 /// The keyboard card's border (ui/window), also on a card alone, at once: no fade as the keyboard moves.

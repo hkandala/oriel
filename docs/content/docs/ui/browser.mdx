@@ -167,9 +167,11 @@ server's terminal.
 
 ## Pictures and switches
 
-A tab shown again puts its kept web views back into the window as they are:
-recorded at 60 fps, WebKit draws no blank frame on such a switch, so nothing
-covers the page. Each web card (a browser's or a plugin's) keeps a picture of
+A kept tab's page ([Tab page](/docs/ui/window#tab-page)) keeps its web views
+in the window, hidden, and a switch to it shows them. A tab whose page was
+not kept puts its kept web views back into the window as they are: recorded
+at 60 fps, WebKit draws no blank frame on such a switch, so nothing covers
+the page. Each web card (a browser's or a plugin's) keeps a picture of
 its page, for its overview tile and for a card made again:
 
 - **Taken** as the card leaves view, and for the cards in view as the

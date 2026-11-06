@@ -61,4 +61,14 @@ final class SettlingHost: NSView {
         (view as? PaneSurfaceView)?.terminal?.hold()
         view.frame = bounds
     }
+
+    /// Hidden in a kept page out of view (`TabPages`): no mouse moves, cursor or hover reach its view. The keyboard
+    /// leaves it first, to the window: AppKit would hand it to the next key view, which would claim it.
+    func hide(_ hidden: Bool) {
+        guard hidden != isHidden else { return }
+        if hidden, let window, let responder = window.firstResponder as? NSView, responder.isDescendant(of: self) {
+            window.makeFirstResponder(nil)
+        }
+        isHidden = hidden
+    }
 }

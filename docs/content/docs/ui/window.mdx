@@ -483,6 +483,13 @@ tab at once.
 
 - The window shows the selected tab's page, full width, and only it. A switch
   replaces it at once (D12).
+- **Kept pages.** The pages of the 8 tabs shown last, over all the session's
+  workspaces, stay made under the shown one, hidden. A switch to one of them
+  shows it as it was and builds nothing: a chat keeps its rows (Show Earlier's
+  too) and its scroll place, and a web card stays in the window. In a hidden
+  page the terminal and web views are hidden too, so no mouse move, cursor or
+  hover reaches them, and they give up the keyboard. A tab past the 8, a
+  session switch or the overview makes its page again.
 - When the page's size changes (the sidebar, the window), the selected
   workspace's other tabs' kept terminals take their card's new size once it
   settles, while hidden, as Ghostty's hidden tabs do: their programs hear of it

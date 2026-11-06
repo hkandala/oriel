@@ -19,7 +19,7 @@ struct ChatMessages: View, Equatable {
     @State private var width: CGFloat?
     @State private var settling: Task<Void, Never>?
     /// The oldest row shown, kept once the chat left the bottom or Show Earlier moved it up, until the card shows its
-    /// TUI, leaves view or a new chat starts; nil: the newest rows (`start`).
+    /// TUI, is made again or a new chat starts; nil: the newest rows (`start`).
     @State private var first: String?
     /// Show Earlier's rows are on their way: its spinner shows.
     @State private var earlier = false
@@ -30,8 +30,8 @@ struct ChatMessages: View, Equatable {
     private static let end = "end"
     fileprivate nonisolated static let space = "chat.messages"
     /// The rows a long chat shows at a time, and Show Earlier adds: the newest rows that hold about `budget` lines of
-    /// text (about two views), at most `block` rows. Every show of the card (a tab or workspace switch to it) builds
-    /// and lays them out again: 31 rows of long replies, 383 Markdown blocks, took 394 ms of main thread, and 120 lines
+    /// text (about two views), at most `block` rows. Each time the card is made (its tab's page was not kept) it builds
+    /// and lays them out: 31 rows of long replies, 383 Markdown blocks, took 394 ms of main thread, and 120 lines
     /// (5 rows) 124 ms, against 34 ms for a terminal tab. A split lays them out once, at its end: 40 rows of long
     /// replies took one frame of 40–50 ms, 100 rows one of 110–160 ms.
     private static let block = 34

@@ -18,6 +18,8 @@ struct PaneCard: View {
     @State private var size = CGSize.zero
     @Environment(\.appearsActive) private var active
     @Environment(\.look) private var look
+    /// In a kept page out of view (`TabPages`).
+    @Environment(\.pageHidden) private var hidden
     private var settings = AppSettings()
 
     var body: some View {
@@ -39,7 +41,7 @@ struct PaneCard: View {
         // The watching window's dim (D66), on the header and the terminal.
         let content = page.watched ? 0.85 : 1
         // A new pane's chooser hides its terminal (ui/new-pane).
-        let chooser = store.chooser(id), (browser, plugin) = page.cards(pane)
+        let chooser = store.chooser(id), (browser, plugin) = page.cards(pane, make: !hidden)
         // An agent Ovvi started with its flags: its chat or its terminal (ui/chat-view).
         let chat = chooser == nil && !floated ? pane.flatMap(page.store.chat) : nil
         VStack(spacing: 0) {
@@ -107,8 +109,14 @@ struct PaneCard: View {
         // was a header-high band.
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         // As the card shows: what runs in it now, for its icon (the snapshot's ask was when the pane was new). Not
-        // the view's task: a page that leaves at once (a quick switch) would cancel it.
-        .onAppear { Task { await store.askProgram(id, soon: true) } }
+        // the view's task: a page that leaves at once (a quick switch) would cancel it. Hidden, it gets no hover end.
+        .onChange(of: hidden, initial: true) {
+            if hidden {
+                hovering = false
+            } else {
+                Task { await store.askProgram(id, soon: true) }
+            }
+        }
         .clipShape(CardSurface.shape)
         // The card's element is its background: a container would merge into a one-pane page's.
         .background {
@@ -166,7 +174,7 @@ struct PaneCard: View {
     private func header(_ pane: HostStore.Pane?, zoomed: Bool, showsButtons: Bool, new: Bool, chat: Chat?)
         -> some View
     {
-        let (browser, plugin) = page.twoRows(pane) ? page.cards(pane) : (nil, nil)
+        let (browser, plugin) = page.twoRows(pane) ? page.cards(pane, make: !hidden) : (nil, nil)
         let agent = page.twoRows(pane) && pane?.plugin == nil
         return VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 3) {
@@ -256,8 +264,10 @@ struct PaneCard: View {
             .accessibilityIdentifier("pane.\(id).title")
         }
     }
+}
 
-    private func buttons(zoomed: Bool) -> some View {
+private extension PaneCard {
+    func buttons(zoomed: Bool) -> some View {
         let store = page.store
         return HStack(spacing: 2) {
             if !zoomed {
@@ -293,7 +303,7 @@ struct PaneCard: View {
     }
 
     /// The keyboard goes back to the card.
-    private func stopRenaming(_ pane: HostStore.Pane?) {
+    func stopRenaming(_ pane: HostStore.Pane?) {
         guard page.renamingPaneID == id else { return }
         page.renamingPaneID = nil
         if let pane {
@@ -313,35 +323,6 @@ struct PaneTitle: View {
         Text("\(lead)\(Text(folder).foregroundStyle(name == nil ? .primary : .secondary))")
             .lineLimit(1)
             .truncationMode(pane?.label != nil ? .tail : name == nil ? .head : .middle)
-    }
-}
-
-/// A floated pane's card in its tab, under its header: a line that says where the pane is, Show Window, which
-/// brings its window to the front, and Bring Back Here, which detaches it into this card with the keyboard.
-private struct FloatedPlaceholder: View {
-    let page: Page
-    let pane: HostStore.Pane
-
-    var body: some View {
-        VStack(spacing: 12) {
-            Text("This pane is open in a floating window.").foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .accessibilityIdentifier("pane.\(pane.id).floating")
-            HStack(spacing: gap) {
-                Button("Show Window") { page.float(pane) }
-                    .accessibilityIdentifier("pane.\(pane.id).show")
-                Button("Bring Back Here") {
-                    if let terminalID = pane.terminalID {
-                        page.floating[terminalID] = nil
-                    }
-                    page.go(to: pane)
-                }
-                .accessibilityIdentifier("pane.\(pane.id).back")
-            }
-            .buttonStyle(.glass)
-        }
-        .padding(gap)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
