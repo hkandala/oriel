@@ -766,6 +766,12 @@ is enabeld. don't increase it too much" and "let's make it 300".
   the image still stayed about 0.2 s on CI's VM, as if that call ran the session before it returned. The gliding
   capsule takes no hover: passing under the still pointer it took the × and kept it after (seen locally, where it
   glides; CI has Reduce Motion on, so the test now forces motion).
+- **Cause, round 3 (the workspace rows, from round 2's review).** At a row's drop the slide's state reset in the same
+  update, but herdr's order came a snapshot later, so the rows went back to the old order for about 0.13 s under
+  AppKit's lingering image, then jumped to the new one; Move Up and Move Down waited for herdr too. **Fix:** a workspace
+  move shows the asked order at once (`Ahead.rows`, the tab order's `NewOrder` made generic in `AheadOrder.swift`)
+  until a snapshot has herdr's or the write fails; the drop ends the dim and the image, and the block's rows glide in
+  from the image's place, as a tab (one `Lands` modifier). The rows are measured outside the slide and the glide.
 - **Decisions, round 2.** The capsule's glide stays, not AppKit's slide of the image to the place: one motion, ours.
   Other drops keep the image: a pane's or a row's view changes only once herdr answers, and the image stands in until
   then.
@@ -794,6 +800,11 @@ is enabeld. don't increase it too much" and "let's make it 300".
   under CI's toolbar; locally the glide had passed the × to the dropped tab) and the swap test (the helper pressed a
   header button; Track Q's b5da18d8 fixed it). Green on f9851f34, six drag tests: "Executed 6 tests, with 0 failures"
   (42180416339).
+- **Round 3.** A row let go half a row off its place, old build and fix, dark and light:
+  `/tmp/ovvi-shots/p56n/r3/{before,after}-{dark,light}-sheet.png`. Old: the old order under the image for a snapshot,
+  then the new one; fix: the new order in the drop's frame, the row gliding in. The row menu test now stops herdr's
+  server and checks Move Up shows before herdr answers: red on the old code ("the row waited for herdr",
+  42183809593).
 
 ## Track Q: file drops (item 27)
 
