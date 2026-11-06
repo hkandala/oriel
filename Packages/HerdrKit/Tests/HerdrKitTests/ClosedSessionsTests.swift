@@ -75,6 +75,9 @@ private struct Fixture {
     #expect(page.sessions.map(\.title) == ["write the docs", "say hi (Branch)"])
     #expect(page.sessions.map(\.folder) == ["/tmp/c", "/tmp/b"])
     #expect(!page.more)
+    // A UI test's home, not the machine's.
+    let elsewhere = ProcessExec(["HOME": "/nonexistent", "PATH": "/usr/bin:/bin"], herdr: nil, asked: .now)
+    #expect(try await elsewhere.closedSessions(agent: "claude", offset: 0, home: fixture.home.path) == page)
 }
 
 @Test func `codex: its state database without subagents, exec runs and empty threads, else its rollouts`(

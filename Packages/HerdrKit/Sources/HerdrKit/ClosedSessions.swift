@@ -183,10 +183,11 @@ enum ClosedSessions {
 public extension Exec {
     /// A page of an agent's sessions, newest first, from its own store on the machine: `limit` of them after the
     /// `offset` newest. Empty when the agent has no store there. Throws when the machine did not answer in 10 s.
-    func closedSessions(agent: String, offset: Int, limit: Int = 50) async throws -> ClosedPage {
+    /// `home`: the stores' home folder, for UI tests (never the user's).
+    func closedSessions(agent: String, offset: Int, limit: Int = 50, home: String? = nil) async throws -> ClosedPage {
         guard let script = ClosedSessions.scripts[agent] else { return ClosedPage() }
-        let text = try await output(["sh", "-c", "{ \(script)\n} 2>/dev/null", "sh", "\(limit)", "\(offset)",
-                                     ClosedSessions.perl])
+        let text = try await output(["sh", "-c", "{ [ -z \"$4\" ] || HOME=$4\n\(script)\n} 2>/dev/null", "sh",
+                                     "\(limit)", "\(offset)", ClosedSessions.perl, home ?? ""])
         return ClosedSessions.parse(agent: agent, text, limit: limit)
     }
 }
