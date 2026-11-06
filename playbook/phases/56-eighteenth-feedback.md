@@ -312,7 +312,8 @@ runs and on-demand on the final head.
   | gap below, after | 34.5 | 32.5 | 31.5 | 31 | 31 | 31 |
 
   The blank source lines around a heading stay a body line each (21.7 pt), so most of each gap is theirs; a tighter
-  gap below would need those lines drawn shorter.
+  gap below would need those lines drawn shorter. Runs: Markdown test green (42163711489, 1 test). Local pictures show
+  Rich Text and Source's page drawn on first show and after a tab switch; CI's blank pages are its machine's drawing.
 
 ## Track G: mockups (items 7, 20, 12)
 
