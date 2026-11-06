@@ -311,6 +311,9 @@ Runs: none (no app code).
   background tab sits next to the selected one, so it is nearly always in view already.
 - **Known race** (`ponytail:` in `Beside.swift`): a ⌘T pressed while a linked open's write runs can take the linked
   tab for its stand-in. It is rare, and it existed before.
+- **Runs:** chosen-tests CI run 42149608850 on ca11acd9 executed 7 tests, all green: Files, Git, the browser's links,
+  Markdown's links, `ovvi open --tab`, and each open showing its own page. The agent-start test skipped, as it does
+  without `claude`.
 - **For the user:** ⌘-click three or four files fast in a File Explorer tree, in a tab in the middle of many tabs,
   on This Mac and on devvm. Each new tab must show right after the tree's tab, with no jump from the end.
   XCUITest checks the place, not a one-snapshot jump.
