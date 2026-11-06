@@ -1,7 +1,6 @@
 import AppKit
 import GhosttyTerminal
 import HerdrKit
-import Observation
 import SwiftUI
 
 /// A terminal's links (ui/window#opening-links-and-files): addresses and paths libghostty finds in the text, and OSC 8
@@ -44,7 +43,7 @@ enum Links {
         if let line {
             path = String(path[..<line.range.lowerBound])
         }
-        guard !path.isEmpty, let found = await there(path, store: store, cwd: cwd) else { return nil }
+        guard !path.isEmpty, let found = await store.there(path, from: cwd) else { return nil }
         let landing = line.map { String($0.1) }
         if !store.machine.isRemote, !found.hasSuffix("/"),
            ["html", "htm"].contains(URL(filePath: found).pathExtension.lowercased())
@@ -57,16 +56,6 @@ enum Links {
     /// A link's scheme, only with `://`: `notes.md:12` is a path and its line.
     private static func scheme(_ text: String) -> String? {
         text.contains("://") ? URL(string: text)?.scheme?.lowercased() : nil
-    }
-
-    /// The path's absolute form on the card's machine when a file (or a folder, with its `/`) is there.
-    private static func there(_ path: String, store: HostStore, cwd: String) async -> String? {
-        let script = #"""
-        case $1 in "~"|"~/"*) p=$HOME${1#"~"} ;; /*) p=$1 ;; *) p=$2/$1 ;; esac
-        if [ -d "$p" ]; then printf '%s/' "$p"; elif [ -e "$p" ]; then printf '%s' "$p"; fi
-        """#
-        let found = await (try? store.machine.exec().output(["sh", "-c", script, "sh", path, cwd])) ?? ""
-        return found.isEmpty ? nil : PathField.tidy(found) + (found.hasSuffix("/") ? "/" : "")
     }
 
     /// Opens a link of terminal `terminalID`'s card as every link opens, behind the card. False for one that opens
@@ -122,22 +111,5 @@ extension PaneSurfaceView: TerminalSurfaceOpenURLDelegate, TerminalSurfaceHoverL
     func terminalDidUpdateHoverLink(_ url: String?) {
         hoveredLink = url
         (url == nil ? NSCursor.arrow : .pointingHand).set()
-    }
-}
-
-/// A terminal card's own menu items, before the pane's: Copy, Paste and Select All on this terminal, not on the
-/// keyboard card.
-struct TerminalItems: View {
-    let view: PaneSurfaceView
-
-    var body: some View {
-        edit("Copy", #selector(NSText.copy(_:)))
-        edit("Paste", #selector(NSText.paste(_:)))
-        edit("Select All", #selector(NSText.selectAll(_:)))
-        Divider()
-    }
-
-    private func edit(_ title: String, _ action: Selector) -> some View {
-        Button(title) { NSApp.sendAction(action, to: view, from: nil) }
     }
 }

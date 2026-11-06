@@ -85,3 +85,20 @@ struct TerminalCard: View {
             }
     }
 }
+
+/// A terminal card's own menu items, before the pane's: Copy, Paste and Select All on this terminal, not on the
+/// keyboard card.
+struct TerminalItems: View {
+    let view: PaneSurfaceView
+
+    var body: some View {
+        edit("Copy", #selector(NSText.copy(_:)))
+        edit("Paste", #selector(NSText.paste(_:)))
+        edit("Select All", #selector(NSText.selectAll(_:)))
+        Divider()
+    }
+
+    private func edit(_ title: String, _ action: Selector) -> some View {
+        Button(title) { NSApp.sendAction(action, to: view, from: nil) }
+    }
+}

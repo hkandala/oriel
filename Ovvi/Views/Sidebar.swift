@@ -97,7 +97,8 @@ private struct SidebarPage: View {
 
     /// Rows above or below the scrolled list's edges, for the fades.
     @State private var under = (top: false, bottom: false)
-    /// Each row's frame in the list's visible space, for drops; measured while nothing is dragged.
+    /// Each row's frame in the list's visible space, for drops; measured outside the slide and the glide, so a moving
+    /// row reports its place.
     @State private var frames: [String: CGRect] = [:]
     @State private var drop = RowsDrop.State()
     /// The workspace dropped last: its rows glide into their place.

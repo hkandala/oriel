@@ -90,7 +90,7 @@ struct AgentsList: View {
         return ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 // Lazy: only the rows in view are built, of a hundred agents or more. One ForEach: a lazy stack keeps a
-                // row's view by its id, so a row moved to another ForEach kept its old one (not pinned).
+                // row's view by its id, so a row moved to another ForEach would keep its old one.
                 let top = rows(shown.pinned), items = top + rows(shown.live)
                 LazyVStack(alignment: .leading, spacing: 4) {
                     // Pinned sessions no pane runs, first: not in the live pins' order.

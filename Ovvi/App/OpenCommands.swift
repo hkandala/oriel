@@ -33,6 +33,12 @@ extension Page {
         }
     }
 
+    /// A path `resolve` found, as `open(path:)` opens it.
+    func open(resolved path: String) {
+        let how = Self.how
+        Task { await openAsCLI(path, [], how) }
+    }
+
     /// The Git card of the keyboard card's repository at a source: `uncommitted`, or a commit's hash or ref.
     func openGit(_ source: String) {
         let how = Self.how, source = source.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -43,13 +49,7 @@ extension Page {
     /// The absolute path of a file or folder on the page's machine, nil when there is none: `~` is the home folder,
     /// and a relative path starts at the keyboard card's folder.
     func resolve(_ text: String) async -> String? {
-        let script = #"""
-        case $1 in "~"|"~/"*) p=$HOME${1#"~"} ;; /*) p=$1 ;; *) p=${2:-$HOME}/$1 ;; esac
-        [ -e "$p" ] && printf '%s' "$p"
-        """#
-        let text = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        let path = await (try? store.machine.exec().output(["sh", "-c", script, "sh", text, keyboardPane?.cwd ?? ""]))
-        return path.flatMap { $0.isEmpty ? nil : URL(filePath: $0).standardized.path }
+        await store.there(text.trimmingCharacters(in: .whitespacesAndNewlines), from: keyboardPane?.cwd ?? "")
     }
 
     private static var how: Opening {
@@ -67,5 +67,18 @@ extension Page {
             await store.show(Notice(text: (error as? AgentError)?.message ?? error.localizedDescription,
                                     tone: .warning))
         }
+    }
+}
+
+extension HostStore {
+    /// The path's absolute form on the machine when a file (or a folder, with its `/`) is there: `~` is the home
+    /// folder, and a relative path starts at `cwd` (the home folder when it is empty).
+    func there(_ path: String, from cwd: String) async -> String? {
+        let script = #"""
+        case $1 in "~"|"~/"*) p=$HOME${1#"~"} ;; /*) p=$1 ;; *) p=${2:-$HOME}/$1 ;; esac
+        if [ -d "$p" ]; then printf '%s/' "$p"; elif [ -e "$p" ]; then printf '%s' "$p"; fi
+        """#
+        let found = await (try? machine.exec().output(["sh", "-c", script, "sh", path, cwd])) ?? ""
+        return found.isEmpty ? nil : PathField.tidy(found) + (found.hasSuffix("/") ? "/" : "")
     }
 }

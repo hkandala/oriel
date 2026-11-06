@@ -47,8 +47,6 @@ extension AgentState {
 struct AgentButton: View {
     let pane: HostStore.Pane
     let page: Page
-    /// Line 2; "‹workspace› · ‹tab›" when nil.
-    var place: String?
     /// In Settled: its age where the box goes.
     var age: Date?
     /// Pin or Unpin under the pointer (the Agents view's rows).
@@ -58,8 +56,8 @@ struct AgentButton: View {
 
     var body: some View {
         let state = pane.state ?? .idle
-        AgentRow(icon: pane.iconID, letter: pane.letter, title: title, line2: line2, medium: state.calls, lit: lit,
-                 id: "agent.\(pane.id)", value: pane.state?.title ?? "", action: go, hover: { pinButton },
+        AgentRow(icon: pane.iconID, letter: pane.letter, title: title, line2: page.place(pane), medium: state.calls,
+                 lit: lit, id: "agent.\(pane.id)", value: pane.state?.title ?? "", action: go, hover: { pinButton },
                  trailing: { trailing(state) })
     }
 
@@ -86,10 +84,6 @@ struct AgentButton: View {
         } else if let age {
             AgeText(date: age)
         }
-    }
-
-    private var line2: String {
-        place ?? page.place(pane)
     }
 
     private var lit: Bool {

@@ -93,7 +93,7 @@ struct Palette: View {
         }
         let open = pasted.flatMap { pasted in
             pasted.filter == filter ? FilterList.Item(id: "open-path", symbol: "doc", title: "Open \(pasted.path)",
-                                                      act: { page.open(path: pasted.path) }) : nil
+                                                      act: { page.open(resolved: pasted.path) }) : nil
         }
         return [open].compactMap(\.self) + (commands + places).enumerated().compactMap { index, row in
             [row.item.title.fuzzyScore(filter), row.keywords.fuzzyScore(filter).map { $0 + 3 }].compactMap(\.self)

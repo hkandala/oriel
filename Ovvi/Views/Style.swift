@@ -62,9 +62,9 @@ struct Look {
     }
 
     /// An opaque stand-in for a card's fill (`cardFill`, and `keyboardFill` over it on the keyboard card), for a web
-    /// card's band that text scrolls under (the sticky folders, the diff's file header). Classic's is exact; Glass's is
-    /// measured on the screen over a black window (light Glass is the same over a white one).
-    /// ponytail: a bright window or wallpaper behind lightens dark Glass's card by up to 18 levels, and the band then
+    /// card's parts that text scrolls under (the diff's sticky file header, Markdown's fold button). Classic's is
+    /// exact; Glass's is measured on the screen over a black window (light Glass is the same over a white one).
+    /// ponytail: a bright window or wallpaper behind lightens dark Glass's card by up to 18 levels, and the header then
     /// shows darker; an opaque card body under web cards if that matters.
     func cardSolid(keyboard: Bool = false) -> Color {
         let level = keyboard ? pick(0x23, 0xF5, 0x1F, 0xFD) : pick(0x1F, 0xF1, 0x22, 0xFB)

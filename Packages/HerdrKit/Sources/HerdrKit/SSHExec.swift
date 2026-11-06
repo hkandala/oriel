@@ -38,8 +38,8 @@ public actor SSHExec: Exec {
         self.target = target
         environment = local.environment
         let hash = SHA256.hash(data: Data(target.utf8)).prefix(4).map { String(format: "%02x", $0) }.joined()
-        // Per app: another Ovvi (a test's, a second build) unlinks a socket at start and ends its master at quit,
-        // which left this app's master with no socket, so its browser proxy could not forward.
+        // Per app: another Ovvi (a test's, a second build) unlinks a socket at start and ends its master at quit; it
+        // must never touch this app's, or `ssh -O` (the browser proxy's forward) finds no master.
         socket = Self.folder + "/" + hash + "-\(getpid())"
     }
 

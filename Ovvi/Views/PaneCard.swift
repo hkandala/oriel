@@ -366,3 +366,18 @@ private struct PaneActions: View {
         }
     }
 }
+
+/// The keyboard card's border among two or more shown cards (ui/window), at once: no fade as the keyboard moves.
+private struct ActiveBorder: View {
+    let id: String
+    let shown: Bool
+    @Environment(\.look) private var look
+
+    var body: some View {
+        if shown {
+            CardSurface.shape.strokeBorder(look.activeBorder, lineWidth: 1).allowsHitTesting(false)
+                .transition(.identity)
+                .testValue("pane.\(id).border", "Active", "", shown: SettlingHost.record)
+        }
+    }
+}

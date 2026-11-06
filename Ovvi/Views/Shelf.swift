@@ -14,11 +14,6 @@ struct Shelf<Accessory: View, Content: View>: View {
     @State private var under = (top: false, bottom: false)
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    /// Five 48 pt rows, 4 pt apart.
-    static var tallest: Double {
-        5 * 48 + 4 * 4
-    }
-
     var body: some View {
         let key = page.shelfKey(label)
         let open = opened.split(separator: "\n").contains { $0 == key }
@@ -30,7 +25,7 @@ struct Shelf<Accessory: View, Content: View>: View {
                     LazyVStack(spacing: 4) { content() }
                 }
                 .scrollIndicators(.never)
-                .frame(maxHeight: Self.tallest)
+                .frame(maxHeight: 5 * 48 + 4 * 4) // five 48 pt rows, 4 pt apart
                 .fixedSize(horizontal: false, vertical: true)
                 .onScrollGeometryChange(for: [Bool].self) { geometry in
                     [geometry.contentOffset.y > 0.5,

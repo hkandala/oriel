@@ -54,11 +54,7 @@ struct ChatView: View {
                 chat.wantsKeyboard = true
             }
         }
-        .onChange(of: hidden) {
-            if hidden {
-                composing = false
-            }
-        }
+        .blursWhenHidden($composing)
         .onChange(of: [chat.wantsKeyboard, hidden], initial: true) {
             // On the next turn: a first responder set during an update is undone.
             if chat.wantsKeyboard, !hidden {

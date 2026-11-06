@@ -52,7 +52,7 @@ class BrowserView: WKWebView {
     }
 
     /// With no page (a card that asks "Open this page?", or is empty), the menu first: WebKit sends the key to a page
-    /// that is not there, and ⌘1–⌘9 were lost.
+    /// that is not there, which drops it (⌘1–⌘9).
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
         url == nil && window?.firstResponder === self && NSApp.mainMenu?.performKeyEquivalent(with: event) == true
             || super.performKeyEquivalent(with: event)
