@@ -511,3 +511,7 @@ is enabeld. don't increase it too much" and "let's make it 300".
 - Chosen-tests run 42154034629 on 13496cee: `testCloseRightAfterQuickSplitsAndTheActiveBorder` (now checks the border
   on one card and after a zoom) and `testFloatingWindowInEachLook` (the float's border and the main window's lone
   card), "Executed 2 tests, with 0 failures".
+- Chosen-tests run 42159161407 on 173bd7a5 (the sidebar at 300 pt): the handle's bounds, the Agents view, a swipe into
+  many tabs and the drops on the sidebar, "Executed 4 tests, with 0 failures".
+- Pictures in `/tmp/ovvi-shots/p56p/`: `one-{dark,light}.png`, `two-{dark,light}.png` (glass, this Mac) and
+  `sidebar-300-agents-dark.png` (CI's 1024 pt screen).
