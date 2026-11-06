@@ -10,7 +10,7 @@ extension OvviUITests {
         XCTAssertTrue(element("workspace.w1").exists(within: connect))
         let id = UUID().uuidString.lowercased()
         // herdr names /tmp by its real path.
-        let folder = "/private/tmp/ovvi-e2e-archived-\(id.prefix(8))"
+        let folder = "/private/tmp/ovvi-e2e-archived-cwd/\(id.prefix(8))"
         let (_, shell) = try await newTab("archived")
         try await waitForPrompt(shell)
         try await writeSessions(id, in: folder, shell)
@@ -51,7 +51,7 @@ extension OvviUITests {
     /// Pinned, it leaves Archived for the top of the list, with Resume; unpinned, it comes back.
     private func pins(_ row: XCUIElement, _ id: String, below shelf: XCUIElement) {
         row.rightClick()
-        row.menuItems["Pin"].click()
+        app.menus.menuItems["Pin"].firstMatch.click()
         let pinned = element("agents.pinned.claude.\(id)")
         XCTAssertTrue(pinned.exists(within: 2))
         XCTAssertTrue(row.vanishes(within: 2))
@@ -79,13 +79,14 @@ extension OvviUITests {
             """),
         ]
         let time = DateFormatter()
+        time.locale = Locale(identifier: "en_US_POSIX")
         time.dateFormat = "yyyyMMddHHmm.ss"
         let writes = files.map { path, age, text in
             let file = "\(home)/\(path)", dir = (file as NSString).deletingLastPathComponent
             return "mkdir -p \(dir) && echo \(Data(text.utf8).base64EncodedString()) | base64 -d >\(file) && "
                 + "touch -t \(time.string(from: Date(timeIntervalSinceNow: -age))) \(file)"
         }
-        try await send("rm -rf \(home) /private/tmp/ovvi-e2e-archived-* && mkdir -p \(folder) && "
+        try await send("rm -rf \(home) /private/tmp/ovvi-e2e-archived-cwd && mkdir -p \(folder) && "
             + writes.joined(separator: " && ") + " && clear && echo ready-$((6*7))\r", to: shell)
         try await waitFor(shell) { $0.contains("ready-42") }
     }
