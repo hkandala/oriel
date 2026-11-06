@@ -22,6 +22,9 @@ extension OvviUITests {
                            + "their build script. Install plugins only from sources you trust.")
         try await cancelsASecondCard()
         try await show(card.tab)
+        // Install loads it, before Settings covers the card on CI's small screen.
+        element("pane.\(card.pane).trust.install").click()
+        XCTAssertTrue(text("Shout false at load listed").exists(within: 10))
 
         // ⌘, opens the window; the Plugins page lists the browser and the plugin.
         app.typeKey(",", modifierFlags: .command)
@@ -38,11 +41,9 @@ extension OvviUITests {
         XCTAssertTrue(shout.exists(within: 5))
         let remove = element("plugins.ovvi-e2e-shout.remove")
         XCTAssertTrue(remove.exists)
-        XCTAssertFalse(element("plugins.ovvi-e2e-shout.allow").exists, "a trust row on the plugin's page")
+        XCTAssertFalse(element("plugins.ovvi-e2e-shout.forget").exists, "a trust row on the plugin's page")
 
-        // Install in the card loads it and keeps its id; the setting reaches it at once, and settings.json keeps it.
-        element("pane.\(card.pane).trust.install").click()
-        XCTAssertTrue(text("Shout false at load listed").exists(within: 10))
+        // The setting reaches the card at once, and settings.json keeps it with the id in trust.json.
         shout.click()
         XCTAssertTrue(text("Shout true listed").exists(within: 3))
         try await send("clear; tr -d ' \\n' < \(config)/settings.json | grep -q "
