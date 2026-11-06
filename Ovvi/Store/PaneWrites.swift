@@ -26,7 +26,10 @@ extension HostStore {
             )
             redraw()
         }
-        let chooser = choose(standIn: standIn)
+        // herdr's `handle_pane_split` (src/app/api/panes.rs) starts it in the split pane's folder; an earlier split's
+        // stand-in has its chooser's.
+        let source = ahead.splitPanes[paneID] ?? paneID
+        let chooser = choose(standIn: standIn, cwd: pane(source)?.cwd ?? chooser(paneID)?.cwd)
         var made: HerdrKit.Pane?, closedLate = false
         let done = await write { client in
             let paneID = ahead.splitPanes[paneID] ?? paneID

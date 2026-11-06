@@ -111,10 +111,22 @@ and Return never reaches the old card's shell.
 
 ## The folder
 
-The folder line says where the pick starts: "Opens in ~/code/ovvi". At
-first the folder is the pane's own folder, as herdr reports it.
+The folder line says where the pick starts: "Opens in ~/code/ovvi". It
+shows in the card's first frame, before herdr has made the pane. At first
+the folder is the one herdr starts the pane's shell in, which the app knows
+from its snapshot by herdr's own rule (`resolve_new_terminal_cwd` in
+herdr's `src/app/creation.rs`):
 
-- **Look.** "Opens in" is tertiary. The folder is secondary and medium. The
+- A split starts in the folder of the pane it splits.
+- A new tab starts in the folder of the workspace's keyboard card, which the
+  app gives herdr.
+- A new workspace starts in the folder the app gives herdr (the home folder
+  by default).
+
+Once herdr reports the new pane, the line shows the pane's own folder.
+
+- **Look.** "Opens in" and the folder are tertiary (secondary with Increase
+  Contrast), the folder in medium weight. Only the field is primary. The
   folder shows short, as File Explorer's path bar shows it: the home folder
   is `~`. A long folder loses its first parts. On a remote machine the line
   ends with "on ‹machine›".

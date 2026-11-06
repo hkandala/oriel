@@ -72,6 +72,9 @@ final class Chooser {
     @ObservationIgnored var typed = false
     /// The folder its pick starts in, from its folder line (`NewPaneFolder`); nil: the pane's own.
     var folder: String?
+    /// The folder herdr starts its shell in, known before herdr answers: the pane it was made from's, as herdr's
+    /// `resolve_new_terminal_cwd` follows it (src/app/creation.rs), then herdr's answer's.
+    var cwd: String?
     /// Its folder line is a field.
     var editing = false
     /// The `cd` to its folder, typed before the picked shell or agent runs, as Go to Directory types it.
@@ -79,8 +82,9 @@ final class Chooser {
         folder.map { "cd -- " + $0.shellQuoted }
     }
 
-    init(standIn: String? = nil) {
+    init(standIn: String? = nil, cwd: String? = nil) {
         self.standIn = standIn
+        self.cwd = cwd
     }
 
     var rows: [Row] {
@@ -91,6 +95,7 @@ final class Chooser {
     func made(_ pane: HerdrKit.Pane) {
         paneID = pane.id
         terminalID = pane.terminalID
+        cwd = pane.cwd ?? cwd
     }
 
     /// Its number key: the top rows', or the agents' while Agent is open.
@@ -142,9 +147,10 @@ extension HostStore {
         }
     }
 
-    /// A chooser on a new tab's or split's stand-in; `made` gives it herdr's pane.
-    func choose(standIn: String) -> Chooser {
-        let chooser = Chooser(standIn: standIn)
+    /// A chooser on a new tab's or split's stand-in, in the folder herdr will start it in; `made` gives it herdr's
+    /// pane.
+    func choose(standIn: String, cwd: String?) -> Chooser {
+        let chooser = Chooser(standIn: standIn, cwd: cwd)
         choosers.append(chooser)
         return chooser
     }

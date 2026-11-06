@@ -102,7 +102,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             status, reply = 403, f"refusing session '{session}'".encode()
         elif action not in ("", "control", "takeover", "children", "stop", "start", "open-folder", "open-url",
                             "file-drag", "temporary-file-drag", "usage", "ssh-drop", "ssh-forget", "ssh-connections",
-                            "swipe", "drag", "stress", "sample", "heap", "press", "release"):
+                            "swipe", "drag", "stress", "sample", "heap", "press", "release", "pause", "resume"):
             status, reply = 404, f"no action '{action}'".encode()
         elif action in ("control", "takeover") and not re.fullmatch(rb"\w[\w-]*", body):
             status, reply = 400, b"the body must be a terminal id"
@@ -214,6 +214,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
             source = subprocess.run([f"{tools}/file-drag", path, x, y, tx, ty], capture_output=True, timeout=30)
             status, reply = (200, path.encode()) if source.returncode == 0 else (
                 500, source.stderr or b"the drop was refused")
+        elif action in ("pause", "resume"):
+            # The session's server stopped or going on again: the app's writes wait for herdr's answer meanwhile.
+            run = subprocess.run(["pkill", "-STOP" if action == "pause" else "-CONT", "-f",
+                                  f"^[^ ]*herdr --session {session} server$"], capture_output=True)
+            status, reply = (200, b"") if run.returncode == 0 else (500, b"no server")
         elif action == "usage":
             status, reply = 200, usage(session, float(body or b"10"))
         elif action == "start":

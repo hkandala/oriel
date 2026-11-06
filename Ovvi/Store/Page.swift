@@ -373,7 +373,7 @@ extension Page {
         let pane = (workspace.id == selectedWorkspaceID ? keyboardPane : nil)
             ?? tabs.lazy.compactMap { self.keyboardCard($0) }.first
         let standIn = store.standIn(in: workspace.id)
-        let chooser = store.choose(standIn: standIn)
+        let chooser = store.choose(standIn: standIn, cwd: pane?.cwd)
         select(workspace, tab: standIn)
         guard let made = await store.newTab(in: workspace.id, cwd: pane?.cwd, of: pane?.id) else {
             store.dropStandIn(standIn)

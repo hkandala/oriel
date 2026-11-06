@@ -20,7 +20,7 @@ struct NewPaneFolder: View {
 
     var body: some View {
         let store = page.store, remote = store.machine.isRemote, editing = chooser.editing
-        if let folder = chooser.folder ?? store.pane(cardID)?.cwd {
+        if let folder = chooser.folder ?? store.pane(cardID)?.cwd ?? chooser.cwd {
             VStack(spacing: 4) {
                 // The icon is one view in both looks: a click on it as the field lets go still lands.
                 HStack(spacing: 6) {
@@ -80,7 +80,8 @@ struct NewPaneFolder: View {
                 Text(PathField.short(folder, remote: remote)).fontWeight(.medium).lineLimit(1).truncationMode(.head)
             }
             .buttonStyle(.plain)
-            .foregroundStyle(.secondary)
+            // Grey as "Opens in" until it is a field.
+            .foregroundStyle(dim)
             .accessibilityLabel("Opens in")
             .accessibilityValue(folder)
             .accessibilityIdentifier("pane.\(cardID).chooser.folder")

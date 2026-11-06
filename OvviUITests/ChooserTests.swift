@@ -265,6 +265,31 @@ extension OvviUITests {
         try await typeFolderAndPickTerminal(remote: false)
     }
 
+    /// The folder line shows on a split's and a new tab's stand-in, while herdr is paused: the folder herdr will start
+    /// the pane in, the one of the pane it was made from (ui/new-pane#the-folder).
+    func testNewPanesFolderShowsBeforeHerdrAnswers() async throws {
+        XCTAssertTrue(element("workspace.w2").exists(within: connect))
+        let (tab, pane) = try await newTab("chooser folder")
+        element("tab.\(tab)").click()
+        element("terminal.\(pane)").click()
+        XCTAssertTrue(hasKeyboard("terminal.\(pane)"))
+        let info = try await self.pane(pane), cwd = try XCTUnwrap(info["cwd"] as? String)
+        try await closeNew("tab", besides: tabIDs())
+        addTeardownBlock { [one] in _ = try? await Self.post("\(one)/resume") }
+        let folder = app.descendants(matching: .any).matching(NSPredicate(
+            format: "identifier BEGINSWITH 'pane.new.' AND identifier ENDSWITH '.chooser.folder'",
+        )).firstMatch
+        for key in ["d", "t"] {
+            _ = try await Self.post("\(one)/pause")
+            app.typeKey(key, modifierFlags: .command)
+            let shown = folder.has(\.stringValue, cwd, within: 3)
+            _ = try await Self.post("\(one)/resume")
+            XCTAssertTrue(shown, "⌘\(key): \(folder.debugDescription)")
+            // herdr's pane takes the stand-in's place.
+            XCTAssertTrue(folder.vanishes(within: 5))
+        }
+    }
+
     /// New Pane's folder line on Key Host, in the light look: the folder is the machine's, typed with no Choose
     /// Folder….
     func testARemoteNewPanesFolderLineTakesATypedFolder() async throws {
