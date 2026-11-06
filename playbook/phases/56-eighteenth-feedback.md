@@ -416,6 +416,7 @@ Runs: none (no app code).
 - 42158851355 (4 tests with the tree's Rename menu): 3 green; Markdown red at ⌘3 back from the new browser tab (the
   cause above), red locally too.
 - 42160968691 (Markdown and browser links, with the fix): both green.
+- Round 2: 42172268711 (terminal links): Executed 1, green; also green locally.
 
 ## Track I: Git's diff (items 17, 18)
 
