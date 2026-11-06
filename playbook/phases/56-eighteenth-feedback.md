@@ -865,3 +865,8 @@ The user's words, item by item, with the track that takes each:
 
 ### Runs (Track L1)
 
+- Local, under the GUI lock: the four new Agents view tests red on their first runs (the hover pin inside the row's
+  label, a row kept by the lazy stack, a moved row lost in the hold, the minute's start as "now") and green after; the
+  touched agent, sidebar and session tests green.
+- CI chosen tests on the final head f5fc23eb (run 42179741098): Executed 13 tests, 0 failures, with
+  `testTheSelectedRowScrollsIntoView`, which needs CI's small screen.
