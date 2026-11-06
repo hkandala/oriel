@@ -801,6 +801,10 @@ is enabeld. don't increase it too much" and "let's make it 300".
 
 - Locally, old code with the new tests: the file drop was refused, and the swap test failed ("waited for the two
   swapped"). With the fix both pass.
+- CI, chosen tests (the two file drops, This Mac and remote, and the four card drag tests): the first run failed the
+  swap test's edge drop. Its drag started 60 pt into a quarter-wide card's header, on the Float button, which shows
+  while the card is lit or hovered, and so no drag began. The helper now presses on the title. The run on the head
+  after that passed (Executed 6 tests, 0 failures).
 
 ## Round 2 (after the user's testing, 21:40)
 
