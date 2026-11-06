@@ -226,6 +226,11 @@ its page, for its overview tile and for a card made again:
   - Only `http`, `https` and `file` links open a tab. A `target=_blank` form
     and a `blob:` or `data:` page load in the card.
   - WebKit does not tell `rel=opener` apart, so such a link opens a tab too.
+- **To the side.** ⌥-click on a link (WebKit's download gesture) and Open
+  Link to the Side, under Open Link in New Tab, open the link in a new
+  browser pane beside the card, in the background, its origin approved.
+  Links open as everywhere in the app ([Opening links and
+  files](/docs/ui/window#opening-links-and-files)).
 - The page's context menu has no download items: the app saves no
   downloads.
 - A page's `window.open` (an OAuth login, for example) opens over the card,

@@ -603,6 +603,50 @@ How it works: [Layout and sizing](/docs/layout).
   0.25 s ([CLI](/docs/agent-control/cli#reveal)). A floating card flashes in
   its own window. A card out of view gets a [notice](#notice) instead.
 
+## Opening links and files
+
+A link or a file opens the same way in every card that shows one: File
+Explorer's tree and its Markdown, Git, the browser and the chat view.
+
+| Gesture | Opens |
+|---|---|
+| a click | in the card, when the card shows that kind of place itself; else in a new tab, which is selected |
+| ⌘-click | in a new tab, in the background |
+| ⌥-click | in a pane to the side of the card, in the background |
+| a right click | a menu of **Open**, **Open in New Tab** and **Open to the Side**, which do what the three gestures do |
+
+- **What a card shows itself.** File Explorer shows files and folders (a
+  file from its tree, a relative link in Markdown). Git shows its home and
+  its diffs (a change, a commit, a parent). The browser shows web pages. So
+  a web link in Markdown or in a chat reply, and a file from a Git diff, open
+  in a new tab on a click.
+- **In the background** means that the selected tab and the keyboard stay
+  where they are: a ⌘-click on one link after another opens each one. The
+  menu's Open in New Tab and Open to the Side open in the background too.
+- **A new tab** is in the card's workspace, on the same machine, also from a
+  floating window ([New tabs](#tab-bar)). **To the side** is a split to the
+  right of the card.
+- **Lists select first.** In File Explorer's tree and Git's commit list a
+  click selects a row and a double-click (or Return) opens it, as in the
+  Finder. ⌘-click and ⌥-click open at once.
+- **Markdown's edit modes** open a link on a click too, as Read does. On
+  the caret's line a link shows its source, and a click there puts the caret
+  in it. A Markdown link's menu ends with **Copy Link** (the file's path or
+  the address).
+- **The browser's menu** on a link is WebKit's **Open Link**, then **Open
+  Link in New Tab** and **Open Link to the Side**. A `target=_blank` link
+  opens a new tab in the background ([Popups, links and
+  dialogs](/docs/ui/browser#popups-links-and-dialogs)).
+- A link in a chat reply has no menu of its own: SwiftUI's text has none, so
+  the right click shows the text's menu.
+- A web page opened from Markdown or the chat follows the browser's load
+  rule ([When a page loads by
+  itself](/docs/ui/browser#when-a-page-loads-by-itself)). One opened from
+  the browser is approved: the user picked it there.
+- **Not covered:** a link in a terminal opens with ⌘-click only, in the
+  Mac's default browser: the terminal's program gets every other click
+  ([Pane card](#pane-card)). A `mailto:` or an app's link opens its app.
+
 ## Find bar
 
 ⌘F (Edit ▸ Find…) opens the find bar on the keyboard card; ⌘F again focuses

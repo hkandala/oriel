@@ -14,10 +14,6 @@ struct Markdown: View {
             .font(.system(size: 14))
             .lineSpacing(4)
             .textSelection(.enabled)
-            // Web and mail links only: a transcript (or a page the agent quotes) could hold `file:` or `ovvi:` ones.
-            .environment(\.openURL, OpenURLAction { url in
-                ["http", "https", "mailto"].contains(url.scheme?.lowercased() ?? "") ? .systemAction : .discarded
-            })
             .fixedSize(horizontal: false, vertical: true)
             .accessibilityElement(children: .ignore)
             .accessibilityAddTraits(.isStaticText)

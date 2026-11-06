@@ -101,23 +101,15 @@ changed that value in the card's header: the card keeps its own choice.
 
 ## Opening
 
-Everywhere a plugin card opens a file, a folder or a diff, the same gestures
-apply:
-
-| Gesture | Where it opens |
-|---|---|
-| a click, or a double-click or ⌘O in the tree | in the card itself, as its next place ([Back and Forward](#back-and-forward)) |
-| ⌘-click | in a new herdr tab right after the card's tab, in the background |
-| ⌥-click | in a pane to the side of the card, in the background |
-
-- A right click on a row of the tree or of the Git home shows the app's own
-  menu: **Open** (**Open as Root** on a folder), **Open in New Tab** and
-  **Open to the Side**, and on a tree row other than `..`, **Rename**.
-- **In the background** means that the selected tab and the keyboard stay
-  where they are: a ⌘-click or ⌥-click on one file after another opens each
-  one, and the card keeps the keyboard. The right-click menu's **Open in New
-  Tab** and **Open to the Side** open in the background too. Any other open in
-  a new tab (a Git diff's **Open File**) selects it.
+Everywhere a plugin card opens a file, a folder, a diff or a link, the app's
+one rule applies ([Opening links and files](/docs/ui/window#opening-links-and-files)):
+a click opens in the card itself, as its next place ([Back and
+Forward](#back-and-forward)), or in a new tab when the card cannot show it;
+⌘-click in a new tab and ⌥-click to the side, both in the background; a right
+click shows the app's menu of **Open** (**Open as Root** on a folder), **Open
+in New Tab** and **Open to the Side**, and on a tree row other than `..`,
+**Rename**. In the tree, a double-click or ⌘O is
+the click.
 - **A new tab** opens right after the card's tab, on the same machine, also
   from a floating window. Unless it opens in the background, the app selects
   the new tab and gives its card the keyboard. The calls are `layout.apply`
@@ -138,13 +130,13 @@ apply:
 | a file's **Show in File Explorer** | click | the tree of the file's folder, with the file selected |
 | the Git home: a change | click | the Working Tree diff, scrolled to that file |
 | the Git home: **Working Tree** | click | the Working Tree diff |
-| a commit's page: a parent | click (⌘: a new tab, ⌥: to the side) | that parent's diff |
+| a commit's page: a parent | click | that parent's diff |
 | the Git home: a commit | double-click or Return (a click selects it) | the diff of that commit |
 | a diff's **Git Home** | click | the Git home |
-| a diff: a file header's **Open File** | click (⌥: to the side) | the file in a File Explorer, in a new tab |
+| a diff: a file header's **Open File** | click | the file in a File Explorer, in a new tab |
 | a diff: a line | ⌘-click (⌥: to the side) | the file in a File Explorer, with the caret on that line |
-| Markdown (Rich Text, locked): a relative link or image | click | the file, with its page |
-| Markdown (Rich Text, locked): an `http` or `https` link | click (⌥: to the side) | a browser pane in a new tab |
+| Markdown: a relative link or image | click | the file, with its page |
+| Markdown: an `http` or `https` link | click | a browser pane in a new tab |
 
 - **Which page opens a file**, by its name alone (a remote file is not read
   first), from the lists in the plugin's `places.json`: `.md`, `.markdown`
@@ -586,8 +578,9 @@ An editable text view (CodeMirror 6).
   scrolls to the heading and, unlocked, puts the caret on it. `#section` links
   scroll to the heading with GitHub's id. A second heading of the same name is
   `#section-1`.
-- Links open from Rich Text, locked, and Source's page
-  ([Opening](#opening)). A landing with a line scrolls to that line and puts
+- Links open from Rich Text and Source's page ([Opening](#opening)).
+  Unlocked, a link on the caret's line shows its source and a click puts the
+  caret in it. A landing with a line scrolls to that line and puts
   the caret there; the lock stays as it was. A page that loads again has the outline
   closed.
 - Dirty, ⌘S, the reload and the toast are as in

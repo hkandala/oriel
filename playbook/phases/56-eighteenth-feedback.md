@@ -276,6 +276,38 @@ Runs: none (no app code).
       - the context menu offers Open, Open in New Tab and Open to the Side.
     - The rule goes in the design docs once, and every place follows it.
 
+### Findings (Track H)
+
+- **Before.** Where a link or a file opened, before this track:
+
+  | Where | Target | Click | ⌘-click | ⌥-click | Right click |
+  |---|---|---|---|---|---|
+  | File Explorer's tree | a file or folder | selects (double-click: the card) | new tab, behind | side, behind | Open (as Root), New Tab, Side |
+  | Markdown, Read and Side by Side's page | a relative link | the card | new tab, behind | side, behind | WebKit's menu (its New Window did nothing) |
+  | Markdown, Read and Side by Side's page | a web link | new tab, behind: nothing showed when the tab was out of view | new tab, behind | side, behind | WebKit's menu |
+  | Markdown, Live Edit | any link | the caret, no open | a second caret | the caret | WebKit's menu |
+  | Git home: a change, Working Tree | a diff | the card | new tab, behind | side, behind | Open, New Tab, Side |
+  | Git home: a commit | a diff | selects (double-click: the card) | new tab, behind | side, behind | Open, New Tab, Side |
+  | Git commit page: a parent | a diff | the card | new tab, behind | side, behind | none |
+  | Git diff: Open File | the file | new tab, selected | new tab, behind | side, behind | none |
+  | Git diff: a line | the file at the line | nothing | new tab, behind | side, behind | none |
+  | Browser page | a link | the card | new tab, behind | nothing (WebKit's download, which the app drops) | Open Link, Open Link in New Tab |
+  | Chat reply | a web link | the Mac's default browser | the same | the same | the text's menu |
+  | Terminal | a web link | the program | the Mac's default browser | the program | the terminal's menu |
+
+- **Rule.** Click: in the card when it shows that kind of place, else a new tab, selected. ⌘-click: a new tab
+  behind. ⌥-click: to the side, behind. Right click: Open, Open in New Tab, Open to the Side. Written once in
+  `ui/window#opening-links-and-files`; the other pages link to it.
+- **Fix.** `Page.open` already turned a "card" open of a place the card cannot show into a selected new tab, so
+  Markdown passes the click's `how` for web links too (the cause of "doesn't open": a click opened a tab behind, at
+  the far end). Live Edit follows a link drawn as one (off the caret's lines) on a click, as Obsidian does; on the
+  caret's line it edits. Markdown links, Git's Open File and Parent get the app's menu. The browser takes ⌥-click and
+  adds Open Link to the Side (through `newPane`'s split, as plugin opens do). Chat links open a browser pane.
+- **Decisions.** A click that opens a new tab selects it; ⌘-click stays behind, as in Safari. Markdown's link menu
+  keeps WebKit's Copy Link. The terminal stays as it is (⌘-click, default browser): the program owns every other
+  click, and ⌥-click moves the shell's cursor. A chat link has no menu: SwiftUI's text has no link menu. A
+  diff line is not a link: ⌘- and ⌥-click only.
+
 ## Track I: Git's diff (items 17, 18)
 
 17. "we should have similar cmd+f filter in diff view as well".

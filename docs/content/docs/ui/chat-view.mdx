@@ -485,7 +485,10 @@ A run is one quiet line with no card: its summary and a chevron.
     written.
   - A table sits in a faint frame (radius 8): the head row on a fill, a line
     between rows, each column aligned as written.
-  - Links open only for `http`, `https` and `mailto`. Bare `http://`,
+  - Links open only for `http`, `https` and `mailto`: a web page in a
+    browser pane, as every link opens ([Opening links and
+    files](/docs/ui/window#opening-links-and-files)), a mail address in its
+    app. Bare `http://`,
     `https://` and `www.` addresses are links too (`NSDataDetector`:
     swift-markdown has no autolinks), names such as `Ovvi.app` are not.
   - An image shows as its description, linked to its address. The chat never

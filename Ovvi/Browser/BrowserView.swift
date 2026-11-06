@@ -8,8 +8,9 @@ class BrowserView: WKWebView {
     /// A key the card takes before the page (its "Open this page?").
     var onKey: ((NSEvent) -> Bool)?
     private var wantsKeyboard = false
-    /// Open ‹Link› in New Tab was picked: the page asks for its new window next (`createWebViewWith`).
-    var opensTab = false
+    /// Open ‹Link› in New Tab or Open Link to the Side was picked: the page asks for its new window next
+    /// (`createWebViewWith`).
+    var opens: Opening?
     /// In an overview's tile (D70): keys go to the overview; a claim waits until the card has it back.
     var inTile = false
     /// The page's last picture (`takePicture`): its overview tile, and its card's while a card made again loads.
@@ -54,38 +55,45 @@ class BrowserView: WKWebView {
         pageZoom = step == 0 ? 1 : min(3, max(0.5, pageZoom + CGFloat(step) * 0.1))
     }
 
-    /// The menu holds no address: a New Tab item sends its New Window item's action, which asks for a new window
-    /// with the link's address, and `opensTab` makes that a tab. No downloads: the app does not save them.
+    /// The menu holds no address: a New Tab item (and a link's to the Side) sends its New Window item's action, which
+    /// asks for a new window with the link's address, and `opens` makes that a tab or a side pane. No downloads: the
+    /// app does not save them.
     override func willOpenMenu(_ menu: NSMenu, with event: NSEvent) {
         super.willOpenMenu(menu, with: event)
-        opensTab = false
-        menu.items = menu.items.compactMap { item in
+        opens = nil
+        menu.items = menu.items.flatMap { item -> [NSMenuItem] in
             let id = item.identifier?.rawValue ?? ""
-            guard !id.hasPrefix("WKMenuItemIdentifierDownload") else { return nil }
-            guard id.hasSuffix("InNewWindow") else { return item }
-            let tab = NSMenuItem(title: item.title.replacingOccurrences(of: "New Window", with: "New Tab"),
-                                 action: #selector(openTab), keyEquivalent: "")
-            tab.target = self
-            tab.representedObject = item
-            return tab
+            guard !id.hasPrefix("WKMenuItemIdentifierDownload") else { return [] }
+            guard id.hasSuffix("InNewWindow") else { return [item] }
+            let tab = relay(item, item.title.replacingOccurrences(of: "New Window", with: "New Tab"), .tab)
+            return id == "WKMenuItemIdentifierOpenLinkInNewWindow"
+                ? [tab, relay(item, "Open Link to the Side", .side)] : [tab]
         }
     }
 
-    @objc private func openTab(_ tab: NSMenuItem) {
-        guard let item = tab.representedObject as? NSMenuItem, let action = item.action else { return }
-        opensTab = true
+    private func relay(_ item: NSMenuItem, _ title: String, _ how: Opening) -> NSMenuItem {
+        let relay = NSMenuItem(title: title, action: #selector(openLink), keyEquivalent: "")
+        relay.target = self
+        relay.representedObject = item
+        relay.tag = how == .side ? 1 : 0
+        return relay
+    }
+
+    @objc private func openLink(_ relay: NSMenuItem) {
+        guard let item = relay.representedObject as? NSMenuItem, let action = item.action else { return }
+        opens = relay.tag == 1 ? .side : .tab
         NSApp.sendAction(action, to: item.target, from: item)
     }
 
     /// A pick WebKit never asked a window for (New Tab on a `mailto:` link) must not make the page's next popup a tab
     /// (also from a key, `keyDown`).
     override func mouseDown(with event: NSEvent) {
-        opensTab = false
+        opens = nil
         super.mouseDown(with: event)
     }
 
     override func keyDown(with event: NSEvent) {
-        opensTab = false
+        opens = nil
         if onKey?(event) != true {
             super.keyDown(with: event)
         }

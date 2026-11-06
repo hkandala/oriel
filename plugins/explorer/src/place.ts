@@ -62,17 +62,19 @@ export const how = (event: MouseEvent | KeyboardEvent): How => (event.metaKey ? 
 export const open = (ovvi: Ovvi, arg: string, how: How) =>
   void ovvi.open(arg, { how, background: how !== "card" }).catch((error) => console.error(error))
 
-/** A row's menu at the pointer: Open (Open as Root for a folder), Open in New Tab, Open to the Side, and Rename when
- *  the row can be renamed. */
-export async function menu(ovvi: Ovvi, event: MouseEvent, arg: string, rename?: () => void) {
+/** A row's or a link's menu at the pointer: Open (Open as Root for a folder), Open in New Tab, Open to the Side;
+ *  Rename when the row can be renamed; a link's Copy Link, as WebKit's own menu had. */
+export async function menu(ovvi: Ovvi, event: MouseEvent, arg: string, more: { rename?: () => void; link?: boolean } = {}) {
   event.preventDefault()
   const picked = await ovvi.menu.show([
     { value: "card", title: arg.endsWith("/") ? "Open as Root" : "Open" },
     { value: "tab", title: "Open in New Tab" },
     { value: "side", title: "Open to the Side" },
-    ...(rename ? ["-" as const, { value: "rename", title: "Rename" }] : []),
+    ...(more.rename ? ["-" as const, { value: "rename", title: "Rename" }] : []),
+    ...(more.link ? ["-" as const, { value: "copy", title: "Copy Link" }] : []),
   ])
-  if (picked === "rename") rename?.()
+  if (picked === "rename") more.rename?.()
+  else if (picked === "copy") ovvi.clipboard.write(arg).catch(console.error)
   else if (picked) open(ovvi, arg, picked as How)
 }
 

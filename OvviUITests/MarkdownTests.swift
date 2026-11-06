@@ -3,7 +3,8 @@ import XCTest
 
 /// File Explorer's Markdown place: Rich Text draws the file rendered, locked; unlocked (⌘E) it is the same view with
 /// the marks of the caret's line shown; the outline lists the headings, ⌘S saves, a locked page follows the file on
-/// disk, the overview's tile shows the page and a relative link shows its file in the card, or a new tab with ⌘.
+/// disk, the overview's tile shows the page and a relative link shows its file in the card (also
+/// unlocked and from the link's menu), or a new tab with ⌘; a web link opens a browser pane in a new tab, selected.
 /// Source shows the source, its page folded beside it.
 extension OvviUITests {
     func testMarkdownCardReadsEditsSavesAndLinks() async throws {
@@ -64,6 +65,7 @@ extension OvviUITests {
         XCTAssertTrue(label.hasPrefix("ovvi:explorer#") && label.hasSuffix(" \(folder)/other.md"), label)
         try await show(tab)
         follow(card, page: page)
+        try await openWebLink(page, from: tab)
         try await source(card, page: page, shell: shell)
     }
 
@@ -108,9 +110,25 @@ extension OvviUITests {
         XCTAssertTrue(lock.isSelected && page.buttons["Hide Preview"].exists)
     }
 
-    /// A relative link shows its file in the card: with no heading, the outline's toggle hides; Back shows it.
+    /// A web link: a browser pane in a new tab, selected, since the card cannot show it; then the card's tab again.
+    private func openWebLink(_ page: XCUIElement, from tab: String) async throws {
+        let before = try await tabIDs()
+        page.links["Docs"].click()
+        let browser = try await newTabID(after: before)
+        closeAfter("tab", browser)
+        XCTAssertTrue(element("tab.\(browser)").has(\.isSelected, true, within: 5))
+        let label = try await paneLabel(pane(of: browser))
+        XCTAssertTrue(label.hasPrefix("ovvi:browser#") && label.contains(" https://example.com"), label)
+        try await show(tab)
+    }
+
+    /// A relative link's menu has the three opens and Copy Link; Open shows its file in the card: with no heading,
+    /// the outline's toggle hides; Back shows it.
     private func follow(_ card: String, page: XCUIElement) {
-        page.links["Other"].click()
+        page.links["Other"].rightClick()
+        XCTAssertTrue(app.menuItems["Open to the Side"].exists(within: 2))
+        XCTAssertTrue(app.menuItems["Open in New Tab"].exists && app.menuItems["Copy Link"].exists)
+        app.menuItems["Open"].click()
         XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, "other.md", within: 5))
         XCTAssertTrue(element("pane.\(card).outline").vanishes(within: 3))
         element("pane.\(card).go-back").click()
@@ -152,6 +170,11 @@ extension OvviUITests {
         XCTAssertTrue(editor.stringValue.contains("Some words."))
         XCTAssertFalse(editor.stringValue.contains("*words*"))
         XCTAssertEqual(page.links["Other"].frame, link)
+        // A link drawn as one, off the caret's line, opens on a click unlocked too.
+        page.links["Other"].click()
+        XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, "other.md", within: 5))
+        element("pane.\(card).go-back").click()
+        XCTAssertTrue(element("pane.\(card).title").has(\.stringValue, "notes.md", within: 5))
         page.staticTexts.matching(NSPredicate(format: "value == '1'")).firstMatch.click()
         XCTAssertTrue(until(3) { editor.stringValue.contains("| 1 | 2 |") }, editor.stringValue)
         page.buttons["Notes"].click()

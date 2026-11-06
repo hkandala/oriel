@@ -46,10 +46,11 @@ extension Browser: WKNavigationDelegate {
     }
 
     /// A `mailto:` or an app's link clicked in the page goes to its app; the page stays. Never from script or a frame.
-    /// A ⌘-clicked page opens in a new tab.
+    /// A ⌘-clicked link opens in a new tab, a ⌥-clicked one to the side (WebKit's download).
     func webView(_: WKWebView, decidePolicyFor action: WKNavigationAction) async -> WKNavigationActionPolicy {
-        if action.navigationType == .linkActivated, action.modifierFlags.contains(.command),
-           let url = action.request.url, openTab(url)
+        let flags = action.modifierFlags
+        if action.navigationType == .linkActivated, !flags.isDisjoint(with: [.command, .option]),
+           let url = action.request.url, openTab(url, side: !flags.contains(.command))
         {
             return .cancel
         }
@@ -86,12 +87,12 @@ extension Browser: WKUIDelegate {
                  for action: WKNavigationAction, windowFeatures _: WKWindowFeatures) -> WKWebView?
     {
         let source = webView as? BrowserView
-        let tab = source?.opensTab == true || action.navigationType == .linkActivated
-        source?.opensTab = false
-        if tab, let url = action.request.url, openTab(url) {
+        let how = source?.opens ?? (action.navigationType == .linkActivated ? .tab : nil)
+        source?.opens = nil
+        if let how, let url = action.request.url, openTab(url, side: how == .side) {
             return nil
         }
-        guard action.navigationType == .other, !tab else {
+        guard action.navigationType == .other, how == nil else {
             webView.load(action.request)
             return nil
         }
@@ -158,10 +159,11 @@ extension Browser {
     }
 
     /// Open Link in New Tab, ⌘-click and `target=_blank`: a browser pane on the link in a new tab right after
-    /// the card's, left in the background as Safari does. The user picked the link: its origin is approved,
-    /// so the new card loads it. False for an address a label cannot hold.
+    /// the card's, left in the background as Safari does; Open Link to the Side and ⌥-click: beside the card. The
+    /// user picked the link: its origin is approved, so the new card loads it. False for an address a label cannot
+    /// hold.
     @discardableResult
-    func openTab(_ link: URL) -> Bool {
+    func openTab(_ link: URL, side: Bool = false) -> Bool {
         // Not `mailto:`: `url` reads an address without `://` as a host.
         guard ["http", "https", "file"].contains(link.scheme?.lowercased() ?? ""), let store,
               let pane = store.pane(paneID), let workspace = store.workspace(of: pane.tabID),
@@ -176,7 +178,8 @@ extension Browser {
         Task {
             await store.write {
                 _ = try await store.newPane($0, in: workspace.id, cwd: pane.cwd ?? "~", label: label,
-                                            .tab(after: pane.tabID))
+                                            side ? .split(tab: pane.tabID, pane: pane.id, .right)
+                                                : .tab(after: pane.tabID))
             }
         }
         return true

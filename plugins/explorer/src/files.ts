@@ -551,7 +551,7 @@ export async function show(place: Place): Promise<Reveal> {
       const at = row(event)
       if (!at) return event.preventDefault()
       const shown = filter ? results : tree
-      void menu(ovvi, event, at.arg, at.id === UP ? undefined : () => shown.startRenaming(at.id) && stem(shown, at.id))
+      void menu(ovvi, event, at.arg, { rename: at.id === UP ? undefined : () => shown.startRenaming(at.id) && stem(shown, at.id) })
     })
   }
 

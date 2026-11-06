@@ -12,7 +12,7 @@ import { Compartment, EditorState, Prec } from "@codemirror/state"
 import { EditorView } from "@codemirror/view"
 import { code, type Editor, editor, selected } from "./editor"
 import { containers, editing, live, referenceField, ticked } from "./live"
-import { choose, how, open, own, type Place, type Reveal, symbols } from "./place"
+import { choose, how, menu, open, own, type Place, type Reveal, symbols } from "./place"
 import { sideBySide } from "./split"
 
 type Mode = "rich" | "source"
@@ -201,14 +201,32 @@ export async function show(place: Place): Promise<Reveal> {
     }))
   }
 
-  /** Links while locked: `#` scrolls to its heading, http(s) opens a browser pane in a new tab (⌥ to the side), a
-   *  relative path its file in the card (⌘ in a new tab, ⌥ to the side). */
+  /** A link's place: a web address, or a relative path's file; none for an anchor or another scheme. */
+  function address(link: Element) {
+    const target = link.getAttribute("href") ?? ""
+    if (/^https?:/i.test(target)) return target
+    if (!target || target.startsWith("#") || /^[a-z][a-z\d+.-]*:/i.test(target)) return undefined
+    const base = `file://${arg.split("/").map(encodeURIComponent).join("/")}`
+    return decodeURIComponent(new URL(target, base).pathname)
+  }
+
+  /** The link draws as one: locked, and unlocked off the caret's lines. On a caret's line it shows its source,
+   *  and a click there edits it. */
+  function linked(view: EditorView, link: Element) {
+    if (!editing(view.state)) return true
+    const { doc, selection } = view.state
+    const from = view.posAtDOM(link), to = view.posAtDOM(link, link.childNodes.length)
+    return !selection.ranges.some((range) => doc.lineAt(range.from).from <= to && doc.lineAt(range.to).to >= from)
+  }
+
+  /** A click on a link: `#` scrolls to its heading, else it opens as every link does (ui/window#opening-links-and-
+   *  files): in the card for a file, a new tab for a web page, ⌘ a new tab behind, ⌥ to the side. */
   function follow(view: EditorView, event: MouseEvent) {
     const link = (event.target as Element).closest("a")
     if (!link) return false
     // Unlocked too: a table's `href=""` link would load the page again and lose the edits.
     event.preventDefault()
-    if (editing(view.state)) return false
+    if (!linked(view, link)) return false
     const target = link.getAttribute("href") ?? ""
     if (target.startsWith("#")) {
       let anchor = target.slice(1)
@@ -226,11 +244,9 @@ export async function show(place: Place): Promise<Reveal> {
         return (n ? `${base}-${n}` : base) === anchor.toLowerCase()
       })
       if (heading) view.dispatch({ effects: EditorView.scrollIntoView(heading.from, { y: "start" }) })
-    } else if (/^https?:/i.test(target)) {
-      open(ovvi, target, event.altKey ? "side" : "tab")
-    } else if (target && !/^[a-z][a-z\d+.-]*:/i.test(target)) {
-      const base = `file://${arg.split("/").map(encodeURIComponent).join("/")}`
-      open(ovvi, decodeURIComponent(new URL(target, base).pathname), how(event))
+    } else {
+      const place = address(link)
+      if (place) open(ovvi, place, how(event))
     }
     return true
   }
@@ -245,7 +261,22 @@ export async function show(place: Place): Promise<Reveal> {
   let ticks = Promise.resolve()
   // Front matter as YAML, not as a rule and a heading.
   const language = yamlFrontmatter({ content: markdown({ base: markdownLanguage }) })
-  const links = EditorView.domEventHandlers({ click: (event, view) => follow(view, event) })
+  const links = EditorView.domEventHandlers({
+    click: (event, view) => follow(view, event),
+    // A drawn link opens on its click unlocked too, as locked: no caret first, which would show its source.
+    mousedown: (event, view) => {
+      const link = (event.target as Element).closest("a")
+      if (!link || event.button || event.shiftKey || !editing(view.state) || !linked(view, link)) return false
+      event.preventDefault()
+      return true
+    },
+    contextmenu: (event) => {
+      const link = (event.target as Element).closest("a"), place = link && address(link)
+      if (!place) return false
+      void menu(ovvi, event, place, { link: true })
+      return true
+    },
+  })
   /** Source: the file as code cards draw it. */
   const source = [code, Prec.highest(EditorView.theme({ ".cm-content": { paddingBottom: "48px" } }))]
   /** Source's page: Rich Text's look, locked, with its links and its ticks. */

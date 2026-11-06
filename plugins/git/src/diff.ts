@@ -11,7 +11,7 @@ import {
   VirtualizedFileDiff,
   Virtualizer,
 } from "@pierre/diffs"
-import { element, failed as toast, fileIcon, home, type How, how, keep, kept, nameAndFolder, open, ovvi } from "./lib"
+import { element, failed as toast, fileIcon, home, type How, how, keep, kept, menu, nameAndFolder, open, ovvi } from "./lib"
 
 /** How near the view a file's box makes its view. */
 const MARGIN = 1500
@@ -249,6 +249,7 @@ export async function make(place: Page, root: string, source: string) {
       const open = element("button", "open", "Open File")
       open.ariaLabel = `Open ${diff.name}`
       open.onclick = (event) => openFile(diff.name, undefined, how(event))
+      open.oncontextmenu = (event) => void menu(event, `${root}/${diff.name}`, {})
       box.append(open)
     }
     return box
@@ -312,6 +313,7 @@ export async function make(place: Page, root: string, source: string) {
         const button = element("button", "hash", parent.slice(0, 10))
         button.ariaLabel = `Parent ${parent}`
         button.onclick = (event) => open(`${home(root)} ${parent}`, { how: how(event), plugin: "git" })
+        button.oncontextmenu = (event) => void menu(event, `${home(root)} ${parent}`, { plugin: "git" })
         return button
       }))
     }

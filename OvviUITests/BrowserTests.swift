@@ -128,7 +128,7 @@ extension OvviUITests {
 
     /// A link opens in a new tab, in the background, from the page's menu (which has no New Window or download items),
     /// by ⌘-click and as a `target=_blank` link: each a browser pane on two.html. A `window.open` popup stays over the
-    /// card and closes by Esc and by its close button.
+    /// card and closes by Esc and by its close button. ⌥-click opens the link beside the card.
     func testLinksOpenInNewTabsAndPopupsClose() async throws {
         let (tab, shell) = try await newTab("links")
         try await waitForPrompt(shell)
@@ -158,6 +158,7 @@ extension OvviUITests {
         app.webViews.links["Two"].rightClick()
         let menu = app.windows.firstMatch.menuItems
         XCTAssertTrue(menu["Open Link in New Tab"].exists(within: 2))
+        XCTAssertTrue(menu["Open Link to the Side"].exists)
         XCTAssertFalse(menu["Open Link in New Window"].exists)
         XCTAssertFalse(menu["Download Linked File"].exists)
         keepScreenshot("page menu")
@@ -180,6 +181,19 @@ extension OvviUITests {
         XCTAssertTrue(popup.exists(within: 10))
         element("browser.\(pane).card").buttons["Close"].click()
         XCTAssertTrue(popup.vanishes(within: 3))
+        try await openBeside(in: tab, besides: [pane, shell], two)
+    }
+
+    /// ⌥-click on a link: a browser pane on it beside the card, the card's page still shown.
+    private func openBeside(in tab: String, besides panes: [String], _ two: String) async throws {
+        XCUIElement.perform(withKeyModifiers: .option) { app.webViews.links["Two"].click() }
+        let side = try await poll("a pane beside the card") { () async throws -> String? in
+            try await (snapshot()["panes"] as? [[String: Any]] ?? []).first {
+                $0["tab_id"] as? String == tab && !panes.contains($0["pane_id"] as? String ?? "")
+            }?["pane_id"] as? String
+        }
+        try await labelEnds(side, " \(two)")
+        XCTAssertTrue(pageText("ovvi-page-one").exists)
     }
 
     /// Web Inspector, docked: the page gives it the card's lower part, also after the card changes size.

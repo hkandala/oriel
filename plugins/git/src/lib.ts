@@ -28,13 +28,13 @@ export const how = (event: MouseEvent | KeyboardEvent): How => (event.metaKey ? 
 export const open = (arg: string, options: { how: How; at?: string; plugin?: string }) =>
   void ovvi.open(arg, { ...options, background: options.how !== "card" }).catch((error) => console.error(error))
 
-/** A row's menu at the pointer: Open, Open in New Tab, Open to the Side. */
-export async function menu(event: MouseEvent, arg: string, at?: string) {
+/** A row's or a button's menu at the pointer: Open, Open in New Tab, Open to the Side. */
+export async function menu(event: MouseEvent, arg: string, options: { at?: string; plugin?: string }) {
   event.preventDefault()
   const picked = await ovvi.menu.show([
     { value: "card", title: "Open" }, { value: "tab", title: "Open in New Tab" }, { value: "side", title: "Open to the Side" },
   ])
-  if (picked) open(arg, { how: picked as How, at, plugin: "git" })
+  if (picked) open(arg, { ...options, how: picked as How })
 }
 
 export function element<K extends keyof HTMLElementTagNameMap>(tag: K, className = "", text = "") {

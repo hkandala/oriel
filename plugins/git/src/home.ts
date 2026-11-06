@@ -241,7 +241,7 @@ export async function make(place: Page, root: string) {
     button.ariaLabel = label
     node.append(button)
     node.onclick = (event) => open(arg, { how: how(event), at, plugin: "git" })
-    node.oncontextmenu = (event) => void menu(event, arg, at)
+    node.oncontextmenu = (event) => void menu(event, arg, { at, plugin: "git" })
     return { node, open: button }
   }
 
