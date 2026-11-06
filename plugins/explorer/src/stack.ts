@@ -9,7 +9,8 @@ export function stack(host: HTMLElement) {
   const shadow = host.shadowRoot!
   const copy = shadow.appendChild(document.createElement("div"))
   copy.dataset.stackCopy = ""
-  copy.ariaHidden = "true"
+  // Out of the way of clicks, the keyboard and VoiceOver: the stack below takes them.
+  copy.inert = true
   let drawn = "", hovered: string | null = null
   /** The hover the stack's row has, on its copy. */
   const hover = () => {
@@ -39,8 +40,13 @@ export function stack(host: HTMLElement) {
     }
     hover()
   }
-  // Pierre's draws come in a microtask after its scroll handler, so the copy and the mask change in the same frame.
+  // Pierre's draws come in a microtask after its scroll handler, so the copy and the mask change in the same frame. A
+  // new width (a split's divider, the window) moves the copy.
   new MutationObserver(draw).observe(shadow, { subtree: true, childList: true, attributes: true })
+  new ResizeObserver(() => {
+    drawn = ""
+    draw()
+  }).observe(host)
   for (const type of ["pointerover", "pointerout"]) {
     shadow.addEventListener(type, (event) => {
       const row = (event.target as Element).closest?.("[data-file-tree-sticky-path]")

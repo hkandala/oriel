@@ -280,9 +280,11 @@ runs and on-demand on the final head.
   and the mask stays with the view while WebKit's own thread moves the rows. The stack is in the view, so a copy of
   it draws over the mask (stack.ts), with the hover from the real rows (which still take the clicks, masked) and
   each pushed folder cut under its parent. Band and card read the same (37 on 37 dark, 244 on 244 light).
-- **Decisions, item 33.** Back and Forward are ⌃⌘← and ⌃⌘→ (Xcode's Go Back and Go Forward): no Ovvi key, macOS text
-  binding or CodeMirror default uses them (CodeMirror has ⌃← ⌃→ on the Mac). ⌘[ ⌘] are Select Previous Pane and
-  Select Next Pane over every card again. ⌘← ⌘→ stay Back and Forward where no text field has the keyboard.
+- **Decisions, item 33.** Back and Forward are ⌃⌘← and ⌃⌘→ (Xcode's Go Back and Go Forward): no Ovvi key or
+  CodeMirror default uses them (CodeMirror has ⌃← ⌃→ on the Mac). macOS text views bind them to the writing
+  direction, so the card's view takes them even with no place that way (as Xcode does); row 2's folder field keeps
+  the binding. ⌘[ ⌘] are Select Previous Pane and Select Next Pane over every card again. ⌘← ⌘→ stay Back and Forward
+  where no text field has the keyboard.
 - **For the user:** in a few frames of a fast scroll the stack is missing as the scroll leaves the top (the tree's
   own overlay lags there); nothing ever shows under it.
 

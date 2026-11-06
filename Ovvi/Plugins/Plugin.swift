@@ -151,13 +151,12 @@ final class Plugin {
         name()
         web.bridge = Bridge(plugin: self)
         web.view.step = { [weak self] back in
-            guard let self, back ? canGoBack : canGoForward else { return false }
+            guard let self, back ? canGoBack : canGoForward else { return }
             if back {
                 goBack()
             } else {
                 goForward()
             }
-            return true
         }
     }
 

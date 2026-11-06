@@ -175,9 +175,11 @@ the click.
 - A Git home drawn anew (not kept) lands at the change or the commit that
   the card came back from.
 - ⌃⌘← and ⌃⌘→ (Xcode's Go Back and Go Forward) work in every view: the
-  tree, a file and its editor, Markdown, a preview and Git's pages. No text
-  view, CodeMirror or Ovvi key uses them. ⌘[ and ⌘] stay Select Previous
-  Pane and Select Next Pane over every card. ⌘← and ⌘→ also
+  tree, a file and its editor, Markdown, a preview and Git's pages. No Ovvi
+  key or CodeMirror default uses them. macOS text views use them to set the
+  writing direction, so the card takes them also with no place that way;
+  in row 2's folder field they keep that meaning. ⌘[ and ⌘] stay Select
+  Previous Pane and Select Next Pane over every card. ⌘← and ⌘→ also
   go Back and Forward, as in a browser, except in a text field such as the
   editor, where they move the caret. A card made from
   its label (after a relaunch, or a dropped card shown again) has no list
@@ -812,7 +814,7 @@ over the card that uses it, because a disabled menu item swallows its key.
 
 | Keys | Command | When it has its key |
 |---|---|---|
-| ⌃⌘← ⌃⌘→ | Back, Forward in the card | while the card has a place that way (the page's own key) |
+| ⌃⌘← ⌃⌘→ | Back, Forward in the card | always over the page: the card's view takes them before the page and the menu |
 | ⌘← ⌘→ | Back, Forward in the card | while no text field in the page has the keyboard: there they move the caret |
 | ⌘S | Save (File menu): the editor's text to disk | only while File or Markdown has the keyboard |
 | ⌘F | Find… (Edit menu): the editor's find bar; on the tree and a Git diff, its find bar (a filter of the files) | on File, Markdown, the tree and a Git diff. Disabled on Preview and the Git home |

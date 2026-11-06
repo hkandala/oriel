@@ -66,8 +66,8 @@ const look = {
   :host { position: relative; }
   :host([data-stack]) [data-file-tree-virtualized-scroll] {
     -webkit-mask: linear-gradient(transparent var(--stack), #000 var(--stack)); }
-  [data-stack-copy] { position: absolute; z-index: 5; pointer-events: none; }
-  [data-stack-copy] [data-hover] { background-color: var(--trees-bg-muted); }
+  [data-stack-copy] { position: absolute; z-index: 5; }
+  [data-stack-copy] [data-hover]:not([data-item-selected="true"]) { background-color: var(--trees-bg-muted); }
   /* Inside its box: the row's name clips what goes past it. */
   [data-item-rename-input] { border-radius: 4px; background: var(--card); outline: 1.5px solid var(--accent);
     outline-offset: -1.5px; }

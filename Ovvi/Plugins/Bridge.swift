@@ -215,7 +215,7 @@ final class Bridge {
             guard let arg = args["arg"] as? String else { throw PluginError("failed", "arg is missing") }
             plugin.go(arg, at: args["at"] as? String)
         // The runtime's ⌘← and ⌘→: Back and Forward, when the card has a place that way.
-        case "card.step": _ = plugin.web.view.step?(args["back"] as? Bool == true)
+        case "card.step": plugin.web.view.step?(args["back"] as? Bool == true)
         case "card.ready":
             plugin.web.ready = true
             // A change between the context and the runtime's start had no one to hear it.
