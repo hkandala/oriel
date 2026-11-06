@@ -166,6 +166,7 @@ extension OvviUITests {
     }
 
     func testDraggingTheThirdCapsuleFirstReordersHerdrsTabs() async throws {
+        relaunch(one, ["-forceMotion", "YES"]) // the drop's glide too (CI has Reduce Motion on)
         let tabs = try await newWorkspace("tabs", tabs: 3).tabs
         let third = element("tab.\(tabs[2])")
         let from = third.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
@@ -174,15 +175,14 @@ extension OvviUITests {
         try await expect("herdr's tab order") {
             try await tabIDs().filter { $0.hasPrefix("\(workspace(of: tabs[0])):") } == [tabs[2], tabs[0], tabs[1]]
         }
-        // The last one, grabbed near its end (left of its ×) and let go with its capsule 0.3 of a tab into the first
-        // place: it goes there (the place under the capsule, not the pointer), and the pointer is then over the
-        // second tab, which has the × at once, not the dropped one (no hover event came; the × cuts the titles anew).
-        during(element("tab.\(tabs[1])").coordinate(withNormalizedOffset: CGVector(dx: 0.8, dy: 0.5)),
-               to: element("tab.\(tabs[0])").coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.5)))
-        XCTAssertFalse(element("tab.\(tabs[1]).close").exists, "the dropped tab kept the hover")
-        XCTAssertTrue(element("tab.\(tabs[2]).close").exists(within: 1))
+        // Let go with its capsule 0.7 of a tab past the second, the first goes last (the place under the capsule), and
+        // the second, under the pointer, has the × at once, not the dropped one. In view on CI's narrow bar.
+        during(element("tab.\(tabs[2])").coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)),
+               to: element("tab.\(tabs[0])").coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)))
+        XCTAssertFalse(element("tab.\(tabs[2]).close").exists, "the dropped tab kept the hover")
+        XCTAssertTrue(element("tab.\(tabs[1]).close").exists(within: 1))
         try await expect("herdr's tab order") {
-            try await tabIDs().filter { $0.hasPrefix("\(workspace(of: tabs[0])):") } == [tabs[1], tabs[2], tabs[0]]
+            try await tabIDs().filter { $0.hasPrefix("\(workspace(of: tabs[0])):") } == [tabs[0], tabs[1], tabs[2]]
         }
     }
 

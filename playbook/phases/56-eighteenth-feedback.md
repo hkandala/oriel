@@ -762,8 +762,10 @@ is enabeld. don't increase it too much" and "let's make it 300".
   animation in place: the image stays where it was let go for about 0.35 s, then the session ends. Over a tab let go on
   its place the image lay on the capsule, so only a drop half way showed it. **Fix:** a tab dropped on the bar empties
   the session's image (`DragSource.dropImage`), so it goes in the drop's frame and the capsule glides from its place.
-  The session still ends 0.35 s later: its end clears a drag only if it is the latest session, as the next drag can
-  begin before.
+  The session comes from its first move (`movedTo`), not from `beginDraggingSession`'s return: on CI that call ran the
+  whole session before it returned, so a session kept from it was the old one or none (the image stayed, and a guard
+  on it left pane drags stuck). The gliding capsule takes no hover: passing under the still pointer it took the × and
+  kept it after (seen locally, where it glides; CI has Reduce Motion on, so the test now forces motion).
 - **Decisions, round 2.** The capsule's glide stays, not AppKit's slide of the image to the place: one motion, ours.
   Other drops keep the image: a pane's or a row's view changes only once herdr answers, and the image stands in until
   then.

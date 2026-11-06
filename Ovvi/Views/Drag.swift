@@ -32,7 +32,8 @@ final class DragSource: NSObject, NSDraggingSource {
     private weak var page: Page?
     /// The pointer in the dragged view as the drag began: the drag image keeps that distance from the pointer.
     private(set) static var grabbed = CGPoint.zero
-    private weak static var session: NSDraggingSession?
+    /// The drag's session, from its first move: AppKit can also run a whole session inside `beginDraggingSession`.
+    private static var session: NSDraggingSession?
 
     /// From a `DragGesture`'s change: starts the drag once (the session takes the mouse from there). The preview is
     /// the dragged view's snapshot: `size` from its top left, which is `grabbed` (the pointer in the view) away from
@@ -70,12 +71,12 @@ final class DragSource: NSObject, NSDraggingSource {
         shared.page = page
         self.grabbed = grabbed
         page.dragging = item
-        session = view.beginDraggingSession(with: [dragging], event: event, source: shared)
+        view.beginDraggingSession(with: [dragging], event: event, source: shared)
     }
 
     /// For a drop that shows its own landing. SwiftUI's drop target sets `animatesToDestination` on every drop and
     /// names no place, so AppKit keeps the image where it was let go for about 0.35 s before the session ends: over
-    /// the tab gliding into its place. An empty image takes it away at once; the session still ends later.
+    /// the tab gliding into its place. An empty image takes it away at once.
     static func dropImage() {
         let empty: (NSDraggingItem, Int, UnsafeMutablePointer<ObjCBool>) -> Void = { item, _, _ in
             item.imageComponentsProvider = { [] }
@@ -131,20 +132,16 @@ final class DragSource: NSObject, NSDraggingSource {
 
     /// The session shows its image some frames after it began, first where the view is, and follows the pointer only
     /// from its first move: the view dims then, so it never shows dimmed with no image over it.
-    nonisolated func draggingSession(_ session: NSDraggingSession, movedTo _: NSPoint) {
-        let id = ObjectIdentifier(session)
-        MainActor.assumeIsolated {
-            if id == Self.session.map(ObjectIdentifier.init), let page, page.lifted == nil {
-                page.lifted = page.dragging
-            }
+    func draggingSession(_ session: NSDraggingSession, movedTo _: NSPoint) {
+        Self.session = session
+        if let page, page.lifted == nil {
+            page.lifted = page.dragging
         }
     }
 
-    nonisolated func draggingSession(_ session: NSDraggingSession, endedAt _: NSPoint, operation _: NSDragOperation) {
-        let id = ObjectIdentifier(session)
+    nonisolated func draggingSession(_: NSDraggingSession, endedAt _: NSPoint, operation _: NSDragOperation) {
         MainActor.assumeIsolated {
-            // A tab's drop looks done at once, so the next drag can begin before this session ends.
-            guard id == Self.session.map(ObjectIdentifier.init) else { return }
+            Self.session = nil
             page?.dragging = nil
             page?.lifted = nil
             page = nil

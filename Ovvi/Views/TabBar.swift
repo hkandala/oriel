@@ -80,7 +80,9 @@ struct TabBar: View {
                                 .opacity(page.lifted == .tab(tab.id) ? 0.4 : 1)
                                 .offset(x: shift(index))
                                 .keyframeAnimator(initialValue: 0, trigger: landing?.tab == tab.id ? landing : nil) {
-                                    $0.offset(x: $1)
+                                    // No hover while it glides: passing under the still pointer, it took the ×
+                                    // and kept it once there (no hover event came after).
+                                    $0.offset(x: $1).allowsHitTesting($1 == 0)
                                 } keyframes: { _ in
                                     MoveKeyframe(landing?.tab == tab.id ? landing?.offset ?? 0 : 0)
                                     LinearKeyframe(0, duration: 0.22, timingCurve: .slide)
