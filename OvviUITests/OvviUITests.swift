@@ -223,7 +223,7 @@ extension OvviUITests {
                        "terminalFont": "", "cursorStyle": "block", "cursorBlink": "YES", "optionKey": "characters",
                        "copyOnSelect": "NO", "agentView": "terminal", "agentArguments.claude": "",
                        "agentArguments.codex": "", "agentArguments.pi": "", "agentArguments.opencode": "",
-                       "settleAfter": "<real>10800</real>", "archivedAgent": "", "showClosedSessions": "YES"]
+                       "settleAfter": "<real>10800</real>", "showClosedSessions": "YES"]
         let notify = pin ? shipped.sorted { $0.key < $1.key }.filter { !args.contains("-\($0.key)") }
             .flatMap { ["-\($0.key)", $0.value] } : []
         // Archived reads the agents' stores of a test's fixtures, never the user's sessions.

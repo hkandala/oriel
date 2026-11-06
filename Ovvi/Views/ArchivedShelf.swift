@@ -9,9 +9,9 @@ struct ArchivedShelf: View {
     /// The footer's filter: by title and folder.
     let filter: String
     /// The agent the menu shows ("" for all), kept across relaunches.
-    @AppStorage("archivedAgent") private var agent = ""
-    @AppStorage(Page.openShelves) private var opened = ""
-    @AppStorage(AgentPin.key) private var pins = ""
+    @AppStorage("archivedAgent", store: .agents) private var agent = ""
+    @AppStorage(Page.openShelves, store: .agents) private var opened = ""
+    @AppStorage(AgentPin.key, store: .agents) private var pins = ""
     @State private var list = ClosedList()
     @State private var reading: Set<String> = []
     @State private var failed = false
