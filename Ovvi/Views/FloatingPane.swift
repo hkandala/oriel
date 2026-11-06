@@ -237,6 +237,8 @@ struct FloatingWindow: View {
             }
             .background(CardSurface(keyboard: terminal?.hasKeyboard == true || chat?.showsChat == true))
             .clipShape(CardSurface.shape)
+            // The window's one pane is its active pane, as a tab's only card.
+            .overlay { ActiveBorder(id: "float.\(pane?.id ?? "")") }
             .overlay { CardFlash(store: page.store, id: pane?.id ?? "") }
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("float.\(pane?.id ?? "")")

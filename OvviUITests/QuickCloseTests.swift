@@ -12,9 +12,8 @@ extension OvviUITests {
         element("tab.\(tab)").click()
         element("terminal.\(first)").click()
         XCTAssertTrue(hasKeyboard("terminal.\(first)"))
-        // One card: no border.
-        XCTAssertTrue(element("pane.\(first)").exists)
-        XCTAssertFalse(element("pane.\(first).border").exists)
+        // One card: its border too.
+        XCTAssertTrue(element("pane.\(first).border").exists(within: 1))
         let cards = element("cards.\(tab)")
         XCTAssertTrue(cards.exists(within: 2))
         let before = cards.stringValue.split(separator: " ").compactMap { Int($0) }
@@ -33,12 +32,13 @@ extension OvviUITests {
         // Four cards came and three went: none for a closed split's pane.
         let counts = "\(before[0] + 4) \(before[1] + 3)"
         XCTAssertTrue(cards.has(\.stringValue, counts, within: 2), "came went: \(cards.stringValue)")
-        // The active pane's border: on the keyboard card of two, at once; none when one card shows.
+        // The active pane's border: on the keyboard card of two, at once, and on a zoomed card.
         XCTAssertTrue(element("pane.\(panes[1]).border").exists)
         element("terminal.\(first)").click()
         XCTAssertTrue(element("pane.\(first).border").exists(within: 1))
         XCTAssertFalse(element("pane.\(panes[1]).border").exists)
         app.typeKey(.return, modifierFlags: [.command, .shift])
-        XCTAssertTrue(element("pane.\(first).border").vanishes(within: 2))
+        XCTAssertTrue(element("pane.\(panes[1])").vanishes(within: 2))
+        XCTAssertTrue(element("pane.\(first).border").exists)
     }
 }

@@ -80,3 +80,19 @@ struct ChatProbe: NSViewRepresentable {
 
     func updateNSView(_: NSView, context _: Context) {}
 }
+
+/// The keyboard card's border (ui/window), also on a card alone, at once: no fade as the keyboard moves.
+struct ActiveBorder: View {
+    /// The card's identifier: the border's test value is `<id>.border`.
+    let id: String
+    var shown = true
+    @Environment(\.look) private var look
+
+    var body: some View {
+        if shown {
+            CardSurface.shape.strokeBorder(look.activeBorder, lineWidth: 1).allowsHitTesting(false)
+                .transition(.identity)
+                .testValue("\(id).border", "Active", "", shown: SettlingHost.record)
+        }
+    }
+}

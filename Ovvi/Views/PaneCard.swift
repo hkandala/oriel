@@ -126,7 +126,7 @@ struct PaneCard: View {
                 .accessibilityActions { PaneActions(page: page, pane: pane) }
                 .contextMenu { PaneItems(page: page, pane: pane) }
         }
-        .overlay { ActiveBorder(id: id, shown: lit && shown.count > 1 && page.zoomedPaneID == nil) }
+        .overlay { ActiveBorder(id: "pane.\(id)", shown: lit) }
         .opacity(page.dragging == .pane(id) ? 0.4 : 1)
         .overlay(alignment: .topLeading) {
             if let zone, page.dragging != nil {
@@ -377,21 +377,6 @@ private struct PaneActions: View {
         }
         ForEach(Array(commands.enumerated()), id: \.offset) { _, command in
             Button(command.0, action: command.1)
-        }
-    }
-}
-
-/// The keyboard card's border among two or more shown cards (ui/window), at once: no fade as the keyboard moves.
-private struct ActiveBorder: View {
-    let id: String
-    let shown: Bool
-    @Environment(\.look) private var look
-
-    var body: some View {
-        if shown {
-            CardSurface.shape.strokeBorder(look.activeBorder, lineWidth: 1).allowsHitTesting(false)
-                .transition(.identity)
-                .testValue("pane.\(id).border", "Active", "", shown: SettlingHost.record)
         }
     }
 }

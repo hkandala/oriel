@@ -188,12 +188,17 @@ extension OvviUITests {
         XCTAssertTrue(alone.vanishes(within: 5))
     }
 
-    /// A floating window on top over the main window, in Glass and Classic, dark and light.
+    /// A floating window on top over the main window, in Glass and Classic, dark and light, with the active border.
     func testFloatingWindowInEachLook() async throws {
+        relaunch(one, ["-recordMotion", "YES"])
+        XCTAssertTrue(element("workspace.w1").exists(within: connect))
         let (tab, first) = try await newTab("float-look")
         let second = try await split(first)
         element("tab.\(tab)").click()
         let window = try float(second)
+        // Its one pane has the border, as the main window's card left alone.
+        XCTAssertTrue(element("float.\(second).border").exists(within: 2))
+        XCTAssertTrue(element("pane.\(first).border").exists(within: 2))
         element("float.\(second).pin").click()
         XCTAssertTrue(element("float.\(second).pin").has(\.stringValue, "on", within: 2))
         // The main window's menu bar has the looks; the window on top stays in view.
