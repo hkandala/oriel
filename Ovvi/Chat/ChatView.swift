@@ -17,7 +17,6 @@ struct ChatView: View {
         VStack(spacing: 0) {
             ChatMessages(chat: chat, page: page, floats: page.store.pane(chat.paneID).map(page.floats) == true,
                          composing: $composing).equatable()
-                .environment(\.openURL, OpenURLAction(handler: openLink))
             if chat.drawer, let terminal {
                 WaitingDrawer(chat: chat, page: page, terminal: terminal).frame(height: max(160, height * 0.45))
                     .padding(.horizontal, 32).padding(.bottom, 14).padding(.top, 4)
@@ -65,24 +64,6 @@ struct ChatView: View {
                 page.tookKeyboard(terminalID)
             }
         }
-    }
-
-    /// A reply's link opens as every link does (ui/window#opening-links-and-files): a web page in a browser pane in a
-    /// new tab (⌘: behind, ⌥: to the side), a mail address in its app. No other: a transcript (or a page the agent
-    /// quotes) could hold `file:` or `ovvi:` links.
-    private func openLink(_ url: URL) -> OpenURLAction.Result {
-        let scheme = url.scheme?.lowercased() ?? ""
-        if scheme == "mailto" {
-            return .systemAction
-        }
-        guard ["http", "https"].contains(scheme), let terminalID = page.store.pane(chat.paneID)?.terminalID else {
-            return .discarded
-        }
-        let flags = NSEvent.modifierFlags
-        let how: Opening = flags.contains(.command) ? .tab : flags.contains(.option) ? .side : .here
-        Task { await page.open(Registry.browser, arg: url.absoluteString, from: terminalID, how: how,
-                               background: how != .here) }
-        return .handled
     }
 }
 
@@ -181,5 +162,25 @@ private struct WaitingDrawer: View {
                 chat.wantsKeyboard = true
             }
         }
+    }
+}
+
+extension ChatMessages {
+    /// A reply's link opens as every link does (ui/window#opening-links-and-files): a web page in a browser pane in a
+    /// new tab (⌘: behind, ⌥: to the side), a mail address in its app. No other: a transcript (or a page the agent
+    /// quotes) could hold `file:` or `ovvi:` links.
+    func openLink(_ url: URL) -> OpenURLAction.Result {
+        let scheme = url.scheme?.lowercased() ?? ""
+        if scheme == "mailto" {
+            return .systemAction
+        }
+        guard ["http", "https"].contains(scheme), let terminalID = page.store.pane(chat.paneID)?.terminalID else {
+            return .discarded
+        }
+        let flags = NSEvent.modifierFlags
+        let how: Opening = flags.contains(.command) ? .tab : flags.contains(.option) ? .side : .here
+        Task { await page.open(Registry.browser, arg: url.absoluteString, from: terminalID, how: how,
+                               background: how != .here) }
+        return .handled
     }
 }

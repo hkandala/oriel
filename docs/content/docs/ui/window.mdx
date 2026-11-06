@@ -650,12 +650,14 @@ terminal.
   ⌘⌥-click to the side. A right click over a link starts the card's menu
   with **Open**, **Open in New Tab**, **Open to the Side**, **Open in Default
   Browser** (a web address) and **Copy Link**.
-  - A web address opens a browser pane, a file path (absolute, `file:`, or
-    `~` on This Mac) its default plugin on the card's machine; a `:line`
+  - A web address opens a browser pane, a file path (absolute, `file:`, `~`
+    on This Mac, or `./` and `../` from the card's folder) its default plugin
+    on the card's machine; a `:line`
     after the path lands on that line. Other schemes (`ftp:`) open nothing.
   - libghostty reports a link only while ⌘ is down, so for a ⌘⌥-click and
     a right click the app moves libghostty's pointer to the click with ⌘ for
-    a moment and reads the link it reports.
+    a moment (first off the view: libghostty looks again only on a new
+    cell) and reads the link it reports.
 - A `mailto:` or an app's link in a page or a chat reply opens its app.
 
 ## Find bar

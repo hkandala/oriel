@@ -171,9 +171,13 @@ final class PaneSurfaceView: AppTerminalView {
     // Shift+drag if that noise bothers users.
     override func mouseDown(with event: NSEvent) {
         // ⌘⌥-click: a link to the side. libghostty opens a link only with ⌘ alone; ⌥-click is the program's.
-        sideClick = event.modifierFlags.intersection(.deviceIndependentFlagsMask) == [.command, .option]
-            && link(at: event).map { openLink?($0, .side) } != nil
-        guard !sideClick else { return }
+        let side = event.modifierFlags.intersection(.deviceIndependentFlagsMask) == [.command, .option]
+            ? link(at: event) : nil
+        sideClick = side != nil
+        if let side {
+            openLink?(side, .side)
+            return
+        }
         super.mouseDown(with: event)
         mouse(.down, .left, event)
     }

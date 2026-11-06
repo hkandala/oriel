@@ -304,9 +304,8 @@ Runs: none (no app code).
   caret's line it edits. Markdown links, Git's Open File and Parent get the app's menu. The browser takes ⌥-click and
   adds Open Link to the Side (through `newPane`'s split, as plugin opens do). Chat links open a browser pane.
 - **Decisions.** A click that opens a new tab selects it; ⌘-click stays behind, as in Safari. Markdown's link menu
-  keeps WebKit's Copy Link. The terminal stays as it is (⌘-click, default browser): the program owns every other
-  click, and ⌥-click moves the shell's cursor. A chat link has no menu: SwiftUI's text has no link menu. A
-  diff line is not a link: ⌘- and ⌥-click only.
+  keeps WebKit's Copy Link. A chat link has no menu: SwiftUI's text has no link menu. A diff line is not a link:
+  ⌘- and ⌥-click only.
 - **Terminal links (the user's later ask).** "is there a way to enable similar cmd+click, option+click and right click
   optoin menu as well". ⌘-click opens a new tab behind (a browser pane, or a file path's default plugin) instead of
   the default browser; ⌘⌥-click opens to the side, since plain and ⌥-clicks belong to the program (cursor moves, ⌥ alone
@@ -314,6 +313,8 @@ Runs: none (no app code).
   Default Browser and Copy Link. libghostty-spm reports links only through `open_url` (⌘-click) and `mouse_over_link`
   (with ⌘ down), so for ⌘⌥-click and the right click the app sends libghostty the pointer with ⌘ for a moment and
   reads the link it reports.
+  It moves the pointer off the view first: libghostty looks for links again only on a new cell. Relative paths
+  (`./`, `../`) open from the card's folder.
 
 ## Track I: Git's diff (items 17, 18)
 

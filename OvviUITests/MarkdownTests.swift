@@ -56,6 +56,12 @@ extension OvviUITests {
         try await send("printf '## Third\\n' >>notes.md\r", to: shell)
         XCTAssertTrue(page.staticTexts.matching(NSPredicate(format: "value == 'Third'")).firstMatch.exists(within: 5))
         copyAll(page)
+        try await links(card, page: page, folder: folder, tab: tab)
+        try await source(card, page: page, shell: shell)
+    }
+
+    /// ⌘-click on a relative link: its file in a new tab; the link's menu; a web link.
+    private func links(_ card: String, page: XCUIElement, folder: String, tab: String) async throws {
         let before = try await tabIDs()
         XCUIElement.perform(withKeyModifiers: .command) { page.links["Other"].click() }
         let opened = try await newTabID(after: before)
@@ -66,7 +72,6 @@ extension OvviUITests {
         try await show(tab)
         follow(card, page: page)
         try await openWebLink(page, from: tab)
-        try await source(card, page: page, shell: shell)
     }
 
     /// Source from the mode's segments: the source alone, its page folded; locked, a typed letter changes nothing. ⌘E

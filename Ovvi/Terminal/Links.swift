@@ -18,9 +18,9 @@ final class Links {
     }
 
     /// What a link opens with, and its argument: a web address with the browser (or a plugin for its URLs), a file
-    /// path (also `file:`, `~` on This Mac, a `:line` after it) with its default plugin and that line. Nil for
-    /// anything else (`ftp:`, `mailto:`).
-    static func target(_ text: String, remote: Bool) -> Target? {
+    /// path (also `file:`, `~` on This Mac, `./` and `../` from the card's folder, a `:line` after it) with its
+    /// default plugin and that line. Nil for anything else (`ftp:`, `mailto:`).
+    static func target(_ text: String, remote: Bool, cwd: String?) -> Target? {
         let url = URL(string: text), scheme = url?.scheme?.lowercased()
         if scheme == "http" || scheme == "https" {
             return Registry.openers(for: text).first.map { Target(plugin: $0, arg: text, line: nil) }
@@ -28,6 +28,8 @@ final class Links {
         var path = scheme == "file" ? url?.path ?? "" : text
         if !remote, path.hasPrefix("~/") {
             path = (path as NSString).expandingTildeInPath
+        } else if let cwd, path.hasPrefix("./") || path.hasPrefix("../") {
+            path = PathField.tidy("\(cwd)/\(path)")
         }
         guard path.hasPrefix("/") else { return nil }
         let line = path.firstMatch(of: /:(\d+)(?::\d+)?$/)
@@ -39,7 +41,8 @@ final class Links {
 
     /// Opens a link of terminal `terminalID`'s card as every link opens: ⌘ and ⌥ open behind, Open in front.
     static func open(_ text: String, how: Opening, from terminalID: String, page: Page?) {
-        guard let page, let target = target(text, remote: page.store.machine.isRemote) else { return }
+        let cwd = page?.store.panes.first { $0.terminalID == terminalID }?.cwd
+        guard let page, let target = target(text, remote: page.store.machine.isRemote, cwd: cwd) else { return }
         Task {
             await page.open(target.plugin, arg: target.arg, at: target.line, from: terminalID, how: how,
                             background: how != .here)
@@ -59,9 +62,12 @@ final class Links {
 
 extension PaneSurfaceView {
     /// The link under the event's point, as a ⌘-click there would open it. libghostty reports a link only while ⌘ is
-    /// down, so the pointer moves there with ⌘ for a moment.
+    /// down, so the pointer moves there with ⌘ for a moment; first off the view, since libghostty looks for links
+    /// again only on another cell than the last.
     func link(at event: NSEvent) -> String? {
         let point = convert(event.locationInWindow, from: nil), top = bounds.height - point.y
+        linkSurface?.sendMousePos(x: -1, y: -1, modifiers: .super_)
+        hoveredLink = nil
         linkSurface?.sendMousePos(x: point.x, y: top, modifiers: .super_)
         let found = hoveredLink
         linkSurface?.sendMousePos(x: point.x, y: top, modifiers: TerminalInputModifiers(from: event.modifierFlags))
@@ -89,7 +95,9 @@ struct TerminalItems: View {
     let view: PaneSurfaceView
 
     var body: some View {
-        if let link = view.menuLink, Links.target(link, remote: view.store()?.machine.isRemote ?? false) != nil {
+        // Relative paths too (any folder): the open resolves them from the card's.
+        let remote = view.store()?.machine.isRemote ?? false
+        if let link = view.menuLink, Links.target(link, remote: remote, cwd: "/") != nil {
             Button("Open") { view.openLink?(link, .here) }
             Button("Open in New Tab") { view.openLink?(link, .tab) }
             Button("Open to the Side") { view.openLink?(link, .side) }

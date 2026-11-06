@@ -60,6 +60,8 @@ struct ChatMessages: View, Equatable {
                 messages
             }
         }
+        // Here, not on ChatView: its body runs at each resize frame, and a new action redraws every link.
+        .environment(\.openURL, OpenURLAction(handler: openLink))
         // The reply box is glass over the messages' bottom, which scroll under it and clear of it.
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if !chat.drawer {
