@@ -373,11 +373,6 @@ extension HostStore {
         }
     }
 
-    /// A workspace's folder: its worktree's, else its first pane's.
-    func root(of workspace: Workspace) -> String? {
-        workspace.worktree?.checkoutPath ?? workspace.tabs.first.flatMap { panes(in: $0.id).first?.cwd }
-    }
-
     /// The user looks at `pane` of `store` (a key window's), and at nothing in the other sessions.
     static func look(_ pane: Pane?, in store: HostStore) {
         let key = pane.map { Seen.key(terminalID: $0.terminalID, paneID: $0.id) }

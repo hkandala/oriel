@@ -223,11 +223,12 @@ extension OvviUITests {
                        "terminalFont": "", "cursorStyle": "block", "cursorBlink": "YES", "optionKey": "characters",
                        "copyOnSelect": "NO", "agentView": "terminal", "agentArguments.claude": "",
                        "agentArguments.codex": "", "agentArguments.pi": "", "agentArguments.opencode": "",
-                       "settleAfter": "<real>10800</real>"]
+                       "settleAfter": "<real>10800</real>", "archivedAgent": "", "showClosedSessions": "YES"]
         let notify = pin ? shipped.sorted { $0.key < $1.key }.filter { !args.contains("-\($0.key)") }
             .flatMap { ["-\($0.key)", $0.value] } : []
-        app.launchArguments = ["-session", session ?? one, "-ApplePersistenceIgnoreState", "YES"] + config + notify
-            + args
+        // Archived reads the agents' stores of a test's fixtures, never the user's sessions.
+        app.launchArguments = ["-session", session ?? one, "-ApplePersistenceIgnoreState", "YES",
+                               "-archivedHome", Self.archivedHome] + config + notify + args
         // The default plugins install from npm's cache (`make web` fills it), never the network.
         app.launchEnvironment["npm_config_offline"] = "true"
         app.launch()
@@ -236,6 +237,9 @@ extension OvviUITests {
     /// Stand-ins for New Pane's check of the agents (ui/new-pane#agent): `claude`, `pi` and `opencode`, and `codex` in
     /// its own folder. CI puts both folders on its login shell's PATH.
     static let agents = URL(filePath: #filePath).deletingLastPathComponent().appending(path: "Fixtures/agents").path
+
+    /// The home folder whose agents' stores the Archived shelf reads (`-archivedHome`).
+    static let archivedHome = "/tmp/ovvi-e2e-archived"
 
     /// A config folder of the tests' own: the app installs its default plugins there, never in the user's.
     static let noConfig = ["-configFolder", "/tmp/ovvi-e2e-no-config"]

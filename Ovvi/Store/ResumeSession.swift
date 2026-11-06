@@ -5,7 +5,11 @@ extension Page {
     /// folder, shown with the keyboard: a new tab after the selected tab of the workspace whose folder holds it (else a
     /// new workspace there), or `beside` the keyboard card. A session whose folder is gone resumes nowhere, as Claude
     /// Code refuses one from another folder; but pi's, which keeps its folder in its file, in the home folder.
-    func resume(_ session: ClosedSession, beside: Bool) async {
+    func resume(_ session: ClosedSession, beside: Bool) {
+        Task { await resumeNow(session, beside: beside) }
+    }
+
+    private func resumeNow(_ session: ClosedSession, beside: Bool) async {
         guard let agent = Chooser.agents.first(where: { $0.command == session.agent }) else { return }
         // herdr starts a pane in the home folder when its folder is gone.
         let found = await store.machine.exec().succeeds(#"test -d "$1""#, [session.folder])
@@ -38,5 +42,12 @@ extension Page {
         store.workspaces.compactMap { workspace in store.root(of: workspace).map { (workspace, $0) } }
             .filter { $0.1 == folder || $0.1.split(separator: "/").count > 2 && folder.hasPrefix($0.1 + "/") }
             .max { $0.1.count < $1.1.count }?.0
+    }
+}
+
+extension HostStore {
+    /// A workspace's folder: its worktree's, else its first pane's.
+    func root(of workspace: Workspace) -> String? {
+        workspace.worktree?.checkoutPath ?? workspace.tabs.first.flatMap { panes(in: $0.id).first?.cwd }
     }
 }

@@ -219,6 +219,8 @@ struct SettingsSearch: Identifiable {
         SettingsSearch(id: "agents.view", title: "Open new agents in", page: .agents, words: "chat terminal tui"),
         SettingsSearch(id: "agents.settle", title: "Settle idle agents after", page: .agents,
                        words: "agents view settled idle hours"),
+        SettingsSearch(id: "agents.closed", title: "Show closed sessions", page: .agents,
+                       words: "agents view archived resume history"),
         SettingsSearch(id: "agents.new-pane", title: "Agents in New Pane", page: .agents,
                        words: "arguments flags claude codex pi opencode"),
         SettingsSearch(id: "agents.needs-you", title: "When an agent needs you", page: .agents,

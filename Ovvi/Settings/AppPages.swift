@@ -272,6 +272,11 @@ struct AgentsPage: View {
                     Text("An idle agent you have seen moves to Settled.")
                 }
                 .accessibilityIdentifier("settings.agents.settle").settingsRow("agents.settle")
+                Toggle(isOn: settings.$showClosed) {
+                    Text("Show closed sessions")
+                    Text("Archived lists the sessions of Claude Code, Codex, Pi and OpenCode that no pane runs.")
+                }
+                .accessibilityIdentifier("settings.agents.closed").settingsRow("agents.closed")
             }
             Section {
                 ForEach(Chooser.agents, id: \.command) { AgentSettingsRow(agent: $0) }

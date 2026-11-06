@@ -86,12 +86,19 @@ struct AgentsList: View {
         let panes = Dictionary(page.store.agentPanes.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let rows = { (ids: [String]) in ids.compactMap { panes[$0] } }
         let pinned = Set(target.pinned), settled = Set(target.settled)
+        let closed = ClosedPin.pins(page, filter: filter)
         return ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 // Lazy: only the rows in view are built, of a hundred agents or more. One ForEach: a lazy stack keeps a
                 // row's view by its id, so a row moved to another ForEach kept its old one (not pinned).
                 let top = rows(shown.pinned), items = top + rows(shown.live)
                 LazyVStack(alignment: .leading, spacing: 4) {
+                    ForEach(closed, id: \.key) { pin in
+                        ClosedPin(pin: pin, page: page)
+                        if pin == closed.last, top.isEmpty {
+                            Divider().padding(.horizontal, 8).padding(.vertical, 4)
+                        }
+                    }
                     ForEach(items) { pane in
                         row(pane, pinned: pinned.contains(pane.id), settled: settled.contains(pane.id))
                         if pane === top.last {
@@ -107,6 +114,9 @@ struct AgentsList: View {
                             row(pane, pinned: pinned.contains(pane.id), settled: settled.contains(pane.id), age: true)
                         }
                     }
+                }
+                if settings.showClosed {
+                    ArchivedShelf(page: page, filter: filter)
                 }
             }
             .padding(Sidebar.rowInsets)
