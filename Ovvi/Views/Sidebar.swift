@@ -177,7 +177,7 @@ private struct SidebarPage: View {
                                         DropIndicator()
                                     }
                                 }
-                                .opacity(page.dragging == .workspace(id) ? 0.4 : 1)
+                                .opacity(page.lifted == .workspace(id) ? 0.4 : 1)
                                 .offset(y: rowsDrop.shift(id))
                                 .background { Color.clear.id("into view \(id)").padding(.vertical, -18) }
                         }

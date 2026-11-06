@@ -42,6 +42,8 @@ final class Page: Identifiable {
     @ObservationIgnored private var zoomedTabID: String?
     /// What this window drags now; the drag source clears it when the drag ends.
     var dragging: Dragged?
+    /// The same once the drag image follows the pointer: the dragged view dims then.
+    var lifted: Dragged?
     /// A close waiting for the user's yes, in this window only.
     var closing: HostStore.Closing?
     /// The floated panes (D50) by terminal id, which a move keeps, each with its Stay on Top.
@@ -328,25 +330,6 @@ extension Page {
     func move(_ pane: HostStore.Pane, to destination: Destination) async {
         let terminalID = pane.terminalID
         await follow(store.move(pane.id, to: destination), terminalID)
-    }
-
-    /// A dragged pane dropped: as a move, the page follows it and it keeps the keyboard. A re-place in its own tab
-    /// keeps that tab selected throughout (its pass through a new tab never shows).
-    func drop(_ paneID: String, on target: DropTarget) async {
-        guard let pane = store.pane(paneID) else { return }
-        let terminalID = pane.terminalID
-        switch target {
-        case let .card(targetID, nil):
-            await store.swap(paneID, with: targetID)
-            go(to: pane)
-        case let .card(targetID, edge?):
-            guard let tabID = store.pane(targetID)?.tabID else { return }
-            await follow(store.place(paneID, in: tabID, beside: targetID, edge), terminalID)
-        case let .tab(tabID):
-            await follow(store.place(paneID, in: tabID), terminalID)
-        case let .move(destination):
-            await move(pane, to: destination)
-        }
     }
 
     /// The page goes to the moved pane's tab once a snapshot shows it (when `select`), and the pane has the

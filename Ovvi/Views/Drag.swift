@@ -30,6 +30,8 @@ extension UTType {
 final class DragSource: NSObject, NSDraggingSource {
     private static let shared = DragSource()
     private weak var page: Page?
+    /// The pointer in the dragged view as the drag began: the drag image keeps that distance from the pointer.
+    private(set) static var grabbed = CGPoint.zero
 
     /// From a `DragGesture`'s change: starts the drag once (the session takes the mouse from there). The preview is
     /// the dragged view's snapshot: `size` from its top left, which is `grabbed` (the pointer in the view) away from
@@ -50,9 +52,22 @@ final class DragSource: NSObject, NSDraggingSource {
             let lifted = lift(card, from: rect, under: pointer, flipped: view.isFlipped)
             dragging.setDraggingFrame(lifted.frame, contents: lifted.image)
         } else {
-            dragging.setDraggingFrame(rect, contents: snapshot(view, rect))
+            // The capsule's or the row's own shape (its ChromeStyle's), without the window around it.
+            var radius: CGFloat = 10, inset: CGFloat = 0
+            if case .tab = item {
+                (radius, inset) = (TabBar.radius - TabBar.inset, TabBar.inset)
+            }
+            dragging.setDraggingFrame(rect, contents: snapshot(view, rect).map { image in
+                NSImage(size: image.size, flipped: false) { bounds in
+                    NSBezierPath(roundedRect: bounds.insetBy(dx: 0, dy: inset), xRadius: radius, yRadius: radius)
+                        .addClip()
+                    image.draw(in: bounds)
+                    return true
+                }
+            })
         }
         shared.page = page
+        self.grabbed = grabbed
         page.dragging = item
         view.beginDraggingSession(with: [dragging], event: event, source: shared)
     }
@@ -102,9 +117,20 @@ final class DragSource: NSObject, NSDraggingSource {
         context == .withinApplication ? .move : []
     }
 
+    /// The session shows its image some frames after it began, first where the view is, and follows the pointer only
+    /// from its first move: the view dims then, so it never shows dimmed with no image over it.
+    nonisolated func draggingSession(_: NSDraggingSession, movedTo _: NSPoint) {
+        MainActor.assumeIsolated {
+            if let page, page.lifted == nil {
+                page.lifted = page.dragging
+            }
+        }
+    }
+
     nonisolated func draggingSession(_: NSDraggingSession, endedAt _: NSPoint, operation _: NSDragOperation) {
         MainActor.assumeIsolated {
             page?.dragging = nil
+            page?.lifted = nil
             page = nil
         }
     }
@@ -279,9 +305,14 @@ extension Animation {
     /// Rex's insertion timing: 0.22 s on its "production" curve. Tabs and rows slide apart with it; none with
     /// Reduce Motion (from AppKit: a drop delegate has no environment).
     static var slide: Animation? {
-        NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? nil
-            : .timingCurve(0.2, 0.9, 0.3, 1, duration: 0.22)
+        NSWorkspace.shared.accessibilityDisplayShouldReduceMotion ? nil : .timingCurve(.slide, duration: 0.22)
     }
+}
+
+extension UnitCurve {
+    /// Rex's "production" curve.
+    static let slide = UnitCurve.bezier(startControlPoint: UnitPoint(x: 0.2, y: 0.9),
+                                        endControlPoint: UnitPoint(x: 0.3, y: 1))
 }
 
 extension View {

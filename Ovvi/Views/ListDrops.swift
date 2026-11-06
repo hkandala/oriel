@@ -12,6 +12,8 @@ struct TrackDrop: DropDelegate {
     @Binding var over: Int?
     @Binding var spring: Task<Void, Never>?
     let springLoad: (String) -> Void
+    /// A tab dropped here: its offset in its new place from where the drag image was, and the tab under the pointer.
+    let land: (_ tab: String, _ offset: CGFloat, _ under: String) -> Void
 
     func validateDrop(info _: DropInfo) -> Bool {
         switch page.dragging {
@@ -52,7 +54,7 @@ struct TrackDrop: DropDelegate {
         withAnimation(page.dragging?.paneID == nil ? .slide : .highlight) { over = nil }
     }
 
-    func performDrop(info _: DropInfo) -> Bool {
+    func performDrop(info: DropInfo) -> Bool {
         spring?.cancel()
         defer { over = nil }
         guard let over else { return false }
@@ -62,14 +64,22 @@ struct TrackDrop: DropDelegate {
             guard tabs.indices.contains(over) else { return false }
             Task { await page.drop(id, on: .tab(tabs[over].id)) }
         case let .tab(id):
+            guard let from = tabs.firstIndex(where: { $0.id == id }) else { return false }
             // herdr inserts before the tab now at the index; its own place or the next is no move.
-            if let from = tabs.firstIndex(where: { $0.id == id }), over != from, over != from + 1 {
+            if over != from, over != from + 1 {
                 // The new order shows in this same update, as the drag's slide ends: no slide back first.
                 page.store.move(tab: id, to: over)
-                // The drag's dimmed capsule too, before the drag session's end: the mouse is up, so no new drag
-                // starts before that end.
-                page.dragging = nil
             }
+            // The drag's dimmed capsule too, before the drag session's end: the mouse is up, so no new drag
+            // starts before that end.
+            page.dragging = nil
+            page.lifted = nil
+            let place = over > from ? over - 1 : over
+            var order = tabs.map(\.id)
+            order.remove(at: from)
+            order.insert(id, at: place)
+            land(id, info.location.x - DragSource.grabbed.x - CGFloat(place) * slot,
+                 order[min(max(Int(info.location.x / max(slot, 1)), 0), order.count - 1)])
         default:
             return false
         }
@@ -256,6 +266,25 @@ struct RowsDrop: DropDelegate {
 }
 
 extension Page {
+    /// A dragged pane dropped: as a move, the page follows it and it keeps the keyboard. A re-place in its own tab
+    /// keeps that tab selected throughout (its pass through a new tab never shows).
+    func drop(_ paneID: String, on target: DropTarget) async {
+        guard let pane = store.pane(paneID) else { return }
+        let terminalID = pane.terminalID
+        switch target {
+        case let .card(targetID, nil):
+            await store.swap(paneID, with: targetID)
+            go(to: pane)
+        case let .card(targetID, edge?):
+            guard let tabID = store.pane(targetID)?.tabID else { return }
+            await follow(store.place(paneID, in: tabID, beside: targetID, edge), terminalID)
+        case let .tab(tabID):
+            await follow(store.place(paneID, in: tabID), terminalID)
+        case let .move(destination):
+            await move(pane, to: destination)
+        }
+    }
+
     /// A dragged tab dropped on another workspace or (nil) a new one: the page follows it there, and its keyboard
     /// card keeps the keyboard.
     func drop(tab tabID: String, on workspaceID: String?) async {

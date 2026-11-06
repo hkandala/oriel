@@ -136,7 +136,7 @@ struct PaneCard: View {
                 .contextMenu { PaneItems(page: page, pane: pane) }
         }
         .overlay { ActiveBorder(id: "pane.\(id)", shown: lit) }
-        .opacity(page.dragging == .pane(id) ? 0.4 : 1)
+        .opacity(page.lifted == .pane(id) ? 0.4 : 1)
         .overlay(alignment: .topLeading) {
             if let zone, page.dragging != nil {
                 let half = CGSize(width: size.width / 2, height: size.height / 2)

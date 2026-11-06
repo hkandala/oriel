@@ -57,7 +57,7 @@ struct TabButton: View {
             .frame(width: TabBar.width, height: TabBar.height, alignment: .leading)
         }
         // The selection is the tab bar's marker.
-        .buttonStyle(ChromeStyle(radius: TabBar.radius, inset: TabBar.inset))
+        .buttonStyle(ChromeStyle(radius: TabBar.radius, inset: TabBar.inset, hovered: hovering))
         .dragSource(.tab(tab.id), page: page)
         // On the capsule alone: the rename field and the × over it have their own.
         .accessibilityIdentifier("tab.\(tab.id)")

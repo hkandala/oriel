@@ -255,6 +255,8 @@ struct ChromeStyle: ButtonStyle {
     var inset: CGFloat = 0
     /// The selected fill; the look's pill when nil.
     var tint: Color?
+    /// The owner's hover, for a view that moves under the pointer (a dropped tab), which sends no hover event.
+    var hovered: Bool?
 
     func makeBody(configuration: Configuration) -> some View {
         Chrome(style: self, configuration: configuration)
@@ -274,10 +276,11 @@ struct ChromeStyle: ButtonStyle {
                     Group {
                         if !style.selected {
                             // The same in both styles, and they follow the appearance by themselves (D44).
-                            let strength = configuration.isPressed ? 0.08 : hovering && enabled ? 0.05 : 0
+                            let lit = style.hovered ?? hovering
+                            let strength = configuration.isPressed ? 0.08 : lit && enabled ? 0.05 : 0
                             // On the tint alone: on the whole label it also faded a menu's light from row to row
                             // (FilterList lights the hovered row).
-                            shape.fill(.primary.opacity(strength)).animation(.easeOut(duration: 0.14), value: hovering)
+                            shape.fill(.primary.opacity(strength)).animation(.easeOut(duration: 0.14), value: lit)
                         } else if let tint = style.tint {
                             shape.fill(tint)
                         } else {

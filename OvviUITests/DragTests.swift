@@ -168,6 +168,16 @@ extension OvviUITests {
         try await expect("herdr's tab order") {
             try await tabIDs().filter { $0.hasPrefix("\(workspace(of: tabs[0])):") } == [tabs[2], tabs[0], tabs[1]]
         }
+        // The last one, dropped beside the first: the first is under the pointer, so it has the ×, not the dropped
+        // tab, at once (no hover event came, and the × changes where the titles cut).
+        let first = element("tab.\(tabs[2])")
+        during(element("tab.\(tabs[1])").coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)),
+               to: first.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.5)))
+        XCTAssertFalse(element("tab.\(tabs[1]).close").exists, "the dropped tab kept the hover")
+        XCTAssertTrue(element("tab.\(tabs[2]).close").exists(within: 1))
+        try await expect("herdr's tab order") {
+            try await tabIDs().filter { $0.hasPrefix("\(workspace(of: tabs[0])):") } == [tabs[2], tabs[1], tabs[0]]
+        }
     }
 
     /// A tab dragged onto another workspace's row moves there whole: its terminals, split tree, ratios and

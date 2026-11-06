@@ -24,6 +24,8 @@ struct TabBar: View {
     /// The row's free space.
     @State private var space: CGFloat = 0
     @State private var hovered: String?
+    /// The tab dropped last, and how far from its place the drag image left it: it glides in from there.
+    @State private var landing: Landing?
     /// The tab a click or a spring-load selects: it is under the pointer, so the row does not scroll to it.
     @State private var clicked: String?
     /// The row's visible part, in the tabs' space: its edges fade where tabs are out of view. No fade until the
@@ -66,8 +68,14 @@ struct TabBar: View {
                                     }
                                 }
                                 .scaleEffect(pulsing == tab.id ? 1.04 : 1)
-                                .opacity(page.dragging == .tab(tab.id) ? 0.4 : 1)
+                                .opacity(page.lifted == .tab(tab.id) ? 0.4 : 1)
                                 .offset(x: shift(index))
+                                .keyframeAnimator(initialValue: 0, trigger: landing?.tab == tab.id ? landing : nil) {
+                                    $0.offset(x: $1)
+                                } keyframes: { _ in
+                                    MoveKeyframe(landing?.tab == tab.id ? landing?.offset ?? 0 : 0)
+                                    LinearKeyframe(0, duration: 0.22, timingCurve: .slide)
+                                }
                         }
                         .onAppear {
                             if SettlingHost.record {
@@ -80,8 +88,16 @@ struct TabBar: View {
                 // accessibility element with the whole row's frame (a click there landed between the capsules).
                 .accessibilityElement(children: .contain)
                 // In the content's space: the capsule under the pointer, wherever the track scrolled.
-                .onDrop(of: [.ovviDrag], delegate: TrackDrop(tabs: tabs, page: page, slot: width + 1,
-                                                             over: $over, spring: $spring, springLoad: springLoad))
+                .onDrop(of: [.ovviDrag], delegate: TrackDrop(
+                    tabs: tabs, page: page, slot: width + 1, over: $over, spring: $spring, springLoad: springLoad,
+                    land: { tab, offset, under in
+                        // Its capsule moved under the pointer with no hover event.
+                        hovered = under
+                        if !reduceMotion {
+                            landing = Landing(tab: tab, offset: offset, count: (landing?.count ?? 0) + 1)
+                        }
+                    },
+                ))
                 .clearsDrop(page) {
                     spring?.cancel() // a late update after the drop may have started one
                     over = nil
@@ -155,6 +171,13 @@ struct TabBar: View {
         let place = slot > from ? slot - 1 : slot
         return (Self.width + 1) * CGFloat(index == from ? place - from
             : from < index && index <= place ? -1 : place <= index && index < from ? 1 : 0)
+    }
+
+    struct Landing: Equatable {
+        let tab: String
+        let offset: CGFloat
+        /// A new drop of the same tab at the same offset glides too.
+        let count: Int
     }
 
     /// Holding a pane over a capsule selects its tab, which pulses once.
