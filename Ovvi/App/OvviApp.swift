@@ -89,7 +89,7 @@ struct ContentView: View {
     /// Each page's selected workspace and tabs and its floated panes, as JSON.
     @SceneStorage("selection") private var savedSelection = ""
     @SceneStorage("sidebar") private var sidebar = true
-    @SceneStorage("sidebarWidth") private var sidebarWidth = 240.0
+    @SceneStorage("sidebarWidth") private var sidebarWidth = 300.0
     /// The sidebar shows the Agents view instead of the workspaces.
     @SceneStorage("agents") private var agents = false
     @Environment(\.scenePhase) private var scenePhase
