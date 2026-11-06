@@ -90,6 +90,8 @@ runs and on-demand on the final head.
 - **Runs.** The first chosen-tests run of the new test failed on a tab it never selected (a test bug); the
   review's ranking blocker would have failed it too. Green on 14670eb2 (plus a throwaway picture test): run
   42144998994, Executed 4 tests (the new one, two palette tests for the ranking, the pictures).
+- **Runs (radius).** 42147208640 on 77e4114a plus the picture test, Executed 2 tests, green; at 1x the field's
+  corner leaves its edges 12 pt from the corner, as the panel's does.
 
 ## Track C: New Pane's folder (item 3)
 
