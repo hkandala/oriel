@@ -107,3 +107,20 @@ private func agent(_ status: AgentStatus, _ completion: Int? = nil, pane: String
     _ = seen.update([agent(.idle, 9, terminal: "t2")], looking: [])
     #expect(seen.states["t2"] == .idle)
 }
+
+@Test func `a relaunch keeps an agent's time while its state_change_seq is the same`() {
+    let then = Date(timeIntervalSince1970: 100), now = Date(timeIntervalSince1970: 900)
+    var before = Seen()
+    _ = before.update([Agent(paneID: "w1:p1", terminalID: "t1", agent: "codex", displayAgent: nil, status: .working,
+                             completionSeq: nil, stateChangeSeq: 4),
+                       Agent(paneID: "w1:p2", terminalID: "t2", agent: "codex", displayAgent: nil, status: .idle,
+                             completionSeq: 2, stateChangeSeq: 2)], looking: [], now: then)
+    #expect(before.marks == ["t1": .init(seq: 4, since: then), "t2": .init(seq: 2, since: then)])
+    var after = Seen(marks: before.marks)
+    // t1 changed while the app was closed; t2 did not.
+    _ = after.update([Agent(paneID: "w1:p1", terminalID: "t1", agent: "codex", displayAgent: nil, status: .idle,
+                            completionSeq: 5, stateChangeSeq: 5),
+                      Agent(paneID: "w1:p2", terminalID: "t2", agent: "codex", displayAgent: nil, status: .idle,
+                            completionSeq: 2, stateChangeSeq: 2)], looking: [], now: now)
+    #expect(after.since == ["t1": now, "t2": then])
+}

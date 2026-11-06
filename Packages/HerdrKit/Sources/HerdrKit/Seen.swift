@@ -15,6 +15,14 @@ public struct Seen: Sendable {
         public let state: AgentState
     }
 
+    /// When an agent's state last changed, with its `state_change_seq` then: kept over a relaunch, an agent whose
+    /// number
+    /// is the same keeps its time (herdr gives no times).
+    public struct Mark: Codable, Equatable, Sendable {
+        public let seq: Int
+        public let since: Date
+    }
+
     /// Each agent's state by key (`key(terminalID:paneID:)`).
     public private(set) var states: [String: AgentState] = [:]
     /// When each agent's state last changed, for the ages.
@@ -26,8 +34,22 @@ public struct Seen: Sendable {
     private var seen: [String: Int?] = [:]
     /// A snapshot was applied: the first one reports no changes.
     private var started = false
+    /// The marks of the app's last run, for each agent's first sighting.
+    private var restored: [String: Mark]
+    private var seqs: [String: Int] = [:]
 
-    public init() {}
+    public init(marks: [String: Mark] = [:]) {
+        restored = marks
+    }
+
+    /// What to keep for the next run.
+    public var marks: [String: Mark] {
+        since.reduce(into: [:]) { marks, item in
+            if let seq = seqs[item.key] {
+                marks[item.key] = Mark(seq: seq, since: item.value)
+            }
+        }
+    }
 
     public static func key(terminalID: String?, paneID: String) -> String {
         terminalID ?? paneID
@@ -61,8 +83,10 @@ public struct Seen: Sendable {
             default: finished ? .finishedUnseen : .idle
             }
             states[id] = state
+            seqs[id] = agent.stateChangeSeq
             if self.states[id] != state {
-                since[id] = now
+                let mark = self.states[id] == nil ? restored.removeValue(forKey: id) : nil
+                since[id] = mark != nil && mark?.seq == agent.stateChangeSeq ? mark?.since : now
                 if started {
                     changes.append(Change(paneID: agent.paneID, state: state))
                 }
@@ -71,6 +95,7 @@ public struct Seen: Sendable {
         // An agent that went away starts over.
         seen = seen.filter { states[$0.key] != nil }
         since = since.filter { states[$0.key] != nil }
+        seqs = seqs.filter { states[$0.key] != nil }
         self.states = states
         self.looking = looking
         return changes

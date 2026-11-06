@@ -31,6 +31,7 @@ private func snapshot() throws -> Snapshot {
     #expect(snapshot.agents.map(\.agent) == ["pi", "pi"])
     #expect(snapshot.agents.map(\.status) == [.idle, .working])
     #expect(snapshot.agents.map(\.completionSeq) == [2, nil])
+    #expect(snapshot.agents.map(\.stateChangeSeq) == [2, 3])
 }
 
 @Test func `unknown fields and values do not fail decoding`() throws {

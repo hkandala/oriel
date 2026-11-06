@@ -148,10 +148,12 @@ public struct Agent: Decodable, Sendable {
     public let status: AgentStatus
     /// The number of the agent's last finish (working or blocked to idle); null again at its next status change.
     public let completionSeq: Int?
+    /// The number of the agent's last change of status, counted over the session: the newest is the largest.
+    public var stateChangeSeq: Int?
 
     enum CodingKeys: String, CodingKey {
         case paneID = "pane_id", terminalID = "terminal_id", agent, displayAgent = "display_agent"
-        case status = "agent_status", completionSeq = "completion_seq"
+        case status = "agent_status", completionSeq = "completion_seq", stateChangeSeq = "state_change_seq"
     }
 }
 
@@ -165,6 +167,7 @@ public extension Agent {
         displayAgent = try? container.decode(String.self, forKey: .displayAgent)
         status = (try? container.decode(AgentStatus.self, forKey: .status)) ?? .unknown
         completionSeq = try? container.decode(Int.self, forKey: .completionSeq)
+        stateChangeSeq = try? container.decode(Int.self, forKey: .stateChangeSeq)
     }
 }
 
