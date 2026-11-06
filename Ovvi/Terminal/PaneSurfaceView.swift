@@ -104,14 +104,6 @@ final class PaneSurfaceView: AppTerminalView {
         }
     }
 
-    override func viewDidUnhide() {
-        super.viewDidUnhide()
-        if wantsKeyboard, window != nil {
-            wantsKeyboard = false
-            claimKeyboard()
-        }
-    }
-
     /// Not in an overview's miniature (D70): keys go to the overview, whatever claims the keyboard meanwhile.
     override var acceptsFirstResponder: Bool {
         !(superview is MiniTerminal.Mini) && super.acceptsFirstResponder
@@ -362,6 +354,15 @@ final class PaneSurfaceView: AppTerminalView {
 }
 
 extension PaneSurfaceView {
+    /// Its kept page shows again: a claim made while it was hidden lands (`claimKeyboard`).
+    override func viewDidUnhide() {
+        super.viewDidUnhide()
+        if wantsKeyboard, window != nil {
+            wantsKeyboard = false
+            claimKeyboard()
+        }
+    }
+
     override func accessibilityIdentifier() -> String {
         terminal.map { "terminal.\($0.paneID)" } ?? ""
     }
