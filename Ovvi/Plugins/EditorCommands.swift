@@ -16,8 +16,8 @@ extension Page {
         }
     }
 
-    /// The pane's card when it takes ⌘S or ⌘F (`handles`): File Explorer's File, Markdown and tree. Only a card
-    /// already made: a menu never makes one.
+    /// The pane's card when it takes ⌘S or ⌘F (`handles`): File Explorer's File, Markdown and tree, and a Git diff.
+    /// Only a card already made: a menu never makes one.
     func editor(_ pane: HostStore.Pane?) -> Plugin? {
         pane?.terminalID.flatMap(terminals.builtPlugin).flatMap { $0.handles("save") || $0.handles("find") ? $0 : nil }
     }

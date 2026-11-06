@@ -762,8 +762,8 @@ The changes of one source in one scroll (`@pierre/diffs`).
   lines, as editors step through changes. git's own hunks (`@@`) are not the
   unit, because one hunk can hold several changes and be taller than the view.
   A step goes from the last change stepped to, or from the first change of the
-  file picked in the list. After the user scrolls (or changes the filter), it
-  goes from the top of the view: ] to the first change at or below it, [ to
+  file picked in the list. After the user scrolls that change out of view (or
+  changes the filter), it goes from the top of the view: ] to the first change at or below it, [ to
   the last one above it. A step opens a folded file and puts the change in the
   middle of the view.
 - **The find bar** (⌘F) filters the files, as the tree's does: a capsule with
@@ -774,8 +774,9 @@ The changes of one source in one scroll (`@pierre/diffs`).
   change step through the shown files only. When none match, the middle shows
   a magnifying glass and "No matching files". Esc or the close button closes
   the bar and clears the filter; the file in view stays where it is. Return
-  gives the keyboard back to the diff, for ] and [, and keeps the filter. A
-  refresh keeps the filter.
+  gives the keyboard back to the diff, for ] and [, and keeps the filter; Esc
+  there still closes the bar. A refresh keeps the filter. A move to a file the
+  filter hides (a change in the Git home) clears the filter.
 - ⌘-click on a line opens the file at that line in a new tab, ⌥-click to the
   side. On a removed line it opens the line after the change.
 - "No changes" shows when the patch is empty. A failed first read (not a
@@ -812,8 +813,8 @@ over the card that uses it, because a disabled menu item swallows its key.
 | ⌘S | Save (File menu): the editor's text to disk | only while File or Markdown has the keyboard |
 | ⌘F | Find… (Edit menu): the editor's find bar; on the tree and a Git diff, its find bar (a filter of the files) | on File, Markdown, the tree and a Git diff. Disabled on Preview and the Git home |
 | ⌥⌘F | Find and Replace: the find bar with its Replace row (the page's own key) | on File and Markdown, in a file that is not read only (Markdown unlocked) |
-| ⌘G | Find Next (Edit menu) | always. Over a terminal it steps the find bar |
-| ⇧⌘G | Find Previous (Edit menu) | only while File or Markdown has the keyboard. Elsewhere ⇧⌘G is Go to Directory |
+| ⌘G | Find Next (Edit menu); in a Git diff, Next Change | always. Over a terminal it steps the find bar |
+| ⇧⌘G | Find Previous (Edit menu); in a Git diff, Previous Change | only while File, Markdown, the tree or a Git diff has the keyboard. Elsewhere ⇧⌘G is Go to Directory |
 | ⌘E | Lock Editing (View menu, while a File Explorer card has the keyboard; disabled outside Markdown): locks and unlocks Markdown | only while Markdown has the keyboard |
 | ⌥⌘R | Reload Plugin (the card's menu, View ▸ Pane) | over a plugin card |
 | ⌘↩ | Commit | in the Git home's message field |

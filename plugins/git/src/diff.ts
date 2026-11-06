@@ -114,8 +114,8 @@ export async function make(place: Page, root: string, source: string) {
   /** ⌘F's find bar, as File Explorer's tree has it: the filter's field, how many files match and Close. */
   const find = element("div", "find")
   find.hidden = true
-  find.innerHTML = `<input class="find-field" name="search" placeholder="Filter" aria-label="Filter" spellcheck="false"><span
-    class="find-count"></span><button class="find-icon" aria-label="Close Filter" title="Close"></button>`
+  find.innerHTML = `<input class="find-field" placeholder="Filter" aria-label="Filter" spellcheck="false"><span
+    class="find-count" role="status"></span><button class="find-icon" aria-label="Close Filter" title="Close"></button>`
   const field = find.querySelector("input")!, count = find.querySelector<HTMLElement>(".find-count")!
   /** A commit's subject, body and facts, at the top of the scroll; empty for the working tree. */
   const about = element("header", "about")
@@ -133,9 +133,8 @@ export async function make(place: Page, root: string, source: string) {
   // the next one after a pick in the list.
   let changes: { id: string; lineNumber: number; side: "additions" | "deletions" }[] = []
   let change = -1
-  /** The filter's text, lower case, and how many files it lets show. */
+  /** The filter's text, lower case. */
   let filter = ""
-  let matched = 0
   /** The files marked Viewed, with their text then: a file that changes since drops the mark. */
   const viewed = new Map<string, string>()
   // Side by Side, the wrap and the file list as the user chose them in the card, else as the settings say.
@@ -340,10 +339,9 @@ export async function make(place: Page, root: string, source: string) {
     })
     for (const node of nav.querySelectorAll<HTMLElement>(".row")) node.hidden = !shows(node.dataset.id!)
     const kept = files.filter((file) => shows(file.name))
-    matched = kept.length
-    count.textContent = filter ? String(matched) : ""
+    count.textContent = filter ? String(kept.length) : ""
     changes = kept.flatMap(blocks)
-    shown()
+    shown(files.length > 0 && !kept.length)
   }
 
   /** Each file in its box, in the patch's order. */
@@ -355,6 +353,7 @@ export async function make(place: Page, root: string, source: string) {
       was.delete(file.name)
       if (!box) {
         const { added, removed } = sums(file), node = element("section", "box")
+        node.hidden = !file.name.toLowerCase().includes(filter)
         box = { diff: file, node, row: node, lines: document.createElement("diffs-container"), folded: added + removed > 2000 }
         owners.set(node, box)
         nearby.observe(node)
@@ -418,9 +417,9 @@ export async function make(place: Page, root: string, source: string) {
     }
   }
 
-  /** The file list and its button only with files to list; No changes when a read found none. */
-  function shown() {
-    const none = Boolean(filter) && !matched
+  /** The file list and its button only with files to list; No changes when a read found none, and No matching files
+   *  when the filter hides every file (`none`). */
+  function shown(none: boolean) {
     nav.hidden = !files.length
     clean.hidden = (Boolean(files.length) || patch === undefined) && !none
     clean.querySelector("h2")!.textContent = none ? "No matching files" : "No changes"
@@ -438,7 +437,8 @@ export async function make(place: Page, root: string, source: string) {
   }
 
   /** The user's scrolls so far (a press on the scroll bar too), and their count at the last step or pick in the list:
-   *  a step after a scroll (or a new filter) goes from the top of the view, under the sticky header. */
+   *  a step after a scroll that took the last change out of view (or a new filter) goes from the top of the view,
+   *  under the sticky header. */
   let moves = 0
   let stepped = 0
   main.addEventListener("wheel", () => moves++, { passive: true })
@@ -488,6 +488,7 @@ export async function make(place: Page, root: string, source: string) {
 
   function reveal(id: string) {
     const box = boxes.get(id)!
+    if (box.node.hidden) closeFind()
     if (box.folded) collapse(id, false)
     main.scrollTop = top(box.node)
     const order = (name: string) => files.findIndex((file) => file.name === name)
@@ -571,11 +572,13 @@ export async function make(place: Page, root: string, source: string) {
 
   function step(by: 1 | -1) {
     if (!changes.length) return
-    if (stepped !== moves) {
-      const view = main.scrollTop + 32, below = changes.findIndex((block) => where(block) > view)
+    // From the top of the view once the change last stepped to left it.
+    const view = main.scrollTop + 32, at = changes[change] ? where(changes[change]) : -1
+    if (stepped !== moves && (at <= view || at >= main.scrollTop + main.clientHeight)) {
+      const below = changes.findIndex((block) => where(block) > view)
       change = (below < 0 ? changes.length : below) - 0.5
-      stepped = moves
     }
+    stepped = moves
     const next = by > 0 ? Math.floor(change) + 1 : Math.ceil(change) - 1
     change = Math.min(Math.max(next, 0), changes.length - 1)
     scrollToChange(changes[change])
@@ -594,6 +597,9 @@ export async function make(place: Page, root: string, source: string) {
     else if (id === "diff.next") step(1)
   })
 
+  // ⌘G and ⇧⌘G, which the card takes with ⌘F: Next and Previous Change.
+  api.on("findNext", () => step(1))
+  api.on("findPrevious", () => step(-1))
   /** ⌘F: the find bar, its text selected. */
   api.on("find", () => {
     find.hidden = false
@@ -610,6 +616,7 @@ export async function make(place: Page, root: string, source: string) {
   function filtered() {
     if (filter === field.value.toLowerCase()) return
     filter = field.value.toLowerCase()
+    change = -1
     stepped = -1
     sift()
   }
@@ -618,13 +625,17 @@ export async function make(place: Page, root: string, source: string) {
   field.onkeydown = (event) => {
     if (event.key === "Escape") closeFind()
     else if (event.key === "Enter") field.blur()
+    else return
+    event.preventDefault()
   }
   find.querySelector("button")!.onclick = closeFind
   // ] and [ step to the next and previous change, as Next and Previous Change; not while the filter has the keyboard.
+  // Esc closes the bar after Return left it.
   const keys = (event: KeyboardEvent) => {
     if (!place.shown || event.metaKey || event.ctrlKey || event.target === field) return
     if (event.key === "]") step(1)
     else if (event.key === "[") step(-1)
+    else if (event.key === "Escape" && !find.hidden) closeFind()
     else return
     event.preventDefault()
   }

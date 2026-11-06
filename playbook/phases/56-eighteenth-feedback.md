@@ -291,8 +291,9 @@ Runs: none (no app code).
   within six lines of the next, so it can hold several changes and be taller than the view, and a jump would skip
   them. A run of changed lines is what editors call a hunk (VS Code's Next Change, vim-gitgutter's `]c`).
 - **Cause (a step ignored the user's scroll):** a step went from the last change stepped to, so after a scroll back to
-  the top ] jumped past everything in view. **Fix:** after a scroll (a wheel or a press on the scroll bar) or a new
-  filter, a step goes from the top of the view: ] to the first change at or below it, [ to the last above.
+  the top ] jumped past everything in view. **Fix:** once a scroll (a wheel or a press on the scroll bar) takes the
+  change last stepped to out of view, or the filter changes, a step goes from the top of the view: ] to the first
+  change at or below it, [ to the last above. ⌘G and ⇧⌘G, which come with ⌘F, step too.
 - **Decisions: the filter.** ⌘F opens a find bar like the tree's (field, count, close) that filters the files by
   path, case blind, in the scroll and the file list; steps skip the hidden files. It floats under the sticky header,
   not over it, so Viewed and Open File stay in reach. Return gives the keyboard back to the diff and keeps the filter.
