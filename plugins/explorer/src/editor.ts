@@ -60,7 +60,8 @@ const theme = EditorView.theme({
   ".cm-cursor, .cm-dropCursor": { borderLeftColor: "var(--text)" },
   ".cm-gutters": { background: "transparent", color: "var(--dim)", border: "none" },
   ".cm-activeLine, .cm-activeLineGutter": { background: "color-mix(in srgb, var(--text) 6%, transparent)" },
-  "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, ::selection": {
+  // As specific as CodeMirror's own light selection, which would win otherwise: a pale lilac under light text.
+  "&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground, ::selection": {
     background: "color-mix(in srgb, var(--accent) 35%, transparent)",
   },
   ".cm-searchMatch": { background: "color-mix(in srgb, var(--finished) 35%, transparent)" },
